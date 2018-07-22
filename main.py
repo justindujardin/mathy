@@ -1,6 +1,7 @@
 from Coach import Coach
-from mathzero.MathGame import MathGame as Game
+from mathzero.MathGame import MathGame
 from mathzero.tensorflow.NNet import NNetWrapper as nn
+from mathzero.math.expressions import ConstantExpression
 from utils import *
 
 args = dotdict({
@@ -21,7 +22,7 @@ args = dotdict({
 })
 
 if __name__=="__main__":
-    g = Game()
+    g = MathGame(ConstantExpression(1337))
     nnet = nn(g)
 
     if args.load_model:

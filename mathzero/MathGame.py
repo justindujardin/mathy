@@ -1,7 +1,11 @@
 import numpy
-from .MathBoard import MathBoard
+from .math.expressions import MathExpression
+from .math.properties.associative import AssociativeSwapRule
+from .math.properties.commutative import CommutativeSwapRule
+from .math.properties.distributive_factor import DistributiveFactorOutRule
+from .math.properties.distributive_multiply import DistributiveMultiplyRule
 import random
-import spacy
+
 
 class MathGame:
     """
@@ -16,9 +20,23 @@ class MathGame:
     representations that can be used to expand on concepts that a user may struggle with.
     """
 
-    def __init__(self, width=64, history_length=64):
-        self.width = width
-        self.history_length = history_length
+    tokens = list("abcdefghijklmnopqrstuvwxyz01234567890.()^*+-/")
+
+    def __init__(self, expression: MathExpression):
+        self.width = 16
+        self.expression = expression
+        self.input_characters = sorted(MathGame.tokens)
+        self.tokens_count = len(self.input_characters)
+        self.token_index = dict(
+            [(char, i) for i, char in enumerate(self.input_characters)]
+        )
+        self.input_data = numpy.zeros((self.width, self.tokens_count), dtype="float32")
+        self.available_actions = [
+            CommutativeSwapRule,
+            DistributiveFactorOutRule,
+            DistributiveMultiplyRule,
+            AssociativeSwapRule,
+        ]
 
     def getInitBoard(self):
         """
@@ -26,22 +44,21 @@ class MathGame:
             startBoard: a representation of the board (ideally this is the form
                         that will be the input to your neural network)
         """
-        b = MathBoard(self.width, self.history_length)
-        return numpy.array(b.pieces)
+        return self.input_data.copy()
 
     def getBoardSize(self):
         """
         Returns:
             (x,y): a tuple of board dimensions
         """
-        return (self.width, self.history_length)
+        return (self.width, self.tokens_count)
 
     def getActionSize(self):
         """
         Returns:
             actionSize: number of all possible actions
         """
-        return 0
+        return len(self.available_actions)
 
     def getNextState(self, board, player, action):
         """
@@ -54,9 +71,8 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        print("action taken!: {}".format(action))
-        board[0][0] = random.randint(0,100)
-        return board, player
+        # print("action taken!: {}".format(action))
+        return board, -player
 
     def getValidMoves(self, board, player):
         """
@@ -122,4 +138,4 @@ class MathGame:
             boardString: a quick conversion of board to a string format.
                          Required by MCTS for hashing.
         """
-        return str(board)
+        return str(self.expression)
