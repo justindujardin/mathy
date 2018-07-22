@@ -17,12 +17,14 @@ class MathExpression(BinaryTreeNode):
     id: str
     _idCounter = 0
 
-    def __init__(self, id=None):
-        super()
+    def __init__(self, id=None, left=None, right=None, parent=None):
+        super().__init__(left, right, parent)
         if id is None:
             MathExpression._idCounter = MathExpression._idCounter + 1
             self.id = "mn-{}".format(MathExpression._idCounter)
         self.classes = [self.id]
+        self.clonedNode = None
+        self.targetClone = None
 
     def evaluate(self, context):
         """Evaluate the expression, resolving all variables to constant values"""
@@ -78,11 +80,13 @@ class MathExpression(BinaryTreeNode):
 
     def getMathML(self):
         """Convert this expression into a MathML container."""
-        return '\n'.join([
-            "<math xmlns='http:#www.w3.org/1998/Math/MathML'>",
-            self.toMathML(),
-            "</math>",
-        ])
+        return "\n".join(
+            [
+                "<math xmlns='http:#www.w3.org/1998/Math/MathML'>",
+                self.toMathML(),
+                "</math>",
+            ]
+        )
 
     def makeMLTag(self, tag, content, classes=[]):
         """
@@ -114,16 +118,16 @@ class MathExpression(BinaryTreeNode):
             raise Exception("cloning root hierarchy did not clone this node")
 
         result = self.clonedNode
-        del self.clonedNode
-        del self.targetClone
+        self.clonedNode = None
+        self.targetClone = None
         return result
 
     def clone(self):
         """
-    A specialization of the clone method that can track and report a cloned subtree
-    node.  See {@link #rootClone} for more details.
-    """
-        result = super.clone()
+        A specialization of the clone method that can track and report a cloned subtree
+        node.  See {@link #rootClone} for more details.
+        """
+        result = super().clone()
         if self.targetClone == self:
             self.clonedNode = result
 
@@ -200,7 +204,7 @@ class UnaryExpression(MathExpression):
     """An expression that operates on one sub-expression"""
 
     def __init__(self, child, operatorOnLeft=True):
-        super()
+        super().__init__()
         self.child = child
         self.operatorleft = operatorOnLeft
         self.setChild(child)
@@ -236,7 +240,7 @@ class NegateExpression(UnaryExpression):
     def operate(self, value):
         return -value
 
-    def toString(self):
+    def __str__(self):
         return "-{}".format(self.getChild())
 
     def differentiate(self, byVar):
@@ -262,7 +266,7 @@ class FunctionExpression(UnaryExpression):
     def getName(self):
         return ""
 
-    def toString(self):
+    def __str__(self):
         child = self.getChild()
         if child:
             return "{}({})".format(self.getName(), child)
@@ -276,10 +280,8 @@ class FunctionExpression(UnaryExpression):
 class BinaryExpression(MathExpression):
     """An expression that operates on two sub-expressions"""
 
-    def __init__(self, left, right):
-        super()
-        self.setLeft(left)
-        self.setRight(right)
+    def __init__(self, left=None, right=None):
+        super().__init__(left=left, right=right)
 
     def evaluate(self, context):
         return self.operate(self.left.evaluate(context), self.right.evaluate(context))
@@ -333,7 +335,7 @@ class BinaryExpression(MathExpression):
             and self.right.getPriority() < self.getPriority()
         )
 
-    def toString(self):
+    def __str__(self):
         if self.rightParenthesis():
             return "{} {} ({})".format(self.left, self.getName(), self.right)
         elif self.leftParenthesis():
@@ -434,14 +436,14 @@ class MultiplyExpression(BinaryExpression):
 
     # Multiplication special cases constant*variable case to output as, e.g. "4x"
     # instead of "4 * x"
-    def toString(self):
+    def __str__(self):
         if isinstance(self.left, ConstantExpression):
             if isinstance(self.right, VariableExpression) or isinstance(
                 self.right, PowerExpression
             ):
                 return "{}{}".format(self.left, self.right)
 
-        return super.toString()
+        return super().__str__()
 
     def toMathML(self):
         rightML = self.right.toMathML()
@@ -452,7 +454,7 @@ class MultiplyExpression(BinaryExpression):
             ):
                 return "{}{}".format(leftML, rightML)
 
-        return super.toMathML()
+        return super().toMathML()
 
 
 class DivideExpression(BinaryExpression):
@@ -467,7 +469,7 @@ class DivideExpression(BinaryExpression):
     # toMathML:() -> "<mfrac>#{@left.toMathML()}#{@right.toMathML()}</mfrac>"
     def operate(self, one, two):
         if two == 0:
-            return float('nan')
+            return float("nan")
         else:
             return one / two
 
@@ -501,43 +503,43 @@ class PowerExpression(BinaryExpression):
     def differentiate(self, byVar):
         raise Exception("Unimplemented")
 
-    def toString(self):
+    def __str__(self):
         return "{}{}{}".format(self.left, self.getName(), self.right)
 
 
 class ConstantExpression(MathExpression):
-    def __init__(self, value):
-        super()
+    def __init__(self, value=None):
+        super().__init__()
         self.value = value
 
     def clone(self):
-        result = super.clone()
+        result = super().clone()
         result.value = self.value
         return result
 
     def evaluate(self, context):
         return self.value
 
-    def toString(self):
+    def __str__(self):
         return "{}".format(self.value)
 
     def toJSON(self):
-        result = super.toJSON()
+        result = super().toJSON()
         result.name = self.value
         return result
 
 
 class VariableExpression(MathExpression):
     def __init__(self, identifier=None):
-        super()
+        super().__init__()
         self.identifier = identifier
 
     def clone(self):
-        result = super.clone()
+        result = super().clone()
         result.identifier = self.identifier
         return result
 
-    def toString(self):
+    def __str__(self):
         if self.identifier == None:
             return ""
         else:
@@ -550,7 +552,7 @@ class VariableExpression(MathExpression):
             return self.makeMLTag("mi", self.identifier)
 
     def toJSON(self):
-        result = super.toJSON()
+        result = super().toJSON()
         result.name = self.identifier
         return result
 

@@ -29,7 +29,7 @@ class BinaryTreeNode:
 
     def clone(self):
         """Create a clone of this tree"""
-        result = self.__class__.__init__()
+        result = self.__class__()
         if self.left:
             result.setLeft(self.left.clone())
 
@@ -42,7 +42,7 @@ class BinaryTreeNode:
         """Is this node a leaf?  A node is a leaf if it has no children."""
         return not self.left and not self.right
 
-    def toString(self):
+    def __str__(self):
         """Serialize the node as a str"""
         return "{} {}".format(self.left, self.right)
 
@@ -231,7 +231,7 @@ class BinarySearchTree(BinaryTreeNode):
         self.key = key
 
     def clone(self) -> BinaryTreeNode:
-        result = super.clone()
+        result = super().clone()
         result.key = self.key
         return result
 
