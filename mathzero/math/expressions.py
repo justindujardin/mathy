@@ -1,0 +1,627 @@
+from typing import List
+from .tree_node import BinaryTreeNode, STOP
+import numpy
+
+OOO_FUNCTION = 4
+OOO_PARENS = 3
+OOO_EXPONENT = 2
+OOO_MULTDIV = 1
+OOO_ADDSUB = 0
+OOO_INVALID = -1
+
+
+class MathExpression(BinaryTreeNode):
+    """A Basic MathExpression node"""
+
+    classes: List[str]
+    id: str
+    _idCounter = 0
+
+    def __init__(self, id=None):
+        super()
+        if id is None:
+            MathExpression._idCounter = MathExpression._idCounter + 1
+            self.id = "mn-{}".format(MathExpression._idCounter)
+        self.classes = [self.id]
+
+    def evaluate(self, context):
+        """Evaluate the expression, resolving all variables to constant values"""
+        return 0.0
+
+    def differentiate(self, byVar):
+        """Differentiate the expression by a given variable"""
+        raise Exception("cannot differentiate an abstract MathExpression node")
+
+    def addClass(self, classes):
+        """
+        Associate a class name with an expression.  This class name will be tagged on nodes
+        when the expression is converted to a capable output format.  See {@link #getMathML}.
+        """
+        if type(classes) == str:
+            classes = [classes]
+        self.classes = list(set(self.classes).union(classes))
+        return self
+
+    def findByType(self, instanceType):
+        """
+        Find an expression in this tree by type.
+        @param {Function} instanceType The type to check for instances of
+        @returns {Array} Array of {@link MathExpression} that are of the given type.
+        """
+        results = []
+
+        def visit_fn(node, depth, data):
+            if isinstance(node, instanceType):
+                return results.append(node)
+
+        self.visitInorder(visit_fn)
+        return results
+
+    def findById(self, id):
+        """
+        Find an expression by its unique ID.
+        @returns {MathExpression|None} The node.
+        """
+        result = None
+
+        def visit_fn(node, depth, data):
+            if node.id == id:
+                result = node
+                return STOP
+
+        self.visitInorder(visit_fn)
+        return result
+
+    def toMathML(self):
+        """Convert this single node into MathML."""
+        return ""
+
+    def getMathML(self):
+        """Convert this expression into a MathML container."""
+        return '\n'.join([
+            "<math xmlns='http:#www.w3.org/1998/Math/MathML'>",
+            self.toMathML(),
+            "</math>",
+        ])
+
+    def makeMLTag(self, tag, content, classes=[]):
+        """
+        Make an ML tag for the given content, respecting the node's
+        given classes.
+        @param {String} tag The ML tag name to create.
+        @param {String} content The ML content to place inside of the tag.
+        @param {Array} classes An array of classes to attach to this tag.
+        """
+        if classes.length == 0:
+            classes = ""
+        else:
+            classes = " class='{}'".format(" ".join(classes))
+        return "<{}{}>{}</{}>".format(tag, classes, content, tag)
+
+    def rootClone(self, node=None):
+        """
+        Like the clone method, but also clones the parent hierarchy up to
+        the node root.  This is useful when you want to clone a subtree and still
+        maintain the overall hierarchy.
+        @param {MathExpression} [node=self] The node to clone.
+        @returns {MathExpression} The cloned node.
+        """
+        node = node if node is not None else self
+        self.clonedNode = None
+        self.targetClone = node
+        result = node.getRoot().clone()
+        if not self.clonedNode:
+            raise Exception("cloning root hierarchy did not clone this node")
+
+        result = self.clonedNode
+        del self.clonedNode
+        del self.targetClone
+        return result
+
+    def clone(self):
+        """
+    A specialization of the clone method that can track and report a cloned subtree
+    node.  See {@link #rootClone} for more details.
+    """
+        result = super.clone()
+        if self.targetClone == self:
+            self.clonedNode = result
+
+        return result
+
+    def isSubTerm(self):
+        """
+        Determine if this is a sub-term, meaning it has
+        a parent that is also a term, in the expression.
+    
+        This indicates that a term has limited mobility,
+        and cannot be freely moved around the entire expression.
+        """
+        node = self.parent
+        while node:
+            if node.getTerm() != False:
+                return True
+
+            node = node.parent
+
+        return False
+
+    def getTerm(self):
+        """Get the term that this node belongs to. Return boolean of expression"""
+        if isinstance(self, AddExpression) or isinstance(self, SubtractExpression):
+            return False
+
+        node = self
+        while node and node.parent:
+            # If there's a multiplication it's a term.  It can be part of a larger term,
+            # but technically it's still a term.  Identify it as such.
+            if isinstance(node, MultiplyExpression):
+                return node
+
+            # If we have an add/subtract parent, yep, definitely a term.
+            if isinstance(node.parent, AddExpression) or isinstance(
+                node.parent, SubtractExpression
+            ):
+                return node
+
+            node = node.parent
+
+        return node
+
+    def getTerms(self):
+        """Get any terms that are children of this node. Returns a list of expressions"""
+        terms = []
+
+        def visit_fn(node, depth, data):
+            # If the parent is not an Add/Sub/Equal, not a term.
+            if (
+                not (isinstance(node.parent, AddExpression))
+                and not (isinstance(node.parent, SubtractExpression))
+                and not (isinstance(node.parent, EqualExpression))
+            ):
+                return
+
+            # If the node is an Add/Sub/Equal, not a term.
+            if (
+                isinstance(node, AddExpression)
+                or isinstance(node, SubtractExpression)
+                or isinstance(node, EqualExpression)
+            ):
+                return
+
+            # Otherwise, looks good.
+            return terms.append(node)
+
+        self.visitPreorder(visit_fn)
+        return terms
+
+
+class UnaryExpression(MathExpression):
+    """An expression that operates on one sub-expression"""
+
+    def __init__(self, child, operatorOnLeft=True):
+        super()
+        self.child = child
+        self.operatorleft = operatorOnLeft
+        self.setChild(child)
+
+    def setChild(self, child):
+        if self.operatorleft:
+            return self.setLeft(child)
+        else:
+            return self.setRight(child)
+
+    def getChild(self):
+        if self.operatorleft:
+            return self.left
+        else:
+            return self.right
+
+    def evaluate(self, context):
+        return self.operate(self.getChild().evaluate(context))
+
+    def operate(self, value):
+        raise Exception("Must be implemented in subclass")
+
+
+# ### Negation
+
+
+class NegateExpression(UnaryExpression):
+    """Negate an expression, e.g. `4` becomes `-4`"""
+
+    def getName(self):
+        return "-"
+
+    def operate(self, value):
+        return -value
+
+    def toString(self):
+        return "-{}".format(self.getChild())
+
+    def differentiate(self, byVar):
+        """
+    <pre>
+              f(x) = -g(x)
+         d( f(x) ) = -( d( g(x) ) )
+    </pre>
+    """
+        return NegateExpression(self.child.differentiate(byVar))
+
+
+# ### Function
+
+
+class FunctionExpression(UnaryExpression):
+    """
+  A Specialized UnaryExpression that is used for functions.  The function name in
+  text (used by the parser and tokenizer) is derived from the getName() method on
+  the class.
+  """
+
+    def getName(self):
+        return ""
+
+    def toString(self):
+        child = self.getChild()
+        if child:
+            return "{}({})".format(self.getName(), child)
+
+        return self.getName()
+
+
+# ## Binary Expressions
+
+
+class BinaryExpression(MathExpression):
+    """An expression that operates on two sub-expressions"""
+
+    def __init__(self, left, right):
+        super()
+        self.setLeft(left)
+        self.setRight(right)
+
+    def evaluate(self, context):
+        return self.operate(self.left.evaluate(context), self.right.evaluate(context))
+
+    def getName(self):
+        raise Exception("Must be implemented in subclass")
+
+    def getMLName(self):
+        return self.getName()
+
+    def operate(self, one, two):
+        raise Exception("Must be implemented in subclass")
+
+    def getPriority(self):
+        """
+        Return a number representing the order of operations priority
+        of this node.  This can be used to check if a node is `locked`
+        with respect to another node, i.e. the other node must be resolved
+        first during evaluation because of it's priority.
+        """
+        if not isinstance(self, BinaryExpression):
+            priority = OOO_INVALID
+
+        if isinstance(self, AddExpression) or isinstance(self, SubtractExpression):
+            priority = OOO_ADDSUB
+
+        if isinstance(self, MultiplyExpression) or isinstance(self, DivideExpression):
+            priority = OOO_MULTDIV
+
+        if isinstance(self, PowerExpression):
+            priority = OOO_EXPONENT
+
+        if isinstance(self, FunctionExpression):
+            priority = OOO_FUNCTION
+
+        return priority
+
+    def leftParenthesis(self):
+        leftChildBinary = self.left and isinstance(self.left, BinaryExpression)
+        return (
+            leftChildBinary
+            and self.left
+            and self.left.getPriority() < self.getPriority()
+        )
+
+    def rightParenthesis(self):
+        rightChildBinary = self.right and isinstance(self.right, BinaryExpression)
+        return (
+            rightChildBinary
+            and self.right
+            and self.right.getPriority() < self.getPriority()
+        )
+
+    def toString(self):
+        if self.rightParenthesis():
+            return "{} {} ({})".format(self.left, self.getName(), self.right)
+        elif self.leftParenthesis():
+            return "({}) {} {}".format(self.left, self.getName(), self.right)
+        return "{} {} {}".format(self.left, self.getName(), self.right)
+
+    def toMathML(self):
+        rightML = self.right.toMathML()
+        leftML = self.left.toMathML()
+        opML = self.makeMLTag("mo", self.getMLName())
+        if self.rightParenthesis():
+            return self.makeMLTag(
+                "mrow",
+                "{}{}<mo>(</mo>{}<mo>)</mo>".format(leftML, opML, rightML),
+                self.classes,
+            )
+        elif self.leftParenthesis():
+            return self.makeMLTag(
+                "mrow",
+                "<mo>(</mo>{}<mo>)</mo>{}{}".format(leftML, opML, rightML),
+                self.classes,
+            )
+
+        return self.makeMLTag(
+            "mrow", "{}{}{}".format(leftML, opML, rightML), self.classes
+        )
+
+
+class EqualExpression(BinaryExpression):
+    """Evaluate equality of two expressions"""
+
+    def getName(self):
+        return "="
+
+    def operate(self, one, two):
+        """
+    This is where assignment of context variables might make sense.  But context is not
+    present in the expression's `operate` method.  TODO: Investigate this thoroughly.
+    """
+        raise Exception("Unsupported operation. Euqality has no operation to perform.")
+
+
+class AddExpression(BinaryExpression):
+    """Add one and two"""
+
+    def getName(self):
+        return "+"
+
+    def operate(self, one, two):
+        return one + two
+
+    #           f(x) = g(x) + h(x)
+    #      d( f(x) ) = d( g(x) ) + d( h(x) )
+    #          f'(x) = g'(x) + h'(x)
+    def differentiate(self, byVar):
+        return AddExpression(
+            self.left.differentiate(byVar), self.right.differentiate(byVar)
+        )
+
+
+class SubtractExpression(BinaryExpression):
+    """Subtract one from two"""
+
+    def getName(self):
+        return "-"
+
+    def operate(self, one, two):
+        return one - two
+
+    #           f(x) = g(x) - h(x)
+    #      d( f(x) ) = d( g(x) ) - d( h(x) )
+    #          f'(x) = g'(x) - h'(x)
+    def differentiate(self, byVar):
+        return AddExpression(
+            self.left.differentiate(byVar), self.right.differentiate(byVar)
+        )
+
+
+class MultiplyExpression(BinaryExpression):
+    """Multiply one and two"""
+
+    def getName(self):
+        return "*"
+
+    def getMLName(self):
+        return "&#183;"
+
+    def operate(self, one, two):
+        return one * two
+
+    #      f(x) = g(x)*h(x)
+    #     f'(x) = g(x)*h'(x) + g'(x)*h(x)
+    def differentiate(self, byVar):
+        return AddExpression(
+            MultiplyExpression(self.left, self.right.differentiate(byVar)),
+            MultiplyExpression(self.left.differentiate(byVar), self.right),
+        )
+
+    # Multiplication special cases constant*variable case to output as, e.g. "4x"
+    # instead of "4 * x"
+    def toString(self):
+        if isinstance(self.left, ConstantExpression):
+            if isinstance(self.right, VariableExpression) or isinstance(
+                self.right, PowerExpression
+            ):
+                return "{}{}".format(self.left, self.right)
+
+        return super.toString()
+
+    def toMathML(self):
+        rightML = self.right.toMathML()
+        leftML = self.left.toMathML()
+        if isinstance(self.left, ConstantExpression):
+            if isinstance(self.right, VariableExpression) or isinstance(
+                self.right, PowerExpression
+            ):
+                return "{}{}".format(leftML, rightML)
+
+        return super.toMathML()
+
+
+class DivideExpression(BinaryExpression):
+    """Divide one by two"""
+
+    def getName(self):
+        return "/"
+
+    def getMLName(self):
+        return "&#247;"
+
+    # toMathML:() -> "<mfrac>#{@left.toMathML()}#{@right.toMathML()}</mfrac>"
+    def operate(self, one, two):
+        if two == 0:
+            return float('nan')
+        else:
+            return one / two
+
+    #       f(x) = g(x)/h(x)
+    #      f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
+    def differentiate(self, byVar):
+        gprimeh = MultiplyExpression(self.left.differentiate(byVar), self.right)
+        ghprime = MultiplyExpression(self.left, self.right.differentiate(byVar))
+        hsquare = PowerExpression(self.right, ConstantExpression(2))
+        return DivideExpression(SubtractExpression(gprimeh, ghprime), hsquare)
+
+
+class PowerExpression(BinaryExpression):
+    """Raise one to the power of two"""
+
+    def getName(self):
+        return "^"
+
+    def toMathML(self):
+        rightML = self.right.toMathML()
+        leftML = self.left.toMathML()
+        # if left is mult, enclose only right in msup
+        if isinstance(self.left, MultiplyExpression):
+            leftML = self.makeMLTag("mrow", leftML, self.classes)
+
+        return self.makeMLTag("msup", "{}{}".format(leftML, rightML), self.classes)
+
+    def operate(self, one, two):
+        return numpy.power(one, two)
+
+    def differentiate(self, byVar):
+        raise Exception("Unimplemented")
+
+    def toString(self):
+        return "{}{}{}".format(self.left, self.getName(), self.right)
+
+
+class ConstantExpression(MathExpression):
+    def __init__(self, value):
+        super()
+        self.value = value
+
+    def clone(self):
+        result = super.clone()
+        result.value = self.value
+        return result
+
+    def evaluate(self, context):
+        return self.value
+
+    def toString(self):
+        return "{}".format(self.value)
+
+    def toJSON(self):
+        result = super.toJSON()
+        result.name = self.value
+        return result
+
+
+class VariableExpression(MathExpression):
+    def __init__(self, identifier=None):
+        super()
+        self.identifier = identifier
+
+    def clone(self):
+        result = super.clone()
+        result.identifier = self.identifier
+        return result
+
+    def toString(self):
+        if self.identifier == None:
+            return ""
+        else:
+            return "{}".format(self.identifier)
+
+    def toMathML(self):
+        if self.identifier == None:
+            return ""
+        else:
+            return self.makeMLTag("mi", self.identifier)
+
+    def toJSON(self):
+        result = super.toJSON()
+        result.name = self.identifier
+        return result
+
+    def evaluate(self, context):
+        if context and context[self.identifier]:
+            return context[self.identifier]
+
+        raise Exception(
+            "cannot evaluate statement with None variable: {}".format(self.identifier)
+        )
+
+    def differentiate(self, byVar):
+        # Differentiating by this variable yields 1
+        #
+        #          f(x) = x
+        #     d( f(x) ) = 1 * d( x )
+        #        d( x ) = 1
+        #         f'(x) = 1
+        if byVar == self.identifier:
+            return ConstantExpression(1)
+
+        # Differentiating by any other variable yields 0
+        #
+        #          f(x) = c
+        #     d( f(x) ) = c * d( c )
+        #        d( c ) = 0
+        #         f'(x) = 0
+        return ConstantExpression(0)
+
+
+class AbsExpression(FunctionExpression):
+    """Evaluates the absolute value of an expression."""
+
+    def getName(self):
+        return "abs"
+
+    def operate(self, value):
+        return numpy.absolute(value)
+
+    #        f(x)   = abs( g(x) )
+    #     d( f(x) ) = sgn( g(x) ) * d( g(x) )
+    def differentiate(self, byVar):
+        return MultiplyExpression(
+            SgnExpression(self.child), self.child.Differentiate(byVar)
+        )
+
+
+class SgnExpression(FunctionExpression):
+    def getName(self):
+        return "sgn"
+
+    def operate(self, value):
+        """
+    Determine the sign of an value
+    @returns {Number} -1 if negative, 1 if positive, 0 if 0
+    """
+        if value < 0:
+            return -1
+
+        if value > 0:
+            return 1
+
+        return 0
+
+    def differentiate(self, byVar):
+        """
+    <pre>
+            f(x) = sgn( g(x) )
+            d( f(x) ) = 0
+    </pre>
+    Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function   
+    """
+        return ConstantExpression(0)
+

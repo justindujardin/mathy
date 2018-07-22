@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+
+echo "Configuring nVidia GPU"
+sudo nvidia-smi -pm 1
+
+echo "Done."

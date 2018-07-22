@@ -1,0 +1,8 @@
+*.pyc
+.DS_Store
+
+/temp/
+/.project
+/.pydevproject
+.env
+.pytest_cache
