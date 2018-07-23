@@ -20,7 +20,7 @@ class MathGame:
     representations that can be used to expand on concepts that a user may struggle with.
     """
 
-    tokens = list("abcdefghijklmnopqrstuvwxyz01234567890.()^*+-/")
+    tokens = list("abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/ ")
 
     def __init__(self, expression: MathExpression):
         self.width = 16
@@ -71,6 +71,10 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
+        text = [self.token_index[t] for t in board]
+        print("Board for next move is: {}".format(text))
+        # Translate board (tokenIds) into text strings = [self.token_index[t] for t in board]
+
         # print("action taken!: {}".format(action))
         return board, -player
 
@@ -114,7 +118,7 @@ class MathGame:
                             board as is. When the player is black, we can invert
                             the colors and return the board.
         """
-        return board
+        return board.copy()
 
     def getSymmetries(self, board, pi):
         """

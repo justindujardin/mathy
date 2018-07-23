@@ -3,6 +3,12 @@ from ..expressions import ConstantExpression, VariableExpression, AddExpression
 from ..parser import ExpressionParser
 
 
+def test_to_string():
+    parser = ExpressionParser()
+    expression = parser.parse("7 + 4x - 2")
+    assert str(expression) == "7 + 4x - 2"
+
+
 def test_mult_exp_precedence():
     """should respect order of operations with factor parsing"""
     parser = ExpressionParser()

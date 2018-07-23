@@ -3,14 +3,11 @@ from ..expressions import ConstantExpression, VariableExpression, AddExpression,
 from ..properties.commutative import CommutativeSwapRule
 
 
-def test_expression_to_string():
-    expr = AddExpression(ConstantExpression(4), ConstantExpression(17))
-    assert str(expr) == '4 + 17'
-
 def test_commutative_property():
     left = ConstantExpression(4)
     right = ConstantExpression(17)
     expr = AddExpression(left, right)
+    assert str(expr) == '4 + 17'
     rule = CommutativeSwapRule()
 
     # can find the root-level nodes
@@ -24,6 +21,7 @@ def test_commutative_property():
     result = rule.applyTo(expr).node
     assert result.left.value == right.value
     assert result.right.value == left.value
+    assert str(expr) == '17 + 4'
 
 
 def test_commutative_property_cannot_apply():

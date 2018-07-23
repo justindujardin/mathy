@@ -285,7 +285,9 @@ class ExpressionParser:
         exp = None
         if expected:
             if self.currentToken.type == TokenConstant:
-                value = float(self.currentToken.value)
+                value = self.currentToken.value
+                # Flip parse as float/int based on whether the value text
+                value = float(value) if 'e' in value or '.' in value else int(value)
                 if negate:
                     value = -value
                     negate = False

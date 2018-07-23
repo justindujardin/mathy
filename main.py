@@ -2,6 +2,7 @@ from Coach import Coach
 from mathzero.MathGame import MathGame
 from mathzero.tensorflow.NNet import NNetWrapper as nn
 from mathzero.math.expressions import ConstantExpression
+from mathzero.math.parser import ExpressionParser
 from utils import *
 
 args = dotdict({
@@ -22,7 +23,9 @@ args = dotdict({
 })
 
 if __name__=="__main__":
-    g = MathGame(ConstantExpression(1337))
+    parser = ExpressionParser()
+    expression = parser.parse('7 + 4x - 2')
+    g = MathGame(expression)
     nnet = nn(g)
 
     if args.load_model:
