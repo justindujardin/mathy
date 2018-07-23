@@ -1,10 +1,15 @@
 import numpy
-from .math.expressions import MathExpression
+from .math.expressions import MathExpression, ConstantExpression
 from .math.parser import ExpressionParser
-from .math.properties.associative import AssociativeSwapRule
-from .math.properties.commutative import CommutativeSwapRule
-from .math.properties.distributive_factor import DistributiveFactorOutRule
-from .math.properties.distributive_multiply import DistributiveMultiplyRule
+from .math.rules import (
+    BaseRule,
+    AssociativeSwapRule,
+    CommutativeSwapRule,
+    DistributiveFactorOutRule,
+    DistributiveMultiplyRule,
+    ConstantsSimplifyRule,
+)
+
 import random
 
 
@@ -24,7 +29,7 @@ class MathGame:
     tokens = list(" abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/")
 
     def __init__(self, expression_str: str):
-        self.width = 16
+        self.width = 24
         self.parser = ExpressionParser()
         self.expression_str = expression_str
         self.input_characters = MathGame.tokens
@@ -34,34 +39,25 @@ class MathGame:
         self.token_index = dict(
             [(char, i) for i, char in enumerate(self.input_characters)]
         )
-        self.input_data = self.encode_text(self.expression_str)
+        self.input_data = self.encode_board(self.expression_str, 0)
         self.available_actions = [
             CommutativeSwapRule(),
             DistributiveFactorOutRule(),
             DistributiveMultiplyRule(),
             AssociativeSwapRule(),
+            ConstantsSimplifyRule(),
         ]
 
     def getInitBoard(self):
-        """
-        Returns:
-            startBoard: a representation of the board (ideally this is the form
-                        that will be the input to your neural network)
-        """
+        """return a numpy encoded version of the input expression"""
         return self.input_data.copy()
 
     def getBoardSize(self):
-        """
-        Returns:
-            (x,y): a tuple of board dimensions
-        """
-        return (self.width, self.tokens_count)
+        """return shape (x,y) of board dimensions"""
+        return (self.width + 1, self.tokens_count)
 
     def getActionSize(self):
-        """
-        Returns:
-            actionSize: number of all possible actions
-        """
+        """Return number of all possible actions"""
         return len(self.available_actions)
 
     def getNextState(self, board, player, action):
@@ -75,16 +71,18 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        text = self.decode_board(board)
-        expession = self.parser.parse(text)
+        text, move_count = self.decode_board(board)
+        expression = self.parser.parse(text)
         action = self.available_actions[action]
-        print("Board is: {}".format(text))
-        print("Action is: {}".format(action))
-        print("Expression is: {}".format(expession))
-        # Translate board (tokenIds) into text strings = [self.token_index[t] for t in board]
 
-        # print("action taken!: {}".format(action))
-        return board, -player
+        # Need actions for setting the currently focused node. This encourages interpretibility
+        # by forcing the action stream to include where the machine is transitioning its focus
+        # to before taking actions. It also reduces the potential number of valid actions at a given
+        # point to a constant number rather than the number of potential actions across the entire
+        # expression, which could be tens or hundreds instead of a handful.
+        change = action.applyTo(expression)
+        after = change.end.root.clone()
+        return self.encode_board(after, move_count + 1), player
 
     def getValidMoves(self, board, player):
         """
@@ -97,7 +95,10 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        expression = self.parser.parse(self.decode_board(board))
+        expression_text, _ = self.decode_board(board)
+        expression = self.parser.parse(expression_text)
+        # print("--Expression -> " + str(expression))
+        # print("        type -> " + str(type(expression)))
         actions = [0] * self.getActionSize()
         for index, _ in enumerate(actions):
             action = self.available_actions[index]
@@ -116,6 +117,19 @@ class MathGame:
                small non-zero value for draw.
                
         """
+        expression_text, move_count = self.decode_board(board)
+        expression = self.parser.parse(expression_text)
+        if move_count > 10:
+            # print("GAME OVER -> more moves than magic number limit")
+            return -1
+
+        # It's over if we make it to just a constant value
+        if isinstance(expression, ConstantExpression):
+            # Holy shit it won!
+            print("Winner! {}".format(expression))
+            return 1
+
+        # The game continues
         return 0
 
     def getCanonicalForm(self, board, player):
@@ -145,31 +159,29 @@ class MathGame:
                        form of the board and the corresponding pi vector. This
                        is used when training the neural network from examples.
         """
-        return []
+        return [(board, pi)]
 
     def stringRepresentation(self, board):
-        """
-        Input:
-            board: current board
+        """conversion of board to a string format, required by MCTS for hashing."""
+        expression_text, move_count = self.decode_board(board)
+        return "{}_{}".format(move_count, expression_text)
 
-        Returns:
-            boardString: a quick conversion of board to a string format.
-                         Required by MCTS for hashing.
-        """
-
-        return self.decode_board(board)
-
-    def encode_text(self, text):
+    def encode_board(self, text, move_count):
         """Encode the given math expression string into tokens on a game board"""
-        data = numpy.zeros((self.width, self.tokens_count), dtype="float32")
+        data = numpy.zeros((self.width + 1, self.tokens_count), dtype="float32")
         characters = list(str(text))
+        # print("encode move as: {}".format(move_count))
+        # Store move count in first column/row
+        data[0][0] = move_count
         for i, ch in enumerate(characters):
-            data[i][self.token_index[ch]] = 1.
+            data[i + 1][self.token_index[ch]] = 1.
+        # print("read back as: {}".format(data[0][0]))
         return data
 
     def decode_board(self, board):
         """Decode the given board into an expression string"""
         token_indices = numpy.argmax(board, axis=1)
-        text = [self.tokens[t] for t in token_indices]
-        return "".join(text).strip()
-
+        move_count = board[0][0]
+        # print("decoded move is : {}".format(move_count))
+        text = [self.tokens[t] for i, t in enumerate(token_indices) if i != 0]
+        return "".join(text).strip(), move_count

@@ -1,7 +1,7 @@
 from ..tree_node import LEFT
 from ..expressions import AddExpression, MultiplyExpression, ConstantExpression
 from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
-from ..rules import BaseRule
+from .rule import BaseRule
 
 # ### Associative Property
 #

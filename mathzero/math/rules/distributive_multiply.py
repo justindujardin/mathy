@@ -15,7 +15,7 @@ from ..util import (
     factorAddTerms,
     makeTerm,
 )
-from ..rules import BaseRule
+from .rule import BaseRule
 
 # ### Distributive Property
 # `a(b + c) = ab + ac`

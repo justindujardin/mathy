@@ -26,7 +26,7 @@ class MathExpression(BinaryTreeNode):
         self.clonedNode = None
         self.targetClone = None
 
-    def evaluate(self, context):
+    def evaluate(self, context=None):
         """Evaluate the expression, resolving all variables to constant values"""
         return 0.0
 
@@ -221,7 +221,7 @@ class UnaryExpression(MathExpression):
         else:
             return self.right
 
-    def evaluate(self, context):
+    def evaluate(self, context=None):
         return self.operate(self.getChild().evaluate(context))
 
     def operate(self, value):
@@ -283,7 +283,7 @@ class BinaryExpression(MathExpression):
     def __init__(self, left=None, right=None):
         super().__init__(left=left, right=right)
 
-    def evaluate(self, context):
+    def evaluate(self, context=None):
         return self.operate(self.left.evaluate(context), self.right.evaluate(context))
 
     def getName(self):
@@ -517,7 +517,7 @@ class ConstantExpression(MathExpression):
         result.value = self.value
         return result
 
-    def evaluate(self, context):
+    def evaluate(self, context=None):
         return self.value
 
     def __str__(self):
@@ -556,7 +556,7 @@ class VariableExpression(MathExpression):
         result.name = self.identifier
         return result
 
-    def evaluate(self, context):
+    def evaluate(self, context=None):
         if context and context[self.identifier]:
             return context[self.identifier]
 

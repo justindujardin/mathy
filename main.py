@@ -24,7 +24,9 @@ args = dotdict({
 
 if __name__=="__main__":
     parser = ExpressionParser()
-    expression = parser.parse('7 + 4x - 2')
+    # expression = parser.parse('7 + x + 2')
+    # expression = parser.parse('7 + 5 + 2 * 2 + 14 + 6')
+    expression = parser.parse('7 + 5 * 2')
     g = MathGame(expression)
     nnet = nn(g)
 

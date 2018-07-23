@@ -1,17 +1,25 @@
 from ..tree_node import BinaryTreeNode
 from ..parser import ExpressionParser
-from ..expressions import ConstantExpression, VariableExpression, AddExpression, DivideExpression
-from ..properties.commutative import CommutativeSwapRule
-from ..properties.distributive_factor import DistributiveFactorOutRule
-from ..properties.distributive_multiply import DistributiveMultiplyRule
-from ..properties.associative import AssociativeSwapRule
+from ..expressions import (
+    ConstantExpression,
+    VariableExpression,
+    AddExpression,
+    DivideExpression,
+)
+from ..rules import (
+    AssociativeSwapRule,
+    CommutativeSwapRule,
+    DistributiveFactorOutRule,
+    DistributiveMultiplyRule,
+    ConstantsSimplifyRule,
+)
 
 
 def test_commutative_property():
     left = ConstantExpression(4)
     right = ConstantExpression(17)
     expr = AddExpression(left, right)
-    assert str(expr) == '4 + 17'
+    assert str(expr) == "4 + 17"
     rule = CommutativeSwapRule()
 
     # can find the root-level nodes
@@ -22,10 +30,10 @@ def test_commutative_property():
     assert rule.canApplyTo(expr) == True
 
     # Applying swaps the left/right position of the Const nodes in the Add expression
-    result = rule.applyTo(expr).node
+    result = rule.applyTo(expr).end.root
     assert result.left.value == right.value
     assert result.right.value == left.value
-    assert str(expr) == '17 + 4'
+    assert str(expr) == "17 + 4"
 
 
 def test_commutative_property_cannot_apply():
@@ -39,9 +47,29 @@ def test_commutative_property_cannot_apply():
     assert len(rule.findNodes(expr)) == 0
 
 
+
+def test_constants_simplify_rule():
+    parser = ExpressionParser()
+    expectations = [("7 + 4", 11), ("1 - 2", -1), ("4 / 2", 2), ("5 * 5", 25)]
+    for input, output in expectations:
+        expression = parser.parse(input)
+        rule = ConstantsSimplifyRule()
+        assert rule.canApplyTo(expression) == True
+        assert rule.applyTo(expression).end.root.value == output
+
+
+def test_distributive_factoring():
+    parser = ExpressionParser()
+    expression = parser.parse("7 + 7")
+    rule = DistributiveFactorOutRule()
+    assert rule.canApplyTo(expression) == True
+    out = rule.applyTo(expression).end.root
+    assert str(out) == '7 * (1 + 1)'
+
+
 def test_common_properties_can_apply_to():
     parser = ExpressionParser()
-    expression = parser.parse('7 + 4x - 2')
+    expression = parser.parse("7 + 4x - 2")
 
     available_actions = [
         CommutativeSwapRule(),

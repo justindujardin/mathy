@@ -84,7 +84,8 @@ class MCTS:
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
-                self.Ps[s] /= sum_Ps_s  # renormalize
+                # renormalize so values sum to 1
+                self.Ps[s] /= sum_Ps_s 
             else:
                 # if all valid moves were masked make all valid moves equally probable
 

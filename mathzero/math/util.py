@@ -167,10 +167,10 @@ class TermResult:
     def __init__(self):
         self.coefficients = []
         self.variables = []
-        self.exponent = 1
+        self.exponent = None
         self.node_coefficients = []
         self.node_variables = []
-        self.node_exponent = 1
+        self.node_exponent = None
 
 
 # Extract term information from the given node

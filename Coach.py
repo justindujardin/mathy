@@ -27,8 +27,8 @@ class Coach:
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
-        trainExamples. The game is played till the game ends. After the game
-        ends, the outcome of the game is used to assign values to each example
+        trainExamples. The game continues until getGameEnded returns a non-zero
+        value, then the outcome of the game is used to assign values to each example
         in trainExamples.
 
         It uses a temp=1 if episodeStep < tempThreshold, and thereafter

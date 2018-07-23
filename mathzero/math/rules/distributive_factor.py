@@ -15,7 +15,7 @@ from ..util import (
     factorAddTerms,
     makeTerm,
 )
-from ..rules import BaseRule
+from .rule import BaseRule
 
 # ### Distributive Property
 # `a(b + c) = ab + ac`
@@ -43,10 +43,12 @@ class DistributiveFactorOutRule(BaseRule):
         if not isAddSubtract(node):
             return False
 
-        if not getTerm(node.left):
+        self.leftTerm = getTerm(node.left)
+        if not self.leftTerm:
             return False
 
-        if not getTerm(node.right):
+        self.rightTerm = getTerm(node.right)
+        if not self.rightTerm:
             return False
 
         f = factorAddTerms(node)
