@@ -44,8 +44,8 @@ def factor(value):
         return []
 
     flip = value < 0
-    sqrt = numpy.sqrt(value) + 1
-    factors = {"1": value}
+    sqrt = int(numpy.sqrt(value) + 1)
+    factors = {1: value}
     factors[value] = 1
 
     for i in range(2, sqrt):
@@ -97,17 +97,17 @@ def factorAddTerms(node):
     if not lTerm or not rTerm:
         raise Exception("Complex or unidentifiable term/s in {}".format(node))
 
-    # Complex terms with multiple coefficients, simply first.
-    if lTerm.coefficients and lTerm.coefficients.length > 1:
+    # TODO: Skipping complex terms with multiple coefficients for now.
+    if lTerm.coefficients and len(lTerm.coefficients) > 1:
         return False
 
-    if rTerm.coefficients and rTerm.coefficients.length > 1:
+    if rTerm.coefficients and len(rTerm.coefficients) > 1:
         return False
 
     # Common coefficients
-    lCoefficients = factor(lTerm.coefficients[0] or 1)
-    rCoefficients = factor(rTerm.coefficients[0] or 1)
-    common = [k for k, v in rCoefficients if k in lCoefficients]
+    lCoefficients = factor(lTerm.coefficients[0] if len(lTerm.coefficients) > 0 else 1)
+    rCoefficients = factor(rTerm.coefficients[0] if len(rTerm.coefficients) > 0 else 1)
+    common = [k for k in rCoefficients if k in lCoefficients]
     best = numpy.max(common)
     result = FactorResult()
     result.best = best
@@ -119,12 +119,9 @@ def factorAddTerms(node):
     # Common variables and powers
     commonExp = lTerm.exponent and rTerm.exponent and lTerm.exponent == rTerm.exponent
     expMatch = False if (lTerm.exponent or rTerm.exponent) and not commonExp else True
-    if (
-        lTerm.variables[0]
-        and rTerm.variables[0]
-        and lTerm.variables[0] == rTerm.variables[0]
-        and expMatch
-    ):
+    hasLeft = len(lTerm.variables) > 0
+    hasRight = len(rTerm.variables) > 0
+    if hasLeft and hasRight and lTerm.variables[0] == rTerm.variables[0] and expMatch:
         result.variable = lTerm.variables[0]
         result.exponent = lTerm.exponent
 
@@ -134,10 +131,10 @@ def factorAddTerms(node):
     if rTerm.exponent and rTerm.exponent != result.exponent:
         result.rightExponent = rTerm.exponent
 
-    if lTerm.variables[0] and lTerm.variables[0] != result.variable:
+    if hasLeft and lTerm.variables[0] != result.variable:
         result.leftVariable = lTerm.variables[0]
 
-    if rTerm.variables[0] and rTerm.variables[0] != result.variable:
+    if hasRight and rTerm.variables[0] != result.variable:
         result.rightVariable = rTerm.variables[0]
 
     return result
@@ -226,7 +223,7 @@ def getTerm(node):
         result.node_exponent = exponent
 
     variables = node.findByType(VariableExpression)
-    if variables.length > 0:
+    if len(variables) > 0:
         result.variables = [v.identifier for v in variables]
         result.node_variables = variables
 
@@ -241,8 +238,8 @@ def getTerm(node):
         return False
 
     coefficients = node.findByType(ConstantExpression)
-    coefficients = [filter_coefficients(c) for c in coefficients]
-    if coefficients.length > 0:
+    coefficients = [c for c in coefficients if filter_coefficients(c)]
+    if len(coefficients) > 0:
 
         def resolve_coefficients(c):
             value = c.value

@@ -96,7 +96,7 @@ class MathExpression(BinaryTreeNode):
         @param {String} content The ML content to place inside of the tag.
         @param {Array} classes An array of classes to attach to this tag.
         """
-        if classes.length == 0:
+        if len(classes) == 0:
             classes = ""
         else:
             classes = " class='{}'".format(" ".join(classes))

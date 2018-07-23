@@ -1,5 +1,6 @@
 import numpy
 from .math.expressions import MathExpression
+from .math.parser import ExpressionParser
 from .math.properties.associative import AssociativeSwapRule
 from .math.properties.commutative import CommutativeSwapRule
 from .math.properties.distributive_factor import DistributiveFactorOutRule
@@ -20,22 +21,25 @@ class MathGame:
     representations that can be used to expand on concepts that a user may struggle with.
     """
 
-    tokens = list("abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/ ")
+    tokens = list(" abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/")
 
-    def __init__(self, expression: MathExpression):
+    def __init__(self, expression_str: str):
         self.width = 16
-        self.expression = expression
-        self.input_characters = sorted(MathGame.tokens)
+        self.parser = ExpressionParser()
+        self.expression_str = expression_str
+        self.input_characters = MathGame.tokens
         self.tokens_count = len(self.input_characters)
+        # use whitespace for padding
+        self.padding_token = self.input_characters[0]
         self.token_index = dict(
             [(char, i) for i, char in enumerate(self.input_characters)]
         )
-        self.input_data = numpy.zeros((self.width, self.tokens_count), dtype="float32")
+        self.input_data = self.encode_text(self.expression_str)
         self.available_actions = [
-            CommutativeSwapRule,
-            DistributiveFactorOutRule,
-            DistributiveMultiplyRule,
-            AssociativeSwapRule,
+            CommutativeSwapRule(),
+            DistributiveFactorOutRule(),
+            DistributiveMultiplyRule(),
+            AssociativeSwapRule(),
         ]
 
     def getInitBoard(self):
@@ -71,8 +75,12 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        text = [self.token_index[t] for t in board]
-        print("Board for next move is: {}".format(text))
+        text = self.decode_board(board)
+        expession = self.parser.parse(text)
+        action = self.available_actions[action]
+        print("Board is: {}".format(text))
+        print("Action is: {}".format(action))
+        print("Expression is: {}".format(expession))
         # Translate board (tokenIds) into text strings = [self.token_index[t] for t in board]
 
         # print("action taken!: {}".format(action))
@@ -89,7 +97,13 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        return [0] * self.getActionSize()
+        expression = self.parser.parse(self.decode_board(board))
+        actions = [0] * self.getActionSize()
+        for index, _ in enumerate(actions):
+            action = self.available_actions[index]
+            if action.canApplyTo(expression):
+                actions[index] = 1
+        return actions
 
     def getGameEnded(self, board, player):
         """
@@ -142,4 +156,20 @@ class MathGame:
             boardString: a quick conversion of board to a string format.
                          Required by MCTS for hashing.
         """
-        return str(self.expression)
+
+        return self.decode_board(board)
+
+    def encode_text(self, text):
+        """Encode the given math expression string into tokens on a game board"""
+        data = numpy.zeros((self.width, self.tokens_count), dtype="float32")
+        characters = list(str(text))
+        for i, ch in enumerate(characters):
+            data[i][self.token_index[ch]] = 1.
+        return data
+
+    def decode_board(self, board):
+        """Decode the given board into an expression string"""
+        token_indices = numpy.argmax(board, axis=1)
+        text = [self.tokens[t] for t in token_indices]
+        return "".join(text).strip()
+
