@@ -29,7 +29,7 @@ class MathGame:
     tokens = list(" abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/")
 
     def __init__(self, expression_str: str):
-        self.width = 24
+        self.width = 32
         self.parser = ExpressionParser()
         self.expression_str = expression_str
         self.input_characters = MathGame.tokens
@@ -81,8 +81,7 @@ class MathGame:
         # point to a constant number rather than the number of potential actions across the entire
         # expression, which could be tens or hundreds instead of a handful.
         change = action.applyTo(expression)
-        after = change.end.root.clone()
-        return self.encode_board(after, move_count + 1), player
+        return self.encode_board(change.end.root, move_count + 1), player
 
     def getValidMoves(self, board, player):
         """

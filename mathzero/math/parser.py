@@ -138,6 +138,8 @@ IS_MULT = TokenSet(TokenMultiply | TokenDivide)
 IS_EXP = TokenSet(TokenExponent)
 IS_EQUAL = TokenSet(TokenEqual)
 
+_parse_cache = {}
+
 
 class ExpressionParser:
     # Initialize the tokenizer.
@@ -148,6 +150,10 @@ class ExpressionParser:
     # later evaluated.
     # Returns : The evaluatable expression tree.
     def parse(self, input):
+        global _parse_cache
+        if input in _parse_cache:
+            return _parse_cache[input].clone()
+
         self.tokens = self.tokenizer.tokenize(input)
         self.currentToken = Token("", TokenNone)
         if not self.next():
@@ -161,8 +167,12 @@ class ExpressionParser:
 
         if leftover != "":
             raise TrailingTokens("Trailing characters: {}".format(leftover))
-
+        _parse_cache[input] = expression
         return expression
+
+    def clear_cache(self):
+        global _parse_cache
+        _parse_cache = {}
 
     def parseEqual(self):
         if not self.check(FIRST_ADD):
@@ -287,7 +297,7 @@ class ExpressionParser:
             if self.currentToken.type == TokenConstant:
                 value = self.currentToken.value
                 # Flip parse as float/int based on whether the value text
-                value = float(value) if 'e' in value or '.' in value else int(value)
+                value = float(value) if "e" in value or "." in value else int(value)
                 if negate:
                     value = -value
                     negate = False
