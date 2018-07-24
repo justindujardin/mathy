@@ -47,6 +47,8 @@ class BaseRule:
 
     def applyTo(self, node):
         if not self.canApplyTo(node):
+            # print('Bad Apply: {}'.format(node))
+            # print('     Root: {}'.format(node.getRoot()))
             raise Exception("Cannot apply {} to {}".format(self.getName(), node))
 
         return ExpressionChangeRule(self, node)

@@ -33,9 +33,7 @@ class AssociativeSwapRule(BaseRule):
         if isinstance(node.parent, AddExpression) and isinstance(node, AddExpression):
             return True
 
-        if isinstance(node.parent, MultiplyExpression) and isinstance(
-            node, MultiplyExpression
-        ):
+        if isinstance(node.parent, MultiplyExpression) and isinstance(node, MultiplyExpression):
             return True
 
         return False

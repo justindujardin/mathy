@@ -58,7 +58,6 @@ class Coach:
             board, self.curPlayer = self.game.getNextState(
                 board, self.curPlayer, action
             )
-
             r = self.game.getGameEnded(board, self.curPlayer)
 
             if r != 0:

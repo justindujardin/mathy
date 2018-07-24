@@ -102,6 +102,23 @@ class MathExpression(BinaryTreeNode):
             classes = " class='{}'".format(" ".join(classes))
         return "<{}{}>{}</{}>".format(tag, classes, content, tag)
 
+    def pathToRoot(self):
+        """
+        Generate a namespaced path key to from the current node to the root.
+        This key can be used to identify a node inside of a tree.
+        """
+        points = []
+
+        def path_mark(node):
+            points.append(node.__class__.__name__.lower())
+
+        node = self
+        path_mark(node)
+        while node.parent:
+            node = node.parent
+            path_mark(node)
+        return ".".join(points)
+
     def rootClone(self, node=None):
         """
         Like the clone method, but also clones the parent hierarchy up to
@@ -112,9 +129,12 @@ class MathExpression(BinaryTreeNode):
         """
         node = node if node is not None else self
         self.clonedNode = None
-        self.targetClone = node
-        result = node.getRoot().clone()
+        self.targetClone = node.pathToRoot()
+        result: MathExpression = node.getRoot().clone()
         if not self.clonedNode:
+            print("While cloning root of: {}".format(node))
+            print(" Which is this       : {}".format(node.getRoot()))
+            print("Did not set the clone: {}".format(self.clonedNode))
             raise Exception("cloning root hierarchy did not clone this node")
 
         result = self.clonedNode
@@ -128,7 +148,7 @@ class MathExpression(BinaryTreeNode):
         node.  See {@link #rootClone} for more details.
         """
         result = super().clone()
-        if self.targetClone == self:
+        if self.pathToRoot() == self.targetClone:
             self.clonedNode = result
 
         return result
@@ -324,6 +344,7 @@ class BinaryExpression(MathExpression):
         return (
             leftChildBinary
             and self.left
+            and not self.left.selfParenthesis()
             and self.left.getPriority() < self.getPriority()
         )
 
@@ -332,7 +353,15 @@ class BinaryExpression(MathExpression):
         return (
             rightChildBinary
             and self.right
+            and not self.right.selfParenthesis()
             and self.right.getPriority() < self.getPriority()
+        )
+
+    def selfParenthesis(self):
+        selfParentBinary = self.parent and isinstance(self.parent, BinaryExpression)
+        return (
+            selfParentBinary
+            and self.parent.getPriority() >= self.getPriority()
         )
 
     def __str__(self):
@@ -340,6 +369,8 @@ class BinaryExpression(MathExpression):
             return "{} {} ({})".format(self.left, self.getName(), self.right)
         elif self.leftParenthesis():
             return "({}) {} {}".format(self.left, self.getName(), self.right)
+        elif self.selfParenthesis():
+            return "({} {} {})".format(self.left, self.getName(), self.right)
         return "{} {} {}".format(self.left, self.getName(), self.right)
 
     def toMathML(self):

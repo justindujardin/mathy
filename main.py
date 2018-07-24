@@ -7,7 +7,7 @@ from utils import *
 
 args = dotdict({
     'numIters': 1000,
-    'numEps': 10,
+    'numEps': 100,
     'tempThreshold': 15,
     'updateThreshold': 0.6,
     'maxlenOfQueue': 200000,
@@ -17,7 +17,7 @@ args = dotdict({
 
     'checkpoint': './temp/',
     'load_model': False,
-    'load_folder_file': ('/dev/models/8x100x50','best.pth.tar'),
+    'load_folder_file': ('./temp/','best.pth.tar'),
     'numItersForTrainExamplesHistory': 20,
 
 })
@@ -25,8 +25,9 @@ args = dotdict({
 if __name__=="__main__":
     parser = ExpressionParser()
     # expression = parser.parse('7 + x + 2')
-    # expression = parser.parse('7 + 5 + 2 * 2 + 14 + 6')
-    expression = parser.parse('1100 + 100 + 300 + 37')
+    expression = parser.parse('(7 - (5 - 3)) * (32 - 7)')
+    print("Expression \"{}\" evaluates to: {}".format(expression, expression.evaluate()))
+    # expression = parser.parse('1100 - 100 + 300 + 37')
     g = MathGame(expression)
     nnet = nn(g)
 

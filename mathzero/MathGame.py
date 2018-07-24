@@ -13,31 +13,35 @@ from .math.rules import (
 
 
 class MetaAction:
-    def count_nodes(self, expression:MathExpression) -> int: 
+    def count_nodes(self, expression: MathExpression) -> int:
         count = 0
         found = -1
-        def visit_fn(node,depth,data):
+
+        def visit_fn(node, depth, data):
             nonlocal count, found
             if node.id == expression.id:
                 found = count
             count = count + 1
-        expression.visitInorder(visit_fn)
+
+        expression.getRoot().visitInorder(visit_fn)
         return count, found
 
+
 class VisitBeforeAction(MetaAction):
-    def canVisit(self, expression:MathExpression) -> bool:
-        count, found = self.count_nodes(expression.getRoot())
-        return found > 0 and count > 1
-    def visit(self, focus_index:int):
+    def canVisit(self, expression: MathExpression) -> bool:
+        count, found = self.count_nodes(expression)
+        return bool(found > 1 and count > 1)
+
+    def visit(self, focus_index: int):
         return focus_index - 1
 
-class VisitAfterAction(MetaAction):
-    
-    def canVisit(self, expression:MathExpression) -> bool:
-        count, found = self.count_nodes(expression.getRoot())
-        return found != -1 and found < count - 2
 
-    def visit(self, focus_index:int):
+class VisitAfterAction(MetaAction):
+    def canVisit(self, expression: MathExpression) -> bool:
+        count, found = self.count_nodes(expression)
+        return bool(found >= 0 and found < count - 2)
+
+    def visit(self, focus_index: int):
         return focus_index + 1
 
 
@@ -59,7 +63,13 @@ class MathGame:
     def __init__(self, expression_str: str):
         self.width = 24
         self.parser = ExpressionParser()
-        self.expression_str = expression_str
+        self.expression_str = str(expression_str)
+        if len(list(self.expression_str)) > self.width:
+            raise Exception(
+                'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
+                    self.expression_str, self.width
+                )
+            )
         self.input_characters = MathGame.tokens
         self.tokens_count = len(self.input_characters)
         # use whitespace for padding
@@ -68,14 +78,11 @@ class MathGame:
             [(char, i) for i, char in enumerate(self.input_characters)]
         )
         self.input_data = self.encode_board(self.expression_str, 0)
-        self.available_actions = [
-            VisitBeforeAction(),
-            VisitAfterAction()
-        ]
+        self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             CommutativeSwapRule(),
-            DistributiveFactorOutRule(),
-            DistributiveMultiplyRule(),
+            # DistributiveFactorOutRule(),
+            # DistributiveMultiplyRule(),
             AssociativeSwapRule(),
             ConstantsSimplifyRule(),
         ]
@@ -106,41 +113,53 @@ class MathGame:
         text, move_count, focus_index = self.decode_board(board)
         expression = self.parser.parse(text)
         token = self.getFocusToken(expression, focus_index)
-
+        # print('focus token[{}] = {}'.format(focus_index, token))
         actions = self.available_actions + self.available_rules
         operation = actions[action]
+        # print("evaluating action ({}) {}".format(action, type(operation)))
 
-        if isinstance(operation, BaseRule):
-            # print('applying: ' + operation.getName())
-            change = operation.applyTo(token)            
-            return self.encode_board(change.end.root, move_count + 1, focus_index), player
+        if isinstance(operation, BaseRule) and operation.canApplyTo(token):
+            # print("applying: " + operation.getName())
+            change = operation.applyTo(token)
+            # [print(s) for s in change.logs]
+            # print('{}'.format(change.end.root))
+            return (
+                self.encode_board(change.end.root, move_count + 1, focus_index),
+                player,
+            )
         elif isinstance(operation, MetaAction):
-            print(type(operation))
+            # print(type(operation))
             # DONE BELOW: actions for setting the currently focused node. This encourages interpretibility
             # by forcing the action stream to include where the machine is transitioning its focus
             # to before taking actions. It also reduces the potential number of valid actions at a given
             # point to a constant number rather than the number of potential actions across the entire
             # expression, which could be tens or hundreds instead of a handful.
-            return self.encode_board(expression, move_count + 1, operation.visit(focus_index)), player
+            return (
+                self.encode_board(
+                    expression, move_count + 1, operation.visit(focus_index)
+                ),
+                player,
+            )
 
-        print("Could not apply action {} to token {}".format(operation, token))
+        # print("Could not apply action {} to token {}".format(operation, token))
         return self.encode_board(expression, move_count + 1, focus_index), player
-        
 
-    def getFocusToken(self, expression:MathExpression, focus_index:int) -> MathExpression:
+    def getFocusToken(
+        self, expression: MathExpression, focus_index: int
+    ) -> MathExpression:
         """Get the token that is `focus_index` from the left of the expression"""
         count = 0
         result = None
+
         def visit_fn(node, depth, data):
             nonlocal result, count
             result = node
-            count = count + 1
             if count == focus_index:
                 return STOP
+            count = count + 1
+
         expression.visitInorder(visit_fn)
         return result
-
-
 
     def getValidMoves(self, board, player):
         """
@@ -168,6 +187,12 @@ class MathGame:
             if rule.canApplyTo(token):
                 actions[count] = 1
             count = count + 1
+
+        # print_list = self.available_actions + self.available_rules
+        # [
+        #     print("action[{}][{}] = {}".format(i, bool(a), type(print_list[i]) if a != 0 else ''))
+        #     for i, a in enumerate(actions)
+        # ]
         return actions
 
     def getGameEnded(self, board, player):
@@ -182,15 +207,30 @@ class MathGame:
                
         """
         expression_text, move_count, _ = self.decode_board(board)
+        expression = self.parser.parse(expression_text)
         if move_count > 10:
-            # print("GAME OVER -> more moves than magic number limit")
+            # print(
+            #     "[LOSE] ENDED WITH: {} => {}!".format(self.expression_str, expression)
+            # )
             return -1
 
-        expression = self.parser.parse(expression_text)
         # It's over if the expression is reduced to a single constant
         if isinstance(expression, ConstantExpression):
+
+            eval = self.parser.parse(self.expression_str).evaluate()
+            found = expression.evaluate()
+            # TODO: This int cast is a cheap hack to not worry about epsilon differences
+            # TODO: Remove this when working with lots of floating point stuff
+            if int(eval) != int(found):
+                print(
+                    "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
+                        self.expression_str, eval, found
+                    )
+                )
+                return -1
+
             # Holy shit it won!
-            # print("Winner! {}".format(expression))
+            # print("[WIN] {} => {}!".format(self.expression_str, expression))
             return 1
 
         # The game continues
@@ -247,8 +287,8 @@ class MathGame:
     def decode_board(self, board):
         """Decode the given board into an expression string"""
         token_indices = numpy.argmax(board, axis=1)
-        move_count = board[0][0]
-        focus_index = board[0][1]
+        move_count = int(board[0][0])
+        focus_index = int(board[0][1])
         # print("decoded move is : {}".format(move_count))
         # print("decoded focus is : {}".format(focus_index))
         text = [self.tokens[t] for i, t in enumerate(token_indices) if i != 0]
