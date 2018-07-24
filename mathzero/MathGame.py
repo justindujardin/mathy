@@ -122,10 +122,9 @@ class MathGame:
             # print("applying: " + operation.getName())
             change = operation.applyTo(token)
             # [print(s) for s in change.logs]
-            # print('{}'.format(change.end.root))
-            return (
-                self.encode_board(change.end.root, move_count + 1, focus_index),
-                player,
+            # print('{}'.format(change))
+            out_board = self.encode_board(
+                change.end.getRoot(), move_count + 1, focus_index
             )
         elif isinstance(operation, MetaAction):
             # print(type(operation))
@@ -134,15 +133,12 @@ class MathGame:
             # to before taking actions. It also reduces the potential number of valid actions at a given
             # point to a constant number rather than the number of potential actions across the entire
             # expression, which could be tens or hundreds instead of a handful.
-            return (
-                self.encode_board(
-                    expression, move_count + 1, operation.visit(focus_index)
-                ),
-                player,
+            out_board = self.encode_board(
+                expression, move_count + 1, operation.visit(focus_index)
             )
-
-        # print("Could not apply action {} to token {}".format(operation, token))
-        return self.encode_board(expression, move_count + 1, focus_index), player
+        else:
+            out_board = self.encode_board(expression, move_count + 1, focus_index)
+        return out_board, player
 
     def getFocusToken(
         self, expression: MathExpression, focus_index: int

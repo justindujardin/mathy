@@ -54,30 +54,17 @@ class BaseRule:
         return ExpressionChangeRule(self, node)
 
 
-class FormattedChange:
-    def __init__(self, clone, rootClone):
-        self.root = rootClone
-        self.rootStr = "{}".format(rootClone)
-        self.expression = clone
-        self.expressionStr = "{}".format(clone)
-
-
 # Basic description of a change to an expression tree
 class ExpressionChangeRule:
     def __init__(self, rule, node=None, end=None):
         self.rule = rule
         self.node = node
-        self.children = []
-        self.logs = []
         self._saveParent = None
         if node:
             self.init(node)
 
         if node and end:
             self.done(end)
-
-    def count(self):
-        return len(self.children)
 
     def saveParent(self, parent=None, side=None):
         if self.node and parent == None:
@@ -90,36 +77,16 @@ class ExpressionChangeRule:
         return self
 
     def init(self, node):
-        self.begin = self._formatChange(node)
+        self.begin = node.rootClone()
         return self
 
     def done(self, node):
         if self._saveParent:
             self._saveParent.setSide(node, self._saveSide)
-
-        self.end = self._formatChange(node)
-        if self.count() == 0:
-            self.note(self)
+        self.end = node.rootClone()
         return self
 
-    def _formatChange(self, node):
-        clone = node.rootClone()
-        rootClone = clone.getRoot()
-        result = FormattedChange(clone, rootClone)
-        return result
-
-    def note(self, change):
-        return self.logs.append(
-            """`{}:\n   {}\n = {}`""".format(
-                change.rule.getName(), change.begin.root, change.end.root
-            )
+    def describe(self, change):
+        return """`{}:\n   {}\n = {}`""".format(
+            change.rule.getName(), change.begin.getRoot(), change.end.getRoot()
         )
-
-    def log(self, change):
-        if not isinstance(change, ExpressionChangeRule):
-            raise Exception("Unknown change object type")
-
-        self.note(change)
-        self.children.append(change)
-        return self
-

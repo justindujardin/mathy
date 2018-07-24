@@ -30,7 +30,7 @@ def test_commutative_property():
     assert rule.canApplyTo(expr) == True
 
     # Applying swaps the left/right position of the Const nodes in the Add expression
-    result = rule.applyTo(expr).end.root
+    result = rule.applyTo(expr).end.getRoot()
     assert result.left.value == right.value
     assert result.right.value == left.value
     assert str(expr) == "17 + 4"
@@ -55,7 +55,7 @@ def test_constants_simplify_rule():
         expression = parser.parse(input)
         rule = ConstantsSimplifyRule()
         assert rule.canApplyTo(expression) == True
-        assert rule.applyTo(expression).end.root.value == output
+        assert rule.applyTo(expression).end.getRoot().value == output
 
 
 def test_distributive_factoring():
@@ -63,7 +63,7 @@ def test_distributive_factoring():
     expression = parser.parse("7 + 7")
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
-    out = rule.applyTo(expression).end.root
+    out = rule.applyTo(expression).end.getRoot()
     assert str(out) == '7 * (1 + 1)'
 
 

@@ -361,6 +361,7 @@ class BinaryExpression(MathExpression):
         selfParentBinary = self.parent and isinstance(self.parent, BinaryExpression)
         return (
             selfParentBinary
+            # ambiguous priority
             and self.parent.getPriority() >= self.getPriority()
         )
 
