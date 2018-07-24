@@ -106,8 +106,8 @@ def factorAddTerms(node):
         return False
 
     # Common coefficients
-    lCoefficients = factor(lTerm.coefficients[0]) if len(lTerm.coefficients) > 0 else 1
-    rCoefficients = factor(rTerm.coefficients[0]) if len(rTerm.coefficients) > 0 else 1
+    lCoefficients = factor(lTerm.coefficients[0] if len(lTerm.coefficients) > 0 else 1)
+    rCoefficients = factor(rTerm.coefficients[0] if len(rTerm.coefficients) > 0 else 1)
     common = [k for k in rCoefficients if k in lCoefficients]
     best = numpy.max(common)
     result = FactorResult()

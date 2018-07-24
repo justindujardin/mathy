@@ -6,7 +6,7 @@ from ..expressions import (
     PowerExpression,
 )
 from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
-from .rule import BaseRule
+from .base_rule import BaseRule
 
 # ### Commutative Property
 #

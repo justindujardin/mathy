@@ -152,7 +152,7 @@ class ExpressionParser:
     def parse(self, input):
         global _parse_cache
         if input in _parse_cache:
-            return _parse_cache[input].clone()
+            return _parse_cache[input]
 
         self.tokens = self.tokenizer.tokenize(input)
         self.currentToken = Token("", TokenNone)
