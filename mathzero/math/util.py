@@ -63,16 +63,6 @@ def isAddSubtract(node):
 
 
 class FactorResult:
-    best: int
-    left: int
-    right: int
-    variable: MathExpression
-    exponent: MathExpression
-    leftExponent: MathExpression
-    rightExponent: MathExpression
-    leftVariable: MathExpression
-    rightVariable: MathExpression
-
     def __init__(self):
         self.best = -1
         self.left = -1

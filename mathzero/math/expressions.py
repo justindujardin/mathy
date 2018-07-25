@@ -127,7 +127,7 @@ class MathExpression(BinaryTreeNode):
         node = node if node is not None else self
         self.clonedNode = None
         self.targetClone = node.pathToRoot()
-        result: MathExpression = node.getRoot().clone()
+        result = node.getRoot().clone()
         if not self.clonedNode:
             print("While cloning root of: {}".format(node))
             print(" Which is this       : {}".format(node.getRoot()))

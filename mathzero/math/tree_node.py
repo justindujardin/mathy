@@ -17,9 +17,6 @@ class BinaryTreeNode:
   children, and a parent.
   """
 
-    left: "BinaryTreeNode"
-    right: "BinaryTreeNode"
-    parent: "BinaryTreeNode"
     #  Allow specifying children in the constructor
     def __init__(self, left=None, right=None, parent=None):
         self.setLeft(left)
@@ -222,8 +219,6 @@ class BinaryTreeNode:
 class BinarySearchTree(BinaryTreeNode):
     """A binary search tree by key"""
 
-    key: str
-
     def __init__(self, key: str):
         super()
         self.key = key
@@ -283,12 +278,6 @@ class BinarySearchTree(BinaryTreeNode):
 
 
 class TidierExtreme:
-    left: "TidierExtreme"
-    right: "TidierExtreme"
-    thread: "TidierExtreme"
-    level: int
-    offset: int
-
     def __init__(self):
         self.left = None
         self.right = None
