@@ -121,7 +121,7 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        
+
         text, move_count, focus_index = self.decode_board(board)
         expression = self.parser.parse(text)
         token = self.getFocusToken(expression, focus_index)
@@ -305,6 +305,12 @@ class MathGame:
 
         # The game continues
         return 0
+
+    # ===================================================================
+    #
+    #       STOP! THERE IS NOTHING YOU WANT TO CHANGE BELOW HERE.
+    #
+    # ===================================================================
 
     def getCanonicalForm(self, board, player):
         """
