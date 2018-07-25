@@ -28,3 +28,6 @@ sudo pip3 install --upgrade virtualenv
 echo "Create virtualenv at /etc/pyenv/"
 sudo mkdir -p /etc/pyenv/
 sudo python3 -m venv /etc/pyenv/
+
+echo "Installing Keras and PyTorch"
+sudo /etc/pyenv/bin/pip install keras torch torch-vision

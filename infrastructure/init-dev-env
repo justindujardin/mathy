@@ -12,4 +12,8 @@ echo 'export PATH=$PATH:$CUDA_HOME/bin' >> ~/.bashrc
 echo 'export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
 source ~/.bashrc
 
+
+git config --global user.email "justin@dujardinconsulting.com"
+git config --global user.name "Justin DuJardin"
+
 echo "Done."
