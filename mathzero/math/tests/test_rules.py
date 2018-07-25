@@ -47,6 +47,16 @@ def test_commutative_property_cannot_apply():
     assert len(rule.findNodes(expr)) == 0
 
 
+def test_commutative_property_truncate():
+    parser = ExpressionParser()
+    expr = parser.parse('(7 + x) + 2')
+    rule = CommutativeSwapRule()
+
+    change = rule.applyTo(expr)
+    assert str(change.end) == '2 + (7 + x)'
+
+
+
 
 def test_constants_simplify_rule():
     parser = ExpressionParser()
@@ -61,6 +71,14 @@ def test_constants_simplify_rule():
 def test_distributive_factoring():
     parser = ExpressionParser()
     expression = parser.parse("7 + 7")
+    rule = DistributiveFactorOutRule()
+    assert rule.canApplyTo(expression) == True
+    out = rule.applyTo(expression).end.getRoot()
+    assert str(out) == '7 * (1 + 1)'
+
+def test_distributive_factoring():
+    parser = ExpressionParser()
+    expression = parser.parse("(x + 9) - 2x")
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
     out = rule.applyTo(expression).end.getRoot()

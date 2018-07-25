@@ -1,7 +1,14 @@
 import random
 import numpy
-from .math.expressions import MathExpression, ConstantExpression, STOP
+from .math.expressions import (
+    MathExpression,
+    ConstantExpression,
+    STOP,
+    AddExpression,
+    VariableExpression,
+)
 from .math.parser import ExpressionParser
+from .math.util import termsAreLike
 from .math.rules import (
     BaseRule,
     AssociativeSwapRule,
@@ -10,6 +17,7 @@ from .math.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
+from .math.profiler import profile_start, profile_end
 
 
 class MetaAction:
@@ -61,7 +69,7 @@ class MathGame:
     tokens = list(" abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/")
 
     def __init__(self, expression_str: str):
-        self.width = 24
+        self.width = 32
         self.parser = ExpressionParser()
         self.expression_str = str(expression_str)
         if len(list(self.expression_str)) > self.width:
@@ -90,6 +98,8 @@ class MathGame:
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
         return self.input_data.copy()
+        # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
+        # return self.encode_board(self.expression_str, 0)
 
     def getBoardSize(self):
         """return shape (x,y) of board dimensions"""
@@ -99,35 +109,48 @@ class MathGame:
         """Return number of all possible actions"""
         return len(self.available_rules) + len(self.available_actions)
 
-    def getNextState(self, board, player, action):
+    def getNextState(self, board, player, action, searching=False):
         """
         Input:
-            board: current board
-            player: current player (1 or -1)
-            action: action taken by current player
+            board:     current board
+            player:    current player (1 or -1)
+            action:    action taken by current player
+            searching: boolean set to True when called by MCTS
 
         Returns:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
+        
         text, move_count, focus_index = self.decode_board(board)
         expression = self.parser.parse(text)
         token = self.getFocusToken(expression, focus_index)
-        # print('focus token[{}] = {}'.format(focus_index, token))
         actions = self.available_actions + self.available_rules
         operation = actions[action]
-        # print("evaluating action ({}) {}".format(action, type(operation)))
+        debug = True
 
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
-            # print("applying: " + operation.getName())
-            change = operation.applyTo(token)
-            # [print(s) for s in change.logs]
-            # print('{}'.format(change))
-            out_board = self.encode_board(
-                change.end.getRoot(), move_count + 1, focus_index
-            )
+            change = operation.applyTo(token.rootClone())
+            root = change.end.getRoot()
+            if not searching and debug:
+                print(
+                    "[{}][out={}] {}".format(
+                        move_count, change.end.id, change.describe()
+                    )
+                )
+            out_board = self.encode_board(root, move_count + 1, focus_index)
         elif isinstance(operation, MetaAction):
-            # print(type(operation))
+            if not searching and debug:
+                direction = (
+                    "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
+                )
+                print(
+                    "[{}] 👀 Looking {} at: {}".format(
+                        move_count,
+                        direction,
+                        self.getFocusToken(expression, operation.visit(focus_index)),
+                    )
+                )
             # DONE BELOW: actions for setting the currently focused node. This encourages interpretibility
             # by forcing the action stream to include where the machine is transitioning its focus
             # to before taking actions. It also reduces the potential number of valid actions at a given
@@ -136,7 +159,14 @@ class MathGame:
             out_board = self.encode_board(
                 expression, move_count + 1, operation.visit(focus_index)
             )
+            # profile_end('getNextState.applyMetaAction')
         else:
+            if not searching and debug:
+                print(
+                    "[{}] skip because invalid move was selected: {}, {}".format(
+                        move_count, action, operation
+                    )
+                )
             out_board = self.encode_board(expression, move_count + 1, focus_index)
         return out_board, player
 
@@ -191,11 +221,12 @@ class MathGame:
         # ]
         return actions
 
-    def getGameEnded(self, board, player):
+    def getGameEnded(self, board, player, searching=False):
         """
         Input:
-            board: current board
-            player: current player (1 or -1)
+            board:     current board
+            player:    current player (1 or -1)
+            searching: boolean that is True when called by MCTS simulation
 
         Returns:
             r: 0 if game has not ended. 1 if player won, -1 if player lost,
@@ -204,29 +235,72 @@ class MathGame:
         """
         expression_text, move_count, _ = self.decode_board(board)
         expression = self.parser.parse(expression_text)
-        if move_count > 10:
-            # print(
-            #     "[LOSE] ENDED WITH: {} => {}!".format(self.expression_str, expression)
-            # )
+        if move_count > 20:
+            if not searching:
+                print(
+                    "[LOSE] ENDED WITH: {} => {}!".format(
+                        self.expression_str, expression
+                    )
+                )
+            else:
+                print(".")
             return -1
 
         # It's over if the expression is reduced to a single constant
-        if isinstance(expression, ConstantExpression):
+        if (
+            isinstance(expression, ConstantExpression)
+            and len(expression.getChildren()) == 0
+        ):
 
-            eval = self.parser.parse(self.expression_str).evaluate()
-            found = expression.evaluate()
-            # TODO: This int cast is a cheap hack to not worry about epsilon differences
-            # TODO: Remove this when working with lots of floating point stuff
-            if int(eval) != int(found):
-                print(
-                    "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
-                        self.expression_str, eval, found
-                    )
-                )
-                return -1
+            # eval = self.parser.parse(self.expression_str).evaluate()
+            # found = expression.evaluate()
+            # # TODO: This int cast is a cheap hack to not worry about epsilon differences
+            # # TODO: Remove this when working with lots of floating point stuff
+            # if int(eval) != int(found):
+            #     if not searching:
+            #         print(
+            #             "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
+            #                 self.expression_str, eval, found
+            #             )
+            #         )
+            #     return -1
 
             # Holy shit it won!
-            # print("[WIN] {} => {}!".format(self.expression_str, expression))
+            if not searching:
+                print("[WIN] {} => {}!".format(self.expression_str, expression))
+            else:
+                print(".")
+
+            return 1
+        # Check for simplification down to a single addition with constant/variable
+        if isinstance(expression, AddExpression):
+            constant = None
+            variable = None
+
+            if isinstance(expression.left, ConstantExpression):
+                constant = expression.left
+            elif isinstance(expression.right, ConstantExpression):
+                constant = expression.right
+            else:
+                return 0
+
+            if isinstance(expression.right, VariableExpression):
+                constant = expression.right
+            elif isinstance(expression.right, VariableExpression):
+                constant = expression.right
+            else:
+                return 0
+
+            # TODO: Compare constant/variable findings to verify their accuracy.
+            #       This helps until we're 100% confident in the parser/serializer consistency
+            #
+            # Holy shit it won!
+            if not searching:
+                print("[TERMWIN] {} => {}!".format(self.expression_str, expression))
+                print("TERM WIN WITH CONSTANT: {}".format(constant))
+                print("TERM WIN WITH VARIABLE: {}".format(variable))
+            else:
+                print(".")
             return 1
 
         # The game continues

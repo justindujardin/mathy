@@ -67,7 +67,7 @@ class ExpressionChangeRule:
             self.done(end)
 
     def saveParent(self, parent=None, side=None):
-        if self.node and parent == None:
+        if self.node and parent is None:
             parent = self.node.parent
 
         self._saveParent = parent
@@ -86,7 +86,7 @@ class ExpressionChangeRule:
         self.end = node.rootClone()
         return self
 
-    def describe(self, change):
+    def describe(self):
         return """`{}:\n   {}\n = {}`""".format(
-            change.rule.getName(), change.begin.getRoot(), change.end.getRoot()
+            self.rule.getName(), self.begin.getRoot(), self.end.getRoot()
         )

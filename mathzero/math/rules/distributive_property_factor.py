@@ -60,16 +60,6 @@ class DistributiveFactorOutRule(BaseRule):
 
         return True
 
-    def shouldApplyTo(self, node):
-        if not super().shouldApplyTo(node):
-            return False
-
-        f = factorAddTerms(node)
-        if not f.variable:
-            return False
-
-        return True
-
     def applyTo(self, node):
         leftLink = None
         change = super().applyTo(node).saveParent()

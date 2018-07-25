@@ -72,7 +72,7 @@ class MCTS:
         s = self.game.stringRepresentation(canonicalBoard)
 
         if s not in self.Es:
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1)
+            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1, searching=True)
         if self.Es[s] != 0:
             # terminal node
             return -self.Es[s]
@@ -120,7 +120,7 @@ class MCTS:
                     best_act = a
 
         a = best_act
-        next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
+        next_s, next_player = self.game.getNextState(canonicalBoard, 1, a, searching=True)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
         v = self.search(next_s)

@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 # ## Constants
@@ -8,7 +9,6 @@ STOP = "stop"
 LEFT = "left"
 # The constant representing the right child side of a node.
 RIGHT = "right"
-
 
 class BinaryTreeNode:
     """
@@ -35,7 +35,6 @@ class BinaryTreeNode:
 
         if self.right:
             result.setRight(self.right.clone())
-
         return result
 
     def isLeaf(self):

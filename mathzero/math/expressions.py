@@ -265,11 +265,11 @@ class NegateExpression(UnaryExpression):
 
     def differentiate(self, byVar):
         """
-    <pre>
-              f(x) = -g(x)
-         d( f(x) ) = -( d( g(x) ) )
-    </pre>
-    """
+        <pre>
+                f(x) = -g(x)
+            d( f(x) ) = -( d( g(x) ) )
+        </pre>
+        """
         return NegateExpression(self.child.differentiate(byVar))
 
 
