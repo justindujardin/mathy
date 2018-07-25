@@ -18,7 +18,7 @@ from .math.rules import (
     ConstantsSimplifyRule,
 )
 from .math.profiler import profile_start, profile_end
-
+from .MathBoard import MathBoard
 
 class MetaAction:
     def count_nodes(self, expression: MathExpression) -> int:
@@ -85,7 +85,7 @@ class MathGame:
         self.token_index = dict(
             [(char, i) for i, char in enumerate(self.input_characters)]
         )
-        self.input_data = self.encode_board(self.expression_str, 0)
+        self.input_data = MathBoard(self.width).encode_board(self.expression_str)
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             CommutativeSwapRule(),
@@ -103,7 +103,7 @@ class MathGame:
 
     def getBoardSize(self):
         """return shape (x,y) of board dimensions"""
-        return (self.width + 1, self.tokens_count)
+        return (self.width * 2 + 2, self.tokens_count)
 
     def getActionSize(self):
         """Return number of all possible actions"""
@@ -121,13 +121,13 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-
-        text, move_count, focus_index = self.decode_board(board)
+        b = MathBoard(self.width)
+        text, move_count, focus_index = b.decode_player(board, player)
         expression = self.parser.parse(text)
         token = self.getFocusToken(expression, focus_index)
         actions = self.available_actions + self.available_rules
         operation = actions[action]
-        debug = True
+        debug = False
 
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
@@ -138,7 +138,9 @@ class MathGame:
                         move_count, change.end.id, change.describe()
                     )
                 )
-            out_board = self.encode_board(root, move_count + 1, focus_index)
+            out_board = b.encode_player(
+                board, player, root, move_count + 1, focus_index
+            )
         elif isinstance(operation, MetaAction):
             if not searching and debug:
                 direction = (
@@ -156,8 +158,8 @@ class MathGame:
             # to before taking actions. It also reduces the potential number of valid actions at a given
             # point to a constant number rather than the number of potential actions across the entire
             # expression, which could be tens or hundreds instead of a handful.
-            out_board = self.encode_board(
-                expression, move_count + 1, operation.visit(focus_index)
+            out_board = b.encode_player(
+                board, player, expression, move_count + 1, operation.visit(focus_index)
             )
             # profile_end('getNextState.applyMetaAction')
         else:
@@ -167,8 +169,10 @@ class MathGame:
                         move_count, action, operation
                     )
                 )
-            out_board = self.encode_board(expression, move_count + 1, focus_index)
-        return out_board, player
+            out_board = b.encode_player(
+                board, player, expression, move_count + 1, focus_index
+            )
+        return out_board, -player
 
     def getFocusToken(
         self, expression: MathExpression, focus_index: int
@@ -198,7 +202,8 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        expression_text, _, focus_index = self.decode_board(board)
+        b = MathBoard(self.width)
+        expression_text, _, focus_index = b.decode_player(board, player)
         expression = self.parser.parse(expression_text)
         token = self.getFocusToken(expression, focus_index)
         actions = [0] * self.getActionSize()
@@ -233,18 +238,9 @@ class MathGame:
                small non-zero value for draw.
                
         """
-        expression_text, move_count, _ = self.decode_board(board)
+        b = MathBoard(self.width)
+        expression_text, move_count, _ = b.decode_player(board, player)
         expression = self.parser.parse(expression_text)
-        if move_count > 20:
-            if not searching:
-                print(
-                    "[LOSE] ENDED WITH: {} => {}!".format(
-                        self.expression_str, expression
-                    )
-                )
-            else:
-                print(".")
-            return -1
 
         # It's over if the expression is reduced to a single constant
         if (
@@ -267,9 +263,14 @@ class MathGame:
 
             # Holy shit it won!
             if not searching:
-                print("[WIN] {} => {}!".format(self.expression_str, expression))
+                print(
+                    "[Player{}][WIN] {} => {}!".format(
+                        player, self.expression_str, expression
+                    )
+                )
             else:
-                print(".")
+                pass
+                # print(".")
 
             return 1
         # Check for simplification down to a single addition with constant/variable
@@ -281,27 +282,39 @@ class MathGame:
                 constant = expression.left
             elif isinstance(expression.right, ConstantExpression):
                 constant = expression.right
-            else:
-                return 0
 
             if isinstance(expression.right, VariableExpression):
                 constant = expression.right
             elif isinstance(expression.right, VariableExpression):
                 constant = expression.right
-            else:
-                return 0
 
             # TODO: Compare constant/variable findings to verify their accuracy.
             #       This helps until we're 100% confident in the parser/serializer consistency
             #
             # Holy shit it won!
-            if not searching:
-                print("[TERMWIN] {} => {}!".format(self.expression_str, expression))
+            if not searching and constant and variable:
+                print(
+                    "[Player{}][TERMWIN] {} => {}!".format(
+                        player, self.expression_str, expression
+                    )
+                )
                 print("TERM WIN WITH CONSTANT: {}".format(constant))
                 print("TERM WIN WITH VARIABLE: {}".format(variable))
+                return 1
+
+        # Check the turn count last because if the previous move that incremented
+        # the turn over the count resulted in a win-condition, it should be honored.
+        if move_count > 20:
+            if not searching:
+                print(
+                    "[Player{}][LOSE] ENDED WITH: {} => {}!".format(
+                        player, self.expression_str, expression
+                    )
+                )
             else:
-                print(".")
-            return 1
+                pass
+                # print(".")
+            return -1
 
         # The game continues
         return 0
@@ -326,7 +339,8 @@ class MathGame:
                             board as is. When the player is black, we can invert
                             the colors and return the board.
         """
-        return board
+
+        return MathBoard(self.width).get_canonical_board(board, player)
 
     def getSymmetries(self, board, pi):
         """
@@ -343,29 +357,11 @@ class MathGame:
 
     def stringRepresentation(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        expression_text, move_count, focus_index = self.decode_board(board)
-        return "f{}_m{}_e{}".format(focus_index, move_count, expression_text)
-
-    def encode_board(self, text, move_count, focus_index=0):
-        """Encode the given math expression string into tokens on a game board"""
-        data = numpy.zeros((self.width + 1, self.tokens_count), dtype="float32")
-        characters = list(str(text))
-        # print("encode move as: {}".format(move_count))
-        # Store move count in first column/row
-        data[0][0] = move_count
-        data[0][1] = focus_index
-        for i, ch in enumerate(characters):
-            data[i + 1][self.token_index[ch]] = 1.
-        # print("encode move_count i: {}".format(data[0][0]))
-        # print("encode focus is : {}".format(focus_index))
-        return data
-
-    def decode_board(self, board):
-        """Decode the given board into an expression string"""
-        token_indices = numpy.argmax(board, axis=1)
-        move_count = int(board[0][0])
-        focus_index = int(board[0][1])
-        # print("decoded move is : {}".format(move_count))
-        # print("decoded focus is : {}".format(focus_index))
-        text = [self.tokens[t] for i, t in enumerate(token_indices) if i != 0]
-        return "".join(text).strip(), move_count, focus_index
+        b = MathBoard(self.width)
+        # This is always called for the canonical board which means the
+        # current player is always in player1 slot:
+        e1, m1, _ = b.decode_player(board, 1)
+        # Note that the focus technically has no bearing on the win-state
+        # so we don't attach it to the cache for MCTS to keep the number
+        # of keys down.
+        return "m{}_e{}".format(m1, e1)
