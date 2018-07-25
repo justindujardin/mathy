@@ -4,4 +4,10 @@ set -e
 echo "Configuring nVidia GPU"
 sudo nvidia-smi -pm 1
 
+echo "Installing Tensorflow GPU"
+sudo /etc/pyenv/bin/pip install tensorflow-gpu
+
+echo "Installing Keras and PyTorch"
+sudo /etc/pyenv/bin/pip install keras torch torch-vision
+
 echo "Done."
