@@ -11,7 +11,7 @@
       "image_family": "ml-dojo",
       "disk_size": "20",
       "project_id": "{{user `project_id`}}",
-      "source_image_family": "ubuntu-1804-lts",
+      "source_image_family": "ubuntu-1604-lts",
       "zone": "{{user `zone`}}",
       "ssh_username": "ubuntu"
     }

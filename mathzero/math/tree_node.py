@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 # ## Constants
 
@@ -195,8 +194,8 @@ class BinaryTreeNode:
 
     # Get children as an array.  If there are two children, the first object will
     # always represent the left child, and the second will represent the right.
-    def getChildren(self) -> List["BinaryTreeNode"]:
-        result: List["BinaryTreeNode"] = []
+    def getChildren(self):
+        result = []
         if self.left:
             result.append(self.left)
 

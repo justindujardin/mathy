@@ -9,7 +9,7 @@ from .expressions import (
     NegateExpression,
     MathExpression,
 )
-from typing import List
+
 import numpy
 import math
 
@@ -66,8 +66,6 @@ class FactorResult:
     best: int
     left: int
     right: int
-    allLeft: List[int]
-    allRight: List[int]
     variable: MathExpression
     exponent: MathExpression
     leftExponent: MathExpression
