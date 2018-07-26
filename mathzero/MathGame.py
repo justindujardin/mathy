@@ -7,6 +7,7 @@ from .math.expressions import (
     AddExpression,
     VariableExpression,
 )
+from .math.problems import ProblemGenerator
 from .math.parser import ExpressionParser
 from .math.util import termsAreLike, isAddSubtract
 from .math.rules import (
@@ -67,19 +68,12 @@ class MathGame:
     representations that can be used to expand on concepts that a user may struggle with.
     """
 
-    width = 32
+    width = 128
 
     def __init__(self, expression_str: str):
         self.width = MathGame.width
+        self.problems = ProblemGenerator()
         self.parser = ExpressionParser()
-        self.expression_str = str(expression_str)
-        if len(list(self.expression_str)) > self.width:
-            raise Exception(
-                'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
-                    self.expression_str, self.width
-                )
-            )
-        self.input_data = MathBoard(self.width).encode_board(self.expression_str)
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             CommutativeSwapRule(),
@@ -91,9 +85,18 @@ class MathGame:
 
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
-        return self.input_data.copy()
+        self.expression_str = self.problems.sum_and_single_variable()
+        print("\n\n\t\tNEXT: {}".format(self.expression_str))
+        if len(list(self.expression_str)) > self.width:
+            raise Exception(
+                'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
+                    self.expression_str, self.width
+                )
+            )        
+        board = MathBoard(self.width).encode_board(self.expression_str)
+
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
-        # return self.encode_board(self.expression_str, 0)
+        return board
 
     def getBoardSize(self):
         """return shape (x,y) of board dimensions"""

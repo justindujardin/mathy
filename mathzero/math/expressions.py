@@ -11,6 +11,7 @@ OOO_INVALID = -1
 
 class MathExpression(BinaryTreeNode):
     """A Basic MathExpression node"""
+
     _idCounter = 0
 
     def __init__(self, id=None, left=None, right=None, parent=None):
@@ -363,6 +364,12 @@ class BinaryExpression(MathExpression):
         )
 
     def __str__(self):
+        if self.left is None or self.right is None:
+            raise ValueError(
+                "{}: invalid state, left and right must not be none in binary expression".format(
+                    self.__class__.__name__
+                )
+            )
         if self.rightParenthesis():
             return "{} {} ({})".format(self.left, self.getName(), self.right)
         elif self.leftParenthesis():
