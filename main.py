@@ -1,6 +1,6 @@
 from Coach import Coach
 from mathzero.MathGame import MathGame
-from mathzero.tensorflow.NNet import NNetWrapper as nn
+from mathzero.NNet import NNetWrapper as nn
 from mathzero.math.expressions import ConstantExpression
 from mathzero.math.parser import ExpressionParser
 from utils import *
@@ -17,7 +17,7 @@ args = dotdict(
         "cpuct": 1,
         "checkpoint": "./temp/",
         "load_model": False,
-        "load_folder_file": ("./temp/", "best.pth.tar"),
+        "load_folder_file": ("./pretrained_models/temp/", "best.pth.tar"),
         "numItersForTrainExamplesHistory": 20,
     }
 )
@@ -25,7 +25,7 @@ args = dotdict(
 if __name__ == "__main__":
     parser = ExpressionParser()
     # expression = parser.parse('7 + x + 2 - 2x')
-    expression = parser.parse("7 + x + 2 + 9")
+    expression = parser.parse("2 + x + 9")
     # print("Expression \"{}\" evaluates to: {}".format(expression, expression.evaluate()))
     # expression = parser.parse('1100 - 100 + 300 + 37')
     # expression = parser.parse('(7 - (5 - 3)) * (32 - 7)')

@@ -20,6 +20,7 @@ from .math.rules import (
 from .math.profiler import profile_start, profile_end
 from .MathBoard import MathBoard
 
+
 class MetaAction:
     def count_nodes(self, expression: MathExpression) -> int:
         count = 0
@@ -67,9 +68,10 @@ class MathGame:
     """
 
     tokens = list(" abcdefghijklmnopqrstuvwxyz01234567890.!=()^*+-/")
+    width = 32
 
     def __init__(self, expression_str: str):
-        self.width = 32
+        self.width = MathGame.width
         self.parser = ExpressionParser()
         self.expression_str = str(expression_str)
         if len(list(self.expression_str)) > self.width:
@@ -89,8 +91,8 @@ class MathGame:
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             CommutativeSwapRule(),
-            # DistributiveFactorOutRule(),
-            # DistributiveMultiplyRule(),
+            DistributiveFactorOutRule(),
+            DistributiveMultiplyRule(),
             AssociativeSwapRule(),
             ConstantsSimplifyRule(),
         ]
@@ -129,15 +131,16 @@ class MathGame:
         operation = actions[action]
         debug = False
 
+        # Enforce constraints to keep training time and complexity down
+        # - can't commutative swap immediately to return to previous state.
+        # - can't focus on the same token twice without taking a valid other
+        #   action inbetween
+
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             if not searching and debug:
-                print(
-                    "[{}][out={}] {}".format(
-                        move_count, change.end.id, change.describe()
-                    )
-                )
+                print("[{}] {}".format(move_count, change.describe()))
             out_board = b.encode_player(
                 board, player, root, move_count + 1, focus_index
             )
@@ -221,7 +224,11 @@ class MathGame:
 
         # print_list = self.available_actions + self.available_rules
         # [
-        #     print("action[{}][{}] = {}".format(i, bool(a), type(print_list[i]) if a != 0 else ''))
+        #     print(
+        #         "Player{} action[{}][{}] = {}".format(
+        #             player, i, bool(a), type(print_list[i]) if a != 0 else ""
+        #         )
+        #     )
         #     for i, a in enumerate(actions)
         # ]
         return actions
@@ -360,8 +367,18 @@ class MathGame:
         b = MathBoard(self.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
-        e1, m1, _ = b.decode_player(board, 1)
+        e1, m1, f1 = b.decode_player(board, 1)
         # Note that the focus technically has no bearing on the win-state
         # so we don't attach it to the cache for MCTS to keep the number
         # of keys down.
-        return "m{}_e{}".format(m1, e1)
+        # JDD: UGH without this the invalid move selection goes up because keys conflict.
+        return "m{}_f{}_e{}".format(m1, f1, e1)
+
+
+def display(board):
+    b = MathBoard(MathGame.width)
+    e1, m1, _ = b.decode_player(board, 1)
+    print("Player1 [move={}] [state={}]".format(m1, e1))
+    e2, m2, _ = b.decode_player(board, -1)
+    print("Player2 [move={}] [state={}]".format(m2, e2))
+

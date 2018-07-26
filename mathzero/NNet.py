@@ -1,17 +1,13 @@
+import tensorflow as tf
 import os
-import shutil
 import time
 import random
-import numpy as np
+import numpy
 import math
 import sys
-
-sys.path.append("../../")
 from utils import *
 from pytorch_classification.utils import Bar, AverageMeter
 from NeuralNet import NeuralNet
-
-import tensorflow as tf
 from .MathModel import MathModel
 
 args = dotdict(
@@ -51,7 +47,7 @@ class NNetWrapper(NeuralNet):
 
             # self.sess.run(tf.local_variables_initializer())
             while batch_idx < int(len(examples) / args.batch_size):
-                sample_ids = np.random.randint(len(examples), size=args.batch_size)
+                sample_ids = numpy.random.randint(len(examples), size=args.batch_size)
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
 
                 # predict and compute gradient and do SGD step
@@ -95,13 +91,13 @@ class NNetWrapper(NeuralNet):
 
     def predict(self, board):
         """
-        board: np array with board
+        board: numpy array with board
         """
         # timing
         start = time.time()
 
         # preparing input
-        board = board[np.newaxis, :, :]
+        board = board[numpy.newaxis, :, :]
 
         # run
         prob, v = self.sess.run(
