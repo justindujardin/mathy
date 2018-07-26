@@ -46,8 +46,7 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
-        float_sum = float(sum(counts))
-        probs = [(x / float_sum if float_sum > 0.0 else 0) for x in counts]
+        probs = [x / float(sum(counts)) for x in counts]
         return probs
 
     def search(self, canonicalBoard):

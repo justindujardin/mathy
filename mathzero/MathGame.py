@@ -283,7 +283,7 @@ class MathGame:
         add_sub = (
             expression
             if isinstance(expression, AddExpression)
-            else expression.findByType(AddExpression)
+            else expression.findByType(AddExpression)[0]
         )
         if add_sub and add_sub.parent is None:
             constant = None
@@ -294,23 +294,25 @@ class MathGame:
             elif isinstance(add_sub.right, ConstantExpression):
                 constant = add_sub.right
 
-            if isinstance(add_sub.right, VariableExpression):
-                constant = add_sub.right
+            if isinstance(add_sub.left, VariableExpression):
+                variable = add_sub.left
             elif isinstance(add_sub.right, VariableExpression):
-                constant = add_sub.right
+                variable = add_sub.right
 
-            # TODO: Compare constant/variable findings to verify their accuracy.
-            #       This helps until we're 100% confident in the parser/serializer consistency
-            #
-            # Holy shit it won!
-            if not searching and constant and variable:
-                print(
-                    "\n[Player{}][TERMWIN] {} => {}!".format(
-                        player, self.expression_str, expression
+            # The game continues...
+            if constant is not None and variable is not None:
+                # TODO: Compare constant/variable findings to verify their accuracy.
+                #       This helps until we're 100% confident in the parser/serializer consistency
+                #
+                # Holy shit it won!
+                if not searching:
+                    print(
+                        "\n[Player{}][TERMWIN] {} => {}!".format(
+                            player, self.expression_str, expression
+                        )
                     )
-                )
-                print("TERM WIN WITH CONSTANT: {}".format(constant))
-                print("TERM WIN WITH VARIABLE: {}".format(variable))
+                    # print("TERM WIN WITH CONSTANT: {}".format(constant))
+                    # print("TERM WIN WITH VARIABLE: {}".format(variable))
                 return 1
 
         # Check the turn count last because if the previous move that incremented
