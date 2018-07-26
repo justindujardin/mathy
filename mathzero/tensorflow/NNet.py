@@ -113,7 +113,7 @@ class NNetWrapper(NeuralNet):
             },
         )
 
-        # print('PREDICTION TIME TAKEN : {0:03f}'.format(time.time()-start))
+        print('PREDICTION TIME TAKEN : {0:03f}'.format(time.time()-start))
         return prob[0], v[0]
 
     def save_checkpoint(self, folder="checkpoint", filename="checkpoint.pth.tar"):

@@ -46,7 +46,8 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
-        probs = [x / float(sum(counts)) for x in counts]
+        float_sum = float(sum(counts))
+        probs = [(x / float_sum if float_sum > 0.0 else 0) for x in counts]
         return probs
 
     def search(self, canonicalBoard):
@@ -85,7 +86,7 @@ class MCTS:
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
                 # renormalize so values sum to 1
-                self.Ps[s] /= sum_Ps_s 
+                self.Ps[s] /= sum_Ps_s
             else:
                 # if all valid moves were masked make all valid moves equally probable
 
@@ -120,7 +121,9 @@ class MCTS:
                     best_act = a
 
         a = best_act
-        next_s, next_player = self.game.getNextState(canonicalBoard, 1, a, searching=True)
+        next_s, next_player = self.game.getNextState(
+            canonicalBoard, 1, a, searching=True
+        )
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
         v = self.search(next_s)

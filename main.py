@@ -12,9 +12,9 @@ args = dotdict(
         "tempThreshold": 15,
         "updateThreshold": 0.6,
         "maxlenOfQueue": 200000,
-        "numMCTSSims": 25,
+        "numMCTSSims": 15,
         "arenaCompare": 40,
-        "cpuct": 4,
+        "cpuct": 1,
         "checkpoint": "./temp/",
         "load_model": False,
         "load_folder_file": ("./temp/", "best.pth.tar"),
@@ -25,9 +25,9 @@ args = dotdict(
 if __name__ == "__main__":
     parser = ExpressionParser()
     # expression = parser.parse('7 + x + 2 - 2x')
-    # expression = parser.parse("7 + x + 2 + 9")
+    expression = parser.parse("7 + x + 2 + 9")
     # print("Expression \"{}\" evaluates to: {}".format(expression, expression.evaluate()))
-    expression = parser.parse('1100 - 100 + 300 + 37')
+    # expression = parser.parse('1100 - 100 + 300 + 37')
     # expression = parser.parse('(7 - (5 - 3)) * (32 - 7)')
     g = MathGame(expression)
     nnet = nn(g)
