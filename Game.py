@@ -101,7 +101,7 @@ class Game():
         """
         pass
 
-    def stringRepresentation(self, board):
+    def getPolicyKey(self, board):
         """
         Input:
             board: current board

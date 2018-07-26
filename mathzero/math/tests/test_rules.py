@@ -98,3 +98,10 @@ def test_common_properties_can_apply_to():
     for action in available_actions:
         assert type(action.canApplyTo(expression)) == bool
 
+
+
+def test_associative_swap():
+    parser = ExpressionParser()
+    exp = parser.parse('(2 + x) + 9')
+    rule = AssociativeSwapRule()
+    rule.applyTo(exp)

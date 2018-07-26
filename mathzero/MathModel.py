@@ -53,16 +53,16 @@ class MathModel:
                     training=self.isTraining,
                 )
             )  # batch_size  x (board_x-2) x (board_y-2) x num_channels
-            h_conv4 = Relu(
-                BatchNormalization(
-                    self.conv2d(h_conv3, args.num_channels, "valid"),
-                    axis=3,
-                    training=self.isTraining,
-                )
-            )  # batch_size  x (board_x-4) x (board_y-4) x num_channels
+            # h_conv4 = Relu(
+            #     BatchNormalization(
+            #         self.conv2d(h_conv3, args.num_channels, "valid"),
+            #         axis=3,
+            #         training=self.isTraining,
+            #     )
+            # )  # batch_size  x (board_x-4) x (board_y-4) x num_channels
             h_conv4_flat = tf.reshape(
-                h_conv4,
-                [-1, args.num_channels * (self.board_x - 4) * (self.board_y - 4)],
+                h_conv3,
+                [-1, args.num_channels * (self.board_x - 2) * (self.board_y - 2)],
             )
             s_fc1 = Dropout(
                 Relu(

@@ -80,7 +80,7 @@ class OthelloGame(Game):
                 l += [(newB, list(newPi.ravel()) + [pi[-1]])]
         return l
 
-    def stringRepresentation(self, board):
+    def getPolicyKey(self, board):
         # 8x8 numpy array (canonical board)
         return board.tostring()
 

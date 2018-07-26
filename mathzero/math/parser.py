@@ -138,7 +138,10 @@ IS_MULT = TokenSet(TokenMultiply | TokenDivide)
 IS_EXP = TokenSet(TokenExponent)
 IS_EQUAL = TokenSet(TokenEqual)
 
+# TODO: 🏃🏻‍️💨 Could these be memory mapped numpy values? Then the expression parser could
+#       be parallelized!
 _parse_cache = {}
+_tokens_cache = {}
 
 
 class ExpressionParser:
@@ -146,15 +149,9 @@ class ExpressionParser:
     def __init__(self):
         self.tokenizer = Tokenizer()
 
-    # Parse a string representation of an expression into a tree that can be
-    # later evaluated.
-    # Returns : The evaluatable expression tree.
-    def parse(self, input):
-        global _parse_cache
-        if input in _parse_cache:
-            return _parse_cache[input]
-
-        self.tokens = self.tokenizer.tokenize(input)
+    def evaluate(self, tokens):
+        """Parse a given list of tokens into an expression tree"""
+        self.tokens = tokens
         self.currentToken = Token("", TokenNone)
         if not self.next():
             raise InvalidExpression("Cannot parse an empty function")
@@ -170,9 +167,21 @@ class ExpressionParser:
         _parse_cache[input] = expression
         return expression
 
-    def clear_cache(self):
+    def tokenize(self, input):
+        global _tokens_cache
+        if not input in _tokens_cache:
+            _tokens_cache[input] = self.tokenizer.tokenize(input)
+        return _tokens_cache[input]
+
+    # Parse a string representation of an expression into a tree that can be
+    # later evaluated.
+    # Returns : The evaluatable expression tree.
+    def parse(self, input):
         global _parse_cache
-        _parse_cache = {}
+        if input in _parse_cache:
+            return _parse_cache[input]
+        _parse_cache[input] = self.evaluate(self.tokenize(input))
+        return _parse_cache[input]
 
     def parseEqual(self):
         if not self.check(FIRST_ADD):

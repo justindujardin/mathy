@@ -58,6 +58,7 @@ class Coach:
             board, self.curPlayer = self.game.getNextState(
                 board, self.curPlayer, action
             )
+            # print("turn done, player is now: {}".format(self.curPlayer))
             r = self.game.getGameEnded(board, self.curPlayer)
 
             if r != 0:

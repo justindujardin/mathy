@@ -33,7 +33,7 @@ class MCTS:
         for _ in range(self.args.numMCTSSims):
             self.search(canonicalBoard)
 
-        s = self.game.stringRepresentation(canonicalBoard)
+        s = self.game.getPolicyKey(canonicalBoard)
         counts = [
             self.Nsa[(s, a)] if (s, a) in self.Nsa else 0
             for a in range(self.game.getActionSize())
@@ -70,17 +70,20 @@ class MCTS:
             v: the negative of the value of the current canonicalBoard
         """
 
-        s = self.game.stringRepresentation(canonicalBoard)
+        s = self.game.getPolicyKey(canonicalBoard)
+        e = self.game.getEndedStateKey(canonicalBoard)
 
-        if s not in self.Es:
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1, searching=True)
-        if self.Es[s] != 0:
+        if e not in self.Es:
+            # print('calculating ending state for: {}'.format(e))
+            self.Es[e] = self.game.getGameEnded(canonicalBoard, 1, searching=True)
+        if self.Es[e] != 0:
             # terminal node
-            return -self.Es[s]
+            return -self.Es[e]
 
         if s not in self.Ps:
             # leaf node
             self.Ps[s], v = self.nnet.predict(canonicalBoard)
+            # print('calculating valid moves for: {}'.format(s))
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
