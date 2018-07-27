@@ -70,6 +70,7 @@ class MathGame:
 
     width = 128
     verbose = False
+    draw = 0.0001
 
     def __init__(self):
         self.problems = ProblemGenerator()
@@ -290,7 +291,7 @@ class MathGame:
         if add_sub is None:
             find = expression.findByType(AddExpression)
             add_sub = find[0] if len(find) > 0 else add_sub
-        
+
         if add_sub and add_sub.parent is None:
             constant = None
             variable = None
@@ -324,16 +325,15 @@ class MathGame:
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.
         if move_count > 20:
-            if not searching and MathGame.verbose:
-                print(
-                    "\n[Player {}][LOSE] ENDED WITH: {} => {}!".format(
-                        player, self.expression_str, expression
+            e2, move_count_other, _, _ = b.decode_player(board, player * -1)
+            if move_count_other > 20:
+                if not searching and MathGame.verbose:
+                    print(
+                        "\n[DRAW] ENDED WITH:\n\t 1: {}\n\t 2: {}\n".format(
+                            expression, e2
+                        )
                     )
-                )
-            else:
-                pass
-                # print(".")
-            return -1
+                return MathGame.draw
 
         # The game continues
         return 0
@@ -400,9 +400,15 @@ class MathGame:
         return "[ {}, {} ]".format(m1, e1)
 
 
-def display(board):
+def display(board, player):
     b = MathBoard(MathGame.width)
-    e1, m1, _, _ = b.decode_player(board, 1)
-    print("Player1 [move={}] [state={}]".format(m1, e1))
-    e2, m2, _, _ = b.decode_player(board, -1)
-    print("Player2 [move={}] [state={}]".format(m2, e2))
+    expression = b.decode_player(board, player)[0]
+    expression_len = len(expression)
+    width = 100
+    if player == 1:
+        buffer = " " * int(width / 2 - expression_len)
+    elif player == -1:
+        buffer = " " * int(width - expression_len)
+    else:
+        raise ValueError("invalid player index: {}".format(player))
+    print("{}{}".format(buffer, expression))
