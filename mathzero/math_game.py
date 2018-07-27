@@ -286,11 +286,11 @@ class MathGame:
 
             return 1
         # Check for simplification down to a single addition with constant/variable
-        add_sub = (
-            expression
-            if isinstance(expression, AddExpression)
-            else expression.findByType(AddExpression)[0]
-        )
+        add_sub = expression if isinstance(expression, AddExpression) else None
+        if add_sub is None:
+            find = expression.findByType(AddExpression)
+            add_sub = find[0] if len(find) > 0 else add_sub
+        
         if add_sub and add_sub.parent is None:
             constant = None
             variable = None
