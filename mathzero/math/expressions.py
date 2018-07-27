@@ -65,6 +65,7 @@ class MathExpression(BinaryTreeNode):
         result = None
 
         def visit_fn(node, depth, data):
+            nonlocal result
             if node.id == id:
                 result = node
                 return STOP
