@@ -8,8 +8,8 @@ from mathzero.math.parser import ExpressionParser
 args = dotdict(
     {
         "numIters": 1000,
-        "numEps": 50,
-        "tempThreshold": 15,
+        "numEps": 10,
+        "tempThreshold": 5,
         "updateThreshold": 0.6,
         "maxlenOfQueue": 200000,
         "numMCTSSims": 15,

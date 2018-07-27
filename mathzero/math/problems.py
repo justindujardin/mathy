@@ -3,7 +3,7 @@ import random
 
 class ProblemGenerator:
     # https://codereview.stackexchange.com/questions/46226/utility-function-to-split-a-number-into-n-parts-in-the-given-ratio
-    def new_reduce_ratio(self, load_list=None, total_num=1337, min_num=2):
+    def new_reduce_ratio(self, load_list=None, total_num=10, min_num=2):
         if load_list is None:
             load_list = [20, 40, 40]
 
@@ -27,7 +27,7 @@ class ProblemGenerator:
         variables = list("xyz")
         if variable is None:
             variable = variables[random.randint(0, len(variables) - 1)]
-        nums = [str(num) for num in self.new_reduce_ratio()]
+        nums = [str(num) for num in self.new_reduce_ratio(total_num=sum)]
         nums.append(variable)
         random.shuffle(nums)
         result = " + ".join(nums)
