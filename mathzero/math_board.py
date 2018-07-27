@@ -25,12 +25,14 @@ class MathBoard:
         self.width = width
 
     def encode_board(self, text):
-        # We store 4 columns with length 256 each
+        # We store 4 columns with length {self.width} each
         # The columns alternate content between the two players:
         #  data[0] == player_1 metadata
         #  data[1] == player_1 board
         #  data[2] == player_-1 metadata
         #  data[3] == player_-1 board
+        # We store the data this way to 
+
         data = numpy.zeros((4, self.width), dtype="float32")
         # Encode the text twice, once for each player.
         text_len = len(text)
@@ -102,4 +104,3 @@ class MathBoard:
         elif player == -1:
             result = numpy.vstack((split[1], split[0]))
         return result
-

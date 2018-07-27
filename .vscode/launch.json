@@ -5,10 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "MathZero",
+            "name": "MathZero (Train)",
             "type": "python",
             "request": "launch",
             "module": "main"
+        },
+        {
+            "name": "MathZero (Arena)",
+            "type": "python",
+            "request": "launch",
+            "module": "pit"
         },
         {
             "name": "Math Model Tests",

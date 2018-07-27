@@ -5,10 +5,10 @@ import random
 import numpy
 import math
 import sys
-from utils import *
-from pytorch_classification.utils import Bar, AverageMeter
-from NeuralNet import NeuralNet
-from .MathModel import MathModel
+from alpha_zero_general.utils import dotdict
+from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
+from alpha_zero_general.NeuralNet import NeuralNet
+from mathzero.math_model import MathModel
 
 args = dotdict(
     {"lr": 0.001, "dropout": 0.3, "epochs": 2, "batch_size": 64, "num_channels": 512}
@@ -131,7 +131,7 @@ class NNetWrapper(NeuralNet):
     def load_checkpoint(self, folder="checkpoint", filename="checkpoint.pth.tar"):
         filepath = os.path.join(folder, filename)
         if not os.path.exists(filepath + ".meta"):
-            raise ("No model in path {}".format(filepath))
+            raise Exception("No model in path {}".format(filepath))
         with self.nnet.graph.as_default():
             self.saver = tf.train.Saver()
             self.saver.restore(self.sess, filepath)

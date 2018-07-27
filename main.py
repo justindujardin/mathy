@@ -1,14 +1,14 @@
-from Coach import Coach
-from mathzero.MathGame import MathGame
-from mathzero.NNet import NNetWrapper as nn
+from alpha_zero_general.Coach import Coach
+from alpha_zero_general.utils import dotdict
+from mathzero.math_game import MathGame
+from mathzero.math_neural_net import NNetWrapper as nn
 from mathzero.math.expressions import ConstantExpression
 from mathzero.math.parser import ExpressionParser
-from utils import *
 
 args = dotdict(
     {
         "numIters": 1000,
-        "numEps": 100,
+        "numEps": 50,
         "tempThreshold": 15,
         "updateThreshold": 0.6,
         "maxlenOfQueue": 200000,
@@ -23,13 +23,13 @@ args = dotdict(
 )
 
 if __name__ == "__main__":
-    parser = ExpressionParser()
+    # parser = ExpressionParser()
     # expression = parser.parse('7 + x + 2 - 2x')
-    expression = parser.parse("4 + 2 + x + (1500 - 169)")
+    # expression = parser.parse("4 + x + 3")
     # print("Expression \"{}\" evaluates to: {}".format(expression, expression.evaluate()))
     # expression = parser.parse('1100 - 100 + 300 + 37')
     # expression = parser.parse('(7 - (5 - 3)) * (32 - 7)')
-    g = MathGame(expression)
+    g = MathGame()
     nnet = nn(g)
 
     if args.load_model:

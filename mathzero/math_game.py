@@ -19,7 +19,7 @@ from .math.rules import (
     ConstantsSimplifyRule,
 )
 from .math.profiler import profile_start, profile_end
-from .MathBoard import MathBoard
+from .math_board import MathBoard
 
 
 class MetaAction:
@@ -69,9 +69,9 @@ class MathGame:
     """
 
     width = 128
+    verbose = False
 
-    def __init__(self, expression_str: str):
-        self.width = MathGame.width
+    def __init__(self):
         self.problems = ProblemGenerator()
         self.parser = ExpressionParser()
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
@@ -86,14 +86,14 @@ class MathGame:
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
         self.expression_str = self.problems.sum_and_single_variable()
-        print("\n\n\t\tNEXT: {}".format(self.expression_str))
-        if len(list(self.expression_str)) > self.width:
+        # print("\n\n\t\tNEXT: {}".format(self.expression_str))
+        if len(list(self.expression_str)) > MathGame.width:
             raise Exception(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
-                    self.expression_str, self.width
+                    self.expression_str, MathGame.width
                 )
-            )        
-        board = MathBoard(self.width).encode_board(self.expression_str)
+            )
+        board = MathBoard(MathGame.width).encode_board(self.expression_str)
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return board
@@ -101,7 +101,7 @@ class MathGame:
     def getBoardSize(self):
         """return shape (x,y) of board dimensions"""
         # 2 columns per player, the first for turn data, the second for text inputs
-        return (4, self.width)
+        return (4, MathGame.width)
 
     def getActionSize(self):
         """Return number of all possible actions"""
@@ -119,31 +119,32 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        b = MathBoard(self.width)
+        b = MathBoard(MathGame.width)
         text, move_count, focus_index, _ = b.decode_player(board, player)
-        # print("gns: {}".format(player))
+        # if not searching:
+        #     print("gns: {}, {}".format(player, focus_index))
         expression = self.parser.parse(text)
         token = self.getFocusToken(expression, focus_index)
         actions = self.available_actions + self.available_rules
         operation = actions[action]
-        debug = False
         # searching = False
 
-        # Enforce constraints to keep training time and complexity down
+        # Enforce constraints to keep training time and complexity down?
         # - can't commutative swap immediately to return to previous state.
         # - can't focus on the same token twice without taking a valid other
         #   action inbetween
+        # TODO: leaving these ideas here, but optimization made them less necessary
 
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
-            if not searching and debug:
+            if not searching and MathGame.verbose:
                 print("[{}] {}".format(move_count, change.describe()))
             out_board = b.encode_player(
                 board, player, root, move_count + 1, focus_index
             )
         elif isinstance(operation, MetaAction):
-            if not searching and debug:
+            if not searching and MathGame.verbose:
                 direction = (
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
@@ -169,6 +170,7 @@ class MathGame:
                     player, expression, token, focus_index, action, type(operation)
                 )
             )
+
         return out_board, player * -1
 
     def getFocusToken(
@@ -199,15 +201,15 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        b = MathBoard(self.width)
+        b = MathBoard(MathGame.width)
 
-        expression_text, _, focus_index, board_player = b.decode_player(board, player)
-        # Valid moves depend on player, but this is always called with canonical board
-        # which normalizes the player away. We add the player ID to MCTS hash keys to
-        # work around it, and then normalize the player moves per hash key here by extracting
-        # the origin player ID and normalizing the results to be for that user.
-        if player != board_player:
-            expression_text, _, focus_index, _ = b.decode_player(board, player * -1)
+        expression_text, _, focus_index, _ = b.decode_player(board, player)
+        # # Valid moves depend on player, but this is always called with canonical board
+        # # which normalizes the player away. We add the player ID to MCTS hash keys to
+        # # work around it, and then normalize the player moves per hash key here by extracting
+        # # the origin player ID and normalizing the results to be for that user.
+        # if player != board_player:
+        #     expression_text, _, focus_index, _ = b.decode_player(board, player * -1)
         expression = self.parser.parse(expression_text)
         token = self.getFocusToken(expression, focus_index)
         actions = [0] * self.getActionSize()
@@ -246,9 +248,10 @@ class MathGame:
                small non-zero value for draw.
                
         """
-        b = MathBoard(self.width)
+        b = MathBoard(MathGame.width)
         expression_text, move_count, _, _ = b.decode_player(board, player)
-        # print("Expression = {}".format(expression_text))
+        # if not searching:
+        #     print("Expression = {}".format(expression_text))
         expression = self.parser.parse(expression_text)
 
         # It's over if the expression is reduced to a single constant
@@ -271,7 +274,7 @@ class MathGame:
             #     return -1
 
             # Holy shit it won!
-            if not searching:
+            if not searching and MathGame.verbose:
                 print(
                     "\n[Player{}][WIN] {} => {}!".format(
                         player, self.expression_str, expression
@@ -308,7 +311,7 @@ class MathGame:
                 #       This helps until we're 100% confident in the parser/serializer consistency
                 #
                 # Holy shit it won!
-                if not searching:
+                if not searching and MathGame.verbose:
                     print(
                         "\n[Player{}][TERMWIN] {} => {}!".format(
                             player, self.expression_str, expression
@@ -321,7 +324,7 @@ class MathGame:
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.
         if move_count > 20:
-            if not searching:
+            if not searching and MathGame.verbose:
                 print(
                     "\n[Player {}][LOSE] ENDED WITH: {} => {}!".format(
                         player, self.expression_str, expression
@@ -356,7 +359,7 @@ class MathGame:
                             the colors and return the board.
         """
         # print("gcf: {}".format(player))
-        return MathBoard(self.width).get_canonical_board(board, player)
+        return MathBoard(MathGame.width).get_canonical_board(board, player)
 
     def getSymmetries(self, board, pi):
         """
@@ -373,7 +376,7 @@ class MathGame:
 
     def getPolicyKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathBoard(self.width)
+        b = MathBoard(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
         e1, m1, f1, _ = b.decode_player(board, 1)
@@ -386,12 +389,11 @@ class MathGame:
         #       could there be a problem with cache conflicts? Are the policies the same for each player
         #       given the m/f/e?
 
-        #  TRY ADDING PLAYER TO BOTH KEYS... We don't want the players sharing learnings during play/training.
         return "[ {}, {}, {} ]".format(m1, f1, e1)
 
     def getEndedStateKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathBoard(self.width)
+        b = MathBoard(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
         e1, m1, _, _ = b.decode_player(board, 1)
@@ -404,4 +406,3 @@ def display(board):
     print("Player1 [move={}] [state={}]".format(m1, e1))
     e2, m2, _, _ = b.decode_player(board, -1)
     print("Player2 [move={}] [state={}]".format(m2, e2))
-

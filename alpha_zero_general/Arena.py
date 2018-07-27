@@ -1,5 +1,5 @@
 import numpy as np
-from pytorch_classification.utils import Bar, AverageMeter
+from .pytorch_classification.utils import Bar, AverageMeter
 import time
 
 class Arena():
@@ -43,9 +43,10 @@ class Arena():
                 assert(self.display)
                 print("Turn ", str(it), "Player ", str(curPlayer))
                 self.display(board)
-            action = players[curPlayer+1](self.game.getCanonicalForm(board, curPlayer))
+            canon = self.game.getCanonicalForm(board, curPlayer)
+            action = players[curPlayer+1](canon)
 
-            valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer),1)
+            valids = self.game.getValidMoves(canon,1)
 
             if valids[action]==0:
                 print(action)

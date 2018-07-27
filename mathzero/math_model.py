@@ -1,8 +1,3 @@
-import sys
-
-sys.path.append("..")
-from utils import *
-
 import tensorflow as tf
 
 
@@ -104,4 +99,3 @@ class MathModel:
             self.train_step = tf.train.AdamOptimizer(self.args.lr).minimize(
                 self.total_loss
             )
-
