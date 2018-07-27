@@ -174,8 +174,7 @@ class Coach:
                 self.game,
             )
             pwins, nwins, draws = arena.playGames(self.model_arena_iterations)
-            best_model_path = os.path.join(self.checkpoint, "best.pth.tar")
-            has_best = os.path.isfile(best_model_path)
+            has_best = os.path.isfile(self.get_best_model_filename())
 
             print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
             if (
