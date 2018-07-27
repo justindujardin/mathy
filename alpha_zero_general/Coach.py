@@ -6,7 +6,7 @@ from .pytorch_classification.utils import Bar, AverageMeter
 import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
-
+import os
 
 class Coach:
     """
@@ -148,9 +148,12 @@ class Coach:
                 self.game,
             )
             pwins, nwins, draws = arena.playGames(self.args.arenaCompare)
+            best_model_path = os.path.join(self.args.checkpoint, "best.pth.tar")
+            has_best = os.path.isfile(best_model_path)
 
             print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
             if (
+                has_best and 
                 pwins + nwins > 0
                 and float(nwins) / (pwins + nwins) < self.args.updateThreshold
             ):
