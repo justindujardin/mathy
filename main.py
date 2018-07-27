@@ -5,15 +5,19 @@ from mathzero.math_neural_net import NNetWrapper as nn
 from mathzero.math.expressions import ConstantExpression
 from mathzero.math.parser import ExpressionParser
 
+eps = 10
+temp = int(eps * 0.5)
+arena = int(eps * 0.6)
+
 args = dotdict(
     {
         "numIters": 1000,
-        "numEps": 10,
-        "tempThreshold": 5,
+        "numEps": eps,
+        "tempThreshold": temp,
         "updateThreshold": 0.6,
         "maxlenOfQueue": 200000,
         "numMCTSSims": 15,
-        "arenaCompare": 40,
+        "arenaCompare": arena,
         "cpuct": 1,
         "checkpoint": "./temp/",
         "load_model": False,
