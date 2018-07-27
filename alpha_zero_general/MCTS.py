@@ -9,10 +9,11 @@ class MCTS:
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, nnet, cpuct=1, num_mcts_sims=15):
         self.game = game
         self.nnet = nnet
-        self.args = args
+        self.num_mcts_sims = num_mcts_sims
+        self.cpuct = cpuct
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times board s was visited
@@ -23,14 +24,14 @@ class MCTS:
 
     def getActionProb(self, canonicalBoard, temp=1):
         """
-        This function performs numMCTSSims simulations of MCTS starting from
+        This function performs num_mcts_sims simulations of MCTS starting from
         canonicalBoard.
 
         Returns:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-        for _ in range(self.args.numMCTSSims):
+        for _ in range(self.num_mcts_sims):
             self.search(canonicalBoard)
 
         s = self.game.getPolicyKey(canonicalBoard)
@@ -110,12 +111,12 @@ class MCTS:
         for a in range(self.game.getActionSize()):
             if valids[a]:
                 if (s, a) in self.Qsa:
-                    u = self.Qsa[(s, a)] + self.args.cpuct * self.Ps[s][a] * math.sqrt(
+                    u = self.Qsa[(s, a)] + self.cpuct * self.Ps[s][a] * math.sqrt(
                         self.Ns[s]
                     ) / (1 + self.Nsa[(s, a)])
                 else:
                     u = (
-                        self.args.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)
+                        self.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)
                     )  # Q = 0 ?
 
                 if u > cur_best:

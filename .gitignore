@@ -6,7 +6,7 @@
 /.pydevproject
 .env
 .pytest_cache
-pretrained_models/
+training/
 .vscode
 program.prof
 .terraform

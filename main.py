@@ -6,25 +6,24 @@ from mathzero.math.expressions import ConstantExpression
 from mathzero.math.parser import ExpressionParser
 
 eps = 10
-temp = int(eps * 0.5)
+# Temp is always down to 0 by the max here.
+temp = min(int(eps * 0.5), 15)
 arena = int(eps * 0.6)
 
-args = dotdict(
-    {
-        "numIters": 1000,
-        "numEps": eps,
-        "tempThreshold": temp,
-        "updateThreshold": 0.6,
-        "maxlenOfQueue": 200000,
-        "numMCTSSims": 15,
-        "arenaCompare": arena,
-        "cpuct": 1,
-        "checkpoint": "./temp/",
-        "load_model": False,
-        "load_folder_file": ("./pretrained_models/temp/", "best.pth.tar"),
-        "numItersForTrainExamplesHistory": 20,
-    }
-)
+args = {
+    "training_iterations": 1000,
+    "self_play_iterations": eps,
+    "temperature_threshold": temp,
+    "model_win_loss_ratio": 0.6,
+    "max_training_examples": 200000,
+    "num_mcts_sims": 15,
+    "model_arena_iterations": arena,
+    "cpuct": 1,
+    "checkpoint": "./training/temp/",
+    "best_model_name": "best",
+    "save_examples_from_last_n_iterations": 20,
+}
+
 
 if __name__ == "__main__":
     # parser = ExpressionParser()
@@ -35,12 +34,5 @@ if __name__ == "__main__":
     # expression = parser.parse('(7 - (5 - 3)) * (32 - 7)')
     g = MathGame()
     nnet = nn(g)
-
-    if args.load_model:
-        nnet.load_checkpoint(args.load_folder_file[0], args.load_folder_file[1])
-
     c = Coach(g, nnet, args)
-    if args.load_model:
-        print("Load trainExamples from file")
-        c.loadTrainExamples()
     c.learn()
