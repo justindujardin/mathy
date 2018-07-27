@@ -174,12 +174,9 @@ class Coach:
                 self.game,
             )
             pwins, nwins, draws = arena.playGames(self.model_arena_iterations)
-            has_best = os.path.isfile(self.get_best_model_filename())
-
             print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
             if (
-                has_best
-                and pwins + nwins > 0
+                pwins + nwins > 0
                 and float(nwins) / (pwins + nwins) < self.model_win_loss_ratio
             ):
                 print("REJECTING NEW MODEL")
