@@ -217,8 +217,8 @@ class Coach:
         folder = self.checkpoint
         if not os.path.exists(folder):
             os.makedirs(folder)
-        filename = "{}.pth.tar".format(name)
-        self.nnet.save_checkpoint(folder=folder, filename=filename)
+        filename = os.path.join(self.checkpoint, "{}.pth.tar".format(name))
+        self.nnet.save_checkpoint(filename)
         examples_file = os.path.join(folder, "{}.examples".format(filename))
         with open(examples_file, "wb+") as f:
             Pickler(f).dump(self.training_examples_history)
