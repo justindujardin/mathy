@@ -126,9 +126,9 @@ class Arena:
         for _ in range(num):
             gameResult = self.playGame(verbose=verbose)
             if gameResult == -1:
-                oneWon += 1
-            elif gameResult == 1:
                 twoWon += 1
+            elif gameResult == 1:
+                oneWon += 1
             else:
                 draws += 1
             # bookkeeping + plot progress
