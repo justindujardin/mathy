@@ -10,6 +10,7 @@ from .expressions import (
     NegateExpression,
 )
 from .tokenizer import (
+    coerce_to_number,
     Token,
     TokenCloseParen,
     TokenConstant,
@@ -173,6 +174,27 @@ class ExpressionParser:
             _tokens_cache[input] = self.tokenizer.tokenize(input)
         return _tokens_cache[input]
 
+    def make_features(self, tokens_or_text):
+        """
+        Make a list of tokenized features from text input, to make the learning 
+        objective easier for the model. The intuition being that it's more 
+        """
+        # Token list
+        tokens = None
+        if type(tokens_or_text) == list:
+            tokens = tokens_or_text
+        elif type(tokens_or_text) == str:
+            tokens = self.tokenize(tokens_or_text)
+        else:
+            raise ValueError(
+                "features can only be created from a token list or str input expression"
+            )
+        return [t.to_feature() for t in tokens]
+
+    def parse_features(self, features):
+        tokens = [Token.from_feature(f) for f in features]
+        return tokens
+
     # Parse a string representation of an expression into a tree that can be
     # later evaluated.
     # Returns : The evaluatable expression tree.
@@ -306,7 +328,7 @@ class ExpressionParser:
             if self.currentToken.type == TokenConstant:
                 value = self.currentToken.value
                 # Flip parse as float/int based on whether the value text
-                value = float(value) if "e" in value or "." in value else int(value)
+                value = coerce_to_number(value)
                 if negate:
                     value = -value
                     negate = False

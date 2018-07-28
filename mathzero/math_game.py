@@ -1,16 +1,16 @@
 import random
 import numpy
-from .math.expressions import (
+from .core.expressions import (
     MathExpression,
     ConstantExpression,
     STOP,
     AddExpression,
     VariableExpression,
 )
-from .math.problems import ProblemGenerator
-from .math.parser import ExpressionParser
-from .math.util import termsAreLike, isAddSubtract
-from .math.rules import (
+from .core.problems import ProblemGenerator
+from .core.parser import ExpressionParser
+from .core.util import termsAreLike, isAddSubtract
+from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -18,7 +18,7 @@ from .math.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
-from .math.profiler import profile_start, profile_end
+from .core.profiler import profile_start, profile_end
 from .math_board import MathBoard
 
 
@@ -86,7 +86,7 @@ class MathGame:
 
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
-        self.expression_str = self.problems.sum_and_single_variable()
+        self.expression_str = self.problems.sum_and_single_variable(max_terms=4)
         # print("\n\n\t\tNEXT: {}".format(self.expression_str))
         if len(list(self.expression_str)) > MathGame.width:
             raise Exception(

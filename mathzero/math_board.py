@@ -1,15 +1,15 @@
 import random
 import numpy
-from .math.expressions import (
+from .core.expressions import (
     MathExpression,
     ConstantExpression,
     STOP,
     AddExpression,
     VariableExpression,
 )
-from .math.parser import ExpressionParser
-from .math.util import termsAreLike
-from .math.rules import (
+from .core.parser import ExpressionParser
+from .core.util import termsAreLike
+from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -17,7 +17,7 @@ from .math.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
-from .math.profiler import profile_start, profile_end
+from .core.profiler import profile_start, profile_end
 
 
 class MathBoard:

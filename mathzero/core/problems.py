@@ -3,9 +3,9 @@ import random
 
 class ProblemGenerator:
     # https://codereview.stackexchange.com/questions/46226/utility-function-to-split-a-number-into-n-parts-in-the-given-ratio
-    def new_reduce_ratio(self, load_list=None, total_num=10, min_num=2):
+    def new_reduce_ratio(self, total_num, min_num, load_list=None):
         if load_list is None:
-            load_list = [20, 40, 40]
+            load_list = [20, 40, 20, 20]
 
         output = [min_num for _ in load_list]
         total_num -= sum(output)
@@ -13,7 +13,8 @@ class ProblemGenerator:
             raise Exception("Could not satisfy min_num")
         elif total_num == 0:
             return output
-
+        # Algernon
+        # Calvin
         nloads = len(load_list)
         for ii in range(nloads):
             load_sum = float(sum(load_list))
@@ -23,12 +24,14 @@ class ProblemGenerator:
             total_num -= value
         return output
 
-    def sum_and_single_variable(self, sum=15, variable=None):
+    def sum_and_single_variable(self, sum=None, max_terms=3, variable=None):
+        if sum is None:
+            sum = random.randint(max_terms * 5, max_terms * 20)
         variables = list("xyz")
         if variable is None:
             variable = variables[random.randint(0, len(variables) - 1)]
-        numbers = self.new_reduce_ratio(total_num=sum)
-        nums = [str(num) for num in numbers[:3]]
+        numbers = self.new_reduce_ratio(sum, 3)
+        nums = [str(num) for num in numbers]
         nums.append(variable)
         random.shuffle(nums)
         result = " + ".join(nums)

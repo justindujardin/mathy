@@ -1,3 +1,4 @@
+import math
 # # Tokenizer
 
 # ##Constants
@@ -26,6 +27,33 @@ class Token:
     def __init__(self, value: str, type: int):
         self.value = value
         self.type = type
+
+    def to_feature(self):
+        # Constant values aren't turned into ordinals, but everything else is
+        if self.type == TokenConstant:
+            token_value = coerce_to_number(self.value)
+        elif self.type == TokenEOF:
+            token_value = 0
+        else:
+            token_value = ord(self.value)
+        return [token_value, self.type]
+
+    @classmethod
+    def from_feature(cls, feature):
+        if not type(feature) == list:
+            raise TypeError("feature must be a list of numbers")
+        token_type = feature[1]
+
+
+        token_value = (
+            coerce_to_number(feature[0])
+            if token_type == TokenConstant
+            else chr(feature[0])
+        )
+        return Token(token_value, token_type)
+
+    def __str__(self):
+        return "[type={}],[value={}]".format(self.type, self.value)
 
 
 class TokenContext:
@@ -95,7 +123,7 @@ class Tokenizer:
             or self.identify_alphas(context)
             or self.identify_operators(context)
         ):
-            context.chunk = context.buffer[context.index:]
+            context.chunk = context.buffer[context.index :]
 
         context.tokens.append(Token("", TokenEOF))
         return context.tokens
@@ -154,3 +182,6 @@ class Tokenizer:
         context.index += len(val)
         return len(val)
 
+
+def coerce_to_number(value):
+    return float(value) if "e" in value or "." in value else int(value)
