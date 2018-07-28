@@ -167,13 +167,14 @@ class Coach:
             self.nnet.train(trainExamples)
             nmcts = MCTS(self.game, self.nnet, self.cpuct, self.num_mcts_sims)
 
-            print("PITTING AGAINST PREVIOUS VERSION")
+            print("PITTING AGAINST SELF-PLAY VERSION")
             arena = Arena(
                 lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
                 lambda x: np.argmax(nmcts.getActionProb(x, temp=0)),
                 self.game,
             )
             pwins, nwins, draws = arena.playGames(self.model_arena_iterations)
+
             print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
             if (
                 pwins + nwins > 0

@@ -28,7 +28,7 @@ class ProblemGenerator:
         if variable is None:
             variable = variables[random.randint(0, len(variables) - 1)]
         numbers = self.new_reduce_ratio(total_num=sum)
-        nums = [str(num) for num in numbers[:2]]
+        nums = [str(num) for num in numbers[:3]]
         nums.append(variable)
         random.shuffle(nums)
         result = " + ".join(nums)

@@ -5,10 +5,10 @@ from mathzero.math_neural_net import NNetWrapper as nn
 from mathzero.math.expressions import ConstantExpression
 from mathzero.math.parser import ExpressionParser
 
-eps = 10
+eps = 100
 # Temp is always down to 0 by the max here.
 temp = min(int(eps * 0.5), 15)
-arena = int(eps * 0.6)
+arena = int(eps * 0.4)
 
 args = {
     "training_iterations": 1000,

@@ -11,7 +11,7 @@ from alpha_zero_general.NeuralNet import NeuralNet
 from mathzero.math_model import MathModel
 
 args = dotdict(
-    {"lr": 0.001, "dropout": 0.3, "epochs": 30, "batch_size": 64, "num_channels": 512}
+    {"lr": 0.001, "dropout": 0.3, "epochs": 10, "batch_size": 256, "num_channels": 512}
 )
 
 

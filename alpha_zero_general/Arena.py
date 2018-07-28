@@ -63,7 +63,6 @@ class Arena:
             print("FINAL: ", str(it), "Player ", str(curPlayer))
             self.display(board, curPlayer)
 
-        # DRAW
         if next_state == -1:
             winner = curPlayer * -1
         elif next_state == 1:

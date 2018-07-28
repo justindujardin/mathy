@@ -42,7 +42,7 @@ class VisitBeforeAction(MetaAction):
         count, found = self.count_nodes(expression)
         return bool(found > 1 and count > 1)
 
-    def visit(self, focus_index: int):
+    def visit(self, expression: MathExpression, focus_index: int):
         return focus_index - 1
 
 
@@ -51,7 +51,7 @@ class VisitAfterAction(MetaAction):
         count, found = self.count_nodes(expression)
         return bool(found >= 0 and found < count - 2)
 
-    def visit(self, focus_index: int):
+    def visit(self, expression: MathExpression, focus_index: int):
         return focus_index + 1
 
 
@@ -145,6 +145,7 @@ class MathGame:
                 board, player, root, move_count + 1, focus_index
             )
         elif isinstance(operation, MetaAction):
+            operation_result = operation.visit(expression, focus_index)
             if not searching and MathGame.verbose:
                 direction = (
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
@@ -153,18 +154,12 @@ class MathGame:
                     "[{}] 👀 Looking {} at: {}".format(
                         move_count,
                         direction,
-                        self.getFocusToken(expression, operation.visit(focus_index)),
+                        self.getFocusToken(expression, operation_result),
                     )
                 )
-            # DONE BELOW: actions for setting the currently focused node. This encourages interpretibility
-            # by forcing the action stream to include where the machine is transitioning its focus
-            # to before taking actions. It also reduces the potential number of valid actions at a given
-            # point to a constant number rather than the number of potential actions across the entire
-            # expression, which could be tens or hundreds instead of a handful.
             out_board = b.encode_player(
-                board, player, expression, move_count + 1, operation.visit(focus_index)
+                board, player, expression, move_count + 1, operation_result
             )
-            # profile_end('getNextState.applyMetaAction')
         else:
             raise Exception(
                 "\n\nPlayer: {}\n\tExpression: {}\n\tFocus: {}\n\tIndex: {}\n\tinvalid move selected: {}, {}".format(
