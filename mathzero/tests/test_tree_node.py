@@ -1,4 +1,4 @@
-from ..tree_node import BinaryTreeNode
+from ..core.tree_node import BinaryTreeNode
 
 def test_tree_node_constructor():
     tree = BinaryTreeNode(BinaryTreeNode(), BinaryTreeNode())

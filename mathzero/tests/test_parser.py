@@ -1,7 +1,7 @@
-from ..tokenizer import Token
-from ..tree_node import BinaryTreeNode
-from ..expressions import ConstantExpression, VariableExpression, AddExpression
-from ..parser import ExpressionParser
+from ..core.tokenizer import Token
+from ..core.tree_node import BinaryTreeNode
+from ..core.expressions import ConstantExpression, VariableExpression, AddExpression
+from ..core.parser import ExpressionParser
 
 
 def test_parser_to_string():
@@ -35,4 +35,12 @@ def test_mult_exp_precedence():
     val = expression.evaluate({"x": 2})
     # 4x^2 should evaluate to 16 with x=2
     assert val == 16
+
+
+def test_mult_exp_precedence():
+    """should respect order of operations with factor parsing"""
+    parser = ExpressionParser()
+    expression = parser.parse("7 * 10 * 6x * 3x + 5x")
+    # 4x^2 should evaluate to 16 with x=2
+    assert expression is not None
 

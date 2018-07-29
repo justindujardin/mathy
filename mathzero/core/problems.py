@@ -31,8 +31,31 @@ class ProblemGenerator:
         if variable is None:
             variable = variables[random.randint(0, len(variables) - 1)]
         numbers = self.new_reduce_ratio(sum, 3)
-        nums = [str(num) for num in numbers]
+        nums = [str(num) for num in numbers][: max_terms - 1]
         nums.append(variable)
         random.shuffle(nums)
         result = " + ".join(nums)
+        return result
+
+    def binary_operations_no_variables(self, sum=None, max_terms=3):
+        if sum is None:
+            sum = random.randint(max_terms * 5, max_terms * 20)
+        operators = list("+-*")
+        result = "{}".format(random.randint(2, 10))
+        for i in range(max_terms):
+            num = random.randint(1, 12)
+            op = operators[random.randint(0, len(operators) - 1)]
+            result = result + " {} {}".format(op, num)
+        return result
+
+    def simplify_multiple_terms(self, max_terms=4):
+        operators = list("+*")
+        result = "{}".format(random.randint(2, 10))
+        variables = list("xyz")
+        variable = variables[random.randint(0, len(variables) - 1)]
+        for i in range(max_terms):
+            var = variable if random.getrandbits(1) == 1 else ""
+            num = random.randint(1, 12)
+            op = operators[random.randint(0, len(operators) - 1)]
+            result = result + " {} {}{}".format(op, num, var)
         return result

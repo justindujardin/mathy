@@ -1,12 +1,12 @@
-from ..tree_node import BinaryTreeNode
-from ..parser import ExpressionParser
-from ..expressions import (
+from ..core.tree_node import BinaryTreeNode
+from ..core.parser import ExpressionParser
+from ..core.expressions import (
     ConstantExpression,
     VariableExpression,
     AddExpression,
     DivideExpression,
 )
-from ..rules import (
+from ..core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     DistributiveFactorOutRule,
@@ -49,13 +49,11 @@ def test_commutative_property_cannot_apply():
 
 def test_commutative_property_truncate():
     parser = ExpressionParser()
-    expr = parser.parse('(7 + x) + 2')
+    expr = parser.parse("(7 + x) + 2")
     rule = CommutativeSwapRule()
 
     change = rule.applyTo(expr)
-    assert str(change.end) == '2 + (7 + x)'
-
-
+    assert str(change.end) == "2 + (7 + x)"
 
 
 def test_constants_simplify_rule():
@@ -74,15 +72,24 @@ def test_distributive_factoring():
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
     out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == '7 * (1 + 1)'
+    assert str(out) == "7 * (1 + 1)"
 
-def test_distributive_factoring():
+
+def test_distributive_factoring_with_variables():
     parser = ExpressionParser()
-    expression = parser.parse("(x + 9) - 2x")
+    expression = parser.parse("14x + 7x")
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
     out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == '7 * (1 + 1)'
+    assert str(out) == "7x * (2 + 1)"
+
+
+def test_distributive_factoring_factors():
+    pass
+    parser = ExpressionParser()
+    expression = parser.parse("4 + (z + 4)")
+    rule = DistributiveFactorOutRule()
+    assert rule.canApplyTo(expression) == False
 
 
 def test_common_properties_can_apply_to():
@@ -99,9 +106,11 @@ def test_common_properties_can_apply_to():
         assert type(action.canApplyTo(expression)) == bool
 
 
-
 def test_associative_swap():
     parser = ExpressionParser()
-    exp = parser.parse('(2 + x) + 9')
+    exp = parser.parse("(2 + x) + 9")
     rule = AssociativeSwapRule()
-    rule.applyTo(exp)
+    nodes = rule.findNodes(exp)
+    assert len(nodes) == 1
+    change = rule.applyTo(nodes[0])
+    assert str(change.end.getRoot()).strip() == "2 + (x + 9)"

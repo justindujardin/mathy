@@ -44,8 +44,12 @@ def factor(value):
     if value == 0 or math.isnan(value):
         return []
 
+    sqrt = numpy.sqrt(value)
+    if math.isnan(sqrt):
+        return []
+
     flip = value < 0
-    sqrt = int(numpy.sqrt(value) + 1)
+    sqrt = int(sqrt + 1)
     factors = {1: value}
     factors[value] = 1
 
@@ -97,6 +101,8 @@ def factorAddTerms(node):
     lCoefficients = factor(lTerm.coefficients[0] if len(lTerm.coefficients) > 0 else 1)
     rCoefficients = factor(rTerm.coefficients[0] if len(rTerm.coefficients) > 0 else 1)
     common = [k for k in rCoefficients if k in lCoefficients]
+    if len(common) == 0:
+        return False
     best = numpy.max(common)
     result = FactorResult()
     result.best = best
@@ -218,13 +224,13 @@ def getTerm(node):
 
     def filter_coefficients(n):
         if not n.parent or n.parent == node.parent:
-            return False
+            return True
 
         if isinstance(n.parent, BinaryExpression) and not isinstance(
             n.parent, MultiplyExpression
         ):
-            return True
-        return False
+            return False
+        return True
 
     coefficients = node.findByType(ConstantExpression)
     coefficients = [c for c in coefficients if filter_coefficients(c)]

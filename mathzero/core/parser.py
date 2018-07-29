@@ -193,7 +193,7 @@ class ExpressionParser:
 
     def parse_features(self, features):
         tokens = [Token.from_feature(f) for f in features]
-        return tokens
+        return self.evaluate(tokens)
 
     # Parse a string representation of an expression into a tree that can be
     # later evaluated.

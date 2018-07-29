@@ -1,5 +1,5 @@
-from ..tree_node import BinaryTreeNode
-from ..expressions import ConstantExpression, VariableExpression, AddExpression, SubtractExpression
+from ..core.tree_node import BinaryTreeNode
+from ..core.expressions import ConstantExpression, VariableExpression, AddExpression, SubtractExpression
 
 
 def test_expression_get_children():

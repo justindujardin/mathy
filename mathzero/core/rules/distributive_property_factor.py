@@ -40,7 +40,7 @@ class DistributiveFactorOutRule(BaseRule):
         return "Distributive Factoring"
 
     def canApplyTo(self, node):
-        if not isAddSubtract(node):
+        if not isAddSubtract(node) or isAddSubtract(node.left) or isAddSubtract(node.right):
             return False
 
         self.leftTerm = getTerm(node.left)
@@ -86,4 +86,3 @@ class DistributiveFactorOutRule(BaseRule):
 
         change.done(result)
         return change
-

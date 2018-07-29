@@ -1,10 +1,10 @@
 import tensorflow as tf
-
+from tensorflow.python.ops import init_ops
 
 class MathModel:
     def __init__(self, game, args):
         # game params
-        self.board_x, self.board_y = game.getBoardSize()
+        self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
         self.args = args
 
@@ -62,7 +62,7 @@ class MathModel:
             s_fc1 = Dropout(
                 Relu(
                     BatchNormalization(
-                        Dense(h_conv4_flat, 64), axis=1, training=self.isTraining
+                        Dense(h_conv4_flat, 64, use_bias=False), axis=1, training=self.isTraining
                     )
                 ),
                 rate=self.dropout,
@@ -70,21 +70,21 @@ class MathModel:
             s_fc2 = Dropout(
                 Relu(
                     BatchNormalization(
-                        Dense(s_fc1, 32), axis=1, training=self.isTraining
+                        Dense(s_fc1, 32, use_bias=False), axis=1, training=self.isTraining
                     )
                 ),
                 rate=self.dropout,
             )  # batch_size x 512
-            # s_fc1 = Dropout(Relu(BatchNormalization(Dense(h_conv4_flat, 1024), axis=1, training=self.isTraining)), rate=self.dropout) # batch_size x 1024
-            # s_fc2 = Dropout(Relu(BatchNormalization(Dense(s_fc1, 512), axis=1, training=self.isTraining)), rate=self.dropout)         # batch_size x 512
-            self.pi = Dense(s_fc2, self.action_size)  # batch_size x self.action_size
+            # s_fc1 = Dropout(Relu(BatchNormalization(Dense(h_conv4_flat, 1024, use_bias=False), axis=1, training=self.isTraining)), rate=self.dropout) # batch_size x 1024
+            # s_fc2 = Dropout(Relu(BatchNormalization(Dense(s_fc1, 512, use_bias=False), axis=1, training=self.isTraining)), rate=self.dropout)         # batch_size x 512
+            self.pi = Dense(s_fc2, self.action_size, bias_initializer=init_ops.glorot_normal_initializer())  # batch_size x self.action_size
             self.prob = tf.nn.softmax(self.pi)
             self.v = Tanh(Dense(s_fc2, 1))  # batch_size x 1
 
             self.calculate_loss()
 
     def conv2d(self, x, out_channels, padding):
-        return tf.layers.conv2d(x, out_channels, kernel_size=[3, 3], padding=padding)
+        return tf.layers.conv2d(x, out_channels, kernel_size=[3, 3], padding=padding, use_bias=False)
 
     def calculate_loss(self):
         self.target_pis = tf.placeholder(tf.float32, shape=[None, self.action_size])

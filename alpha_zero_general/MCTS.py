@@ -82,7 +82,8 @@ class MCTS:
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(canonicalBoard)
+            agent_state = self.game.getCanonicalAgentState(canonicalBoard)
+            self.Ps[s], v = self.nnet.predict(agent_state)
             # print('calculating valid moves for: {}'.format(s))
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves

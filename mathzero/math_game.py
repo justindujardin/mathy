@@ -18,9 +18,10 @@ from .core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
+    VariableSimplifyRule,
 )
 from .core.profiler import profile_start, profile_end
-from .math_state import MathState
+from .environment_state import EnvironmentState
 
 
 class MetaAction:
@@ -72,38 +73,37 @@ class MathGame:
     width = 128
     verbose = False
     draw = 0.0001
+    max_moves = 20
 
     def __init__(self):
         self.problems = ProblemGenerator()
         self.parser = ExpressionParser()
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
-            CommutativeSwapRule(),
+            ConstantsSimplifyRule(),
+            VariableSimplifyRule(),
             DistributiveFactorOutRule(),
             DistributiveMultiplyRule(),
+            CommutativeSwapRule(),
             AssociativeSwapRule(),
-            ConstantsSimplifyRule(),
         ]
 
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
-        self.expression_str = self.problems.sum_and_single_variable(max_terms=4)
-        # print("\n\n\t\tNEXT: {}".format(self.expression_str))
+        terms = random.randint(3, 5)
+        self.expression_str = self.problems.simplify_multiple_terms(max_terms=terms)
+        # self.expression_str = "14x + 7x"
+        print("\n\n\t\tNEXT: {}".format(self.expression_str))
         if len(list(self.expression_str)) > MathGame.width:
             raise Exception(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
                     self.expression_str, MathGame.width
                 )
             )
-        board = MathState(MathGame.width).encode_board(self.expression_str)
+        board = EnvironmentState(MathGame.width).encode_board(self.expression_str)
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return board
-
-    def getBoardSize(self):
-        """return shape (x,y) of board dimensions"""
-        # 2 columns per player, the first for turn data, the second for text inputs
-        return (4, MathGame.width)
 
     def getActionSize(self):
         """Return number of all possible actions"""
@@ -121,11 +121,11 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        b = MathState(MathGame.width)
-        text, move_count, focus_index, _ = b.decode_player(board, player)
-        # if not searching:
-        #     print("gns: {}, {}".format(player, focus_index))
-        expression = self.parser.parse(text)
+        b = EnvironmentState(MathGame.width)
+        features, move_count, focus_index, _, meta_counter, _ = b.decode_player(
+            board, player
+        )
+        expression = self.parser.parse_features(features)
         token = self.getFocusToken(expression, focus_index)
         actions = self.available_actions + self.available_rules
         operation = actions[action]
@@ -136,14 +136,20 @@ class MathGame:
         # - can't focus on the same token twice without taking a valid other
         #   action inbetween
         # TODO: leaving these ideas here, but optimization made them less necessary
-
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
+            out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose:
                 print("[{}] {}".format(move_count, change.describe()))
             out_board = b.encode_player(
-                board, player, root, move_count + 1, focus_index
+                board,
+                player,
+                out_features,
+                move_count + 1,
+                focus_index,
+                meta_counter,
+                action,
             )
         elif isinstance(operation, MetaAction):
             operation_result = operation.visit(expression, focus_index)
@@ -159,7 +165,13 @@ class MathGame:
                     )
                 )
             out_board = b.encode_player(
-                board, player, expression, move_count + 1, operation_result
+                board,
+                player,
+                features,
+                move_count + 1,
+                operation_result,
+                meta_counter + 1,
+                action,
             )
         else:
             raise Exception(
@@ -198,10 +210,9 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        b = MathState(MathGame.width)
-
-        expression_text, _, focus_index, _ = b.decode_player(board, player)
-        expression = self.parser.parse(expression_text)
+        b = EnvironmentState(MathGame.width)
+        features, _, focus_index, _, meta_counter, _ = b.decode_player(board, player)
+        expression = self.parser.parse_features(features)
         token = self.getFocusToken(expression, focus_index)
         actions = [0] * self.getActionSize()
         count = 0
@@ -239,12 +250,9 @@ class MathGame:
                small non-zero value for draw.
                
         """
-        b = MathState(MathGame.width)
-        expression_text, move_count, _, _ = b.decode_player(board, player)
-        # if not searching:
-        #     print("Expression = {}".format(expression_text))
-        expression = self.parser.parse(expression_text)
-
+        b = EnvironmentState(MathGame.width)
+        features, move_count, _, _, _, _ = b.decode_player(board, player)
+        expression = self.parser.parse_features(features)
         # It's over if the expression is reduced to a single constant
         if (
             isinstance(expression, ConstantExpression)
@@ -254,7 +262,7 @@ class MathGame:
 
             eval = self.parser.parse(self.expression_str).evaluate()
             found = expression.evaluate()
-            if math.isclose(eval, found):
+            if eval != found and not math.isclose(eval, found):
                 if not searching:
                     print(
                         "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
@@ -313,10 +321,11 @@ class MathGame:
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.
-        if move_count > 20:
-            e2, move_count_other, _, _ = b.decode_player(board, player * -1)
-            if move_count_other > 20:
+        if move_count > MathGame.max_moves:
+            f2, move_count_other, _, _, _, _ = b.decode_player(board, player * -1)
+            if move_count_other > MathGame.max_moves:
                 if not searching and MathGame.verbose:
+                    e2 = self.parser.parse_features(f2)
                     print(
                         "\n[DRAW] ENDED WITH:\n\t 1: {}\n\t 2: {}\n".format(
                             expression, e2
@@ -326,12 +335,6 @@ class MathGame:
 
         # The game continues
         return 0
-
-    # ===================================================================
-    #
-    #       STOP! THERE IS NOTHING YOU WANT TO CHANGE BELOW HERE.
-    #
-    # ===================================================================
 
     def getCanonicalForm(self, board, player):
         """
@@ -348,7 +351,18 @@ class MathGame:
                             the colors and return the board.
         """
         # print("gcf: {}".format(player))
-        return MathState(MathGame.width).get_canonical_board(board, player)
+        return EnvironmentState(MathGame.width).get_canonical_board(board, player)
+
+    #
+    def getCanonicalAgentState(self, board):
+        # b = EnvironmentState(MathGame.width)
+        # return b.slice_player_data(board, 1)
+        return board
+
+    def getAgentStateSize(self):
+        """return shape (x,y) of agent state dimensions"""
+        # 2 columns per player, the first for turn data, the second for text inputs
+        return (4, MathGame.width)
 
     def getSymmetries(self, board, pi):
         """
@@ -365,34 +379,34 @@ class MathGame:
 
     def getPolicyKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathState(MathGame.width)
+        b = EnvironmentState(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
-        e1, m1, f1, _ = b.decode_player(board, 1)
-        # Note that the focus technically has no bearing on the win-state
-        # so we don't attach it to the cache for MCTS to keep the number
-        # of keys down.
-        # JDD: UGH without this the invalid move selection goes up because keys conflict.
-
-        # TODO: Add player index here? Store in board data after focus_index? This controls valid moves
-        #       could there be a problem with cache conflicts? Are the policies the same for each player
-        #       given the m/f/e?
-
-        return "[ {}, {}, {} ]".format(m1, f1, e1)
+        features, m1, f1, _, _, _ = b.decode_player(board, 1)
+        features_key = ",".join([str(f) for f in features])
+        return "[{},{},{}]".format(m1, f1, features_key)
 
     def getEndedStateKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathState(MathGame.width)
+        b = EnvironmentState(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
-        e1, m1, _, _ = b.decode_player(board, 1)
-        return "[ {}, {} ]".format(m1, e1)
+        features, m1, _, _, _, _ = b.decode_player(board, 1)
+        features_key = ",".join([str(f) for f in features])
+        return "[{},{}]".format(m1, features_key)
+
+
+_parser = None
 
 
 def display(board, player):
-    b = MathState(MathGame.width)
-    expression = b.decode_player(board, player)[0]
-    expression_len = len(expression)
+    global _parser
+    if _parser is None:
+        _parser = ExpressionParser()
+    b = EnvironmentState(MathGame.width)
+    features = b.decode_player(board, player)[0]
+    expression = _parser.parse_features(features)
+    expression_len = len(str(expression))
     width = 100
     if player == 1:
         buffer = " " * int(width / 2 - expression_len)

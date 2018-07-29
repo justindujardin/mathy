@@ -18,7 +18,7 @@ args = dotdict(
 class NNetWrapper(NeuralNet):
     def __init__(self, game):
         self.nnet = MathModel(game, args)
-        self.board_x, self.board_y = game.getBoardSize()
+        self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
 
         self.sess = tf.Session(graph=self.nnet.graph)

@@ -19,7 +19,7 @@ class Game():
         """
         pass
 
-    def getBoardSize(self):
+    def getAgentStateSize(self):
         """
         Returns:
             (x,y): a tuple of board dimensions
