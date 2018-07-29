@@ -20,9 +20,12 @@ def test_tokenizer():
 
     features = [t.to_feature() for t in tokens]
     assert len(features) > 0
+
     tokens_out = [Token.from_feature(f) for f in features]
     assert len(tokens) == len(tokens_out)
-    assert tokens == tokens_out
+    for i, t in enumerate(tokens_out):
+        assert t.value == tokens[i].value
+        assert t.type == tokens[i].type
 
 
 def test_mult_exp_precedence():

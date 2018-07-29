@@ -43,13 +43,13 @@ class Token:
         if not type(feature) == list:
             raise TypeError("feature must be a list of numbers")
         token_type = feature[1]
-
-
-        token_value = (
-            coerce_to_number(feature[0])
-            if token_type == TokenConstant
-            else chr(feature[0])
-        )
+        token_value = feature[0]
+        if token_type == TokenConstant:
+            token_value = str(int(token_value) if math.isclose(token_value % 1, 0.0) else float(token_value))
+        elif token_type == TokenEOF:
+            token_value = ""
+        else:
+            token_value = chr(token_value)
         return Token(token_value, token_type)
 
     def __str__(self):
