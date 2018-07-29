@@ -15,21 +15,21 @@ class Coach:
     in Game and NeuralNet. args are specified in main.py.
     """
 
-    def __init__(self, game, nnet, **kwargs):
+    def __init__(self, game, nnet, args):
         self.game = game
         self.nnet = nnet
         self.pnet = self.nnet.__class__(self.game)  # the competitor network
-        self.num_mcts_sims = kwargs.get("num_mcts_sims", 15)
-        self.cpuct = kwargs.get("cpuct", 1.0)
-        self.training_iterations = kwargs.get("training_iterations", 50)
-        self.self_play_iterations = kwargs.get("self_play_iterations", 100)
-        self.temperature_threshold = kwargs.get("temperature_threshold", 15)
-        self.model_win_loss_ratio = kwargs.get("model_win_loss_ratio", 0.6)
-        self.max_training_examples = kwargs.get("max_training_examples", 200000)
-        self.model_arena_iterations = kwargs.get("model_arena_iterations", 30)
-        self.checkpoint = kwargs.get("checkpoint", "./training/")
-        self.best_model_name = kwargs.get("best_model_name", "best")
-        self.save_examples_from_last_n_iterations = kwargs.get(
+        self.num_mcts_sims = args.get("num_mcts_sims", 15)
+        self.cpuct = args.get("cpuct", 1.0)
+        self.training_iterations = args.get("training_iterations", 50)
+        self.self_play_iterations = args.get("self_play_iterations", 100)
+        self.temperature_threshold = args.get("temperature_threshold", 15)
+        self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
+        self.max_training_examples = args.get("max_training_examples", 200000)
+        self.model_arena_iterations = args.get("model_arena_iterations", 30)
+        self.checkpoint = args.get("checkpoint", "./training/")
+        self.best_model_name = args.get("best_model_name", "best")
+        self.save_examples_from_last_n_iterations = args.get(
             "save_examples_from_last_n_iterations", 20
         )
         self.mcts = MCTS(

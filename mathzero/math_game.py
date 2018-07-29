@@ -1,4 +1,5 @@
 import random
+import math
 import numpy
 from .core.expressions import (
     MathExpression,
@@ -19,7 +20,7 @@ from .core.rules import (
     ConstantsSimplifyRule,
 )
 from .core.profiler import profile_start, profile_end
-from .math_board import MathBoard
+from .math_state import MathState
 
 
 class MetaAction:
@@ -94,7 +95,7 @@ class MathGame:
                     self.expression_str, MathGame.width
                 )
             )
-        board = MathBoard(MathGame.width).encode_board(self.expression_str)
+        board = MathState(MathGame.width).encode_board(self.expression_str)
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return board
@@ -120,7 +121,7 @@ class MathGame:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        b = MathBoard(MathGame.width)
+        b = MathState(MathGame.width)
         text, move_count, focus_index, _ = b.decode_player(board, player)
         # if not searching:
         #     print("gns: {}, {}".format(player, focus_index))
@@ -197,15 +198,9 @@ class MathGame:
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
-        b = MathBoard(MathGame.width)
+        b = MathState(MathGame.width)
 
         expression_text, _, focus_index, _ = b.decode_player(board, player)
-        # # Valid moves depend on player, but this is always called with canonical board
-        # # which normalizes the player away. We add the player ID to MCTS hash keys to
-        # # work around it, and then normalize the player moves per hash key here by extracting
-        # # the origin player ID and normalizing the results to be for that user.
-        # if player != board_player:
-        #     expression_text, _, focus_index, _ = b.decode_player(board, player * -1)
         expression = self.parser.parse(expression_text)
         token = self.getFocusToken(expression, focus_index)
         actions = [0] * self.getActionSize()
@@ -244,7 +239,7 @@ class MathGame:
                small non-zero value for draw.
                
         """
-        b = MathBoard(MathGame.width)
+        b = MathState(MathGame.width)
         expression_text, move_count, _, _ = b.decode_player(board, player)
         # if not searching:
         #     print("Expression = {}".format(expression_text))
@@ -254,20 +249,19 @@ class MathGame:
         if (
             isinstance(expression, ConstantExpression)
             and len(expression.getChildren()) == 0
+            and expression.parent is None
         ):
 
-            # eval = self.parser.parse(self.expression_str).evaluate()
-            # found = expression.evaluate()
-            # # TODO: This int cast is a cheap hack to not worry about epsilon differences
-            # # TODO: Remove this when working with lots of floating point stuff
-            # if int(eval) != int(found):
-            #     if not searching:
-            #         print(
-            #             "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
-            #                 self.expression_str, eval, found
-            #             )
-            #         )
-            #     return -1
+            eval = self.parser.parse(self.expression_str).evaluate()
+            found = expression.evaluate()
+            if math.isclose(eval, found):
+                if not searching:
+                    print(
+                        "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
+                            self.expression_str, eval, found
+                        )
+                    )
+                return -1
 
             # Holy shit it won!
             if not searching and MathGame.verbose:
@@ -354,7 +348,7 @@ class MathGame:
                             the colors and return the board.
         """
         # print("gcf: {}".format(player))
-        return MathBoard(MathGame.width).get_canonical_board(board, player)
+        return MathState(MathGame.width).get_canonical_board(board, player)
 
     def getSymmetries(self, board, pi):
         """
@@ -371,7 +365,7 @@ class MathGame:
 
     def getPolicyKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathBoard(MathGame.width)
+        b = MathState(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
         e1, m1, f1, _ = b.decode_player(board, 1)
@@ -388,7 +382,7 @@ class MathGame:
 
     def getEndedStateKey(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
-        b = MathBoard(MathGame.width)
+        b = MathState(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
         e1, m1, _, _ = b.decode_player(board, 1)
@@ -396,7 +390,7 @@ class MathGame:
 
 
 def display(board, player):
-    b = MathBoard(MathGame.width)
+    b = MathState(MathGame.width)
     expression = b.decode_player(board, player)[0]
     expression_len = len(expression)
     width = 100

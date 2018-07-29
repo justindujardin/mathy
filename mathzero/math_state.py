@@ -20,7 +20,7 @@ from .core.rules import (
 from .core.profiler import profile_start, profile_end
 
 
-class MathBoard:
+class MathState:
     def __init__(self, width):
         self.width = width
 
@@ -36,6 +36,7 @@ class MathBoard:
         data = numpy.zeros((4, self.width), dtype="float32")
         # Encode the text twice, once for each player.
         text_len = len(text)
+        
         data[0][0] = 1
         data[2][0] = -1
         for i in range(self.width):
