@@ -21,7 +21,14 @@
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "args": ["--pyargs", "mathzero.math"]
+            "args": ["--pyargs", "mathzero"]
+        },
+        {
+            "name": "Math Tests (Focused)",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["--pyargs", "mathzero", "-k", "'test_combine_like_terms'"]
         },
         {
             "name": "Python: Current File",

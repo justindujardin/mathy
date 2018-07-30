@@ -7,9 +7,10 @@ from ..expressions import (
 )
 from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike, makeTerm
 from .base_rule import BaseRule
+import numpy
 
 
-class VariableSimplifyRule(BaseRule):
+class CombineLikeTermsRule(BaseRule):
     """Combine like variables that are next to each other"""
 
     def getName(self):
@@ -48,10 +49,15 @@ class VariableSimplifyRule(BaseRule):
     def applyTo(self, node):
         change = super().applyTo(node)
         change.saveParent()
-        coefficient = self.l_term.coefficients + self.r_term.coefficients
-        # The "canApply" verified that left/right variable and exponent match
+        coefficients = self.l_term.coefficients + self.r_term.coefficients
+        if isAddSubtract(node):
+            coefficient = numpy.sum(coefficients)
+            exponent = self.l_term.exponent
+        else:
+            coefficient = numpy.product(coefficients)
+            left_exp = self.l_term.exponent if self.l_term.exponent else 1
+            right_exp = self.r_term.exponent if self.r_term.exponent else 1
+            exponent = left_exp + right_exp
         variable = self.l_term.variables[0]
-        exponent = self.l_term.exponent
         result = makeTerm(coefficient, variable, exponent)
         return change.done(result)
-

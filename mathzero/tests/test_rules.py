@@ -4,6 +4,7 @@ from ..core.expressions import (
     ConstantExpression,
     VariableExpression,
     AddExpression,
+    MultiplyExpression,
     DivideExpression,
 )
 from ..core.rules import (
@@ -12,6 +13,7 @@ from ..core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
+    CombineLikeTermsRule,
 )
 
 
@@ -114,3 +116,13 @@ def test_associative_swap():
     assert len(nodes) == 1
     change = rule.applyTo(nodes[0])
     assert str(change.end.getRoot()).strip() == "2 + (x + 9)"
+
+
+def test_combine_like_terms():
+    parser = ExpressionParser()
+    left = parser.parse("4x")
+    right = parser.parse("7x")
+    expr = MultiplyExpression(left, right)
+    rule = CombineLikeTermsRule()
+    change = rule.applyTo(expr)
+    assert str(change.end) == "28x^2"

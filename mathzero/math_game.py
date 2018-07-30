@@ -18,7 +18,7 @@ from .core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
-    VariableSimplifyRule,
+    CombineLikeTermsRule,
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -81,7 +81,7 @@ class MathGame:
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             ConstantsSimplifyRule(),
-            VariableSimplifyRule(),
+            CombineLikeTermsRule(),
             DistributiveFactorOutRule(),
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
