@@ -93,7 +93,7 @@ class MathGame:
         terms = random.randint(3, 5)
         self.expression_str = self.problems.simplify_multiple_terms(max_terms=terms)
         # self.expression_str = "14x + 7x"
-        print("\n\n\t\tNEXT: {}".format(self.expression_str))
+        # print("\n\n\t\tNEXT: {}".format(self.expression_str))
         if len(list(self.expression_str)) > MathGame.width:
             raise Exception(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
