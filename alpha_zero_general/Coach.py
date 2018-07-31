@@ -106,7 +106,11 @@ class Coach:
         # Where to store the current checkpoint while learning
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
 
-        print("Starting training with {} self-play threads.".format(self.self_player_workers))
+        print(
+            "Starting training with {} self-play threads.".format(
+                self.self_player_workers
+            )
+        )
 
         for i in range(1, self.training_iterations + 1):
             print("------ITER " + str(i) + "------")
@@ -118,7 +122,7 @@ class Coach:
             bar.next()
 
             with concurrent.futures.ThreadPoolExecutor(
-                thread_name_prefix="mathzero", max_workers=self.self_player_workers
+                max_workers=self.self_player_workers
             ) as executor:
                 args = [
                     [
