@@ -14,7 +14,7 @@ args = {
     "temperature_threshold": temp,
     "model_win_loss_ratio": 0.6,
     "max_training_examples": 200000,
-    "num_mcts_sims": 25,
+    "num_mcts_sims": 15,
     "model_arena_iterations": arena,
     "cpuct": 1,
     "checkpoint": "./training/temp/",

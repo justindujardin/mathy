@@ -74,7 +74,7 @@ class MathGame:
     width = 128
     verbose = False
     draw = 0.0001
-    max_moves = 25
+    max_moves = 12
 
     @property
     def thread_name(self):
