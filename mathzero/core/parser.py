@@ -193,8 +193,8 @@ class ExpressionParser:
 
     def parse_features(self, features):
         try:
-        tokens = [Token.from_feature(f) for f in features]
-        return self.evaluate(tokens)
+            tokens = [Token.from_feature(f) for f in features]
+            return self.evaluate(tokens)
         except InvalidSyntax as err:
             print("Failed to parse features:\n{}".format(features))
             print("Error was:\n{}".format(err))

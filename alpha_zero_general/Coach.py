@@ -7,6 +7,56 @@ import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
 import os
+import concurrent.futures
+import threading
+import multiprocessing
+
+
+def executeEpisode(packed_args):
+    """
+    This function executes one episode of self-play, starting with player 1.
+    As the game is played, each turn is added as a training example to
+    trainExamples. The game continues until getGameEnded returns a non-zero
+    value, then the outcome of the game is used to assign values to each example
+    in trainExamples.
+
+    It uses a temp=1 if episodeStep < temperature_threshold, and thereafter
+    uses temp=0.
+
+    Returns:
+        trainExamples: a list of examples of the form (canonicalBoard,pi,v)
+                        pi is the MCTS informed policy vector, v is +1 if
+                        the player eventually won the game, else -1.
+    """
+    [game, player, coach, episode] = packed_args
+    # print(
+    #     "[{}] Starting episode {}....".format(threading.current_thread().name, episode)
+    # )
+    episode_examples = []
+    game = game.__class__()
+    nnet = coach.nnet.__class__(game)
+    board = game.getInitBoard()
+    current_player = player
+    move_count = 0
+    mcts = MCTS(game, nnet, coach.cpuct, coach.num_mcts_sims)
+    while True:
+        move_count += 1
+        canonical_state = game.getCanonicalForm(board, current_player)
+        temp = int(move_count < coach.temperature_threshold)
+
+        pi = mcts.getActionProb(canonical_state, temp=temp)
+        sym = game.getSymmetries(canonical_state, pi)
+        for b, p in sym:
+            episode_examples.append([b, current_player, p, None])
+        action = np.random.choice(len(pi), p=pi)
+        board, current_player = game.getNextState(board, current_player, action)
+        r = game.getGameEnded(board, current_player)
+
+        if r != 0:
+            return [
+                (x[0], x[2], r * ((-1) ** (x[1] != current_player)))
+                for x in episode_examples
+            ]
 
 
 class Coach:
@@ -23,6 +73,9 @@ class Coach:
         self.cpuct = args.get("cpuct", 1.0)
         self.training_iterations = args.get("training_iterations", 50)
         self.self_play_iterations = args.get("self_play_iterations", 100)
+        self.self_player_workers = args.get(
+            "self_player_workers", max(multiprocessing.cpu_count() - 1, 1)
+        )
         self.temperature_threshold = args.get("temperature_threshold", 15)
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
         self.max_training_examples = args.get("max_training_examples", 200000)
@@ -32,13 +85,8 @@ class Coach:
         self.save_examples_from_last_n_iterations = args.get(
             "save_examples_from_last_n_iterations", 20
         )
-        self.mcts = MCTS(
-            self.game, self.nnet, cpuct=self.cpuct, num_mcts_sims=self.num_mcts_sims
-        )
-
         self.training_examples_history = []  # history of examples from args.save_examples_from_last_n_iterations latest iterations
         self.skip_first_self_play = False  # can be overriden in loadTrainExamples()
-
         best = self.get_best_model_filename()
         if self.can_load_model(best):
             print("Starting with best existing model: {}".format(best))
@@ -48,50 +96,6 @@ class Coach:
             print(
                 "No existing checkpoint found, starting with a fresh model and self-play..."
             )
-
-    def executeEpisode(self):
-        """
-        This function executes one episode of self-play, starting with player 1.
-        As the game is played, each turn is added as a training example to
-        trainExamples. The game continues until getGameEnded returns a non-zero
-        value, then the outcome of the game is used to assign values to each example
-        in trainExamples.
-
-        It uses a temp=1 if episodeStep < temperature_threshold, and thereafter
-        uses temp=0.
-
-        Returns:
-            trainExamples: a list of examples of the form (canonicalBoard,pi,v)
-                           pi is the MCTS informed policy vector, v is +1 if
-                           the player eventually won the game, else -1.
-        """
-        trainExamples = []
-        board = self.game.getInitBoard()
-        self.curPlayer = 1
-        episodeStep = 0
-
-        while True:
-            episodeStep += 1
-            canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
-            temp = int(episodeStep < self.temperature_threshold)
-
-            pi = self.mcts.getActionProb(canonicalBoard, temp=temp)
-            sym = self.game.getSymmetries(canonicalBoard, pi)
-            for b, p in sym:
-                trainExamples.append([b, self.curPlayer, p, None])
-
-            action = np.random.choice(len(pi), p=pi)
-            board, self.curPlayer = self.game.getNextState(
-                board, self.curPlayer, action
-            )
-            # print("turn done, player is now: {}".format(self.curPlayer))
-            r = self.game.getGameEnded(board, self.curPlayer)
-
-            if r != 0:
-                return [
-                    (x[0], x[2], r * ((-1) ** (x[1] != self.curPlayer)))
-                    for x in trainExamples
-                ]
 
     def learn(self):
         """
@@ -105,23 +109,24 @@ class Coach:
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
 
         for i in range(1, self.training_iterations + 1):
-            # bookkeeping
             print("------ITER " + str(i) + "------")
-            # examples of the iteration
-            if not self.skip_first_self_play or i > 1:
-                iterationTrainExamples = deque([], maxlen=self.max_training_examples)
+            iterationTrainExamples = deque([], maxlen=self.max_training_examples)
+            bar = Bar("Self Play", max=self.self_play_iterations)
+            eps_time = AverageMeter()
+            end = time.time()
+            bar.suffix = "Playing first game..."
+            bar.next()
 
-                eps_time = AverageMeter()
-                bar = Bar("Self Play", max=self.self_play_iterations)
-                end = time.time()
-
-                for eps in range(self.self_play_iterations):
-                    # reset search tree
-                    self.mcts = MCTS(
-                        self.game, self.nnet, self.cpuct, self.num_mcts_sims
-                    )
-                    iterationTrainExamples += self.executeEpisode()
-
+            with concurrent.futures.ThreadPoolExecutor(
+                thread_name_prefix="mathzero", max_workers=self.self_player_workers
+            ) as executor:
+                args = [
+                    [self.game, 1, self, i]
+                    for i in range(1, self.self_play_iterations + 1)
+                ]
+                eps = 0
+                for examples in executor.map(executeEpisode, args):
+                    iterationTrainExamples += examples
                     # bookkeeping + plot progress
                     eps_time.update(time.time() - end)
                     end = time.time()
@@ -132,6 +137,7 @@ class Coach:
                         total=bar.elapsed_td,
                         eta=bar.eta_td,
                     )
+                    eps += 1
                     bar.next()
                 bar.finish()
 
