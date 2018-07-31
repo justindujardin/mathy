@@ -276,19 +276,19 @@ class MathGame:
             and expression.left is None
             and expression.right is None
         ):
-            print("Game done with constant win: ")
-            print("  start expression {}".format(self.expression_str))
-            print("  end expression {}".format(str(expression)))
-            eval = self.parser.parse(self.expression_str).evaluate()
-            found = expression.evaluate()
-            if eval != found and not math.isclose(eval, found):
-                if not searching:
-                    print(
-                        "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
-                            self.expression_str, eval, found
-                        )
-                    )
-                return -1
+            # print("Game done with constant win: ")
+            # print("  start expression {}".format(self.expression_str))
+            # print("  end expression {}".format(str(expression)))
+            # eval = self.parser.parse(self.expression_str).evaluate()
+            # found = expression.evaluate()
+            # if eval != found and not math.isclose(eval, found):
+            #     if not searching:
+            #         print(
+            #             "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
+            #                 self.expression_str, eval, found
+            #             )
+            #         )
+            #     return -1
 
             # Holy shit it won!
             if not searching and MathGame.verbose:
