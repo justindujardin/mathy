@@ -73,7 +73,7 @@ class MathGame:
     width = 128
     verbose = False
     draw = 0.0001
-    max_moves = 20
+    max_moves = 25
 
     def __init__(self):
         self.problems = ProblemGenerator()
@@ -90,9 +90,9 @@ class MathGame:
 
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
-        terms = random.randint(3, 5)
+        terms = random.randint(3, 4)
         self.expression_str = self.problems.simplify_multiple_terms(max_terms=terms)
-        # self.expression_str = "14x + 7x"
+        # self.expression_str = "14x + 7x + 2"
         # print("\n\n\t\tNEXT: {}".format(self.expression_str))
         if len(list(self.expression_str)) > MathGame.width:
             raise Exception(

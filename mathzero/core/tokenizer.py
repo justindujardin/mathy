@@ -36,7 +36,7 @@ class Token:
             token_value = 0
         else:
             token_value = ord(self.value)
-        return [token_value, self.type]
+        return [token_value, float(self.type)]
 
     @classmethod
     def from_feature(cls, feature):
@@ -49,7 +49,7 @@ class Token:
         elif token_type == TokenEOF:
             token_value = ""
         else:
-            token_value = chr(token_value)
+            token_value = chr(int(token_value))
         return Token(token_value, token_type)
 
     def __str__(self):

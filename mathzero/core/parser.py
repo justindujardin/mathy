@@ -192,8 +192,14 @@ class ExpressionParser:
         return [t.to_feature() for t in tokens]
 
     def parse_features(self, features):
+        try:
         tokens = [Token.from_feature(f) for f in features]
         return self.evaluate(tokens)
+        except InvalidSyntax as err:
+            print("Failed to parse features:\n{}".format(features))
+            print("Error was:\n{}".format(err))
+            print("tokens:\n{}".format([str(t.value) for t in tokens if t.type != TokenEOF]))
+            raise err
 
     # Parse a string representation of an expression into a tree that can be
     # later evaluated.
