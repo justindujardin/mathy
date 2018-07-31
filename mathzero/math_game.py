@@ -25,7 +25,6 @@ from .environment_state import EnvironmentState
 import threading
 
 
-
 class MetaAction:
     def count_nodes(self, expression: MathExpression) -> int:
         count = 0
@@ -73,7 +72,7 @@ class MathGame:
     """
 
     width = 128
-    verbose = True
+    verbose = False
     draw = 0.0001
     max_moves = 25
 
@@ -155,7 +154,9 @@ class MathGame:
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose:
-                print("[{}] {}".format(move_count, change.describe()))
+                print(
+                    "{}[{}] {}".format(self.thread_name, move_count, change.describe())
+                )
             out_board = b.encode_player(
                 board,
                 player,
@@ -172,7 +173,8 @@ class MathGame:
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
                 print(
-                    "[{}] 👀 Looking {} at: {}".format(
+                    "{}[{}] 👀 Looking {} at: {}".format(
+                        self.thread_name,
                         move_count,
                         direction,
                         self.getFocusToken(expression, operation_result),
@@ -270,10 +272,13 @@ class MathGame:
         # It's over if the expression is reduced to a single constant
         if (
             isinstance(expression, ConstantExpression)
-            and len(expression.getChildren()) == 0
             and expression.parent is None
+            and expression.left is None
+            and expression.right is None
         ):
-
+            print("Game done with constant win: ")
+            print("  start expression {}".format(self.expression_str))
+            print("  end expression {}".format(str(expression)))
             eval = self.parser.parse(self.expression_str).evaluate()
             found = expression.evaluate()
             if eval != found and not math.isclose(eval, found):

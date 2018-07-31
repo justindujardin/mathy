@@ -4,7 +4,7 @@ from mathzero.math_neural_net import NNetWrapper as nn
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 100
+eps = 200
 temp = int(eps * 0.5)
 arena = int(eps * 0.3)
 
@@ -14,7 +14,7 @@ args = {
     "temperature_threshold": temp,
     "model_win_loss_ratio": 0.6,
     "max_training_examples": 200000,
-    "num_mcts_sims": 15,
+    "num_mcts_sims": 25,
     "model_arena_iterations": arena,
     "cpuct": 1,
     "checkpoint": "./training/temp/",
