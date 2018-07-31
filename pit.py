@@ -4,7 +4,6 @@ from mathzero.math_game import MathGame, display
 from mathzero.math_players import GreedyMathPlayer, RandomPlayer, PassPlayer
 from mathzero.math_neural_net import NNetWrapper as NNet
 import numpy as np
-from alpha_zero_general.utils import dotdict
 
 """
 use this script to play any two agents against each other, or play manually with

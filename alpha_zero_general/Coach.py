@@ -28,21 +28,19 @@ def executeEpisode(packed_args):
                         pi is the MCTS informed policy vector, v is +1 if
                         the player eventually won the game, else -1.
     """
-    [game, player, coach, episode] = packed_args
+    [game, nnet, player, num_mcts_sims, temperature_threshold, cpuct] = packed_args
     # print(
     #     "[{}] Starting episode {}....".format(threading.current_thread().name, episode)
     # )
     episode_examples = []
-    game = game.__class__()
-    nnet = coach.nnet.__class__(game)
     board = game.getInitBoard()
     current_player = player
     move_count = 0
-    mcts = MCTS(game, nnet, coach.cpuct, coach.num_mcts_sims)
+    mcts = MCTS(game, nnet, cpuct, num_mcts_sims)
     while True:
         move_count += 1
         canonical_state = game.getCanonicalForm(board, current_player)
-        temp = int(move_count < coach.temperature_threshold)
+        temp = int(move_count < temperature_threshold)
 
         pi = mcts.getActionProb(canonical_state, temp=temp)
         sym = game.getSymmetries(canonical_state, pi)
@@ -74,7 +72,7 @@ class Coach:
         self.training_iterations = args.get("training_iterations", 50)
         self.self_play_iterations = args.get("self_play_iterations", 100)
         self.self_player_workers = args.get(
-            "self_player_workers", max(multiprocessing.cpu_count() - 1, 1)
+            "self_player_workers", max(multiprocessing.cpu_count(), 1)
         )
         self.temperature_threshold = args.get("temperature_threshold", 15)
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
@@ -108,9 +106,11 @@ class Coach:
         # Where to store the current checkpoint while learning
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
 
+        print("Starting training with {} self-play threads.".format(self.self_player_workers))
+
         for i in range(1, self.training_iterations + 1):
             print("------ITER " + str(i) + "------")
-            iterationTrainExamples = deque([], maxlen=self.max_training_examples)
+            training_examples = deque([], maxlen=self.max_training_examples)
             bar = Bar("Self Play", max=self.self_play_iterations)
             eps_time = AverageMeter()
             end = time.time()
@@ -121,12 +121,19 @@ class Coach:
                 thread_name_prefix="mathzero", max_workers=self.self_player_workers
             ) as executor:
                 args = [
-                    [self.game, 1, self, i]
+                    [
+                        self.game,
+                        self.nnet,
+                        1 if i % 2 == 0 else -1,
+                        self.num_mcts_sims,
+                        self.temperature_threshold,
+                        self.cpuct,
+                    ]
                     for i in range(1, self.self_play_iterations + 1)
                 ]
                 eps = 0
                 for examples in executor.map(executeEpisode, args):
-                    iterationTrainExamples += examples
+                    training_examples += examples
                     # bookkeeping + plot progress
                     eps_time.update(time.time() - end)
                     end = time.time()
@@ -142,7 +149,7 @@ class Coach:
                 bar.finish()
 
                 # save the iteration examples to the history
-                self.training_examples_history.append(iterationTrainExamples)
+                self.training_examples_history.append(training_examples)
 
             if (
                 len(self.training_examples_history)

@@ -5,19 +5,24 @@ import random
 import numpy
 import math
 import sys
-from alpha_zero_general.utils import dotdict
+
 from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 from alpha_zero_general.NeuralNet import NeuralNet
 from mathzero.math_model import MathModel
 
-args = dotdict(
-    {"lr": 0.001, "dropout": 0.3, "epochs": 10, "batch_size": 256, "num_channels": 512}
-)
 
+class NetConfig:
+    def __init__(self, lr=0.001, dropout=0.3, epochs=10, batch_size=256, num_channels=512):
+        self.lr = lr
+        self.dropout = dropout
+        self.epcosh = epochs
+        self.batch_size = batch_size
+        self.num_channels = num_channels
 
 class NNetWrapper(NeuralNet):
     def __init__(self, game):
-        self.nnet = MathModel(game, args)
+        self.args = NetConfig()
+        self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
 
@@ -34,7 +39,7 @@ class NNetWrapper(NeuralNet):
         examples: list of examples, each example is of form (board, pi, v)
         """
 
-        for epoch in range(args.epochs):
+        for epoch in range(self.args.epochs):
             print("EPOCH ::: " + str(epoch + 1))
             data_time = AverageMeter()
             batch_time = AverageMeter()
@@ -42,12 +47,12 @@ class NNetWrapper(NeuralNet):
             v_losses = AverageMeter()
             end = time.time()
 
-            bar = Bar("Training Net", max=int(len(examples) / args.batch_size))
+            bar = Bar("Training Net", max=int(len(examples) / self.args.batch_size))
             batch_idx = 0
 
             # self.sess.run(tf.local_variables_initializer())
-            while batch_idx < int(len(examples) / args.batch_size):
-                sample_ids = numpy.random.randint(len(examples), size=args.batch_size)
+            while batch_idx < int(len(examples) / self.args.batch_size):
+                sample_ids = numpy.random.randint(len(examples), size=self.args.batch_size)
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
 
                 # predict and compute gradient and do SGD step
@@ -55,7 +60,7 @@ class NNetWrapper(NeuralNet):
                     self.nnet.input_boards: boards,
                     self.nnet.target_pis: pis,
                     self.nnet.target_vs: vs,
-                    self.nnet.dropout: args.dropout,
+                    self.nnet.dropout: self.args.dropout,
                     self.nnet.isTraining: True,
                 }
 
@@ -78,7 +83,7 @@ class NNetWrapper(NeuralNet):
                 # plot progress
                 bar.suffix = "({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss_pi: {lpi:.4f} | Loss_v: {lv:.3f}".format(
                     batch=batch_idx,
-                    size=int(len(examples) / args.batch_size),
+                    size=int(len(examples) / self.args.batch_size),
                     data=data_time.avg,
                     bt=batch_time.avg,
                     total=bar.elapsed_td,

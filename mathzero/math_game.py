@@ -22,6 +22,8 @@ from .core.rules import (
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
+import threading
+
 
 
 class MetaAction:
@@ -71,13 +73,25 @@ class MathGame:
     """
 
     width = 128
-    verbose = False
+    verbose = True
     draw = 0.0001
     max_moves = 25
 
+    @property
+    def thread_name(self):
+        return threading.current_thread().name
+
+    @property
+    def parser(self):
+        """The expression parser is stateful and cannot be shared across threads"""
+        thread_name = self.thread_name
+        if not thread_name in self.parsers:
+            self.parsers[thread_name] = ExpressionParser()
+        return self.parsers[thread_name]
+
     def __init__(self):
+        self.parsers = dict()
         self.problems = ProblemGenerator()
-        self.parser = ExpressionParser()
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             ConstantsSimplifyRule(),

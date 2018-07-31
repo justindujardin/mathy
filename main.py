@@ -1,14 +1,12 @@
 from alpha_zero_general.Coach import Coach
-from alpha_zero_general.utils import dotdict
 from mathzero.math_game import MathGame
 from mathzero.math_neural_net import NNetWrapper as nn
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
 eps = 100
-# Temp is always down to 0 by the max here.
-temp = min(int(eps * 0.5), 15)
-arena = int(eps * 0.4)
+temp = int(eps * 0.5)
+arena = int(eps * 0.3)
 
 args = {
     "training_iterations": 1000,

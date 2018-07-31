@@ -1,5 +1,3 @@
 keras
-torch 
-torchvision
 numpy
 pytest

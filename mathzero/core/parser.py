@@ -145,6 +145,7 @@ _parse_cache = {}
 _tokens_cache = {}
 
 
+# NOTE: This cannot be shared between threads because it stores state in self.currentToken and self.tokens
 class ExpressionParser:
     # Initialize the tokenizer.
     def __init__(self):

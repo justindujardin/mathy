@@ -47,18 +47,16 @@ class BinaryTreeNode:
 
     def toJSON(self):
         """Serialize the node as JSON"""
-        return dotdict(
-            {
-                "name": self.getName(),
-                "children": [c.toJSON() for c in self.getChildren()],
-            }
-        )
+        return {
+            "name": self.getName(),
+            "children": [c.toJSON() for c in self.getChildren()],
+        }
 
     def rotate(self):
         """
-    Rotate a node, changing the structure of the tree, without modifying
-    the order of the nodes in the tree.
-    """
+        Rotate a node, changing the structure of the tree, without modifying
+        the order of the nodes in the tree.
+        """
         node = self
         parent = self.parent
         if not node or not parent:
@@ -286,6 +284,18 @@ class TidierExtreme:
         self.offset = 0
 
 
+class TidierMeasurement:
+    def __init__(self):
+        self.minX = 10000
+        self.maxX = 0
+        self.minY = 10000
+        self.maxY = 0
+        self.width = 0
+        self.height = 0
+        self.centerX = 0
+        self.centerY = 0
+
+
 class BinaryTreeTidier:
     """Implement a Reingold-Tilford 'tidier' tree layout algorithm."""
 
@@ -412,12 +422,12 @@ class BinaryTreeTidier:
         # threaded.  If threading is required, it will affect only one node.
         if left and left != node.left and rightExtremes and rightExtremes.right:
             rightExtremes.right.thread = left
-            rightExtremes.right.offset = Math.abs(
+            rightExtremes.right.offset = abs(
                 rightExtremes.right.offset + node.offset - leftOffsetSum
             )
         elif right and right != node.right and leftExtremes and leftExtremes.left:
             leftExtremes.left.thread = right
-            leftExtremes.left.offset = Math.abs(
+            leftExtremes.left.offset = abs(
                 leftExtremes.left.offset - node.offset - rightOffsetSum
             )
 
@@ -428,7 +438,7 @@ class BinaryTreeTidier:
     # Return a measurement of the tree in output units.
     def transform(self, node, x=0, unitMultiplier=1, measure=None):
         if measure is None:
-            measure = dotdict({"minX": 10000, "maxX": 0, "minY": 10000, "maxY": 0})
+            measure = TidierMeasurement()
         if not node:
             return measure
 
@@ -448,8 +458,8 @@ class BinaryTreeTidier:
         if measure.maxX < node.x:
             measure.maxX = node.x
 
-        measure.width = Math.abs(measure.minX - measure.maxX)
-        measure.height = Math.abs(measure.minY - measure.maxY)
+        measure.width = abs(measure.minX - measure.maxX)
+        measure.height = abs(measure.minY - measure.maxY)
         measure.centerX = measure.minX + measure.width / 2
         measure.centerY = measure.minY + measure.height / 2
         return measure
