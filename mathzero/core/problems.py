@@ -53,7 +53,7 @@ class ProblemGenerator:
         result = "{}".format(random.randint(2, 10))
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
-        for i in range(max_terms):
+        for i in range(max_terms - 1):
             var = variable if random.getrandbits(1) == 1 else ""
             num = random.randint(1, 12)
             op = operators[random.randint(0, len(operators) - 1)]
