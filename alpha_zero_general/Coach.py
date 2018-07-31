@@ -72,7 +72,7 @@ class Coach:
         self.training_iterations = args.get("training_iterations", 50)
         self.self_play_iterations = args.get("self_play_iterations", 100)
         self.self_player_workers = args.get(
-            "self_player_workers", max(multiprocessing.cpu_count(), 1)
+            "self_player_workers", max(multiprocessing.cpu_count() * 2, 1)
         )
         self.temperature_threshold = args.get("temperature_threshold", 15)
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)

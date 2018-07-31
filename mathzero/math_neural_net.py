@@ -15,7 +15,7 @@ class NetConfig:
     def __init__(self, lr=0.001, dropout=0.3, epochs=10, batch_size=256, num_channels=512):
         self.lr = lr
         self.dropout = dropout
-        self.epcosh = epochs
+        self.epochs = epochs
         self.batch_size = batch_size
         self.num_channels = num_channels
 
