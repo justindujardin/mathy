@@ -50,9 +50,9 @@ class ProblemGenerator:
 
     def simplify_multiple_terms(self, max_terms=4):
         operators = list("+*")
-        result = "{}".format(random.randint(2, 10))
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
+        result = "{}{}".format(random.randint(2, 10), variable)
         for i in range(max_terms - 1):
             var = variable if random.getrandbits(1) == 1 else ""
             num = random.randint(1, 12)
