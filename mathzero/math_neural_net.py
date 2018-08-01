@@ -12,12 +12,15 @@ from mathzero.math_model import MathModel
 
 
 class NetConfig:
-    def __init__(self, lr=0.001, dropout=0.3, epochs=10, batch_size=256, num_channels=512):
+    def __init__(
+        self, lr=0.001, dropout=0.3, epochs=10, batch_size=256, num_channels=512
+    ):
         self.lr = lr
         self.dropout = dropout
         self.epochs = epochs
         self.batch_size = batch_size
         self.num_channels = num_channels
+
 
 class NNetWrapper(NeuralNet):
     def __init__(self, game):
@@ -39,6 +42,8 @@ class NNetWrapper(NeuralNet):
         examples: list of examples, each example is of form (board, pi, v)
         """
 
+        print("Training neural net for ({}) epochs...".format(self.args.epochs))
+
         for epoch in range(self.args.epochs):
             print("EPOCH ::: " + str(epoch + 1))
             data_time = AverageMeter()
@@ -52,7 +57,9 @@ class NNetWrapper(NeuralNet):
 
             # self.sess.run(tf.local_variables_initializer())
             while batch_idx < int(len(examples) / self.args.batch_size):
-                sample_ids = numpy.random.randint(len(examples), size=self.args.batch_size)
+                sample_ids = numpy.random.randint(
+                    len(examples), size=self.args.batch_size
+                )
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
 
                 # predict and compute gradient and do SGD step
