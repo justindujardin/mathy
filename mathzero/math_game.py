@@ -10,7 +10,7 @@ from .core.expressions import (
 )
 from .core.problems import ProblemGenerator
 from .core.parser import ExpressionParser
-from .core.util import termsAreLike, isAddSubtract
+from .core.util import termsAreLike, isAddSubtract, getTerms
 from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
@@ -40,7 +40,7 @@ class MathGame:
     """
 
     width = 128
-    verbose = False
+    verbose = True
     draw = 0.0001
     max_moves = 20
 
@@ -121,7 +121,7 @@ class MathGame:
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
-            if not searching and MathGame.verbose and player == 1:
+            if False and not searching and MathGame.verbose and player == 1:
                 print(
                     "{}[{}] {}".format(self.thread_name, move_count, change.describe())
                 )
@@ -136,7 +136,7 @@ class MathGame:
             )
         elif isinstance(operation, MetaAction):
             operation_result = operation.visit(self, expression, focus_index)
-            if not searching and MathGame.verbose and player == 1:
+            if False and not searching and MathGame.verbose and player == 1:
                 direction = (
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
@@ -277,28 +277,17 @@ class MathGame:
                 # print(".")
 
             return 1
-        # Check for simplification down to a single addition with constant/variable
-        add_sub = expression if isinstance(expression, AddExpression) else None
-        if add_sub is None:
-            find = expression.findByType(AddExpression)
-            add_sub = find[0] if len(find) > 0 else add_sub
-
-        if add_sub and add_sub.parent is None:
-            constant = None
-            variable = None
-
-            if isinstance(add_sub.left, ConstantExpression):
-                constant = add_sub.left
-            elif isinstance(add_sub.right, ConstantExpression):
-                constant = add_sub.right
-
-            if isinstance(add_sub.left, VariableExpression):
-                variable = add_sub.left
-            elif isinstance(add_sub.right, VariableExpression):
-                variable = add_sub.right
-
-            # The game continues...
-            if constant is not None and variable is not None:
+        
+        # Check for simplification removes all like terms
+        root = expression.getRoot()
+        if isAddSubtract(root):
+            terms = getTerms(root)
+            term_count = len(terms)
+            # Only handle up to two terms right now. Once it can 
+            # deal with "4x + 3x + 2" and "12x * 2x^3 * 4" we can 
+            # try expanding to arbitrary polynomial
+            two_unlike = term_count == 2 and termsAreLike(terms[0], terms[1]) == False
+            if term_count == 1 or two_unlike:
                 # TODO: Compare constant/variable findings to verify their accuracy.
                 #       This helps until we're 100% confident in the parser/serializer consistency
                 #
