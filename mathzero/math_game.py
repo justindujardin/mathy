@@ -40,24 +40,12 @@ class MathGame:
     """
 
     width = 128
-    verbose = True
+    verbose = False
     draw = 0.0001
     max_moves = 15
 
-    @property
-    def thread_name(self):
-        return threading.current_thread().name
-
-    @property
-    def parser(self):
-        """The expression parser is stateful and cannot be shared across threads"""
-        thread_name = self.thread_name
-        if not thread_name in self.parsers:
-            self.parsers[thread_name] = ExpressionParser()
-        return self.parsers[thread_name]
-
     def __init__(self):
-        self.parsers = dict()
+        self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
