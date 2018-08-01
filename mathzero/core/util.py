@@ -287,7 +287,7 @@ def termsAreLike(one, two):
     @returns {Boolean} Whether the terms are like or not.
     """
     # Both must be valid terms
-    if not one and not two:
+    if not one or not two:
         return False
 
     # Extract terms from MathExpressions if need be
