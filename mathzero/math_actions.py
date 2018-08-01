@@ -49,15 +49,15 @@ class VisitBeforeAction(MetaAction):
 
     def visit(self, game, expression: MathExpression, focus_index: int):
         new_index = focus_index - 1
-        new_token = self.getNthTokenFromLeft(expression, new_index)
-        while True:
-            # Ignore the first two meta moves.
-            moves = game.get_actions_for_expression(new_token)[2:]
-            non_meta = numpy.argmax(moves)
-            if not new_token or non_meta > 0 or new_index == 0:
-                break
-            new_index -= 1
-            new_token = self.getNthTokenFromLeft(new_token, new_index)
+        # new_token = self.getNthTokenFromLeft(expression, new_index)
+        # while True:
+        #     # Ignore the first two meta moves.
+        #     moves = game.get_actions_for_expression(new_token)[2:]
+        #     non_meta = numpy.argmax(moves)
+        #     if not new_token or non_meta > 0 or new_index == 0:
+        #         break
+        #     new_index -= 1
+        #     new_token = self.getNthTokenFromLeft(new_token, new_index)
         return new_index
 
 
@@ -68,15 +68,15 @@ class VisitAfterAction(MetaAction):
 
     def visit(self, game, expression: MathExpression, focus_index: int):
         new_index = focus_index + 1
-        new_token = self.getNthTokenFromLeft(expression, new_index)
-        count, _ = self.count_nodes(expression)
-        while True:
-            # Ignore the first two meta moves.
-            moves = game.get_actions_for_expression(new_token)[2:]
-            non_meta = numpy.argmax(moves)
-            if not new_token or non_meta > 0 or new_index == (count - 2):
-                break
-            new_index += 1
-            new_token = self.getNthTokenFromLeft(new_token, new_index)
+        # new_token = self.getNthTokenFromLeft(expression, new_index)
+        # count, _ = self.count_nodes(expression)
+        # while True:
+        #     # Ignore the first two meta moves.
+        #     moves = game.get_actions_for_expression(new_token)[2:]
+        #     non_meta = numpy.argmax(moves)
+        #     if not new_token or non_meta > 0 or new_index == (count - 2):
+        #         break
+        #     new_index += 1
+        #     new_token = self.getNthTokenFromLeft(new_token, new_index)
         return new_index
 
