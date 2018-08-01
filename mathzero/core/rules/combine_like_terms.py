@@ -26,23 +26,29 @@ class CombineLikeTermsRule(BaseRule):
         self.l_term = getTerm(node.left)
         if (
             self.l_term == False
-            or len(self.l_term.variables) != 1
+            or len(self.l_term.variables) > 1
             or len(self.l_term.coefficients) != 1
         ):
             return False
         self.r_term = getTerm(node.right)
         if (
             self.r_term == False
-            or len(self.r_term.variables) != 1
+            or len(self.r_term.variables) > 1
             or len(self.r_term.coefficients) != 1
         ):
             return False
-        # The variable of both terms must be the same
-        if self.l_term.variables[0] != self.r_term.variables[0]:
+
+        # If there are two variables and they don't match, no go.
+        l_vars = self.l_term.variables
+        r_vars = self.r_term.variables
+        if (len(l_vars) > 0 and len(r_vars) > 0) and l_vars[0] != r_vars[0]:
             return False
+
         # TODO: Verify this.
         # Exponents must match with adding two terms? 4x^2 + 5x^2
-        if not self.l_term.exponent != self.r_term.exponent and is_add_sub:
+        l_exp = self.l_term.exponent
+        r_exp = self.r_term.exponent
+        if is_add_sub and l_exp is not None and r_exp is not None and l_exp != r_exp:
             return False
         return True
 
@@ -50,14 +56,24 @@ class CombineLikeTermsRule(BaseRule):
         change = super().applyTo(node)
         change.saveParent()
         coefficients = self.l_term.coefficients + self.r_term.coefficients
+        l_vars = self.l_term.variables
+        r_vars = self.r_term.variables
         if isAddSubtract(node):
             coefficient = numpy.sum(coefficients)
             exponent = self.l_term.exponent
         else:
             coefficient = numpy.product(coefficients)
-            left_exp = self.l_term.exponent if self.l_term.exponent else 1
-            right_exp = self.r_term.exponent if self.r_term.exponent else 1
+
+            # If there is a variable, the implicit exponent to be summed is 1, otherwise 0
+            implicit_l_exp = len(l_vars)
+            implicit_r_exp = len(r_vars)
+            
+            left_exp = self.l_term.exponent if self.l_term.exponent else implicit_l_exp
+            right_exp = self.r_term.exponent if self.r_term.exponent else implicit_r_exp
             exponent = left_exp + right_exp
-        variable = self.l_term.variables[0]
+
+        variable = (
+            l_vars[0] if len(l_vars) > 0 else r_vars[0] if len(r_vars) > 0 else None
+        )
         result = makeTerm(coefficient, variable, exponent)
         return change.done(result)

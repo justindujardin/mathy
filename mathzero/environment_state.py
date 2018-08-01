@@ -44,13 +44,13 @@ class EnvironmentState:
         data = numpy.zeros((4, self.width), dtype="float32")
         data[0][PLAYER_ID_OFFSET] = 1
         data[0][MOVE_COUNT_OFFSET] = 0
-        data[0][FOCUS_INDEX_OFFSET] = 1 # Start focus at 1 to bias away from leaf nodes that cannot be operators. 
+        data[0][FOCUS_INDEX_OFFSET] = 0
         data[0][META_COUNTER_OFFSET] = 0
         data[0][LAST_ACTION_OFFSET] = -1
 
         data[2][PLAYER_ID_OFFSET] = -1
         data[2][MOVE_COUNT_OFFSET] = 0
-        data[2][FOCUS_INDEX_OFFSET] = 1
+        data[2][FOCUS_INDEX_OFFSET] = 0
         data[2][META_COUNTER_OFFSET] = 0
         data[2][LAST_ACTION_OFFSET] = -1
 

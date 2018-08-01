@@ -126,3 +126,25 @@ def test_combine_like_terms():
     rule = CombineLikeTermsRule()
     change = rule.applyTo(expr)
     assert str(change.end) == "28x^2"
+
+
+def test_combine_like_terms_2():
+    parser = ExpressionParser()
+    rule = CombineLikeTermsRule()
+    expr = parser.parse("(x * 14 + 7x) + 2")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "21x + 2"
+
+    expr = parser.parse("42 * (y^2 * 2)")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "84y^2"
+
+def test_combine_like_terms_3():
+    parser = ExpressionParser()
+    rule = CombineLikeTermsRule()
+    expr = parser.parse("4x + 7x + 2")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "11x + 2"

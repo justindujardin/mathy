@@ -9,6 +9,7 @@ class BaseRule:
         result = None
 
         def visit_fn(node, depth, data):
+            nonlocal result
             if includeAll and self.canApplyTo(node):
                 result = node
             elif not includeAll and self.shouldApplyTo(node):
@@ -24,6 +25,7 @@ class BaseRule:
         nodes = []
 
         def visit_fn(node, depth, data):
+            nonlocal nodes
             add = None
             if includeAll and self.canApplyTo(node):
                 add = node

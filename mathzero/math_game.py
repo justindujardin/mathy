@@ -22,40 +22,8 @@ from .core.rules import (
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
+from .math_actions import VisitBeforeAction, VisitAfterAction, MetaAction
 import threading
-
-
-class MetaAction:
-    def count_nodes(self, expression: MathExpression) -> int:
-        count = 0
-        found = -1
-
-        def visit_fn(node, depth, data):
-            nonlocal count, found
-            if node.id == expression.id:
-                found = count
-            count = count + 1
-
-        expression.getRoot().visitInorder(visit_fn)
-        return count, found
-
-
-class VisitBeforeAction(MetaAction):
-    def canVisit(self, expression: MathExpression) -> bool:
-        count, found = self.count_nodes(expression)
-        return bool(found > 1 and count > 1)
-
-    def visit(self, expression: MathExpression, focus_index: int):
-        return focus_index - 1
-
-
-class VisitAfterAction(MetaAction):
-    def canVisit(self, expression: MathExpression) -> bool:
-        count, found = self.count_nodes(expression)
-        return bool(found >= 0 and found < count - 2)
-
-    def visit(self, expression: MathExpression, focus_index: int):
-        return focus_index + 1
 
 
 class MathGame:
@@ -74,7 +42,7 @@ class MathGame:
     width = 128
     verbose = False
     draw = 0.0001
-    max_moves = 12
+    max_moves = 20
 
     @property
     def thread_name(self):
@@ -93,8 +61,8 @@ class MathGame:
         self.problems = ProblemGenerator()
         self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
-            ConstantsSimplifyRule(),
             CombineLikeTermsRule(),
+            ConstantsSimplifyRule(),
             DistributiveFactorOutRule(),
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
@@ -103,9 +71,9 @@ class MathGame:
 
     def getInitBoard(self):
         """return a numpy encoded version of the input expression"""
-        terms = random.randint(3, 4)
+        terms = random.randint(3, 3)
         self.expression_str = self.problems.simplify_multiple_terms(max_terms=terms)
-        # self.expression_str = "14x + 7x + 2"
+        # self.expression_str = "14x + 7x"
         # print("\n\n\t\tNEXT: {}".format(self.expression_str))
         if len(list(self.expression_str)) > MathGame.width:
             raise Exception(
@@ -153,7 +121,7 @@ class MathGame:
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
-            if not searching and MathGame.verbose:
+            if not searching and MathGame.verbose and player == 1:
                 print(
                     "{}[{}] {}".format(self.thread_name, move_count, change.describe())
                 )
@@ -167,8 +135,8 @@ class MathGame:
                 action,
             )
         elif isinstance(operation, MetaAction):
-            operation_result = operation.visit(expression, focus_index)
-            if not searching and MathGame.verbose:
+            operation_result = operation.visit(self, expression, focus_index)
+            if not searching and MathGame.verbose and player == 1:
                 direction = (
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
@@ -220,6 +188,7 @@ class MathGame:
         Input:
             board: current board
             player: current player
+            searching: True if called by MCTS simulations
 
         Returns:
             validMoves: a binary vector of length self.getActionSize(), 1 for
@@ -230,28 +199,34 @@ class MathGame:
         features, _, focus_index, _, meta_counter, _ = b.decode_player(board, player)
         expression = self.parser.parse_features(features)
         token = self.getFocusToken(expression, focus_index)
+        actions = self.get_actions_for_expression(token)
+        # NOTE: Below is verbose output showing which actions are valid.
+        # if not searching:
+        #     print_list = self.available_actions + self.available_rules
+        #     [
+        #         print(
+        #             "Player{} action[{}][{}] = {}".format(
+        #                 player, i, bool(a), type(print_list[i]) if a != 0 else ""
+        #             )
+        #         )
+        #         for i, a in enumerate(actions)
+        #     ]
+        return actions
+
+    def get_actions_for_expression(self, expression: MathExpression):
         actions = [0] * self.getActionSize()
         count = 0
         # Meta actions first
         for action in self.available_actions:
-            if action.canVisit(token):
+            if action.canVisit(self, expression):
                 actions[count] = 1
             count = count + 1
         # Rules of numbers
         for rule in self.available_rules:
-            if rule.canApplyTo(token):
+            if rule.canApplyTo(expression):
                 actions[count] = 1
             count = count + 1
 
-        # print_list = self.available_actions + self.available_rules
-        # [
-        #     print(
-        #         "Player{} action[{}][{}] = {}".format(
-        #             player, i, bool(a), type(print_list[i]) if a != 0 else ""
-        #         )
-        #     )
-        #     for i, a in enumerate(actions)
-        # ]
         return actions
 
     def getGameEnded(self, board, player, searching=False):
