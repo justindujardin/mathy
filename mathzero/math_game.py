@@ -10,7 +10,7 @@ from .core.expressions import (
 )
 from .core.problems import ProblemGenerator
 from .core.parser import ExpressionParser
-from .core.util import termsAreLike, isAddSubtract, getTerms
+from .core.util import termsAreLike, isAddSubtract, getTerms, getTerm
 from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
@@ -42,7 +42,7 @@ class MathGame:
     width = 128
     verbose = True
     draw = 0.0001
-    max_moves = 20
+    max_moves = 15
 
     @property
     def thread_name(self):
@@ -121,7 +121,7 @@ class MathGame:
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
-            if False and not searching and MathGame.verbose and player == 1:
+            if not searching and MathGame.verbose and player == 1:
                 print(
                     "{}[{}] {}".format(self.thread_name, move_count, change.describe())
                 )
@@ -136,7 +136,7 @@ class MathGame:
             )
         elif isinstance(operation, MetaAction):
             operation_result = operation.visit(self, expression, focus_index)
-            if False and not searching and MathGame.verbose and player == 1:
+            if not searching and MathGame.verbose and player == 1:
                 direction = (
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
@@ -281,26 +281,35 @@ class MathGame:
         # Check for simplification removes all like terms
         root = expression.getRoot()
         if isAddSubtract(root):
-            terms = getTerms(root)
-            term_count = len(terms)
+            term_nodes = getTerms(root)
+            term_count = len(term_nodes)
             # Only handle up to two terms right now. Once it can 
             # deal with "4x + 3x + 2" and "12x * 2x^3 * 4" we can 
             # try expanding to arbitrary polynomial
-            two_unlike = term_count == 2 and termsAreLike(terms[0], terms[1]) == False
+            two_unlike = (
+                term_count == 2 and termsAreLike(term_nodes[0], term_nodes[1]) == False
+            )
             if term_count == 1 or two_unlike:
-                # TODO: Compare constant/variable findings to verify their accuracy.
-                #       This helps until we're 100% confident in the parser/serializer consistency
-                #
-                # Holy shit it won!
-                if not searching and MathGame.verbose:
-                    print(
-                        "\n[Player{}][TERMWIN] {} => {}!".format(
-                            player, self.expression_str, expression
+                t1 = getTerm(term_nodes[0])
+                t2 = getTerm(term_nodes[1])
+                one_coefficients = len(t1.coefficients)
+                two_coefficients = len(t2.coefficients)
+                # Make sure each term only has one coefficient, or else more simplification
+                # can still be done.
+                if one_coefficients < 2 and two_coefficients < 2:
+                    # TODO: Compare constant/variable findings to verify their accuracy.
+                    #       This helps until we're 100% confident in the parser/serializer consistency
+                    #
+                    # Holy shit it won!
+                    if not searching and MathGame.verbose:
+                        print(
+                            "\n[Player{}][TERMWIN] {} => {}!".format(
+                                player, self.expression_str, expression
+                            )
                         )
-                    )
-                    # print("TERM WIN WITH CONSTANT: {}".format(constant))
-                    # print("TERM WIN WITH VARIABLE: {}".format(variable))
-                return 1
+                        # print("TERM WIN WITH CONSTANT: {}".format(constant))
+                        # print("TERM WIN WITH VARIABLE: {}".format(variable))
+                    return 1
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.

@@ -31,7 +31,8 @@ def test_math_state_decode_player():
             board, player_id
         )
         assert move_count == 0
-        assert focus_index == 1
+        # Focus is randomized between 0 and 2 to start
+        assert focus_index >= 0 and focus_index <= 2
         assert player_id == player_index
         assert environment_state == 0
         assert last_action == -1

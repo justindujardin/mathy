@@ -266,18 +266,19 @@ def getTerm(node):
     return result
 
 
-def getTerms(node):
-    terms = []
-    while node:
-        if not isAddSubtract(node):
-            terms.append(node)
-            break
-        else:
-            if node.right:
-                terms.append(node.right)
 
-        node = node.left
-    return terms
+def getTerms(expression: MathExpression):
+    results = []
+    def visit_fn(node, depth, data):
+        nonlocal results
+        if not isAddSubtract(node):
+            return
+        if not isAddSubtract(node.left):
+            results.append(node.left)
+        if not isAddSubtract(node.right):
+            results.append(node.right)
+    expression.getRoot().visitInorder(visit_fn)
+    return results
 
 
 def termsAreLike(one, two):
@@ -297,13 +298,11 @@ def termsAreLike(one, two):
     if isinstance(two, MathExpression):
         two = getTerm(two)
 
+    # if neither have variables, then they are a match!
+    if len(one.variables) == 0 and len(two.variables) == 0:
+        return True
+
     # Both must have variables, and they must match exactly.
-    if not one.variables or not two.variables:
-        return False
-
-    if len(one.variables) == 0 or len(two.variables) == 0:
-        return False
-
     if len(one.variables) != len(two.variables):
         return False
 
