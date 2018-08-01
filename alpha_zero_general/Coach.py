@@ -71,9 +71,6 @@ class Coach:
         self.cpuct = args.get("cpuct", 1.0)
         self.training_iterations = args.get("training_iterations", 50)
         self.self_play_iterations = args.get("self_play_iterations", 100)
-        self.self_player_workers = args.get(
-            "self_player_workers", max(int(multiprocessing.cpu_count() * 1.5), 1)
-        )
         self.temperature_threshold = args.get("temperature_threshold", 15)
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
         self.max_training_examples = args.get("max_training_examples", 200000)
@@ -106,12 +103,6 @@ class Coach:
         # Where to store the current checkpoint while learning
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
 
-        print(
-            "Starting training with {} self-play threads.".format(
-                self.self_player_workers
-            )
-        )
-
         for i in range(1, self.training_iterations + 1):
             print("------ITER " + str(i) + "------")
             training_examples = deque([], maxlen=self.max_training_examples)
@@ -120,40 +111,37 @@ class Coach:
             end = time.time()
             bar.suffix = "Playing first game..."
             bar.next()
-
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.self_player_workers
-            ) as executor:
-                args = [
-                    [
-                        self.game,
-                        self.nnet,
-                        1 if i % 2 == 0 else -1,
-                        self.num_mcts_sims,
-                        self.temperature_threshold,
-                        self.cpuct,
-                    ]
-                    for i in range(1, self.self_play_iterations + 1)
+            args = [
+                [
+                    self.game,
+                    self.nnet,
+                    1 if i % 2 == 0 else -1,
+                    self.num_mcts_sims,
+                    self.temperature_threshold,
+                    self.cpuct,
                 ]
-                eps = 0
-                for examples in executor.map(executeEpisode, args):
-                    training_examples += examples
-                    # bookkeeping + plot progress
-                    eps_time.update(time.time() - end)
-                    end = time.time()
-                    bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
-                        eps=eps + 1,
-                        maxeps=self.self_play_iterations,
-                        et=eps_time.avg,
-                        total=bar.elapsed_td,
-                        eta=bar.eta_td,
-                    )
-                    eps += 1
-                    bar.next()
-                bar.finish()
+                for i in range(1, self.self_play_iterations + 1)
+            ]
+            eps = 0
+            for packed_args in args:
+                examples = executeEpisode(packed_args)
+                training_examples += examples
+                # bookkeeping + plot progress
+                eps_time.update(time.time() - end)
+                end = time.time()
+                bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
+                    eps=eps + 1,
+                    maxeps=self.self_play_iterations,
+                    et=eps_time.avg,
+                    total=bar.elapsed_td,
+                    eta=bar.eta_td,
+                )
+                eps += 1
+                bar.next()
+            bar.finish()
 
-                # save the iteration examples to the history
-                self.training_examples_history.append(training_examples)
+            # save the iteration examples to the history
+            self.training_examples_history.append(training_examples)
 
             if (
                 len(self.training_examples_history)
