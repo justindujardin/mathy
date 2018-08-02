@@ -87,6 +87,7 @@ class Coach:
             print("Starting with best existing model: {}".format(best))
             nnet.load_checkpoint(best)
             self.load_training_examples(best)
+            self.skip_first_self_play = True
         else:
             print(
                 "No existing checkpoint found, starting with a fresh model and self-play..."
@@ -106,56 +107,57 @@ class Coach:
         for i in range(1, self.training_iterations + 1):
             print("------ITER " + str(i) + "------")
             training_examples = deque([], maxlen=self.max_training_examples)
-            bar = Bar("Self Play", max=self.self_play_iterations)
-            eps_time = AverageMeter()
-            end = time.time()
-            bar.suffix = "Playing first game..."
-            bar.next()
-            args = [
-                [
-                    self.game,
-                    self.nnet,
-                    1 if i % 2 == 0 else -1,
-                    self.num_mcts_sims,
-                    self.temperature_threshold,
-                    self.cpuct,
-                ]
-                for i in range(1, self.self_play_iterations + 1)
-            ]
-            eps = 0
-            for packed_args in args:
-                examples = executeEpisode(packed_args)
-                training_examples += examples
-                # bookkeeping + plot progress
-                eps_time.update(time.time() - end)
+            if i > 1 or not self.skip_first_self_play:
+                bar = Bar("Self Play", max=self.self_play_iterations)
+                eps_time = AverageMeter()
                 end = time.time()
-                bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
-                    eps=eps + 1,
-                    maxeps=self.self_play_iterations,
-                    et=eps_time.avg,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                )
-                eps += 1
+                bar.suffix = "Playing first game..."
                 bar.next()
-            bar.finish()
+                args = [
+                    [
+                        self.game,
+                        self.nnet,
+                        1 if i % 2 == 0 else -1,
+                        self.num_mcts_sims,
+                        self.temperature_threshold,
+                        self.cpuct,
+                    ]
+                    for i in range(1, self.self_play_iterations + 1)
+                ]
+                eps = 0
+                for packed_args in args:
+                    examples = executeEpisode(packed_args)
+                    training_examples += examples
+                    # bookkeeping + plot progress
+                    eps_time.update(time.time() - end)
+                    end = time.time()
+                    bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
+                        eps=eps + 1,
+                        maxeps=self.self_play_iterations,
+                        et=eps_time.avg,
+                        total=bar.elapsed_td,
+                        eta=bar.eta_td,
+                    )
+                    eps += 1
+                    bar.next()
+                bar.finish()
 
-            # save the iteration examples to the history
-            self.training_examples_history.append(training_examples)
+                # save the iteration examples to the history
+                self.training_examples_history.append(training_examples)
 
-            if (
-                len(self.training_examples_history)
-                > self.save_examples_from_last_n_iterations
-            ):
-                print(
-                    "len(trainExamplesHistory) =",
-                    len(self.training_examples_history),
-                    " => remove the oldest trainExamples",
-                )
-                self.training_examples_history.pop(0)
-            # backup history to a file
-            # NB! the examples were collected using the model from the previous iteration, so (i-1)
-            self.save_training_examples(i - 1)
+                if (
+                    len(self.training_examples_history)
+                    > self.save_examples_from_last_n_iterations
+                ):
+                    print(
+                        "len(trainExamplesHistory) =",
+                        len(self.training_examples_history),
+                        " => remove the oldest trainExamples",
+                    )
+                    self.training_examples_history.pop(0)
+                # backup history to a file
+                # NB! the examples were collected using the model from the previous iteration, so (i-1)
+                self.save_training_examples(i - 1)
 
             # shuffle examlpes before training
             trainExamples = []
