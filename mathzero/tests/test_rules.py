@@ -152,6 +152,15 @@ def test_combine_like_terms_3():
     assert str(change.end.getRoot()) == "11x + 2"
 
 
+def test_combine_like_terms_4():
+    parser = ExpressionParser()
+    rule = CombineLikeTermsRule()
+    expr = parser.parse("60 * 6y")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "360y"
+
+
 def test_like_terms_compare():
     parser = ExpressionParser()
     expr = parser.parse("10 + (7x + 6x)")
@@ -170,3 +179,11 @@ def test_like_terms_compare():
     terms = getTerms(expr)
     assert len(terms) == 2
     assert not termsAreLike(terms[0], terms[1])
+
+    expr = parser.parse("360y^1")
+    terms = getTerms(expr)
+    assert len(terms) == 1
+
+    expr = parser.parse("4z")
+    terms = getTerms(expr)
+    assert len(terms) == 1

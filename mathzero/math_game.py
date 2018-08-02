@@ -4,13 +4,15 @@ import numpy
 from .core.expressions import (
     MathExpression,
     ConstantExpression,
+    MultiplyExpression,
+    PowerExpression,
     STOP,
     AddExpression,
     VariableExpression,
 )
 from .core.problems import ProblemGenerator
 from .core.parser import ExpressionParser
-from .core.util import termsAreLike, isAddSubtract, getTerms, getTerm
+from .core.util import termsAreLike, isAddSubtract, getTerms, getTerm, isSimpleTerm
 from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
@@ -111,7 +113,7 @@ class MathGame:
             out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose and player == 1:
                 print(
-                    "{}[{}] {}".format(self.thread_name, move_count, change.describe())
+                    "[{}] {}".format(move_count, change.describe())
                 )
             out_board = b.encode_player(
                 board,
@@ -129,8 +131,7 @@ class MathGame:
                     "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
                 )
                 print(
-                    "{}[{}] 👀 Looking {} at: {}".format(
-                        self.thread_name,
+                    "[{}] 👀 Looking {} at: {}".format(
                         move_count,
                         direction,
                         self.getFocusToken(expression, operation_result),
@@ -265,14 +266,14 @@ class MathGame:
                 # print(".")
 
             return 1
-        
+
         # Check for simplification removes all like terms
         root = expression.getRoot()
         if isAddSubtract(root):
             term_nodes = getTerms(root)
             term_count = len(term_nodes)
-            # Only handle up to two terms right now. Once it can 
-            # deal with "4x + 3x + 2" and "12x * 2x^3 * 4" we can 
+            # Only handle up to two terms right now. Once it can
+            # deal with "4x + 3x + 2" and "12x * 2x^3 * 4" we can
             # try expanding to arbitrary polynomial
             two_unlike = (
                 term_count == 2 and termsAreLike(term_nodes[0], term_nodes[1]) == False
@@ -295,9 +296,19 @@ class MathGame:
                                 player, self.expression_str, expression
                             )
                         )
-                        # print("TERM WIN WITH CONSTANT: {}".format(constant))
-                        # print("TERM WIN WITH VARIABLE: {}".format(variable))
                     return 1
+
+        # A single term hanging out by itself (e.g. 24x, x^2)
+        if isinstance(root, MultiplyExpression) or isinstance(root, PowerExpression):
+            term_nodes = getTerms(root)
+            if len(term_nodes) == 1 and isSimpleTerm(root):
+                if not searching and MathGame.verbose:
+                    print(
+                        "\n[Player{}][TERMWIN] {} => {}!".format(
+                            player, self.expression_str, expression
+                        )
+                    )
+                return 1
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.

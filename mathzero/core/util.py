@@ -66,6 +66,20 @@ def isAddSubtract(node):
     return isinstance(node, AddExpression) or isinstance(node, SubtractExpression)
 
 
+def isSimpleTerm(expression: MathExpression) -> bool:
+    """
+    Return True if a given term has been simplified such that it only has
+    a max of one coefficient and variable. 
+    Example:
+        Simple = 4x^2
+        Complex = 2 * 2x^2
+    """
+    term = getTerm(expression)
+    if term == False:
+        return True
+    return bool(len(term.coefficients) <= 1 and len(term.variables) <= 1)
+
+
 class FactorResult:
     def __init__(self):
         self.best = -1
@@ -266,9 +280,9 @@ def getTerm(node):
     return result
 
 
-
 def getTerms(expression: MathExpression):
     results = []
+
     def visit_fn(node, depth, data):
         nonlocal results
         if not isAddSubtract(node):
@@ -277,8 +291,9 @@ def getTerms(expression: MathExpression):
             results.append(node.left)
         if not isAddSubtract(node.right):
             results.append(node.right)
+
     expression.getRoot().visitInorder(visit_fn)
-    return results
+    return [expression] if len(results) == 0 else results
 
 
 def termsAreLike(one, two):
