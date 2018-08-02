@@ -59,19 +59,23 @@ class MathGame:
             AssociativeSwapRule(),
         ]
 
-    def getInitBoard(self):
+    def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
-        terms = random.randint(3, 3)
-        self.expression_str = self.problems.simplify_multiple_terms(max_terms=terms)
-        # self.expression_str = "14x + 7x"
-        # print("\n\n\t\tNEXT: {}".format(self.expression_str))
-        if len(list(self.expression_str)) > MathGame.width:
-            raise Exception(
+        if problem is None:
+            terms = random.randint(3, 3)
+            problem = self.problems.simplify_multiple_terms(max_terms=terms)
+        # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
+        # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
+        self.expression_str = problem
+        # problem = "14x + 7x"
+        # print("\n\n\t\tNEXT: {}".format(problem))
+        if len(list(problem)) > MathGame.width:
+            raise ValueError(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
-                    self.expression_str, MathGame.width
+                    problem, MathGame.width
                 )
             )
-        board = EnvironmentState(MathGame.width).encode_board(self.expression_str)
+        board = EnvironmentState(MathGame.width).encode_board(problem)
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return board
@@ -112,9 +116,7 @@ class MathGame:
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose and player == 1:
-                print(
-                    "[{}] {}".format(move_count, change.describe())
-                )
+                print("[{}] {}".format(move_count, change.describe()))
             out_board = b.encode_player(
                 board,
                 player,
