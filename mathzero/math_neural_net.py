@@ -29,7 +29,9 @@ class NNetWrapper(NeuralNet):
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
 
-        self.sess = tf.Session(graph=self.nnet.graph)
+        # Assume that you have 12GB of GPU memory and want to allocate ~4GB:
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
+        self.sess = tf.Session(graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options))
         self.saver = None
         with tf.Session() as temp_sess:
             temp_sess.run(tf.global_variables_initializer())
