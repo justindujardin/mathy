@@ -1,6 +1,7 @@
 import random
 import math
 import numpy
+import time
 from .core.expressions import (
     MathExpression,
     ConstantExpression,
@@ -79,6 +80,11 @@ class MathGame:
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return board
+
+    def write_draw(self, state):
+        """Help spot errors in win conditons by always writing out draw values for review"""
+        with open("draws.txt", "a") as file:
+            file.write("{}\n".format(state))
 
     def getActionSize(self):
         """Return number of all possible actions"""
@@ -317,11 +323,12 @@ class MathGame:
         if move_count > MathGame.max_moves:
             f2, move_count_other, _, _, _, _ = b.decode_player(board, player * -1)
             if move_count_other > MathGame.max_moves:
-                if not searching and MathGame.verbose:
+                if not searching:
                     e2 = self.parser.parse_features(f2)
-                    print(
-                        "\n[DRAW] ENDED WITH:\n\t 1: {}\n\t 2: {}\n".format(
-                            expression, e2
+                    draw_time = int(round(time.time() * 1000))
+                    self.write_draw(
+                        "[time={}][DRAW] ENDED WITH:\n\t 1: {}\n\t 2: {}\n".format(
+                            draw_time, expression, e2
                         )
                     )
                 return MathGame.draw
