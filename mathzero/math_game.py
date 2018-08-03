@@ -327,8 +327,8 @@ class MathGame:
                     e2 = self.parser.parse_features(f2)
                     draw_time = int(round(time.time() * 1000))
                     self.write_draw(
-                        "[time={}][DRAW] ENDED WITH:\n\t 1: {}\n\t 2: {}\n".format(
-                            draw_time, expression, e2
+                        "[time={}][DRAW] ENDED WITH:\n\t input: {}\n\t 1: {}\n\t 2: {}\n".format(
+                            draw_time, self.expression_str, expression, e2
                         )
                     )
                 return MathGame.draw
