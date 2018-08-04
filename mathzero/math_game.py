@@ -2,6 +2,7 @@ import random
 import math
 import numpy
 import time
+from alpha_zero_general.Game import Game
 from .core.expressions import (
     MathExpression,
     ConstantExpression,
@@ -26,10 +27,10 @@ from .core.rules import (
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
 from .math_actions import VisitBeforeAction, VisitAfterAction, MetaAction
-import threading
+from multiprocessing import cpu_count
 
 
-class MathGame:
+class MathGame(Game):
     """
     Implement a math solving game where players have two distinct win conditions
     that require different strategies for solving. The first win-condition is for 
@@ -45,7 +46,7 @@ class MathGame:
     width = 128
     verbose = False
     draw = 0.0001
-    max_moves = 15
+    max_moves = 25
 
     def __init__(self):
         self.parser = ExpressionParser()
@@ -185,7 +186,6 @@ class MathGame:
         Input:
             board: current board
             player: current player
-            searching: True if called by MCTS simulations
 
         Returns:
             validMoves: a binary vector of length self.getActionSize(), 1 for

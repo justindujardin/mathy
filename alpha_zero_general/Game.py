@@ -1,3 +1,6 @@
+from multiprocessing import cpu_count
+
+
 class Game:
     """
     This class specifies the base Game class. To define your own game, subclass
@@ -124,3 +127,17 @@ class Game:
                          Required by MCTS for hashing.
         """
         return self.getPolicyKey(board)
+
+    def getGPUFraction(self):
+        """
+        Returns:
+            gpu_fraction: the fraction of GPU memory to dedicate to the 
+                          neural network for this game instance.
+        """
+        gpu_fraction = 1 / cpu_count()
+        if gpu_fraction < 0.1:
+            print(
+                "WARNING: because of CPU count ({}) the GPU memory is reduced to less than 1/10th its total size per process."
+            )
+        return gpu_fraction
+

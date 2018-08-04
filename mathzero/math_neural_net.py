@@ -28,10 +28,12 @@ class NNetWrapper(NeuralNet):
         self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
-
-        # GPU percentage warns of failed allocations... Only one model per GPU? :( :(
-        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
-        self.sess = tf.Session(graph=self.nnet.graph) # , config=tf.ConfigProto(gpu_options=gpu_options))
+        gpu_options = tf.GPUOptions(
+            per_process_gpu_memory_fraction=game.getGPUFraction()
+        )
+        self.sess = tf.Session(
+            graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
+        )
         self.saver = None
         with tf.Session() as temp_sess:
             temp_sess.run(tf.global_variables_initializer())
