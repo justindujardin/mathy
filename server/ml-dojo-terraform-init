@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+
+echo "Configuring nVidia GPU"
+sudo nvidia-smi -pm 1
+
+echo "Installing Tensorflow GPU"
+sudo /etc/pyenv/bin/pip --no-cache-dir install https://github.com/mind/wheels/releases/download/tf1.7-gpu-nomkl/tensorflow-1.7.0-cp35-cp35m-linux_x86_64.whl
+echo "Done."

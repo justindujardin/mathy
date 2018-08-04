@@ -16,9 +16,11 @@ sudo dpkg -i cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
 sudo apt-get update
 sudo apt-get install -y cuda-9-0
 
+
+
 echo "Downloading and installing CUDA Neural Net library..."
-gsutil cp gs://shm-builds/libcudnn7_7.1.4.18-1+cuda9.0_amd64.deb /tmp/
-sudo dpkg -i /tmp/libcudnn7_7.1.4.18-1+cuda9.0_amd64.deb
+gsutil cp gs://shm-builds/libcudnn7_7.0.5.15-1+cuda9.0_amd64.deb /tmp/
+sudo dpkg -i /tmp/libcudnn7_7.0.5.15-1+cuda9.0_amd64.deb
 
 
 echo "Installing and updating pip..."
@@ -29,5 +31,3 @@ echo "Create virtualenv at /etc/pyenv/"
 sudo mkdir -p /etc/pyenv/
 sudo python3 -m venv /etc/pyenv/
 
-echo "Installing Keras and PyTorch"
-sudo /etc/pyenv/bin/pip install keras torch torch-vision
