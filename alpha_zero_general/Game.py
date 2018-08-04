@@ -1,4 +1,4 @@
-class Game():
+class Game:
     """
     This class specifies the base Game class. To define your own game, subclass
     this class and implement the functions below. This works when the game is
@@ -8,6 +8,7 @@ class Game():
 
     See othello/OthelloGame.py for an example implementation.
     """
+
     def __init__(self):
         pass
 
@@ -33,12 +34,13 @@ class Game():
         """
         pass
 
-    def getNextState(self, board, player, action):
+    def getNextState(self, board, player, action, searching=False):
         """
         Input:
-            board: current board
-            player: current player (1 or -1)
-            action: action taken by current player
+            board:     current board
+            player:    current player (1 or -1)
+            action:    action taken by current player
+            searching: boolean set to True when called by MCTS
 
         Returns:
             nextBoard: board after applying action
@@ -59,18 +61,18 @@ class Game():
         """
         pass
 
-    def getGameEnded(self, board, player):
+    def getGameEnded(self, board, player, searching=False):
         """
         Input:
-            board: current board
-            player: current player (1 or -1)
+            board:     current board
+            player:    current player (1 or -1)
+            searching: boolean that is True when called by MCTS simulation
 
         Returns:
             r: 0 if game has not ended. 1 if player won, -1 if player lost,
                small non-zero value for draw.
                
         """
-        pass
 
     def getCanonicalForm(self, board, player):
         """
@@ -111,3 +113,14 @@ class Game():
                          Required by MCTS for hashing.
         """
         pass
+
+    def getEndedStateKey(self, board):
+        """
+        Input:
+            board: current board
+
+        Returns:
+            boardString: a quick conversion of board to a string format.
+                         Required by MCTS for hashing.
+        """
+        return self.getPolicyKey(board)

@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+# coding: utf8
+"""Construct a game instance and model for training or evaluation"""
+import plac
 from collections import deque
-from .Arena import Arena
-from .MCTS import MCTS
+from alpha_zero_general.Arena import Arena
+from alpha_zero_general.MCTS import MCTS
 import numpy as np
-from .pytorch_classification.utils import Bar, AverageMeter
+from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
@@ -10,9 +14,38 @@ import os
 import concurrent.futures
 import threading
 import multiprocessing
+from mathzero.math_game import MathGame
+from mathzero.math_neural_net import NNetWrapper as nn
+from mathzero.core.expressions import ConstantExpression
+from mathzero.core.parser import ExpressionParser
+
+eps = 250
+temp = int(eps * 0.5)
+arena = min(int(eps * 0.3), 30)
+
+args = {
+    "training_iterations": 1000,
+    "self_play_iterations": eps,
+    "temperature_threshold": temp,
+    "model_win_loss_ratio": 0.6,
+    "max_training_examples": 200000,
+    "num_mcts_sims": 20,
+    "model_arena_iterations": arena,
+    "cpuct": 1,
+    "checkpoint": "./training/temp/",
+    "best_model_name": "best",
+    "save_examples_from_last_n_iterations": 20,
+}
 
 
-def executeEpisode(game, nnet, player, num_mcts_sims, temperature_threshold, cpuct):
+if __name__ == "__main__":
+    g = MathGame()
+    nnet = nn(g)
+    c = Coach(g, nnet, args)
+    c.learn()
+
+
+def executeEpisode(packed_args):
     """
     This function executes one episode of self-play, starting with player 1.
     As the game is played, each turn is added as a training example to
@@ -28,6 +61,10 @@ def executeEpisode(game, nnet, player, num_mcts_sims, temperature_threshold, cpu
                         pi is the MCTS informed policy vector, v is +1 if
                         the player eventually won the game, else -1.
     """
+    [game, nnet, player, num_mcts_sims, temperature_threshold, cpuct] = packed_args
+    # print(
+    #     "[{}] Starting episode {}....".format(threading.current_thread().name, episode)
+    # )
     episode_examples = []
     board = game.getInitBoard()
     current_player = player
@@ -59,12 +96,7 @@ class Coach:
     in Game and NeuralNet. args are specified in main.py.
     """
 
-    def has_examples(self) -> bool:
-        return bool(len(self.training_examples_history) > 0)
-
-    def __init__(self, game, nnet, args=None):
-        if args is None:
-            args = dict()
+    def __init__(self, game, nnet, args):
         self.game = game
         self.nnet = nnet
         self.pnet = self.nnet.__class__(self.game)  # the competitor network
@@ -88,6 +120,11 @@ class Coach:
             print("Starting with best existing model: {}".format(best))
             nnet.load_checkpoint(best)
             self.load_training_examples(best)
+            self.skip_first_self_play = True
+        else:
+            print(
+                "No existing checkpoint found, starting with a fresh model and self-play..."
+            )
 
     def learn(self):
         """
@@ -101,7 +138,7 @@ class Coach:
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
 
         for i in range(1, self.training_iterations + 1):
-            print("------ITER {}------".format(i))
+            print("------ITER " + str(i) + "------")
             training_examples = deque([], maxlen=self.max_training_examples)
             if i > 1 or not self.skip_first_self_play:
                 bar = Bar("Self Play", max=self.self_play_iterations)
@@ -109,16 +146,20 @@ class Coach:
                 end = time.time()
                 bar.suffix = "Playing first game..."
                 bar.next()
-                eps = 0
-                for i in range(1, self.self_play_iterations + 1):
-                    examples = executeEpisode(
+                args = [
+                    [
                         self.game,
                         self.nnet,
                         1 if i % 2 == 0 else -1,
                         self.num_mcts_sims,
                         self.temperature_threshold,
                         self.cpuct,
-                    )
+                    ]
+                    for i in range(1, self.self_play_iterations + 1)
+                ]
+                eps = 0
+                for packed_args in args:
+                    examples = executeEpisode(packed_args)
                     training_examples += examples
                     # bookkeeping + plot progress
                     eps_time.update(time.time() - end)
@@ -221,9 +262,78 @@ class Coach:
     def load_training_examples(self, name=None):
         examplesFile = "{}.examples".format(name)
         if not os.path.isfile(examplesFile):
-            return False
-        with open(examplesFile, "rb") as f:
-            self.training_examples_history = Unpickler(f).load()
-        # examples based on the model were already collected (loaded)
-        self.skip_first_self_play = True
-        return True
+            print(examplesFile)
+            r = input(
+                "No examples found. Session will build new training examples. Continue? [y|N]"
+            )
+            if r != "y":
+                sys.exit()
+        else:
+            print("File with trainExamples found. Read it.")
+            with open(examplesFile, "rb") as f:
+                self.training_examples_history = Unpickler(f).load()
+            # examples based on the model were already collected (loaded)
+            self.skip_first_self_play = True
+
+
+@plac.annotations(
+    model_path=("Path to loadable neural network model wrapper", "positional", None, str),
+    out_loc=("Path to output folder writing tensors and labels data", "positional", None, str),
+    name=("Human readable name for tsv file and vectors tensor", "positional", None, str),
+)
+def main(vectors_loc, out_loc, name="spaCy_vectors"):
+    # A tab-separated file that contains information about the vectors for visualization
+    #
+    # Learn more: https://www.tensorflow.org/programmers_guide/embedding#metadata
+    meta_file = "{}_labels.tsv".format(name)
+    out_meta_file = path.join(out_loc, meta_file)
+
+    print('Loading spaCy vectors model: {}'.format(vectors_loc))
+    model = spacy.load(vectors_loc)
+
+    print('Finding lexemes with vectors attached: {}'.format(vectors_loc))
+    voacb_strings = [
+        w for w in tqdm.tqdm(model.vocab.strings, total=len(model.vocab.strings), leave=False)
+        if model.vocab.has_vector(w)
+    ]
+    vector_count = len(voacb_strings)
+
+    print('Building Projector labels for {} vectors: {}'.format(vector_count, out_meta_file))
+    vector_dimensions = model.vocab.vectors.shape[1]
+    tf_vectors_variable = numpy.zeros((vector_count, vector_dimensions), dtype=numpy.float32)
+
+    # Write a tab-separated file that contains information about the vectors for visualization
+    #
+    # Reference: https://www.tensorflow.org/programmers_guide/embedding#metadata
+    with open(out_meta_file, 'wb') as file_metadata:
+        # Define columns in the first row
+        file_metadata.write("Text\tFrequency\n".encode('utf-8'))
+        # Write out a row for each vector that we add to the tensorflow variable we created
+        vec_index = 0
+
+        for text in tqdm.tqdm(voacb_strings, total=len(voacb_strings), leave=False):
+            # https://github.com/tensorflow/tensorflow/issues/9094
+            text = '<Space>' if text.lstrip() == '' else text
+            lex = model.vocab[text]
+
+            # Store vector data and metadata
+            tf_vectors_variable[vec_index] = numpy.float64(model.vocab.get_vector(text))
+            file_metadata.write("{}\t{}\n".format(text, math.exp(lex.prob) * len(voacb_strings)).encode('utf-8'))
+            vec_index += 1
+
+    # Write out "[name]_tensors.bytes" file for standalone embeddings projector to load
+    tensor_path = '{}_tensors.bytes'.format(name)
+    tf_vectors_variable.tofile(path.join(out_loc, tensor_path))
+
+    print('Done.')
+    print('Add the following entry to "oss_data/oss_demo_projector_config.json"')
+    print(json.dumps({
+        "tensorName": name,
+        "tensorShape": [vector_count, vector_dimensions],
+        "tensorPath": 'oss_data/{}'.format(tensor_path),
+        "metadataPath": 'oss_data/{}'.format(meta_file)
+    }, indent=2))
+
+
+if __name__ == '__main__':
+    plac.call(main)

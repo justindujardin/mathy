@@ -36,15 +36,14 @@ class NeuralNet():
         """
         pass
 
-    def save_checkpoint(self, folder, filename):
+    def save_checkpoint(self, filename):
         """
-        Saves the current neural network (with its parameters) in
-        folder/filename
+        Saves the current neural network (with its parameters) in filename
         """
         pass
 
-    def load_checkpoint(self, folder, filename):
+    def load_checkpoint(self, filename):
         """
-        Loads parameters of the neural network from folder/filename
+        Loads parameters of the neural network from filename
         """
         pass
