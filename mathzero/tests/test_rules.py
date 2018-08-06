@@ -161,6 +161,24 @@ def test_combine_like_terms_4():
     assert str(change.end.getRoot()) == "360y"
 
 
+def test_combine_like_terms_5():
+    parser = ExpressionParser()
+    rule = CombineLikeTermsRule()
+    expr = parser.parse("6x + 120x")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "126x"
+
+
+def test_combine_like_terms_6():
+    parser = ExpressionParser()
+    rule = CombineLikeTermsRule()
+    expr = parser.parse("3x + 72x")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "75x"
+
+
 def test_like_terms_compare():
     parser = ExpressionParser()
     expr = parser.parse("10 + (7x + 6x)")

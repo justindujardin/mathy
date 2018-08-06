@@ -13,7 +13,13 @@ class RunnerConfig:
     episodes play out.
     """
 
-    def __init__(self, max_workers=cpu_count(), num_mcts_sims=15, temperature_threshold=0.5, cpuct=1.0):
+    def __init__(
+        self,
+        max_workers=cpu_count(),
+        num_mcts_sims=15,
+        temperature_threshold=0.5,
+        cpuct=1.0,
+    ):
         self.max_workers = max_workers
         self.num_mcts_sims = num_mcts_sims
         self.temperature_threshold = temperature_threshold
@@ -21,6 +27,13 @@ class RunnerConfig:
 
 
 class EpisodeRunner:
+    """
+    Instance that controls how episodes are executed. By default this class executes episodes serially
+    in a single process. This is great for debugging problems in an interactive debugger or running locally
+    but is not ideal for machines with many processors available. For multiprocessing swap out the default 
+    `EpisodeRunner` class for the `ParallelEpisodeRunner` class that is defined below.    
+    """
+
     def __init__(self, config):
         if config is None or not isinstance(config, RunnerConfig):
             raise ValueError("configuration must be an instance of RunnerConfig")
@@ -34,7 +47,7 @@ class EpisodeRunner:
             "neural net implementation must be provided by subclass"
         )
 
-    def execute_episodes(self, episode_args_list):
+    def execute_episodes(self, model_path, episode_args_list):
         """
         Execute (n) episodes of self-play serially. This is mostly useful for debugging, and
         when you cannot fit multiple copies of your model in GPU memory
@@ -47,7 +60,7 @@ class EpisodeRunner:
             self.episode_complete(i, duration)
         return results
 
-    def execute_episode(self, episode, player, **kwargs):
+    def execute_episode(self, episode, player, model, **kwargs):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
@@ -64,13 +77,14 @@ class EpisodeRunner:
                             the player eventually won the game, else -1.
         """
         game = self.get_game()
-        print("Game is: {}".format(game))
         if game is None:
             raise NotImplementedError("EpisodeRunner.get_game returned None type")
         nnet = self.get_nnet(game)
-        print("NNEt is: {}".format(nnet))
         if nnet is None:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
+        if model is not None:
+            if nnet.can_load_checkpoint(model):
+                nnet.load_checkpoint(model)
         episode_examples = []
         board = game.getInitBoard()
         current_player = player
@@ -110,17 +124,10 @@ class ParallelEpisodeRunner(EpisodeRunner):
             """Pull items out of the work queue and execute episodes until there are no items left"""
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
-                print("Worker starting episode... {}".format(episode))
                 start = time.time()
-                result_queue.put(self.execute_episode(episode, **args))
-                print("Put result for episode in queue... {}".format(episode))
+                result = self.execute_episode(episode, **args)
                 duration = time.time() - start
-                self.episode_complete(i, duration)
-                print(
-                    "Executed update callback for complete episode... {}".format(
-                        episode
-                    )
-                )
+                result_queue.put((i, result, duration))
             return 0
 
         # Fill a work queue with episodes to be executed.
@@ -130,7 +137,7 @@ class ParallelEpisodeRunner(EpisodeRunner):
             work_queue.put((i, args))
         processes = [
             Process(target=worker, args=(work_queue, result_queue))
-            for i in range(cpu_count())
+            for i in range(self.config.max_workers)
         ]
         for proc in processes:
             proc.start()
@@ -138,7 +145,9 @@ class ParallelEpisodeRunner(EpisodeRunner):
         # Gather the outputs
         results = []
         while len(results) != len(episode_args_list):
-            results.append(result_queue.get())
+            i, result, duration = result_queue.get()
+            self.episode_complete(i, duration)
+            results.append(result)
 
         # Wait for the workers to exit completely
         for proc in processes:

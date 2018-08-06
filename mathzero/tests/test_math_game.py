@@ -22,6 +22,7 @@ def test_math_game_win_conditions():
     ]
 
     # Valid solutions but out of scope so they aren't counted as wins.
+    # 
     # This works because the problem sets exclude this type of > 2 term
     # polynomial expressions
     out_of_scope_valid = [

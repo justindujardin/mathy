@@ -1,4 +1,4 @@
-class NeuralNet():
+class NeuralNet:
     """
     This class specifies the base NeuralNet class. To define your own neural
     network, subclass this class and implement the functions below. The neural
@@ -47,3 +47,10 @@ class NeuralNet():
         Loads parameters of the neural network from filename
         """
         pass
+
+    def can_load_checkpoint(self, file_path) -> bool:
+        """
+        Return True if a given filename points to an existing, loadable, model checkpoint
+        """
+        return False
+

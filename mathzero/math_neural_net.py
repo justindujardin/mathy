@@ -22,7 +22,7 @@ class NetConfig:
         self.num_channels = num_channels
 
 
-class NNetWrapper(NeuralNet):
+class MathNeuralNet(NeuralNet):
     def __init__(self, game):
         self.args = NetConfig()
         self.nnet = MathModel(game, self.args)
@@ -46,7 +46,15 @@ class NNetWrapper(NeuralNet):
         examples: list of examples, each example is of form (board, pi, v)
         """
 
-        print("Training neural net for ({}) epochs...".format(self.args.epochs))
+        total_batches = int(len(examples) / self.args.batch_size)
+        if total_batches == 0:
+            return False
+
+        print(
+            "Training neural net for ({}) epochs with ({}) examples...".format(
+                self.args.epochs, len(examples)
+            )
+        )
 
         for epoch in range(self.args.epochs):
             print("EPOCH ::: " + str(epoch + 1))
@@ -60,7 +68,7 @@ class NNetWrapper(NeuralNet):
             batch_idx = 0
 
             # self.sess.run(tf.local_variables_initializer())
-            while batch_idx < int(len(examples) / self.args.batch_size):
+            while batch_idx < total_batches:
                 sample_ids = numpy.random.randint(
                     len(examples), size=self.args.batch_size
                 )
@@ -104,6 +112,7 @@ class NNetWrapper(NeuralNet):
                 )
                 bar.next()
             bar.finish()
+            return True
 
     def predict(self, board):
         """
@@ -128,25 +137,24 @@ class NNetWrapper(NeuralNet):
         # print('PREDICTION TIME TAKEN : {0:03f}'.format(time.time()-start))
         return prob[0], v[0]
 
-    def save_checkpoint(self, filepath):
-        dirname = os.path.dirname(filepath)
+    def can_load_checkpoint(self, file_path) -> bool:
+        meta = "{}.meta".format(file_path)
+        return os.path.exists(meta)
+
+    def save_checkpoint(self, file_path):
+        dirname = os.path.dirname(file_path)
         if not os.path.exists(dirname):
-            print(
-                "Checkpoint Directory does not exist! Making directory {}".format(
-                    dirname
-                )
-            )
             os.mkdir(dirname)
         else:
-            print("Checkpoint Directory exists for file: {}".format(filepath))
+            print("Checkpoint Directory exists for file: {}".format(file_path))
         if self.saver == None:
             self.saver = tf.train.Saver(self.nnet.graph.get_collection("variables"))
         with self.nnet.graph.as_default():
-            self.saver.save(self.sess, filepath)
+            self.saver.save(self.sess, file_path)
 
-    def load_checkpoint(self, filepath):
-        if not os.path.exists(filepath + ".meta"):
-            raise Exception("No model in path {}".format(filepath))
+    def load_checkpoint(self, file_path):
+        if not os.path.exists(file_path + ".meta"):
+            raise Exception("No model in path {}".format(file_path))
         with self.nnet.graph.as_default():
             self.saver = tf.train.Saver()
-            self.saver.restore(self.sess, filepath)
+            self.saver.restore(self.sess, file_path)
