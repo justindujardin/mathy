@@ -10,3 +10,5 @@ training/
 .vscode
 program.prof
 .terraform
+
+models/

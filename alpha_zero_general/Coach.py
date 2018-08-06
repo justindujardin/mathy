@@ -1,3 +1,5 @@
+import sys
+import types
 from collections import deque
 from .Arena import Arena
 from .MCTS import MCTS
@@ -7,51 +9,8 @@ import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
 import os
-import concurrent.futures
-import threading
-import multiprocessing
-
-
-def executeEpisode(game, nnet, player, num_mcts_sims, temperature_threshold, cpuct):
-    """
-    This function executes one episode of self-play, starting with player 1.
-    As the game is played, each turn is added as a training example to
-    trainExamples. The game continues until getGameEnded returns a non-zero
-    value, then the outcome of the game is used to assign values to each example
-    in trainExamples.
-
-    It uses a temp=1 if episodeStep < temperature_threshold, and thereafter
-    uses temp=0.
-
-    Returns:
-        trainExamples: a list of examples of the form (canonicalBoard,pi,v)
-                        pi is the MCTS informed policy vector, v is +1 if
-                        the player eventually won the game, else -1.
-    """
-    episode_examples = []
-    board = game.getInitBoard()
-    current_player = player
-    move_count = 0
-    mcts = MCTS(game, nnet, cpuct, num_mcts_sims)
-    while True:
-        move_count += 1
-        canonical_state = game.getCanonicalForm(board, current_player)
-        temp = int(move_count < temperature_threshold)
-
-        pi = mcts.getActionProb(canonical_state, temp=temp)
-        sym = game.getSymmetries(canonical_state, pi)
-        for b, p in sym:
-            episode_examples.append([b, current_player, p, None])
-        action = np.random.choice(len(pi), p=pi)
-        board, current_player = game.getNextState(board, current_player, action)
-        r = game.getGameEnded(board, current_player)
-
-        if r != 0:
-            return [
-                (x[0], x[2], r * ((-1) ** (x[1] != current_player)))
-                for x in episode_examples
-            ]
-
+from multiprocessing import Pool, Array, Process, Queue, cpu_count
+from .Game import Game
 
 class Coach:
     """
@@ -62,17 +21,15 @@ class Coach:
     def has_examples(self) -> bool:
         return bool(len(self.training_examples_history) > 0)
 
-    def __init__(self, game, nnet, args=None):
+    def __init__(self, runner, args=None):
         if args is None:
             args = dict()
-        self.game = game
-        self.nnet = nnet
+        self.runner = runner
+        self.game = runner.get_game()
+        self.nnet = runner.get_nnet(self.game)
         self.pnet = self.nnet.__class__(self.game)  # the competitor network
-        self.num_mcts_sims = args.get("num_mcts_sims", 15)
-        self.cpuct = args.get("cpuct", 1.0)
         self.training_iterations = args.get("training_iterations", 50)
         self.self_play_iterations = args.get("self_play_iterations", 100)
-        self.temperature_threshold = args.get("temperature_threshold", 15)
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
         self.max_training_examples = args.get("max_training_examples", 200000)
         self.model_arena_iterations = args.get("model_arena_iterations", 30)
@@ -86,7 +43,7 @@ class Coach:
         best = self.get_best_model_filename()
         if self.can_load_model(best):
             print("Starting with best existing model: {}".format(best))
-            nnet.load_checkpoint(best)
+            self.nnet.load_checkpoint(best)
             self.load_training_examples(best)
 
     def learn(self):
@@ -99,39 +56,43 @@ class Coach:
         """
         # Where to store the current checkpoint while learning
         temp_file_path = os.path.join(self.checkpoint, "temp.pth.tar")
+        iterations = self.self_play_iterations
 
-        for i in range(1, self.training_iterations + 1):
+        for i in range(1, iterations + 1):
             print("------ITER {}------".format(i))
             training_examples = deque([], maxlen=self.max_training_examples)
+
             if i > 1 or not self.skip_first_self_play:
-                bar = Bar("Self Play", max=self.self_play_iterations)
+                current_episode = 0
                 eps_time = AverageMeter()
-                end = time.time()
+                bar = Bar("Self Play", max=iterations)
                 bar.suffix = "Playing first game..."
                 bar.next()
-                eps = 0
-                for i in range(1, self.self_play_iterations + 1):
-                    examples = executeEpisode(
-                        self.game,
-                        self.nnet,
-                        1 if i % 2 == 0 else -1,
-                        self.num_mcts_sims,
-                        self.temperature_threshold,
-                        self.cpuct,
-                    )
-                    training_examples += examples
+
+                def update_episode_bar(self, episode, duration):
+                    nonlocal current_episode, bar, eps_time, iterations
                     # bookkeeping + plot progress
-                    eps_time.update(time.time() - end)
-                    end = time.time()
+                    eps_time.update(duration)
+                    current_episode += 1
                     bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
-                        eps=eps + 1,
-                        maxeps=self.self_play_iterations,
+                        eps=current_episode,
+                        maxeps=iterations,
                         et=eps_time.avg,
                         total=bar.elapsed_td,
                         eta=bar.eta_td,
                     )
-                    eps += 1
                     bar.next()
+
+                episodes_with_args = []
+                for i in range(1, self.self_play_iterations + 1):
+                    episodes_with_args.append(dict(player=1 if i % 2 == 0 else -1))
+
+                old_update = self.runner.episode_complete
+                self.runner.episode_complete = types.MethodType(
+                    update_episode_bar, self
+                )
+                training_examples += self.runner.execute_episodes(episodes_with_args)
+                self.runner.episode_complete = old_update
                 bar.finish()
 
                 # save the iteration examples to the history
@@ -160,10 +121,10 @@ class Coach:
             # training new network, keeping a copy of the old one
             self.nnet.save_checkpoint(temp_file_path)
             self.pnet.load_checkpoint(temp_file_path)
-            pmcts = MCTS(self.game, self.pnet, self.cpuct, self.num_mcts_sims)
+            pmcts = MCTS(self.game, self.pnet, self.runner.config.cpuct, self.runner.config.num_mcts_sims)
 
             self.nnet.train(trainExamples)
-            nmcts = MCTS(self.game, self.nnet, self.cpuct, self.num_mcts_sims)
+            nmcts = MCTS(self.game, self.nnet, self.runner.config.cpuct, self.runner.config.num_mcts_sims)
 
             print("PITTING AGAINST SELF-PLAY VERSION")
             arena = Arena(
