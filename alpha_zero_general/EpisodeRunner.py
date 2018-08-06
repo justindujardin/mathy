@@ -47,7 +47,7 @@ class EpisodeRunner:
             "neural net implementation must be provided by subclass"
         )
 
-    def execute_episodes(self, model_path, episode_args_list):
+    def execute_episodes(self, episode_args_list):
         """
         Execute (n) episodes of self-play serially. This is mostly useful for debugging, and
         when you cannot fit multiple copies of your model in GPU memory
