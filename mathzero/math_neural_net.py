@@ -28,9 +28,7 @@ class MathNeuralNet(NeuralNet):
         self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
-        gpu_options = tf.GPUOptions(
-            per_process_gpu_memory_fraction=game.getGPUFraction()
-        )
+        gpu_options = tf.GPUOptions(allow_growth=True)
         self.sess = tf.Session(
             graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
         )
