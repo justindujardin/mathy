@@ -127,3 +127,22 @@ class Game:
                          Required by MCTS for hashing.
         """
         return self.getPolicyKey(board)
+
+    def getGPUFraction(self):
+        """
+        Returns:
+            gpu_fraction: the fraction of GPU memory to dedicate to the 
+                          neural network for this game instance.
+        """
+        # NOTE: we double the CPU count to start out allocating smaller amounts of memory.
+        #       This is because if we oversubscribe CUDA can throw failed to allocate errors 
+        #       with a bunch of workers. This way Tensorflow will grow the allocation per worker
+        #       only as needed.
+        # TODO: Hopefully this will let us run ~10? workers per GPU? TEST IT!
+        gpu_fraction = 1 / (cpu_count() * 2)
+        if gpu_fraction < 0.1:
+            print(
+                "WARNING: because of CPU count ({}) the GPU memory is reduced to less than 1/10th its total size per process."
+            )
+        return gpu_fraction
+
