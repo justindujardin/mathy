@@ -53,14 +53,17 @@ class EpisodeRunner:
         when you cannot fit multiple copies of your model in GPU memory
         """
         results = []
+
+        game = self.get_game()
+        nnet = self.get_nnet(game)
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            results.append(self.execute_episode(i, **args))
+            results.append(self.execute_episode(i, game, nnet, **args))
             duration = time.time() - start
             self.episode_complete(i, duration)
         return results
 
-    def execute_episode(self, episode, player, model, **kwargs):
+    def execute_episode(self, episode, game, nnet, player, model, **kwargs):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
@@ -76,15 +79,6 @@ class EpisodeRunner:
                             pi is the MCTS informed policy vector, v is +1 if
                             the player eventually won the game, else -1.
         """
-        game = self.get_game()
-        if game is None:
-            raise NotImplementedError("EpisodeRunner.get_game returned None type")
-        nnet = self.get_nnet(game)
-        if nnet is None:
-            raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
-        if model is not None:
-            if nnet.can_load_checkpoint(model):
-                nnet.load_checkpoint(model)
         episode_examples = []
         board = game.getInitBoard()
         current_player = player
@@ -122,10 +116,12 @@ class ParallelEpisodeRunner(EpisodeRunner):
     def execute_episodes(self, episode_args_list):
         def worker(work_queue, result_queue):
             """Pull items out of the work queue and execute episodes until there are no items left"""
+            game = self.get_game()
+            nnet = self.get_nnet(game)
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()
-                result = self.execute_episode(episode, **args)
+                result = self.execute_episode(episode, game, nnet, **args)
                 duration = time.time() - start
                 result_queue.put((i, result, duration))
             return 0
