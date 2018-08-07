@@ -66,7 +66,7 @@ class MathGame(Game):
     def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            terms = random.randint(3, 3)
+            terms = random.randint(3, 4)
             problem = self.problems.simplify_multiple_terms(max_terms=terms)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]

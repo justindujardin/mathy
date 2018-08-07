@@ -55,7 +55,7 @@ class ProblemGenerator:
         result = "{}{}".format(random.randint(2, 10), variable)
         for i in range(max_terms - 1):
             num = random.randint(1, 12)
-            var = variable if i % 2 == 0 else ''
-            op = '+' if i % 2 == 0 else '*'
+            var = variable if random.getrandbits(1) == 0 else ''
+            op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}{}".format(op, num, var)
         return result
