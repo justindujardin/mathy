@@ -79,6 +79,15 @@ class EpisodeRunner:
                             pi is the MCTS informed policy vector, v is +1 if
                             the player eventually won the game, else -1.
         """
+        if game is None:
+            raise NotImplementedError("EpisodeRunner.get_game returned None type")
+        nnet = self.get_nnet(game)
+        if nnet is None:
+            raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
+        if model is not None:
+            print("loading checkpoint: {}".format(model))
+            if nnet.can_load_checkpoint(model):
+                nnet.load_checkpoint(model)
         episode_examples = []
         board = game.getInitBoard()
         current_player = player

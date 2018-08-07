@@ -23,6 +23,7 @@ from .core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
     CombineLikeTermsRule,
+    SimplifyComplexTerm
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -59,6 +60,7 @@ class MathGame(Game):
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
             AssociativeSwapRule(),
+            SimplifyComplexTerm()
         ]
 
     def getInitBoard(self, problem: str = None):
@@ -69,6 +71,7 @@ class MathGame(Game):
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         self.expression_str = problem
+        # self.expression_str = "4x * 8 * 2"
         # problem = "14x + 7x"
         # print("\n\n\t\tNEXT: {}".format(problem))
         if len(list(problem)) > MathGame.width:

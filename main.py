@@ -10,7 +10,7 @@ from mathzero.math_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 250
+eps = 100
 temp = int(eps * 0.5)
 arena = min(int(eps * 0.3), 30)
 
@@ -35,7 +35,7 @@ class MathEpisodeRunner(ParallelEpisodeRunner):
 
 
 if __name__ == "__main__":
-    config = RunnerConfig(num_mcts_sims=20, temperature_threshold=temp, cpuct=1.0)
+    config = RunnerConfig(num_mcts_sims=50, temperature_threshold=temp, cpuct=1.0)
     runner = MathEpisodeRunner(config)
     c = Coach(runner, args)
     if not c.has_examples:
