@@ -106,7 +106,7 @@ class Game:
         """
         pass
 
-    def getPolicyKey(self, board):
+    def to_hash_key(self, board):
         """
         Input:
             board: current board
@@ -116,17 +116,6 @@ class Game:
                          Required by MCTS for hashing.
         """
         pass
-
-    def getEndedStateKey(self, board):
-        """
-        Input:
-            board: current board
-
-        Returns:
-            boardString: a quick conversion of board to a string format.
-                         Required by MCTS for hashing.
-        """
-        return self.getPolicyKey(board)
 
     def getGPUFraction(self):
         """

@@ -19,7 +19,7 @@ class CombineLikeTermsRule(BaseRule):
     def canApplyTo(self, node):
         # Check simple case of left/right child binary op with single variables
         is_add_sub = isAddSubtract(node)
-        if not is_add_sub and not isinstance(node, MultiplyExpression):
+        if not is_add_sub:
             return False
 
         # TODO: I think this restriction could be lifted, but this keeps the code simple.
@@ -61,19 +61,8 @@ class CombineLikeTermsRule(BaseRule):
         coefficients = l_term.coefficients + r_term.coefficients
         l_vars = l_term.variables
         r_vars = r_term.variables
-        if isAddSubtract(node):
-            coefficient = numpy.sum(coefficients)
-            exponent = l_term.exponent
-        else:
-            coefficient = numpy.product(coefficients)
-
-            # If there is a variable, the implicit exponent to be summed is 1, otherwise 0
-            implicit_l_exp = len(l_vars)
-            implicit_r_exp = len(r_vars)
-            
-            left_exp = l_term.exponent if l_term.exponent else implicit_l_exp
-            right_exp = r_term.exponent if r_term.exponent else implicit_r_exp
-            exponent = left_exp + right_exp
+        coefficient = numpy.sum(coefficients)
+        exponent = l_term.exponent
 
         variable = (
             l_vars[0] if len(l_vars) > 0 else r_vars[0] if len(r_vars) > 0 else None

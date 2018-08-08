@@ -22,16 +22,24 @@ class BaseRule:
         return result
 
     def findNodes(self, expression, includeAll=True):
+        """
+        Find all nodes in an expression that can have this rule applied to them.
+        Each node is marked with it's token index in the expression, according to 
+        the visit strategy, and stored as `node.r_index` starting with index 0
+        """
         nodes = []
+        index = 0
 
         def visit_fn(node, depth, data):
-            nonlocal nodes
+            nonlocal nodes, index
             add = None
+            node.r_index = index
             if includeAll and self.canApplyTo(node):
                 add = node
             elif not includeAll and self.shouldApplyTo(node):
                 add = node
 
+            index += 1
             if add:
                 return nodes.append(add)
 

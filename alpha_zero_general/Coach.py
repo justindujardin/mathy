@@ -60,6 +60,9 @@ class Coach:
             game = self.runner.get_game()
             # Train the network with the gathered examples from self-play
             best_net, new_net = self.run_network_training(i)
+            # if there is not enough data for training, None is returned for both networks
+            if best_net is None or new_net is None:
+                continue
             pmcts = MCTS(
                 game,
                 new_net,
@@ -171,9 +174,9 @@ class Coach:
         # Train the model with the examples
         if new_net.train(train_examples) == False:
             print(
-                "There are not at least batch-size ({}) examples for training, more self-play required..."
+                "There are not at least batch-size examples for training, more self-play is required..."
             )
-            return False
+            return (None, None)
 
         # allocate the old network now and return both
         best_net = self.runner.get_nnet(game)

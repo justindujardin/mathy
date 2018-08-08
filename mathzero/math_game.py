@@ -23,7 +23,7 @@ from .core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
     CombineLikeTermsRule,
-    SimplifyComplexTerm
+    SimplifyComplexTerm,
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -33,15 +33,9 @@ from multiprocessing import cpu_count
 
 class MathGame(Game):
     """
-    Implement a math solving game where players have two distinct win conditions
-    that require different strategies for solving. The first win-condition is for 
-    the player to execute the right sequence of actions to reduce a math expression
-    to its most basic representation. The second is for the other player to expand 
-    the simple representations into more verbose expressions.
-
-    Ideally a fully-trained player will be able to both simplify arbitrary mathematical
-    expressions, and expand upon arbitrary parts of expressions to generate more complex
-    representations that can be used to expand on concepts that a user may struggle with.
+    Implement a math solving game where players win by executing the right sequence 
+    of actions to reduce a math expression to its most basic representation before the 
+    other player.
     """
 
     width = 128
@@ -52,7 +46,6 @@ class MathGame(Game):
     def __init__(self):
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
-        self.available_actions = [VisitAfterAction(), VisitBeforeAction()]
         self.available_rules = [
             CombineLikeTermsRule(),
             ConstantsSimplifyRule(),
@@ -60,7 +53,7 @@ class MathGame(Game):
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
             AssociativeSwapRule(),
-            SimplifyComplexTerm()
+            SimplifyComplexTerm(),
         ]
 
     def getInitBoard(self, problem: str = None):
@@ -92,7 +85,7 @@ class MathGame(Game):
 
     def getActionSize(self):
         """Return number of all possible actions"""
-        return len(self.available_rules) + len(self.available_actions)
+        return len(self.available_rules) * self.width
 
     def getNextState(self, board, player, action, searching=False):
         """
@@ -107,61 +100,46 @@ class MathGame(Game):
             nextPlayer: player who plays in the next turn (should be -player)
         """
         b = EnvironmentState(MathGame.width)
-        features, move_count, focus_index, _, meta_counter, _ = b.decode_player(
-            board, player
-        )
+        features, move_count, _ = b.decode_player(board, player)
         expression = self.parser.parse_features(features)
-        token = self.getFocusToken(expression, focus_index)
-        actions = self.available_actions + self.available_rules
-        operation = actions[action]
+
+        # Figure out the token index of the selected action
+        token_index = action % self.width
+        # And the action at that token
+        action_index = int(action / (self.width - token_index))
+        token = self.getFocusToken(expression, token_index)
+        operation = self.available_rules[action_index]
+
+        # If you get maximum recursion errors, it can mean that you're not
+        # hitting a terminal state. Force the searching var off here to get
+        # more verbose logging if your crash is occurring before the first verbose
+        # output.
         # searching = False
 
         # Enforce constraints to keep training time and complexity down?
         # - can't commutative swap immediately to return to previous state.
         # - can't focus on the same token twice without taking a valid other
         #   action inbetween
-        # TODO: leaving these ideas here, but optimization made them less necessary
+        # NOTE: leaving these ideas here, but optimization made them less necessary
+        # NOTE: Also adding constraints caused actions to be avoided and others to be
+        #       repeated in odd ways. Assume repetition is part of training.
+        # NOTE: Maybe this is solved by something like Actor/Critic updates?
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose and player == 1:
                 print("[{}] {}".format(move_count, change.describe()))
-            out_board = b.encode_player(
-                board,
-                player,
-                out_features,
-                move_count + 1,
-                focus_index,
-                meta_counter,
-                action,
-            )
-        elif isinstance(operation, MetaAction):
-            operation_result = operation.visit(self, expression, focus_index)
-            if not searching and MathGame.verbose and player == 1:
-                direction = (
-                    "behind" if isinstance(operation, VisitBeforeAction) else "ahead"
-                )
-                print(
-                    "[{}] 👀 Looking {} at: {}".format(
-                        move_count,
-                        direction,
-                        self.getFocusToken(expression, operation_result),
-                    )
-                )
-            out_board = b.encode_player(
-                board,
-                player,
-                features,
-                move_count + 1,
-                operation_result,
-                meta_counter + 1,
-                action,
-            )
+            out_board = b.encode_player(board, player, out_features, move_count + 1)
         else:
+            # print(
+            #     "action is {}, token_index is {}, and token is {}".format(
+            #         action, token_index, str(token)
+            #     )
+            # )
             raise Exception(
                 "\n\nPlayer: {}\n\tExpression: {}\n\tFocus: {}\n\tIndex: {}\n\tinvalid move selected: {}, {}".format(
-                    player, expression, token, focus_index, action, type(operation)
+                    player, expression, token, token_index, action, type(operation)
                 )
             )
 
@@ -181,7 +159,7 @@ class MathGame(Game):
                 return STOP
             count = count + 1
 
-        expression.visitInorder(visit_fn)
+        expression.visitPreorder(visit_fn)
         return result
 
     def getValidMoves(self, board, player):
@@ -196,10 +174,10 @@ class MathGame(Game):
                         0 for invalid moves
         """
         b = EnvironmentState(MathGame.width)
-        features, _, focus_index, _, meta_counter, _ = b.decode_player(board, player)
+        features, _, _ = b.decode_player(board, player)
         expression = self.parser.parse_features(features)
-        token = self.getFocusToken(expression, focus_index)
-        actions = self.get_actions_for_expression(token)
+
+        actions = self.get_actions_for_expression(expression)
         # NOTE: Below is verbose output showing which actions are valid.
         # if not searching:
         #     print_list = self.available_actions + self.available_rules
@@ -215,17 +193,20 @@ class MathGame(Game):
 
     def get_actions_for_expression(self, expression: MathExpression):
         actions = [0] * self.getActionSize()
-        count = 0
-        # Meta actions first
-        for action in self.available_actions:
-            if action.canVisit(self, expression):
-                actions[count] = 1
-            count = count + 1
-        # Rules of numbers
-        for rule in self.available_rules:
-            if rule.canApplyTo(expression):
-                actions[count] = 1
-            count = count + 1
+
+        # Properties of numbers and common simplifications
+        for rule_index, rule in enumerate(self.available_rules):
+            nodes = rule.findNodes(expression)
+            for node in nodes:
+                token_index = node.r_index
+                action_index = (self.width * rule_index) + token_index
+                actions[action_index] = 1
+
+                # print(
+                #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
+                #         action_index, rule.getName(), node.r_index, str(node)
+                #     )
+                # )
 
         return actions
 
@@ -242,7 +223,7 @@ class MathGame(Game):
                
         """
         b = EnvironmentState(MathGame.width)
-        features, move_count, _, _, _, _ = b.decode_player(board, player)
+        features, move_count, _ = b.decode_player(board, player)
         expression = self.parser.parse_features(features)
         # It's over if the expression is reduced to a single constant
         if (
@@ -324,8 +305,8 @@ class MathGame(Game):
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.
         if move_count > MathGame.max_moves:
-            f2, move_count_other, _, _, _, _ = b.decode_player(board, player * -1)
-            if move_count_other > MathGame.max_moves:
+            f2, move_count_other, _ = b.decode_player(board, player * -1)
+            if searching or move_count_other > MathGame.max_moves:
                 if not searching:
                     e2 = self.parser.parse_features(f2)
                     draw_time = int(round(time.time() * 1000))
@@ -356,12 +337,6 @@ class MathGame(Game):
         # print("gcf: {}".format(player))
         return EnvironmentState(MathGame.width).get_canonical_board(board, player)
 
-    #
-    def getCanonicalAgentState(self, board):
-        # b = EnvironmentState(MathGame.width)
-        # return b.slice_player_data(board, 1)
-        return board
-
     def getAgentStateSize(self):
         """return shape (x,y) of agent state dimensions"""
         # 2 columns per player, the first for turn data, the second for text inputs
@@ -380,23 +355,14 @@ class MathGame(Game):
         """
         return [(board, pi)]
 
-    def getPolicyKey(self, board):
+    def to_hash_key(self, board):
         """conversion of board to a string format, required by MCTS for hashing."""
         b = EnvironmentState(MathGame.width)
         # This is always called for the canonical board which means the
         # current player is always in player1 slot:
-        features, m1, f1, _, _, _ = b.decode_player(board, 1)
+        features, move_count, _ = b.decode_player(board, 1)
         features_key = ",".join([str(f) for f in features])
-        return "[{},{},{}]".format(m1, f1, features_key)
-
-    def getEndedStateKey(self, board):
-        """conversion of board to a string format, required by MCTS for hashing."""
-        b = EnvironmentState(MathGame.width)
-        # This is always called for the canonical board which means the
-        # current player is always in player1 slot:
-        features, m1, _, _, _, _ = b.decode_player(board, 1)
-        features_key = ",".join([str(f) for f in features])
-        return "[{},{}]".format(m1, features_key)
+        return "[{}, {}]".format(move_count, features_key)
 
 
 _parser = None

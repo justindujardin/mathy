@@ -1,4 +1,3 @@
-import tensorflow as tf
 import os
 import time
 import random
@@ -23,23 +22,27 @@ class NetConfig:
 
 
 class MathNeuralNet(NeuralNet):
-    def __init__(self, game):
+    def __init__(self, game, session=None):
+        import tensorflow as tf
+
         self.args = NetConfig()
         self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
-        gpu_options = tf.GPUOptions(
-            allow_growth=True, per_process_gpu_memory_fraction=game.getGPUFraction()
-        )
-        self.sess = tf.Session(
-            graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
-        )
         self.saver = None
-        with tf.Session() as temp_sess:
-            temp_sess.run(tf.global_variables_initializer())
-        self.sess.run(
-            tf.variables_initializer(self.nnet.graph.get_collection("variables"))
-        )
+        self.session = session
+        if session is None:
+            gpu_options = tf.GPUOptions(
+                allow_growth=True, per_process_gpu_memory_fraction=game.getGPUFraction()
+            )
+            self.session = tf.Session(
+                graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
+            )
+            with tf.Session() as temp_sess:
+                temp_sess.run(tf.global_variables_initializer())
+            self.session.run(
+                tf.variables_initializer(self.nnet.graph.get_collection("variables"))
+            )
 
     def train(self, examples):
         """
@@ -67,7 +70,7 @@ class MathNeuralNet(NeuralNet):
             bar = Bar("Training Net", max=int(len(examples) / self.args.batch_size))
             batch_idx = 0
 
-            # self.sess.run(tf.local_variables_initializer())
+            # self.session.run(tf.local_variables_initializer())
             while batch_idx < total_batches:
                 sample_ids = numpy.random.randint(
                     len(examples), size=self.args.batch_size
@@ -87,8 +90,8 @@ class MathNeuralNet(NeuralNet):
                 data_time.update(time.time() - end)
 
                 # record loss
-                self.sess.run(self.nnet.train_step, feed_dict=input_dict)
-                pi_loss, v_loss = self.sess.run(
+                self.session.run(self.nnet.train_step, feed_dict=input_dict)
+                pi_loss, v_loss = self.session.run(
                     [self.nnet.loss_pi, self.nnet.loss_v], feed_dict=input_dict
                 )
                 pi_losses.update(pi_loss, len(boards))
@@ -125,7 +128,7 @@ class MathNeuralNet(NeuralNet):
         board = board[numpy.newaxis, :, :]
 
         # run
-        prob, v = self.sess.run(
+        prob, v = self.session.run(
             [self.nnet.prob, self.nnet.v],
             feed_dict={
                 self.nnet.input_boards: board,
@@ -142,6 +145,8 @@ class MathNeuralNet(NeuralNet):
         return os.path.exists(meta)
 
     def save_checkpoint(self, file_path):
+        import tensorflow as tf
+
         dirname = os.path.dirname(file_path)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
@@ -150,11 +155,13 @@ class MathNeuralNet(NeuralNet):
         if self.saver == None:
             self.saver = tf.train.Saver(self.nnet.graph.get_collection("variables"))
         with self.nnet.graph.as_default():
-            self.saver.save(self.sess, file_path)
+            self.saver.save(self.session, file_path)
 
     def load_checkpoint(self, file_path):
+        import tensorflow as tf
+
         if not os.path.exists(file_path + ".meta"):
             raise Exception("No model in path {}".format(file_path))
         with self.nnet.graph.as_default():
             self.saver = tf.train.Saver()
-            self.saver.restore(self.sess, file_path)
+            self.saver.restore(self.session, file_path)

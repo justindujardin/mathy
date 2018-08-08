@@ -23,9 +23,6 @@ from .core.profiler import profile_start, profile_end
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
-FOCUS_INDEX_OFFSET = 2
-META_COUNTER_OFFSET = 3
-LAST_ACTION_OFFSET = 4
 
 class EnvironmentState:
     def __init__(self, width):
@@ -44,16 +41,8 @@ class EnvironmentState:
         data = numpy.zeros((4, self.width), dtype="float32")
         data[0][PLAYER_ID_OFFSET] = 1
         data[0][MOVE_COUNT_OFFSET] = 0
-        data[0][FOCUS_INDEX_OFFSET] = random.randint(0,2)
-        data[0][META_COUNTER_OFFSET] = 0
-        data[0][LAST_ACTION_OFFSET] = -1
-
         data[2][PLAYER_ID_OFFSET] = -1
         data[2][MOVE_COUNT_OFFSET] = 0
-        data[2][FOCUS_INDEX_OFFSET] = random.randint(0,2)
-        data[2][META_COUNTER_OFFSET] = 0
-        data[2][LAST_ACTION_OFFSET] = -1
-
         features = self.parser.make_features(text)
         features = numpy.array(features, dtype="float32").flatten()
         features_len = len(features)
@@ -84,10 +73,7 @@ class EnvironmentState:
         board,
         player,
         features,
-        move_count,
-        focus_index,
-        meta_counter,
-        last_action,
+        move_count
     ):
         """Encode a player's state into the board, and return the board"""
         features_len = len(features)
@@ -97,9 +83,6 @@ class EnvironmentState:
         other_data = self.slice_player_data(board, player * -1)
         data[0][PLAYER_ID_OFFSET] = player
         data[0][MOVE_COUNT_OFFSET] = move_count
-        data[0][FOCUS_INDEX_OFFSET] = focus_index
-        data[0][META_COUNTER_OFFSET] = meta_counter
-        data[0][LAST_ACTION_OFFSET] = last_action
         features_len = len(features)
         for i in range(self.width):
             ch = features[i] if i < features_len else 0.0
@@ -117,12 +100,8 @@ class EnvironmentState:
         player_data = self.slice_player_data(board, player)
         player_index = int(player_data[0][PLAYER_ID_OFFSET])
         move_count = int(player_data[0][MOVE_COUNT_OFFSET])
-        focus_index = int(player_data[0][FOCUS_INDEX_OFFSET])
-        meta_counter = int(player_data[0][META_COUNTER_OFFSET])
-        last_action = int(player_data[0][LAST_ACTION_OFFSET])
         # print("{}] decoded player is : {}".format(player, player_index))
         # print("{}] decoded move is : {}".format(player, move_count))
-        # print("{}] decoded focus is : {}".format(player, focus_index))
         out_features = []
         for i in range(0, self.width, 2):
             value = player_data[1][i]
@@ -132,7 +111,7 @@ class EnvironmentState:
                 break
 
         # print("{}] text is : {}".format(player, text))
-        return out_features, move_count, focus_index, player_index, meta_counter, last_action
+        return out_features, move_count, player_index
 
     def get_canonical_board(self, board, player):
         # print("gcb: {}".format(board.shape))

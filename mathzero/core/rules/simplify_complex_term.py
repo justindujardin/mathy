@@ -41,6 +41,7 @@ class SimplifyComplexTerm(BaseRule):
         term = getTerm(node)
         if term == False or isSimpleTerm(node):
             return False
+        return True
 
     def applyTo(self, node):
         change = super().applyTo(node)

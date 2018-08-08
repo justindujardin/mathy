@@ -25,8 +25,12 @@ args = {
     "save_examples_from_last_n_iterations": 20,
 }
 
+# Single-process implementation for debugging and development
+dev_mode = False
 
-class MathEpisodeRunner(ParallelEpisodeRunner):
+BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
+
+class MathEpisodeRunner(BaseEpisodeRunner):
     def get_game(self):
         return MathGame()
 

@@ -15,12 +15,12 @@ class RunnerConfig:
 
     def __init__(
         self,
-        max_workers=cpu_count(),
+        num_wokers=cpu_count(),
         num_mcts_sims=15,
         temperature_threshold=0.5,
         cpuct=1.0,
     ):
-        self.max_workers = max_workers
+        self.num_wokers = num_wokers
         self.num_mcts_sims = num_mcts_sims
         self.temperature_threshold = temperature_threshold
         self.cpuct = cpuct
@@ -142,7 +142,7 @@ class ParallelEpisodeRunner(EpisodeRunner):
             work_queue.put((i, args))
         processes = [
             Process(target=worker, args=(work_queue, result_queue))
-            for i in range(self.config.max_workers)
+            for i in range(self.config.num_wokers)
         ]
         for proc in processes:
             proc.start()
