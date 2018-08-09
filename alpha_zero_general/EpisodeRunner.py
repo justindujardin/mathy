@@ -85,8 +85,8 @@ class EpisodeRunner:
         if nnet is None:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
         if model is not None:
-            print("loading checkpoint: {}".format(model))
             if nnet.can_load_checkpoint(model):
+                print("loading checkpoint: {}".format(model))
                 nnet.load_checkpoint(model)
         episode_examples = []
         board = game.getInitBoard()

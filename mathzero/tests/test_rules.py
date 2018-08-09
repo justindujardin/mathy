@@ -15,6 +15,7 @@ from ..core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
     CombineLikeTermsRule,
+    SimplifyComplexTermRule,
 )
 
 
@@ -121,62 +122,59 @@ def test_associative_swap():
 
 def test_combine_like_terms():
     parser = ExpressionParser()
-    left = parser.parse("4x")
-    right = parser.parse("7x")
-    expr = MultiplyExpression(left, right)
-    rule = CombineLikeTermsRule()
-    change = rule.applyTo(expr)
-    assert str(change.end) == "28x^2"
-
-
-def test_combine_like_terms_2():
-    parser = ExpressionParser()
     rule = CombineLikeTermsRule()
     expr = parser.parse("(x * 14 + 7x) + 2")
     node = rule.findNode(expr)
     change = rule.applyTo(node)
     assert str(change.end.getRoot()) == "21x + 2"
 
-    expr = parser.parse("42 * (y^2 * 2)")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "84y^2"
-
-
-def test_combine_like_terms_3():
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
     expr = parser.parse("4x + 7x + 2")
     node = rule.findNode(expr)
     change = rule.applyTo(node)
     assert str(change.end.getRoot()) == "11x + 2"
 
-
-def test_combine_like_terms_4():
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
-    expr = parser.parse("60 * 6y")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "360y"
-
-
-def test_combine_like_terms_5():
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
     expr = parser.parse("6x + 120x")
     node = rule.findNode(expr)
     change = rule.applyTo(node)
     assert str(change.end.getRoot()) == "126x"
 
-
-def test_combine_like_terms_6():
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
     expr = parser.parse("3x + 72x")
     node = rule.findNode(expr)
     change = rule.applyTo(node)
     assert str(change.end.getRoot()) == "75x"
+
+def test_simplify_complex_term():
+    parser = ExpressionParser()
+    rule = SimplifyComplexTermRule()
+    expr = parser.parse("60 * 6y")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "360y"
+
+    left = parser.parse("4x")
+    right = parser.parse("7x")
+    expr = MultiplyExpression(left, right)
+    change = rule.applyTo(expr)
+    assert str(change.end) == "28x^2"
+
+def test_simplify_complex_term_exclusions():
+    # The rule restricts use to sub-term parts for complex
+    # terms with more than one operator. This means that
+    # given: `4x * 2x * 4` you could 
+    parser = ExpressionParser()
+    rule = SimplifyComplexTermRule()
+    expr = parser.parse("60 * 6y")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "360y"
+
+    left = parser.parse("4x")
+    right = parser.parse("7x")
+    expr = MultiplyExpression(left, right)
+    change = rule.applyTo(expr)
+    assert str(change.end) == "28x^2"
+
+    
 
 
 def test_like_terms_compare():

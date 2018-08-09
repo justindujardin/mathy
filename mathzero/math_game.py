@@ -23,7 +23,7 @@ from .core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
     CombineLikeTermsRule,
-    SimplifyComplexTerm,
+    SimplifyComplexTermRule,
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -53,7 +53,7 @@ class MathGame(Game):
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
             AssociativeSwapRule(),
-            SimplifyComplexTerm(),
+            SimplifyComplexTermRule(),
         ]
 
     def getInitBoard(self, problem: str = None):

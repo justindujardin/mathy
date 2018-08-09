@@ -19,7 +19,7 @@ from .base_rule import BaseRule
 import numpy
 
 
-class SimplifyComplexTerm(BaseRule):
+class SimplifyComplexTermRule(BaseRule):
     """
     Simplify a complex term by combinging its various coefficients, variables, and exponents.
 
