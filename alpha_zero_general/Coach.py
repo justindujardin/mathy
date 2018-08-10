@@ -54,44 +54,45 @@ class Coach:
             print("------ITER {}------".format(i))
             # Run self-play episodes
             self.run_self_play(i, iterations)
-            game = self.runner.get_game()
+            # game = self.runner.get_game()
             # Train the network with the gathered examples from self-play
-            new_net = self.run_network_training(i)
-            # if there is not enough data for training, None is returned
-            if new_net == False:
-                continue
+            self.run_network_training(i)
+            # new_net = self.run_network_training(i)
+            # # if there is not enough data for training, None is returned
+            # if new_net == False:
+            #     continue
 
-            pmcts = MCTS(
-                game,
-                new_net,
-                self.runner.config.cpuct,
-                self.runner.config.num_mcts_sims,
-            )
+            # pmcts = MCTS(
+            #     game,
+            #     new_net,
+            #     self.runner.config.cpuct,
+            #     self.runner.config.num_mcts_sims,
+            # )
 
-            nmcts = MCTS(
-                game,
-                new_net,
-                self.runner.config.cpuct,
-                self.runner.config.num_mcts_sims,
-            )
+            # nmcts = MCTS(
+            #     game,
+            #     new_net,
+            #     self.runner.config.cpuct,
+            #     self.runner.config.num_mcts_sims,
+            # )
 
-            print("PITTING AGAINST SELF-PLAY VERSION")
-            arena = Arena(
-                lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
-                lambda x: np.argmax(nmcts.getActionProb(x, temp=0)),
-                game,
-            )
-            pwins, nwins, draws = arena.playGames(self.model_arena_iterations)
+            # print("PITTING AGAINST SELF-PLAY VERSION")
+            # arena = Arena(
+            #     lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
+            #     lambda x: np.argmax(nmcts.getActionProb(x, temp=0)),
+            #     game,
+            # )
+            # pwins, nwins, draws = arena.playGames(self.model_arena_iterations)
 
-            print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
-            if (pwins == 0 and nwins == 0) or (
-                pwins + nwins > 0
-                and float(nwins) / (pwins + nwins) < self.model_win_loss_ratio
-            ):
-                print("REJECTING NEW MODEL")
-            else:
-                print("ACCEPTING NEW MODEL")
-                self.save_model(new_net, "best")
+            # print("NEW/PREV WINS : %d / %d ; DRAWS : %d" % (nwins, pwins, draws))
+            # if (pwins == 0 and nwins == 0) or (
+            #     pwins + nwins > 0
+            #     and float(nwins) / (pwins + nwins) < self.model_win_loss_ratio
+            # ):
+            #     print("REJECTING NEW MODEL")
+            # else:
+            #     print("ACCEPTING NEW MODEL")
+            #     self.save_model(new_net, "best")
 
     def run_self_play(self, iteration, num_episodes):
         if iteration < 1 and self.skip_first_self_play:
