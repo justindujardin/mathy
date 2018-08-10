@@ -33,9 +33,6 @@ class Coach:
         self.model_arena_iterations = args.get("model_arena_iterations", 30)
         self.checkpoint = args.get("checkpoint", "./training/")
         self.best_model_name = args.get("best_model_name", "best")
-        self.save_examples_from_last_n_iterations = args.get(
-            "save_examples_from_last_n_iterations", 20
-        )
         self.training_examples_history = []  # history of examples from args.save_examples_from_last_n_iterations latest iterations
         self.skip_first_self_play = False  # can be overriden in loadTrainExamples()
         best = self.get_best_model_filename()
@@ -59,10 +56,11 @@ class Coach:
             self.run_self_play(i, iterations)
             game = self.runner.get_game()
             # Train the network with the gathered examples from self-play
-            best_net, new_net = self.run_network_training(i)
-            # if there is not enough data for training, None is returned for both networks
-            if best_net is None or new_net is None:
+            new_net = self.run_network_training(i)
+            # if there is not enough data for training, None is returned
+            if new_net == False:
                 continue
+
             pmcts = MCTS(
                 game,
                 new_net,
@@ -72,7 +70,7 @@ class Coach:
 
             nmcts = MCTS(
                 game,
-                best_net,
+                new_net,
                 self.runner.config.cpuct,
                 self.runner.config.num_mcts_sims,
             )
@@ -101,7 +99,6 @@ class Coach:
         eps_time = AverageMeter()
         bar = Bar("Self Play", max=num_episodes)
         bar.suffix = "Playing first game..."
-        bar.next()
         current_episode = 0
 
         def update_episode_bar(self, episode, duration):
@@ -133,23 +130,10 @@ class Coach:
             maxlen=self.max_training_examples,
         )
         self.runner.episode_complete = old_update
-        # save the iteration examples to the history
-        self.training_examples_history.append(training_examples)
         bar.finish()
-
-        if (
-            len(self.training_examples_history)
-            > self.save_examples_from_last_n_iterations
-        ):
-            print(
-                "len(trainExamplesHistory) = {} => remove the oldest trainExamples".format(
-                    len(self.training_examples_history)
-                )
-            )
-            self.training_examples_history.pop(0)
-        # backup history to a file
         # NB! the examples were collected using the model from the previous iteration, so (iteration-1)
         self.save_training_examples(iteration - 1)
+        self.training_examples_history.extend(training_examples)
         return training_examples
 
     def run_network_training(self, iteration):
@@ -158,31 +142,11 @@ class Coach:
         a tuple of (best, new) where best is the existing best trained model (or a blank
         one) and new is the model that was just trained.
         """
-        game = self.runner.get_game()
-        new_net = self.runner.get_nnet(game)
         best = self.get_best_model_filename()
-        has_best = new_net.can_load_checkpoint(best)
-        if has_best:
-            new_net.load_checkpoint(best)
-
-        # shuffle examlpes before training
-        train_examples = []
-        for e in self.training_examples_history:
-            train_examples.extend(e)
-        shuffle(train_examples)
-
-        # Train the model with the examples
-        if new_net.train(train_examples) == False:
-            print(
-                "There are not at least batch-size examples for training, more self-play is required..."
-            )
-            return (None, None)
-
-        # allocate the old network now and return both
-        best_net = self.runner.get_nnet(game)
-        if has_best:
-            best_net.load_checkpoint(best)
-        return (best_net, new_net)
+        train_examples = self.training_examples_history
+        # print(train_examples)
+        print("Training with {} examples".format(len(train_examples)))
+        return self.runner.train(iteration, train_examples, best)
 
     def get_checkpoint_filename(self, iteration):
         return "checkpoint_{}.pth.tar".format(iteration)

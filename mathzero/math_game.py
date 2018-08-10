@@ -253,9 +253,6 @@ class MathGame(Game):
                         player, self.expression_str, expression
                     )
                 )
-            else:
-                pass
-                # print(".")
 
             return 1
 

@@ -5,6 +5,8 @@ from .MCTS import MCTS
 from .Game import Game
 import time
 import numpy
+from random import shuffle
+from pickle import Pickler
 
 
 class RunnerConfig:
@@ -58,7 +60,7 @@ class EpisodeRunner:
         nnet = self.get_nnet(game)
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            results.append(self.execute_episode(i, game, nnet, **args))
+            results.extend(self.execute_episode(i, game, nnet, **args))
             duration = time.time() - start
             self.episode_complete(i, duration)
         return results
@@ -86,7 +88,6 @@ class EpisodeRunner:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
         if model is not None:
             if nnet.can_load_checkpoint(model):
-                print("loading checkpoint: {}".format(model))
                 nnet.load_checkpoint(model)
         episode_examples = []
         board = game.getInitBoard()
@@ -118,9 +119,50 @@ class EpisodeRunner:
         """Called after each episode completes. Useful for things like updating progress indicators"""
         pass
 
+    def process_trained_model(
+        self, updated_model, iteration, train_examples, model_path
+    ):
+        if updated_model is None:
+            return False
+        updated_model.save_checkpoint(model_path)
+        examples_file = "{}.examples".format(model_path)
+        with open(examples_file, "wb+") as f:
+            Pickler(f).dump(train_examples)
+        return True
+
+    def train(self, iteration, train_examples, model_path=None):
+        """
+        Train the model at the given checkpoint path with the training examples and return
+        the updated model or None if there was an error.
+        """
+        return self.process_trained_model(
+            self.train_with_examples(iteration, train_examples, model_path),
+            iteration,
+            train_examples,
+            model_path,
+        )
+
+    def train_with_examples(self, iteration, train_examples, model_path=None):
+        game = self.get_game()
+        new_net = self.get_nnet(game)
+        has_best = new_net.can_load_checkpoint(model_path)
+        if has_best:
+            new_net.load_checkpoint(model_path)
+
+        # shuffle examlpes before training
+        shuffle(train_examples)
+
+        # Train the model with the examples
+        if new_net.train(train_examples) == False:
+            print(
+                "There are not at least batch-size examples for training, more self-play is required..."
+            )
+            return None
+        return new_net
+
 
 class ParallelEpisodeRunner(EpisodeRunner):
-    """Run (n) parallel self-play processes in parallel."""
+    """Run (n) parallel self-play or training processes in parallel."""
 
     def execute_episodes(self, episode_args_list):
         def worker(work_queue, result_queue):
@@ -149,13 +191,33 @@ class ParallelEpisodeRunner(EpisodeRunner):
 
         # Gather the outputs
         results = []
-        while len(results) != len(episode_args_list):
+        count = 0
+        while count != len(episode_args_list):
             i, result, duration = result_queue.get()
             self.episode_complete(i, duration)
-            results.append(result)
+            count += 1
+            results.extend(result)
 
         # Wait for the workers to exit completely
         for proc in processes:
             proc.join()
 
         return results
+
+    def train(self, iteration, train_examples, model_path=None):
+
+        def train_and_save(output, i, examples, out_path):
+            update_model = self.train_with_examples(i, examples, out_path)
+            output.put(
+                self.process_trained_model(update_model, i, examples, out_path)
+            )
+
+        result_queue = Queue()
+        proc = Process(
+            target=train_and_save,
+            args=(result_queue, iteration, train_examples, model_path),
+        )
+        proc.start()
+        result = result_queue.get()
+        proc.join()
+        return result

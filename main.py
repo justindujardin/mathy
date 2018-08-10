@@ -10,7 +10,7 @@ from mathzero.math_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 20
+eps = 100
 temp = int(eps * 0.5)
 arena = min(int(eps * 0.3), 30)
 
