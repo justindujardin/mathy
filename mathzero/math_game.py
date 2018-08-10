@@ -38,7 +38,7 @@ class MathGame(Game):
     other player.
     """
 
-    width = 256
+    width = 128
     verbose = False
     draw = 0.0001
     max_moves = 25

@@ -12,17 +12,13 @@ from mathzero.core.parser import ExpressionParser
 
 eps = 100
 temp = int(eps * 0.5)
-arena = min(int(eps * 0.3), 30)
 
 args = {
     "training_iterations": 1000,
     "self_play_iterations": eps,
-    "model_win_loss_ratio": 0.6,
     "max_training_examples": 200000,
-    "model_arena_iterations": arena,
     "checkpoint": "./training/temp/",
-    "best_model_name": "best",
-    "save_examples_from_last_n_iterations": 20,
+    "best_model_name": "latest",
 }
 
 # Single-process implementation for debugging and development
