@@ -38,7 +38,7 @@ class MathGame(Game):
     other player.
     """
 
-    width = 128
+    width = 256
     verbose = False
     draw = 0.0001
     max_moves = 25
@@ -59,13 +59,13 @@ class MathGame(Game):
     def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            terms = random.randint(3, 4)
+            terms = random.randint(3,5)
             problem = self.problems.simplify_multiple_terms(max_terms=terms)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
+        # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
         self.expression_str = problem
         # self.expression_str = "4x * 8 * 2"
-        # problem = "14x + 7x"
         # print("\n\n\t\tNEXT: {}".format(problem))
         if len(list(problem)) > MathGame.width:
             raise ValueError(

@@ -19,7 +19,7 @@ class CombineLikeTermsRule(BaseRule):
     def canApplyTo(self, node):
         # Check simple case of left/right child binary op with single variables
         is_add_sub = isAddSubtract(node)
-        if not is_add_sub:
+        if not is_add_sub or isAddSubtract(node.right):
             return False
 
         # TODO: I think this restriction could be lifted, but this keeps the code simple.
@@ -27,14 +27,14 @@ class CombineLikeTermsRule(BaseRule):
         l_term = getTerm(node.left)
         if (
             l_term == False
-            or len(l_term.variables) > 1
+            or len(l_term.variables) != 1
             or len(l_term.coefficients) != 1
         ):
             return False
         r_term = getTerm(node.right)
         if (
             r_term == False
-            or len(r_term.variables) > 1
+            or len(r_term.variables) != 1
             or len(r_term.coefficients) != 1
         ):
             return False

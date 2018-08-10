@@ -143,38 +143,14 @@ def test_combine_like_terms():
     change = rule.applyTo(node)
     assert str(change.end.getRoot()) == "75x"
 
-def test_simplify_complex_term():
+
+def test_combine_like_terms_fail():
+    examples = ["29y + (8 + 144y)", "10z + (8 + 44z)"]
     parser = ExpressionParser()
-    rule = SimplifyComplexTermRule()
-    expr = parser.parse("60 * 6y")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "360y"
-
-    left = parser.parse("4x")
-    right = parser.parse("7x")
-    expr = MultiplyExpression(left, right)
-    change = rule.applyTo(expr)
-    assert str(change.end) == "28x^2"
-
-def test_simplify_complex_term_exclusions():
-    # The rule restricts use to sub-term parts for complex
-    # terms with more than one operator. This means that
-    # given: `4x * 2x * 4` you could 
-    parser = ExpressionParser()
-    rule = SimplifyComplexTermRule()
-    expr = parser.parse("60 * 6y")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "360y"
-
-    left = parser.parse("4x")
-    right = parser.parse("7x")
-    expr = MultiplyExpression(left, right)
-    change = rule.applyTo(expr)
-    assert str(change.end) == "28x^2"
-
-    
+    rule = CombineLikeTermsRule()
+    for input in examples:
+        expr = parser.parse(input)
+        assert rule.findNode(expr) is None
 
 
 def test_like_terms_compare():
@@ -203,3 +179,19 @@ def test_like_terms_compare():
     expr = parser.parse("4z")
     terms = getTerms(expr)
     assert len(terms) == 1
+
+
+def test_simplify_complex_term():
+    parser = ExpressionParser()
+    rule = SimplifyComplexTermRule()
+    expr = parser.parse("60 * 6y")
+    node = rule.findNode(expr)
+    change = rule.applyTo(node)
+    assert str(change.end.getRoot()) == "360y"
+
+    left = parser.parse("4x")
+    right = parser.parse("7x")
+    expr = MultiplyExpression(left, right)
+    change = rule.applyTo(expr)
+    assert str(change.end) == "28x^2"
+
