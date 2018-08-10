@@ -39,12 +39,13 @@ class MathNeuralNet(NeuralNet):
             self.session = tf.Session(
                 graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
             )
-
-            with tf.Session() as temp_sess:
-                temp_sess.run(tf.global_variables_initializer())
-            self.session.run(
-                tf.variables_initializer(self.nnet.graph.get_collection("variables"))
-            )
+        with tf.Session() as temp_sess:
+            temp_sess.run(tf.global_variables_initializer())
+            temp_sess.run(tf.local_variables_initializer())
+        
+        self.session.run(
+            tf.variables_initializer(self.nnet.graph.get_collection("variables"))
+        )
 
     def train(self, examples):
         """
