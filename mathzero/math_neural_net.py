@@ -118,7 +118,7 @@ class MathNeuralNet(NeuralNet):
                 )
                 bar.next()
             bar.finish()
-            return True
+        return True
 
     def predict(self, board):
         """
