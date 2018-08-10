@@ -44,7 +44,7 @@ class EpisodeRunner:
     def get_game(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_nnet(self, game):
+    def get_nnet(self, game, all_memory=False):
         raise NotImplementedError(
             "neural net implementation must be provided by subclass"
         )
@@ -83,7 +83,6 @@ class EpisodeRunner:
         """
         if game is None:
             raise NotImplementedError("EpisodeRunner.get_game returned None type")
-        nnet = self.get_nnet(game)
         if nnet is None:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
         if model is not None:
@@ -144,7 +143,7 @@ class EpisodeRunner:
 
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_game()
-        new_net = self.get_nnet(game)
+        new_net = self.get_nnet(game, True)
         has_best = new_net.can_load_checkpoint(model_path)
         if has_best:
             new_net.load_checkpoint(model_path)
@@ -205,12 +204,9 @@ class ParallelEpisodeRunner(EpisodeRunner):
         return results
 
     def train(self, iteration, train_examples, model_path=None):
-
         def train_and_save(output, i, examples, out_path):
             update_model = self.train_with_examples(i, examples, out_path)
-            output.put(
-                self.process_trained_model(update_model, i, examples, out_path)
-            )
+            output.put(self.process_trained_model(update_model, i, examples, out_path))
 
         result_queue = Queue()
         proc = Process(

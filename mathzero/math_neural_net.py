@@ -22,7 +22,7 @@ class NetConfig:
 
 
 class MathNeuralNet(NeuralNet):
-    def __init__(self, game, session=None):
+    def __init__(self, game, all_memory=False):
         import tensorflow as tf
 
         self.args = NetConfig()
@@ -30,14 +30,16 @@ class MathNeuralNet(NeuralNet):
         self.board_x, self.board_y = game.getAgentStateSize()
         self.action_size = game.getActionSize()
         self.saver = None
-        self.session = session
-        if session is None:
+        if all_memory == True:
+            self.session = tf.Session(graph=self.nnet.graph)
+        else:
             gpu_options = tf.GPUOptions(
                 allow_growth=True, per_process_gpu_memory_fraction=game.getGPUFraction()
             )
             self.session = tf.Session(
                 graph=self.nnet.graph, config=tf.ConfigProto(gpu_options=gpu_options)
             )
+
             with tf.Session() as temp_sess:
                 temp_sess.run(tf.global_variables_initializer())
             self.session.run(

@@ -30,12 +30,13 @@ dev_mode = False
 
 BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
+
 class MathEpisodeRunner(BaseEpisodeRunner):
     def get_game(self):
         return MathGame()
 
-    def get_nnet(self, game):
-        return MathNeuralNet(game)
+    def get_nnet(self, game, all_memory=False):
+        return MathNeuralNet(game, all_memory)
 
 
 if __name__ == "__main__":
