@@ -28,42 +28,13 @@ from .base_rule import BaseRule
 #         a       b          b       a
 #
 class CommutativeSwapRule(BaseRule):
-    def getName(self):
+    @property
+    def name(self):
         return "Commutative Move"
 
     def canApplyTo(self, node):
         # Must be an add/multiply
         return isinstance(node, AddExpression) or isinstance(node, MultiplyExpression)
-
-    def shouldApplyTo(self, node):
-        if not super().shouldApplyTo(node):
-            return False
-
-        if not isinstance(node, MultiplyExpression):
-            return False
-
-        if not isinstance(node.right, ConstantExpression):
-            return False
-
-        # shouldn't apply to const*var (already in natural order.)
-        if isinstance(node.right, VariableExpression) and isinstance(
-            node.left, ConstantExpression
-        ):
-            return False
-
-        # Chain of multiplications can be swapped.
-        if isinstance(node.left, MultiplyExpression):
-            return True
-
-        if isinstance(node.left, VariableExpression):
-            return True
-
-        if isinstance(node.left, PowerExpression) and isinstance(
-            node.left.left, VariableExpression
-        ):
-            return True
-
-        return False
 
     def applyTo(self, node):
         change = super().applyTo(node)
@@ -75,4 +46,3 @@ class CommutativeSwapRule(BaseRule):
 
         change.done(node)
         return change
-

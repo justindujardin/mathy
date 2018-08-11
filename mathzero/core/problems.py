@@ -42,7 +42,7 @@ class ProblemGenerator:
             sum = random.randint(max_terms * 5, max_terms * 20)
         operators = list("+-*")
         result = "{}".format(random.randint(2, 10))
-        for i in range(max_terms):
+        for _ in range(max_terms):
             num = random.randint(1, 12)
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}".format(op, num)
@@ -53,9 +53,32 @@ class ProblemGenerator:
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
         result = "{}{}".format(random.randint(2, 10), variable)
-        for i in range(max_terms - 1):
+        for _ in range(max_terms - 1):
             num = random.randint(1, 12)
-            var = variable if random.getrandbits(1) == 0 else ''
+            var = variable if random.getrandbits(1) == 0 else ""
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}{}".format(op, num, var)
+        return result
+
+    def basic_combine_like_terms(self):
+        """Generate a two term addition problem of the form [n][var] + [n][var]"""
+        variables = list("xyz")
+        variable = variables[random.randint(0, len(variables) - 1)]
+        coefficient_one = random.randint(1, 12)
+        coefficient_two = random.randint(1, 12)
+        result = "{}{} + {}{}".format(
+            coefficient_one, variable, coefficient_two, variable
+        )
+        return result
+
+    def combine_like_terms(self, min_terms=2, max_terms=4):
+        """Generate a (n) term addition problem of the form [n][var] + [n][var]"""
+        # TODO: add exponents=bool param and optionally generate terms with exps
+        variables = list("xyz")
+        num_terms = random.randint(min_terms, max_terms)
+        variable = variables[random.randint(0, len(variables) - 1)]
+        result = "{}{}".format(random.randint(2, 10), variable)
+        for _ in range(num_terms - 1):
+            num = random.randint(1, 12)
+            result = result + " + {}{}".format(num, variable)
         return result

@@ -26,7 +26,8 @@ from .base_rule import BaseRule
 #       a     b            b     c
 #
 class AssociativeSwapRule(BaseRule):
-    def getName(self):
+    @property
+    def name(self):
         return "Associative Group"
 
     def canApplyTo(self, node):
@@ -37,42 +38,6 @@ class AssociativeSwapRule(BaseRule):
             return True
 
         return False
-
-    def shouldApplyTo(self, node):
-        if not super().shouldApplyTo(node):
-            return False
-
-        # If we're the right child, see if our grandparent has a like term on the right.
-        if (
-            node.parent
-            and isAddSubtract(node.parent)
-            and node.parent.getSide(node) == LEFT
-        ):
-            if termsAreLike(getTerm(node.right), getTerm(node.parent.right)):
-                return True
-
-        if isinstance(node.right, ConstantExpression) and isinstance(
-            node.parent.right, ConstantExpression
-        ):
-            return True
-
-        if not isAddSubtract(node.parent):
-            return False
-
-        lterm = getTerm(node.right)
-        rterm = getTerm(node.parent.right)
-        if not lterm or not rterm:
-            return False
-
-        if (lterm.variables[0] or rterm.variables[0]) and lterm.variables[
-            0
-        ] != rterm.variables[0]:
-            return False
-
-        if lterm.exponent and lterm.exponent != rterm.exponent:
-            return False
-
-        return True
 
     def applyTo(self, node):
         change = super().applyTo(node)

@@ -19,12 +19,12 @@ pp = PassPlayer(g).play
 
 # nnet players
 n1 = MathNeuralNet(g)
-n1.load_checkpoint("./training/temp/best.pth.tar")
+n1.load_checkpoint("./training/08_10_18_4_hr/latest.pth.tar")
 mcts1 = MCTS(g, n1, cpuct=1.0, num_mcts_sims=100)
 n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
 
 n2 = MathNeuralNet(g)
-n2.load_checkpoint('./training/temp/best.pth.tar')
+n2.load_checkpoint('./training/08_10_18_4_hr/latest.pth.tar')
 mcts2 = MCTS(g, n2, cpuct=1.0, num_mcts_sims=100)
 n2p = lambda x: np.argmax(mcts2.getActionProb(x, temp=0))
 

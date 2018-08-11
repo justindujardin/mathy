@@ -36,7 +36,8 @@ from .base_rule import BaseRule
 #      / \     / \             / \
 #     a   b   a   c           b   c
 class DistributiveFactorOutRule(BaseRule):
-    def getName(self):
+    @property
+    def name(self):
         return "Distributive Factoring"
 
     def canApplyTo(self, node):

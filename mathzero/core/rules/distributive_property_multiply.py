@@ -41,7 +41,8 @@ from .base_rule import BaseRule
 #          /   \        /   \   /   \
 #         b     c      a     b a     c
 class DistributiveMultiplyRule(BaseRule):
-    def getName(self):
+    @property
+    def name(self):
         return "Distributive Multiply"
 
     def canApplyTo(self, expression):

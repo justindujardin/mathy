@@ -14,9 +14,26 @@ from ..core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
-    CombineLikeTermsRule,
-    SimplifyComplexTermRule,
 )
+
+# TODO: Incorporate competency evaluations in training? Adjust hyper params/problems when certain competencies are met?
+exam_combine_like_terms = [
+    ("10 + (7x + 6x)", "10 + 13x"),
+    ("6x + 6 * 5 - 2x", "4x + 30"),
+    ("(x * 14 + 7x) + 2", "21x + 2"),
+    ("4x + 7x + 2", "11x + 2"),
+    ("6x + 120x", "126x"),
+    ("3x + 72x", "75x"),
+]
+
+exam_simplify_complex_terms = [
+    ("60 * 6y", "360y"),
+    ("4x * 7x", "28x^2"),
+    ("(x * 14 + 7x) + 2", "21x + 2"),
+    ("4x + 7x + 2", "11x + 2"),
+    ("6x + 120x", "126x"),
+    ("3x + 72x", "75x"),
+]
 
 
 def test_commutative_property():
@@ -120,39 +137,6 @@ def test_associative_swap():
     assert str(change.end.getRoot()).strip() == "2 + (x + 9)"
 
 
-def test_combine_like_terms():
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
-    expr = parser.parse("(x * 14 + 7x) + 2")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "21x + 2"
-
-    expr = parser.parse("4x + 7x + 2")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "11x + 2"
-
-    expr = parser.parse("6x + 120x")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "126x"
-
-    expr = parser.parse("3x + 72x")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "75x"
-
-
-def test_combine_like_terms_fail():
-    examples = ["29y + (8 + 144y)", "10z + (8 + 44z)"]
-    parser = ExpressionParser()
-    rule = CombineLikeTermsRule()
-    for input in examples:
-        expr = parser.parse(input)
-        assert rule.findNode(expr) is None
-
-
 def test_like_terms_compare():
     parser = ExpressionParser()
     expr = parser.parse("10 + (7x + 6x)")
@@ -179,19 +163,3 @@ def test_like_terms_compare():
     expr = parser.parse("4z")
     terms = getTerms(expr)
     assert len(terms) == 1
-
-
-def test_simplify_complex_term():
-    parser = ExpressionParser()
-    rule = SimplifyComplexTermRule()
-    expr = parser.parse("60 * 6y")
-    node = rule.findNode(expr)
-    change = rule.applyTo(node)
-    assert str(change.end.getRoot()) == "360y"
-
-    left = parser.parse("4x")
-    right = parser.parse("7x")
-    expr = MultiplyExpression(left, right)
-    change = rule.applyTo(expr)
-    assert str(change.end) == "28x^2"
-

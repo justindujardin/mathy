@@ -14,7 +14,13 @@ from .core.expressions import (
 )
 from .core.problems import ProblemGenerator
 from .core.parser import ExpressionParser
-from .core.util import termsAreLike, isAddSubtract, getTerms, getTerm, isSimpleTerm
+from .core.util import (
+    termsAreLike,
+    isAddSubtract,
+    getTerms,
+    getTerm,
+    isPreferredTermForm,
+)
 from .core.rules import (
     BaseRule,
     AssociativeSwapRule,
@@ -22,8 +28,6 @@ from .core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
-    CombineLikeTermsRule,
-    SimplifyComplexTermRule,
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -47,26 +51,26 @@ class MathGame(Game):
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_rules = [
-            CombineLikeTermsRule(),
             ConstantsSimplifyRule(),
             DistributiveFactorOutRule(),
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
             AssociativeSwapRule(),
-            SimplifyComplexTermRule(),
         ]
 
     def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            terms = random.randint(3,5)
-            problem = self.problems.simplify_multiple_terms(max_terms=terms)
+            # problem = self.problems.simplify_multiple_terms(max_terms=random.randint(3,5))
+            # problem = self.problems.most_basic_add_like_terms()
+            problem = self.problems.combine_like_terms(2, 4)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
         self.expression_str = problem
         # self.expression_str = "4x * 8 * 2"
-        # print("\n\n\t\tNEXT: {}".format(problem))
+        if MathGame.verbose:
+            print("\n\n\t\tNEXT: {}".format(problem))
         if len(list(problem)) > MathGame.width:
             raise ValueError(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
@@ -82,6 +86,8 @@ class MathGame(Game):
         """Help spot errors in win conditons by always writing out draw values for review"""
         with open("draws.txt", "a") as file:
             file.write("{}\n".format(state))
+        if MathGame.verbose:
+            print(state)
 
     def getActionSize(self):
         """Return number of all possible actions"""
@@ -132,11 +138,11 @@ class MathGame(Game):
                 print("[{}] {}".format(move_count, change.describe()))
             out_board = b.encode_player(board, player, out_features, move_count + 1)
         else:
-            # print(
-            #     "action is {}, token_index is {}, and token is {}".format(
-            #         action, token_index, str(token)
-            #     )
-            # )
+            print(
+                "action is {}, token_index is {}, and token is {}".format(
+                    action, token_index, str(token)
+                )
+            )
             raise Exception(
                 "\n\nPlayer: {}\n\tExpression: {}\n\tFocus: {}\n\tIndex: {}\n\tinvalid move selected: {}, {}".format(
                     player, expression, token, token_index, action, type(operation)
@@ -204,7 +210,7 @@ class MathGame(Game):
 
                 # print(
                 #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
-                #         action_index, rule.getName(), node.r_index, str(node)
+                #         action_index, rule.name, node.r_index, str(node)
                 #     )
                 # )
 
@@ -281,7 +287,7 @@ class MathGame(Game):
                     # Holy shit it won!
                     if not searching and MathGame.verbose:
                         print(
-                            "\n[Player{}][TERMWIN] {} => {}!".format(
+                            "\n[Player{}][TERMWIN1] {} => {}!".format(
                                 player, self.expression_str, expression
                             )
                         )
@@ -290,10 +296,10 @@ class MathGame(Game):
         # A single term hanging out by itself (e.g. 24x, x^2)
         if isinstance(root, MultiplyExpression) or isinstance(root, PowerExpression):
             term_nodes = getTerms(root)
-            if len(term_nodes) == 1 and isSimpleTerm(root):
+            if len(term_nodes) == 1 and isPreferredTermForm(root):
                 if not searching and MathGame.verbose:
                     print(
-                        "\n[Player{}][TERMWIN] {} => {}!".format(
+                        "\n[Player{}][TERMWIN2] {} => {}!".format(
                             player, self.expression_str, expression
                         )
                     )

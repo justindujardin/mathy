@@ -41,14 +41,15 @@ class BinaryTreeNode:
         """Serialize the node as a str"""
         return "{} {}".format(self.left, self.right)
 
-    def getName(self):
+    @property
+    def name(self):
         """Human readable name for this node."""
         return "BinaryTreeNode"
 
     def toJSON(self):
         """Serialize the node as JSON"""
         return {
-            "name": self.getName(),
+            "name": self.name,
             "children": [c.toJSON() for c in self.getChildren()],
         }
 
@@ -467,4 +468,3 @@ class BinaryTreeTidier:
 
 if __name__ == "__main__":
     print("cool")
-

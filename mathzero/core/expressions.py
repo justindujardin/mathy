@@ -253,7 +253,8 @@ class UnaryExpression(MathExpression):
 class NegateExpression(UnaryExpression):
     """Negate an expression, e.g. `4` becomes `-4`"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "-"
 
     def operate(self, value):
@@ -278,19 +279,20 @@ class NegateExpression(UnaryExpression):
 class FunctionExpression(UnaryExpression):
     """
   A Specialized UnaryExpression that is used for functions.  The function name in
-  text (used by the parser and tokenizer) is derived from the getName() method on
+  text (used by the parser and tokenizer) is derived from the name() method on
   the class.
   """
 
-    def getName(self):
+    @property
+    def name(self):
         return ""
 
     def __str__(self):
         child = self.getChild()
         if child:
-            return "{}({})".format(self.getName(), child)
+            return "{}({})".format(self.name, child)
 
-        return self.getName()
+        return self.name
 
 
 # ## Binary Expressions
@@ -305,11 +307,12 @@ class BinaryExpression(MathExpression):
     def evaluate(self, context=None):
         return self.operate(self.left.evaluate(context), self.right.evaluate(context))
 
-    def getName(self):
+    @property
+    def name(self):
         raise Exception("Must be implemented in subclass")
 
     def getMLName(self):
-        return self.getName()
+        return self.name
 
     def operate(self, one, two):
         raise Exception("Must be implemented in subclass")
@@ -372,12 +375,12 @@ class BinaryExpression(MathExpression):
                 )
             )
         if self.rightParenthesis():
-            return "{} {} ({})".format(self.left, self.getName(), self.right)
+            return "{} {} ({})".format(self.left, self.name, self.right)
         elif self.leftParenthesis():
-            return "({}) {} {}".format(self.left, self.getName(), self.right)
+            return "({}) {} {}".format(self.left, self.name, self.right)
         elif self.selfParenthesis():
-            return "({} {} {})".format(self.left, self.getName(), self.right)
-        return "{} {} {}".format(self.left, self.getName(), self.right)
+            return "({} {} {})".format(self.left, self.name, self.right)
+        return "{} {} {}".format(self.left, self.name, self.right)
 
     def toMathML(self):
         rightML = self.right.toMathML()
@@ -404,7 +407,8 @@ class BinaryExpression(MathExpression):
 class EqualExpression(BinaryExpression):
     """Evaluate equality of two expressions"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "="
 
     def operate(self, one, two):
@@ -418,7 +422,8 @@ class EqualExpression(BinaryExpression):
 class AddExpression(BinaryExpression):
     """Add one and two"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "+"
 
     def operate(self, one, two):
@@ -436,7 +441,8 @@ class AddExpression(BinaryExpression):
 class SubtractExpression(BinaryExpression):
     """Subtract one from two"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "-"
 
     def operate(self, one, two):
@@ -454,7 +460,8 @@ class SubtractExpression(BinaryExpression):
 class MultiplyExpression(BinaryExpression):
     """Multiply one and two"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "*"
 
     def getMLName(self):
@@ -497,7 +504,8 @@ class MultiplyExpression(BinaryExpression):
 class DivideExpression(BinaryExpression):
     """Divide one by two"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "/"
 
     def getMLName(self):
@@ -522,7 +530,8 @@ class DivideExpression(BinaryExpression):
 class PowerExpression(BinaryExpression):
     """Raise one to the power of two"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "^"
 
     def toMathML(self):
@@ -541,7 +550,7 @@ class PowerExpression(BinaryExpression):
         raise Exception("Unimplemented")
 
     def __str__(self):
-        return "{}{}{}".format(self.left, self.getName(), self.right)
+        return "{}{}{}".format(self.left, self.name, self.right)
 
 
 class ConstantExpression(MathExpression):
@@ -623,7 +632,8 @@ class VariableExpression(MathExpression):
 class AbsExpression(FunctionExpression):
     """Evaluates the absolute value of an expression."""
 
-    def getName(self):
+    @property
+    def name(self):
         return "abs"
 
     def operate(self, value):
@@ -638,7 +648,8 @@ class AbsExpression(FunctionExpression):
 
 
 class SgnExpression(FunctionExpression):
-    def getName(self):
+    @property
+    def name(self):
         return "sgn"
 
     def operate(self, value):
@@ -663,4 +674,3 @@ class SgnExpression(FunctionExpression):
     Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function   
     """
         return ConstantExpression(0)
-

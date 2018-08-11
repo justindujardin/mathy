@@ -9,6 +9,7 @@ from .expressions import (
     NegateExpression,
     MathExpression,
 )
+from .tree_node import LEFT
 
 import numpy
 import math
@@ -69,15 +70,38 @@ def isAddSubtract(node):
 def isSimpleTerm(expression: MathExpression) -> bool:
     """
     Return True if a given term has been simplified such that it only has
-    a max of one coefficient and variable. 
+    a max of one coefficient and variable.
     Example:
-        Simple = 4x^2
+        Simple = x^2 * 4
         Complex = 2 * 2x^2
     """
     term = getTerm(expression)
     if term == False:
         return True
     return bool(len(term.coefficients) <= 1 and len(term.variables) <= 1)
+
+
+def isPreferredTermForm(expression: MathExpression) -> bool:
+    """
+    Return True if a given term has been simplified such that it only has
+    a max of one coefficient and variable, with the variable on the right
+    and the coefficient on the left side
+    Example:
+        Complex   = 2 * 2x^2
+        Simple    = x^2 * 4
+        Preferred = 4x^2
+    """
+    if not isSimpleTerm(expression):
+        return False
+
+    # if there's a variable, make sure the coefficient is on the left side
+    # for the preferred compact form. i.e. "4x" instead of "x * 4"
+    vars = expression.findByType(VariableExpression)
+    for var in vars:
+        if var and var.parent is not None and var.parent.getSide(var) == LEFT:
+            return False
+
+    return True
 
 
 class FactorResult:

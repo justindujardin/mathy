@@ -20,9 +20,20 @@ from .core.rules import (
 )
 from .core.profiler import profile_start, profile_end
 
+# NOTE: store game mode as a bit on the data, then use different win conditions for each game.
+#       hopefully the RL algorithm should be able to learn to play multiple math "games" with the
+#       same model. Imagine:  train for 2 hours to get combining terms skill with simple case like "2x + 4x"
+#                             then train for 4 hours on expanding that skill out to expressions with more
+#                             like terms or terms with different variables.
+MODE_ARITHMETIC = 0
+MODE_SIMPLIFY = 1
+MODE_COMBINE_LIKE_TERMS = 2
+
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
+GAME_MODE_OFFSET = 2
+
 
 class EnvironmentState:
     def __init__(self, width):
@@ -37,12 +48,14 @@ class EnvironmentState:
         #  data[2] == player_-1 metadata
         #  data[3] == player_-1 board
         # We store the data this way to
-
+        mode = MODE_COMBINE_LIKE_TERMS
         data = numpy.zeros((4, self.width), dtype="float32")
         data[0][PLAYER_ID_OFFSET] = 1
         data[0][MOVE_COUNT_OFFSET] = 0
+        data[0][GAME_MODE_OFFSET] = mode
         data[2][PLAYER_ID_OFFSET] = -1
         data[2][MOVE_COUNT_OFFSET] = 0
+        data[2][GAME_MODE_OFFSET] = mode
         features = self.parser.make_features(text)
         features = numpy.array(features, dtype="float32").flatten()
         features_len = len(features)
@@ -68,13 +81,7 @@ class EnvironmentState:
             )
         return player_data
 
-    def encode_player(
-        self,
-        board,
-        player,
-        features,
-        move_count
-    ):
+    def encode_player(self, board, player, features, move_count):
         """Encode a player's state into the board, and return the board"""
         features_len = len(features)
         features = numpy.array(features, dtype="float32").flatten()

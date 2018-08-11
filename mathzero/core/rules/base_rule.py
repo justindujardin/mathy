@@ -2,7 +2,8 @@ from ..tree_node import STOP
 
 # Basic rule class that visits a tree with a specified visit order.
 class BaseRule:
-    def getName(self):
+    @property
+    def name(self):
         return "Abstract Base Rule"
 
     def findNode(self, expression, includeAll=True):
@@ -10,9 +11,7 @@ class BaseRule:
 
         def visit_fn(node, depth, data):
             nonlocal result
-            if includeAll and self.canApplyTo(node):
-                result = node
-            elif not includeAll and self.shouldApplyTo(node):
+            if self.canApplyTo(node):
                 result = node
 
             if result != None:
@@ -34,9 +33,7 @@ class BaseRule:
             nonlocal nodes, index
             add = None
             node.r_index = index
-            if includeAll and self.canApplyTo(node):
-                add = node
-            elif not includeAll and self.shouldApplyTo(node):
+            if self.canApplyTo(node):
                 add = node
 
             index += 1
@@ -49,17 +46,11 @@ class BaseRule:
     def canApplyTo(self, node):
         return False
 
-    def shouldApplyTo(self, node):
-        return self.canApplyTo(node)
-
-    def getWeight(self):
-        return 1
-
     def applyTo(self, node):
         if not self.canApplyTo(node):
             # print('Bad Apply: {}'.format(node))
             # print('     Root: {}'.format(node.getRoot()))
-            raise Exception("Cannot apply {} to {}".format(self.getName(), node))
+            raise Exception("Cannot apply {} to {}".format(self.name(), node))
 
         return ExpressionChangeRule(self, node)
 
@@ -98,5 +89,5 @@ class ExpressionChangeRule:
 
     def describe(self):
         return """`{}:\n   {}\n = {}`""".format(
-            self.rule.getName(), self.begin.getRoot(), self.end.getRoot()
+            self.rule.name, self.begin.getRoot(), self.end.getRoot()
         )

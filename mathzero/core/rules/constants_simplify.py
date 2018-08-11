@@ -7,7 +7,8 @@ from .base_rule import BaseRule
 class ConstantsSimplifyRule(BaseRule):
     """Given a binary operation on two constants, simplify to the resulting constant expression"""
 
-    def getName(self):
+    @property
+    def name(self):
         return "Simplify Constant Operation"
 
     def canApplyTo(self, node):
