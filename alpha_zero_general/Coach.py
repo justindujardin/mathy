@@ -20,7 +20,7 @@ class Coach:
     """
 
     def has_examples(self) -> bool:
-        return bool(len(self.training_examples_history) > 0)
+        return bool(len(self.all_examples) > 0)
 
     def __init__(self, runner, args=None):
         if args is None:
@@ -33,7 +33,7 @@ class Coach:
         self.model_arena_iterations = args.get("model_arena_iterations", 30)
         self.checkpoint = args.get("checkpoint", "./training/")
         self.best_model_name = args.get("best_model_name", "best")
-        self.training_examples_history = []  # history of examples from args.save_examples_from_last_n_iterations latest iterations
+        self.all_examples = []  # history of examples from args.save_examples_from_last_n_iterations latest iterations
         self.skip_first_self_play = False  # can be overriden in loadTrainExamples()
         best = self.get_best_model_filename()
         if self.can_load_model(best):
@@ -133,8 +133,8 @@ class Coach:
         self.runner.episode_complete = old_update
         bar.finish()
         # NB! the examples were collected using the model from the previous iteration, so (iteration-1)
-        self.save_training_examples(iteration - 1)
-        self.training_examples_history.extend(training_examples)
+        # self.save_training_examples(iteration - 1)
+        self.all_examples.extend(training_examples)
         return training_examples
 
     def run_network_training(self, iteration):
@@ -144,7 +144,7 @@ class Coach:
         one) and new is the model that was just trained.
         """
         best = self.get_best_model_filename()
-        train_examples = self.training_examples_history
+        train_examples = self.all_examples
         # print(train_examples)
         print("Training with {} examples".format(len(train_examples)))
         return self.runner.train(iteration, train_examples, best)
@@ -167,7 +167,7 @@ class Coach:
             folder, self.get_checkpoint_filename(iteration) + ".examples"
         )
         with open(filename, "wb+") as f:
-            Pickler(f).dump(self.training_examples_history)
+            Pickler(f).dump(self.all_examples)
 
     def save_model(self, nnet, name="best"):
         folder = self.checkpoint
@@ -177,14 +177,14 @@ class Coach:
         nnet.save_checkpoint(filename)
         examples_file = "{}.examples".format(filename)
         with open(examples_file, "wb+") as f:
-            Pickler(f).dump(self.training_examples_history)
+            Pickler(f).dump(self.all_examples)
 
     def load_training_examples(self, name=None):
         examplesFile = "{}.examples".format(name)
         if not os.path.isfile(examplesFile):
             return False
         with open(examplesFile, "rb") as f:
-            self.training_examples_history = Unpickler(f).load()
+            self.all_examples = Unpickler(f).load()
         # examples based on the model were already collected (loaded)
         self.skip_first_self_play = True
         return True
