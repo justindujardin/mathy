@@ -63,7 +63,7 @@ class MathGame(Game):
         if problem is None:
             # problem = self.problems.simplify_multiple_terms(max_terms=random.randint(3,5))
             # problem = self.problems.most_basic_add_like_terms()
-            problem = self.problems.combine_like_terms(2, 4)
+            problem = self.problems.combine_like_terms(3, 6)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"

@@ -14,10 +14,11 @@ eps = 100
 temp = int(eps * 0.5)
 
 args = {
-    "training_iterations": 1000,
+    "training_iterations": 100,
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "./training/temp/",
+    "checkpoint": "/mnt/gcs/mzc/",
+    # "checkpoint": "./training/latest/",
     "best_model_name": "latest",
 }
 

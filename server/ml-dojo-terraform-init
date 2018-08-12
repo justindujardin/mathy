@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
+
+echo "Mount latest model checkpoint from GCS bucket"
+gcs_bucket=mzc
+sudo mkdir -p /mnt/gcs/mzc
+sudo chmod -R a+rwx /mnt/gcs
+sudo -u insecurity gcsfuse --dir-mode 777 --file-mode 777 mzc /mnt/gcs/mzc
+
 echo "Configuring nVidia GPU"
 sudo nvidia-smi -pm 1
 

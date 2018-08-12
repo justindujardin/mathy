@@ -127,11 +127,4 @@ class Game:
         #       This is because if we oversubscribe CUDA can throw failed to allocate errors 
         #       with a bunch of workers. This way Tensorflow will grow the allocation per worker
         #       only as needed.
-        # TODO: Hopefully this will let us run ~10? workers per GPU? TEST IT!
-        gpu_fraction = 1 / (cpu_count() * 1.5)
-        if gpu_fraction < 0.1:
-            print(
-                "WARNING: because of CPU count ({}) the GPU memory is reduced to less than 1/10th its total size per process."
-            )
-        return gpu_fraction
-
+        return 1 / (cpu_count() * 1.5)
