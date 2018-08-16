@@ -1,4 +1,5 @@
 import time
+import curses
 
 # ## Constants
 
@@ -9,13 +10,14 @@ LEFT = "left"
 # The constant representing the right child side of a node.
 RIGHT = "right"
 
+
 class BinaryTreeNode:
     """
-  The binary tree node is the base node for all of our trees, and provides a
-  rich set of methods for constructing, inspecting, and modifying them.
-  The node itself defines the structure of the binary tree, having left and right
-  children, and a parent.
-  """
+    The binary tree node is the base node for all of our trees, and provides a
+    rich set of methods for constructing, inspecting, and modifying them.
+    The node itself defines the structure of the binary tree, having left and right
+    children, and a parent.
+    """
 
     #  Allow specifying children in the constructor
     def __init__(self, left=None, right=None, parent=None):
@@ -48,10 +50,7 @@ class BinaryTreeNode:
 
     def toJSON(self):
         """Serialize the node as JSON"""
-        return {
-            "name": self.name,
-            "children": [c.toJSON() for c in self.getChildren()],
-        }
+        return {"name": self.name, "children": [c.toJSON() for c in self.getChildren()]}
 
     def rotate(self):
         """
@@ -271,200 +270,3 @@ class BinarySearchTree(BinaryTreeNode):
             return None
 
         return None
-
-
-# ## <a id="BinaryTreeTidier"></a>BinaryTreeTidier
-
-
-class TidierExtreme:
-    def __init__(self):
-        self.left = None
-        self.right = None
-        self.thread = None
-        self.left = 0
-        self.offset = 0
-
-
-class TidierMeasurement:
-    def __init__(self):
-        self.minX = 10000
-        self.maxX = 0
-        self.minY = 10000
-        self.maxY = 0
-        self.width = 0
-        self.height = 0
-        self.centerX = 0
-        self.centerY = 0
-
-
-class BinaryTreeTidier:
-    """Implement a Reingold-Tilford 'tidier' tree layout algorithm."""
-
-    # Assign x/y values to all nodes in the tree, and return an object containing
-    # the measurements of the tree.
-    def layout(self, node, unitMultiplier=1):
-        self.measure(node)
-        return self.transform(node, 0, unitMultiplier)
-
-    # Computer relative tree node positions
-    def measure(self, node, level=0, extremes: TidierExtreme = None):
-        if extremes == None:
-            extremes = TidierExtreme()
-
-        # left and right subtree extreme leaf nodes
-        leftExtremes = TidierExtreme()
-        rightExtremes = TidierExtreme()
-
-        # separation at the root of the current subtree, as well as at the current level.
-        currentSeparation = 0
-        rootSeparation = 0
-        minimumSeparation = 1
-
-        # The offset from left/right children to the root of the current subtree.
-        leftOffsetSum = 0
-        rightOffsetSum = 0
-
-        # Avoid selecting as extreme
-        if not node:
-            if extremes.left != None:
-                extremes.left.level = -1
-
-            if extremes.right != None:
-                extremes.right.level = -1
-
-            return
-
-        # Assign the `node.y`, note the left/right child nodes, and recurse into the tree.
-        node.y = level
-        left = node.left
-        right = node.right
-        self.measure(left, level + 1, leftExtremes)
-        self.measure(right, level + 1, rightExtremes)
-
-        # A leaf is both the leftmost and rightmost node on the lowest level of the
-        # subtree consisting of itself.
-        if not node.right and not node.left:
-            node.offset = 0
-            extremes.right = extremes.left = node
-            return extremes
-
-        # if only a single child, assign the next available offset and return.
-        if not node.right or not node.left:
-            node.offset = minimumSeparation
-            extremes.right = extremes.left = node.left if node.left else node.right
-            return
-
-        # Set the current separation to the minimum separation for the root of the
-        # subtree.
-        currentSeparation = minimumSeparation
-        leftOffsetSum = rightOffsetSum = 0
-
-        # Traverse the subtrees until one of them is exhausted, pushing them apart
-        # as needed.
-        loops = 0
-        while left and right:
-            loops = loops + 1
-            if loops > 100000:
-                raise Exception("An impossibly large tree perhaps?")
-
-            if currentSeparation < minimumSeparation:
-                rootSeparation += minimumSeparation - currentSeparation
-                currentSeparation = minimumSeparation
-
-            if left.right:
-                leftOffsetSum += left.offset
-                currentSeparation -= left.offset
-                left = left.thread or left.right
-            else:
-                leftOffsetSum -= left.offset
-                currentSeparation += left.offset
-                left = left.thread or left.left
-
-            if right.left:
-                rightOffsetSum -= right.offset
-                currentSeparation -= right.offset
-                right = right.thread or right.left
-            else:
-                rightOffsetSum += right.offset
-                currentSeparation += right.offset
-                right = right.thread or right.right
-
-        # Set the root offset, and include it in the accumulated offsets.
-        node.offset = (rootSeparation + 1) / 2
-        leftOffsetSum -= node.offset
-        rightOffsetSum += node.offset
-
-        # Update right and left extremes
-        rightLeftLevel = rightExtremes.left.level if rightExtremes.left else -1
-        leftLeftLevel = leftExtremes.left.level if leftExtremes.left else -1
-        if rightLeftLevel > leftLeftLevel or not node.left:
-            extremes.left = rightExtremes.left
-            if extremes.left:
-                extremes.left.offset += node.offset
-
-        else:
-            extremes.left = leftExtremes.left
-            if extremes.left:
-                extremes.left.offset -= node.offset
-
-        leftRightLevel = leftExtremes.right.level if leftExtremes.right else -1
-        rightRightLevel = rightExtremes.right.level if rightExtremes.right else -1
-        if leftRightLevel > rightRightLevel or not node.right:
-            extremes.right = leftExtremes.right
-            if extremes.right:
-                extremes.right.offset -= node.offset
-
-        else:
-            extremes.right = rightExtremes.right
-            if extremes.right:
-                extremes.right.offset += node.offset
-
-        # If the subtrees have uneven heights, check to see if they need to be
-        # threaded.  If threading is required, it will affect only one node.
-        if left and left != node.left and rightExtremes and rightExtremes.right:
-            rightExtremes.right.thread = left
-            rightExtremes.right.offset = abs(
-                rightExtremes.right.offset + node.offset - leftOffsetSum
-            )
-        elif right and right != node.right and leftExtremes and leftExtremes.left:
-            leftExtremes.left.thread = right
-            leftExtremes.left.offset = abs(
-                leftExtremes.left.offset - node.offset - rightOffsetSum
-            )
-
-        # Return self
-        return self
-
-    # Transform relative to absolute coordinates, and measure the bounds of the tree.
-    # Return a measurement of the tree in output units.
-    def transform(self, node, x=0, unitMultiplier=1, measure=None):
-        if measure is None:
-            measure = TidierMeasurement()
-        if not node:
-            return measure
-
-        node.x = x * unitMultiplier
-        node.y *= unitMultiplier
-        self.transform(node.left, x - node.offset, unitMultiplier, measure)
-        self.transform(node.right, x + node.offset, unitMultiplier, measure)
-        if measure.minY > node.y:
-            measure.minY = node.y
-
-        if measure.maxY < node.y:
-            measure.maxY = node.y
-
-        if measure.minX > node.x:
-            measure.minX = node.x
-
-        if measure.maxX < node.x:
-            measure.maxX = node.x
-
-        measure.width = abs(measure.minX - measure.maxX)
-        measure.height = abs(measure.minY - measure.maxY)
-        measure.centerX = measure.minX + measure.width / 2
-        measure.centerY = measure.minY + measure.height / 2
-        return measure
-
-
-if __name__ == "__main__":
-    print("cool")

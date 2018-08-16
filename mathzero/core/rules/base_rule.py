@@ -1,4 +1,4 @@
-from ..tree_node import STOP
+from ..tree import STOP
 
 # Basic rule class that visits a tree with a specified visit order.
 class BaseRule:

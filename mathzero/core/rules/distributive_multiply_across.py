@@ -12,7 +12,6 @@ from ..util import (
     getTerm,
     termsAreLike,
     unlink,
-    factorAddTerms,
     makeTerm,
 )
 from .base_rule import BaseRule
@@ -76,4 +75,3 @@ class DistributiveMultiplyRule(BaseRule):
 
         change.done(result)
         return change
-

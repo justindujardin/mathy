@@ -1,4 +1,4 @@
-from ..core.tree_node import BinaryTreeNode
+from ..core.tree import BinaryTreeNode
 from ..core.expressions import ConstantExpression, VariableExpression, AddExpression, SubtractExpression
 
 

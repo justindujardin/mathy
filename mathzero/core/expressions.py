@@ -1,4 +1,4 @@
-from .tree_node import BinaryTreeNode, STOP
+from .tree import BinaryTreeNode, STOP
 import numpy
 
 OOO_FUNCTION = 4

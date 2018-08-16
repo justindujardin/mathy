@@ -18,7 +18,7 @@ from ..util import (
 from .base_rule import BaseRule
 
 # ### Distributive Property
-# `a(b + c) = ab + ac`
+# `ab + ac = a(b + c)`
 #
 # The distributive property can be used to expand out expressions
 # to allow for simplification, as well as to factor out common properties of terms.

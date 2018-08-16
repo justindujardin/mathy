@@ -20,6 +20,7 @@ from .core.util import (
     getTerms,
     getTerm,
     isPreferredTermForm,
+    has_like_terms,
 )
 from .core.rules import (
     BaseRule,
@@ -57,13 +58,14 @@ class MathGame(Game):
             CommutativeSwapRule(),
             AssociativeSwapRule(),
         ]
+        self.expression_str = "unset"
 
     def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            # problem = self.problems.simplify_multiple_terms(max_terms=random.randint(3,5))
+            problem = self.problems.simplify_multiple_terms(max_terms=random.randint(3,5))
             # problem = self.problems.most_basic_add_like_terms()
-            problem = self.problems.combine_like_terms(3, 6)
+            # problem = self.problems.combine_like_terms(3, 4)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
@@ -231,79 +233,25 @@ class MathGame(Game):
         b = EnvironmentState(MathGame.width)
         features, move_count, _ = b.decode_player(board, player)
         expression = self.parser.parse_features(features)
-        # It's over if the expression is reduced to a single constant
-        if (
-            isinstance(expression, ConstantExpression)
-            and expression.parent is None
-            and expression.left is None
-            and expression.right is None
-        ):
-            # print("Game done with constant win: ")
-            # print("  start expression {}".format(self.expression_str))
-            # print("  end expression {}".format(str(expression)))
-            # eval = self.parser.parse(self.expression_str).evaluate()
-            # found = expression.evaluate()
-            # if eval != found and not math.isclose(eval, found):
-            #     if not searching:
-            #         print(
-            #             "[LOSE] ERROR: reduced '{}' to constant, but evals differ. Expected '{}' but got '{}'!".format(
-            #                 self.expression_str, eval, found
-            #             )
-            #         )
-            #     return -1
-
-            # Holy shit it won!
-            if not searching and MathGame.verbose:
-                print(
-                    "\n[Player{}][WIN] {} => {}!".format(
-                        player, self.expression_str, expression
-                    )
-                )
-
-            return 1
 
         # Check for simplification removes all like terms
         root = expression.getRoot()
-        if isAddSubtract(root):
+
+        if not has_like_terms(root):
             term_nodes = getTerms(root)
-            term_count = len(term_nodes)
-            # Only handle up to two terms right now. Once it can
-            # deal with "4x + 3x + 2" and "12x * 2x^3 * 4" we can
-            # try expanding to arbitrary polynomial
-            two_unlike = (
-                term_count == 2 and termsAreLike(term_nodes[0], term_nodes[1]) == False
-            )
-            if term_count == 1 or two_unlike:
-                t1 = getTerm(term_nodes[0])
-                t2 = getTerm(term_nodes[1])
-                one_coefficients = len(t1.coefficients)
-                two_coefficients = len(t2.coefficients)
-                # Make sure each term only has one coefficient, or else more simplification
-                # can still be done.
-                if one_coefficients < 2 and two_coefficients < 2:
-                    # TODO: Compare constant/variable findings to verify their accuracy.
-                    #       This helps until we're 100% confident in the parser/serializer consistency
-                    #
-                    # Holy shit it won!
+            is_win = True
+            for term in term_nodes:
+                if not isPreferredTermForm(term):
+                    is_win = False
+            if is_win:
                     if not searching and MathGame.verbose:
                         print(
-                            "\n[Player{}][TERMWIN1] {} => {}!".format(
+                        "\n[Player{}][NOLIKEWIN] {} => {}!".format(
                                 player, self.expression_str, expression
                             )
                         )
                     return 1
 
-        # A single term hanging out by itself (e.g. 24x, x^2)
-        if isinstance(root, MultiplyExpression) or isinstance(root, PowerExpression):
-            term_nodes = getTerms(root)
-            if len(term_nodes) == 1 and isPreferredTermForm(root):
-                if not searching and MathGame.verbose:
-                    print(
-                        "\n[Player{}][TERMWIN2] {} => {}!".format(
-                            player, self.expression_str, expression
-                        )
-                    )
-                return 1
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.

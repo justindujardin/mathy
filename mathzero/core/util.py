@@ -9,8 +9,8 @@ from .expressions import (
     NegateExpression,
     MathExpression,
 )
-from .tree_node import LEFT
-
+from .tree import LEFT, RIGHT
+from .layout import TreeLayout
 import numpy
 import math
 
@@ -98,10 +98,49 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
     # for the preferred compact form. i.e. "4x" instead of "x * 4"
     vars = expression.findByType(VariableExpression)
     for var in vars:
-        if var and var.parent is not None and var.parent.getSide(var) == LEFT:
+        parent = var
+        if isinstance(var.parent, PowerExpression):
+            parent = var.parent
+        if parent.parent is not None and parent.parent.getSide(parent) == LEFT:
             return False
 
     return True
+
+
+def has_like_terms(expression: MathExpression) -> bool:
+    """
+    Return True if a given expression has more than one of any 
+           type of term.
+    Examples:
+        x + y + z = False
+        x^2 + x = False
+        y + 2x = True
+        x^2 + 4x^3 + 2y = True
+    """
+    vars = expression.findByType(VariableExpression)
+    terms = set()
+    for var in vars:
+        var_value = var.identifier
+        var_exp = 1
+        if isinstance(var.parent, PowerExpression):
+            if not isinstance(var.parent.right, ConstantExpression):
+                raise Exception("has_like_terms supports constant term powers")
+            var_exp = var.parent.right.value
+
+        var_key = (var_value, var_exp)
+        # If the same var/power combinaton is found in the expression more than once
+        # there are like terms.
+        if var_key in terms:
+            return True
+        terms.add(var_key)
+    # Look for multiple free-floating constants
+    consts = expression.findByType(ConstantExpression)
+    for const in consts:
+        if const.parent and isAddSubtract(const.parent):
+            if "const_term" in terms:
+                return True
+            terms.add("const_term")
+    return False
 
 
 class FactorResult:
@@ -401,4 +440,3 @@ def getTermConst(node):
         return node.right.value
 
     raise Exception("Unable to determine coefficient for expression")
-

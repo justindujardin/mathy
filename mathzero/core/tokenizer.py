@@ -135,7 +135,7 @@ class Tokenizer:
             pass
         elif ch == "+":
             context.tokens.append(Token("+", TokenPlus))
-        elif ch == "-":
+        elif ch == "-" or ch == "–":
             context.tokens.append(Token("-", TokenMinus))
         elif ch == "*":
             context.tokens.append(Token("*", TokenMultiply))
@@ -145,9 +145,9 @@ class Tokenizer:
             context.tokens.append(Token("^", TokenExponent))
         elif ch == "!":
             context.tokens.append(Token("!", TokenFactorial))
-        elif ch == "(":
+        elif ch == "(" or ch == "[":
             context.tokens.append(Token("(", TokenOpenParen))
-        elif ch == ")":
+        elif ch == ")" or ch == "]":
             context.tokens.append(Token(")", TokenCloseParen))
         elif ch == "=":
             context.tokens.append(Token("=", TokenEqual))

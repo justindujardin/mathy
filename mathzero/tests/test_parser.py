@@ -1,5 +1,5 @@
 from ..core.tokenizer import Token
-from ..core.tree_node import BinaryTreeNode
+from ..core.tree import BinaryTreeNode
 from ..core.expressions import ConstantExpression, VariableExpression, AddExpression
 from ..core.parser import ExpressionParser
 
@@ -72,4 +72,3 @@ def test_parse_features():
         ]
     )
     assert exp is not None
-

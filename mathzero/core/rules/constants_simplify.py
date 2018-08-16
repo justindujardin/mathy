@@ -1,4 +1,4 @@
-from ..tree_node import LEFT
+from ..tree import LEFT
 from ..expressions import AddExpression, BinaryExpression, ConstantExpression
 from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
 from .base_rule import BaseRule

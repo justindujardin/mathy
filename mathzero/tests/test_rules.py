@@ -1,4 +1,5 @@
-from ..core.tree_node import BinaryTreeNode
+from ..core.tree import BinaryTreeNode
+from ..core.layout import TreeLayout, TidierExtreme, TreeMeasurement
 from ..core.parser import ExpressionParser
 from ..core.expressions import (
     ConstantExpression,
@@ -33,6 +34,8 @@ exam_simplify_complex_terms = [
     ("4x + 7x + 2", "11x + 2"),
     ("6x + 120x", "126x"),
     ("3x + 72x", "75x"),
+    ("4x^(2^2)", "4x^4"),
+    ("(4x^2)^2", "16x^4"),
 ]
 
 
