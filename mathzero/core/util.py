@@ -94,6 +94,10 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
     if not isSimpleTerm(expression):
         return False
 
+    # If there are multiple multiplications this term can be simplified further. At most 
+    # we expect a multiply to connect a coefficient and variable.
+    if len(expression.findByType(MultiplyExpression)) > 1:
+        return False
     # if there's a variable, make sure the coefficient is on the left side
     # for the preferred compact form. i.e. "4x" instead of "x * 4"
     vars = expression.findByType(VariableExpression)
@@ -124,7 +128,7 @@ def has_like_terms(expression: MathExpression) -> bool:
         var_exp = 1
         if isinstance(var.parent, PowerExpression):
             if not isinstance(var.parent.right, ConstantExpression):
-                raise Exception("has_like_terms supports constant term powers")
+                return True
             var_exp = var.parent.right.value
 
         var_key = (var_value, var_exp)
@@ -247,7 +251,7 @@ class TermResult:
 
 # Extract term information from the given node
 #
-def getTerm(node):
+def getTerm(node) -> TermResult:
     result = TermResult()
     # Constant with add/sub parent should be OKAY.
     if isinstance(node, ConstantExpression):
@@ -345,6 +349,9 @@ def getTerm(node):
 
 def getTerms(expression: MathExpression):
     results = []
+    root = expression.getRoot()
+    if isinstance(root, MultiplyExpression):
+        results.append(root)
 
     def visit_fn(node, depth, data):
         nonlocal results
@@ -355,7 +362,7 @@ def getTerms(expression: MathExpression):
         if not isAddSubtract(node.right):
             results.append(node.right)
 
-    expression.getRoot().visitInorder(visit_fn)
+    root.visitInorder(visit_fn)
     return [expression] if len(results) == 0 else results
 
 

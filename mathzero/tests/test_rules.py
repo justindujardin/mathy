@@ -15,6 +15,7 @@ from ..core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
+    VariableMultiplyRule,
 )
 
 # TODO: Incorporate competency evaluations in training? Adjust hyper params/problems when certain competencies are met?
@@ -166,3 +167,20 @@ def test_like_terms_compare():
     expr = parser.parse("4z")
     terms = getTerms(expr)
     assert len(terms) == 1
+
+
+def test_variable_multiplication():
+
+    valid = [
+        ("x * x^3", "x^(1 + 3)"),
+        ("y^11 * y", "y^(11 + 1)"),
+        ("x^2 * x^7", "x^(2 + 7)"),
+    ]
+    parser = ExpressionParser()
+    rule = VariableMultiplyRule()
+    for input, output in valid:
+        expression = parser.parse(input)
+        node = rule.findNode(expression)
+        assert node is not None
+        change = rule.applyTo(node)
+        assert str(change.end.getRoot()).strip() == output

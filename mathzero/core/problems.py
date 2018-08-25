@@ -54,10 +54,23 @@ class ProblemGenerator:
         variable = variables[random.randint(0, len(variables) - 1)]
         result = "{}{}".format(random.randint(2, 10), variable)
         for _ in range(max_terms - 1):
+            variable = variables[random.randint(0, len(variables) - 1)]
             num = random.randint(1, 12)
             var = variable if random.getrandbits(1) == 0 else ""
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}{}".format(op, num, var)
+        return result
+
+    def variable_multiplication(self, max_terms=4):
+        variables = list("xyz")
+        variable = variables[random.randint(0, len(variables) - 1)]
+        constant = random.randint(1, 3)
+        exp = '^{}'.format(constant) if constant > 1 else ''
+        result = "{}{}".format(variable, exp)
+        for _ in range(max_terms - 1):
+            constant = random.randint(1, 12)
+            exp = '^{}'.format(constant) if constant > 1 else ''
+            result = result + " * {}{}".format(variable, exp)
         return result
 
     def basic_combine_like_terms(self):

@@ -29,6 +29,7 @@ from .core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
+    VariableMultiplyRule,
 )
 from .core.profiler import profile_start, profile_end
 from .environment_state import EnvironmentState
@@ -57,15 +58,16 @@ class MathGame(Game):
             DistributiveMultiplyRule(),
             CommutativeSwapRule(),
             AssociativeSwapRule(),
+            VariableMultiplyRule(),
         ]
         self.expression_str = "unset"
 
     def getInitBoard(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            problem = self.problems.simplify_multiple_terms(max_terms=random.randint(3,5))
+            problem = self.problems.simplify_multiple_terms(max_terms=4)
             # problem = self.problems.most_basic_add_like_terms()
-            # problem = self.problems.combine_like_terms(3, 4)
+            # problem = self.problems.variable_multiplication(3)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
@@ -126,8 +128,6 @@ class MathGame(Game):
 
         # Enforce constraints to keep training time and complexity down?
         # - can't commutative swap immediately to return to previous state.
-        # - can't focus on the same token twice without taking a valid other
-        #   action inbetween
         # NOTE: leaving these ideas here, but optimization made them less necessary
         # NOTE: Also adding constraints caused actions to be avoided and others to be
         #       repeated in odd ways. Assume repetition is part of training.
@@ -251,7 +251,6 @@ class MathGame(Game):
                             )
                         )
                     return 1
-
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, it should be honored.

@@ -4,3 +4,4 @@ from .commutative_property import CommutativeSwapRule
 from .distributive_factor_out import DistributiveFactorOutRule
 from .distributive_multiply_across import DistributiveMultiplyRule
 from .constants_simplify import ConstantsSimplifyRule
+from .variable_multiply import VariableMultiplyRule
