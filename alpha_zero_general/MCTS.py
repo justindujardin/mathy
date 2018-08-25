@@ -9,11 +9,16 @@ class MCTS:
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, cpuct=1, num_mcts_sims=15):
+    def __init__(self, game, nnet, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3):
         self.game = game
         self.nnet = nnet
         self.num_mcts_sims = num_mcts_sims
         self.cpuct = cpuct
+        self.dir_alpha = dir_alpha
+        # Set epsilon = 0 to disable dirichlet noise in root node.
+        # e.g. for Arena competitions
+        self.epsilon = epsilon
+
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times board s was visited
@@ -32,7 +37,7 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for _ in range(self.num_mcts_sims):
-            self.search(canonicalBoard)
+            self.search(canonicalBoard, True)
 
         s = self.game.to_hash_key(canonicalBoard)
         counts = [
@@ -50,7 +55,7 @@ class MCTS:
         probs = [x / float(sum(counts)) for x in counts]
         return probs
 
-    def search(self, canonicalBoard):
+    def search(self, canonicalBoard, isRootNode=False):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -104,25 +109,41 @@ class MCTS:
 
         valids = self.Vs[s]
         cur_best = -float("inf")
-        best_act = -1
+        all_best = []
+        e = self.epsilon
+        # add Dirichlet noise for root node. set epsilon=0 for Arena competitions of trained models
+        add_noise = isRootNode and e > 0
+        if add_noise:
+            moves = self.game.getValidMoves(canonicalBoard, 1)
+            noise = np.random.dirichlet([self.dir_alpha] * len(moves))
 
         # pick the action with the highest upper confidence bound
+        i = -1
         for a in range(self.game.getActionSize()):
             if valids[a]:
+                i += 1
                 if (s, a) in self.Qsa:
-                    u = self.Qsa[(s, a)] + self.cpuct * self.Ps[s][a] * math.sqrt(
-                        self.Ns[s]
-                    ) / (1 + self.Nsa[(s, a)])
+                    q = self.Qsa[(s, a)]
+                    n_s_a = self.Nsa[(s, a)]
                 else:
-                    u = (
-                        self.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)
-                    )  # Q = 0 ?
+                    q = 0
+                    n_s_a = 0
+
+                p = self.Ps[s][a]
+                if add_noise:
+                    p = (1 - e) * p + e * noise[i]
+
+                u = q + self.cpuct * p * math.sqrt(self.Ns[s]) / (1 + n_s_a)
 
                 if u > cur_best:
                     cur_best = u
-                    best_act = a
+                    del all_best[:]
+                    all_best.append(a)
+                elif u == cur_best:
+                    all_best.append(a)
 
-        a = best_act
+        a = np.random.choice(all_best)
+
         next_s, next_player = self.game.getNextState(
             canonicalBoard, 1, a, searching=True
         )
