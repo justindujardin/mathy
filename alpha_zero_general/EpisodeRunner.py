@@ -89,13 +89,13 @@ class EpisodeRunner:
             if nnet.can_load_checkpoint(model):
                 nnet.load_checkpoint(model)
         episode_examples = []
-        board = game.getInitBoard()
+        env_state = game.get_initial_state()
         current_player = player
         move_count = 0
         mcts = MCTS(game, nnet, self.config.cpuct, self.config.num_mcts_sims)
         while True:
             move_count += 1
-            canonical_state = game.getCanonicalForm(board, current_player)
+            canonical_state = game.getCanonicalForm(env_state, current_player)
             temp = int(move_count < self.config.temperature_threshold)
 
             pi = mcts.getActionProb(canonical_state, temp=temp)
@@ -103,8 +103,8 @@ class EpisodeRunner:
             for b, p in sym:
                 episode_examples.append([b, current_player, p, None])
             action = numpy.random.choice(len(pi), p=pi)
-            board, current_player = game.getNextState(board, current_player, action)
-            r = game.getGameEnded(board, current_player)
+            env_state, current_player = game.get_next_state(env_state, current_player, action)
+            r = game.getGameEnded(env_state, current_player)
 
             if r != 0:
                 return [

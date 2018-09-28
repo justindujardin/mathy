@@ -21,11 +21,11 @@ class MCTS:
 
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
-        self.Ns = {}  # stores #times board s was visited
+        self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
 
-        self.Es = {}  # stores game.getGameEnded ended for board s
-        self.Vs = {}  # stores game.getValidMoves for board s
+        self.Es = {}  # stores game.getGameEnded ended for env_state s
+        self.Vs = {}  # stores game.getValidMoves for env_state s
 
     def getActionProb(self, canonicalBoard, temp=1):
         """
@@ -42,7 +42,7 @@ class MCTS:
         s = self.game.to_hash_key(canonicalBoard)
         counts = [
             self.Nsa[(s, a)] if (s, a) in self.Nsa else 0
-            for a in range(self.game.getActionSize())
+            for a in range(self.game.get_agent_actions_count())
         ]
 
         if temp == 0:
@@ -119,7 +119,7 @@ class MCTS:
 
         # pick the action with the highest upper confidence bound
         i = -1
-        for a in range(self.game.getActionSize()):
+        for a in range(self.game.get_agent_actions_count()):
             if valids[a]:
                 i += 1
                 if (s, a) in self.Qsa:
@@ -144,7 +144,7 @@ class MCTS:
 
         a = np.random.choice(all_best)
 
-        next_s, next_player = self.game.getNextState(
+        next_s, next_player = self.game.get_next_state(
             canonicalBoard, 1, a, searching=True
         )
         next_s = self.game.getCanonicalForm(next_s, next_player)

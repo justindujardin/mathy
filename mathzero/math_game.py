@@ -45,7 +45,7 @@ class MathGame(Game):
     """
 
     width = 128
-    verbose = False
+    verbose = True
     draw = 0.0001
     max_moves = 25
 
@@ -62,7 +62,7 @@ class MathGame(Game):
         ]
         self.expression_str = "unset"
 
-    def getInitBoard(self, problem: str = None):
+    def get_initial_state(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
             problem = self.problems.simplify_multiple_terms(max_terms=4)
@@ -81,10 +81,10 @@ class MathGame(Game):
                     problem, MathGame.width
                 )
             )
-        board = EnvironmentState(MathGame.width).encode_board(problem)
+        env_state = EnvironmentState(MathGame.width).encode_board(problem)
 
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
-        return board
+        return env_state
 
     def write_draw(self, state):
         """Help spot errors in win conditons by always writing out draw values for review"""
@@ -93,24 +93,24 @@ class MathGame(Game):
         if MathGame.verbose:
             print(state)
 
-    def getActionSize(self):
+    def get_agent_actions_count(self):
         """Return number of all possible actions"""
         return len(self.available_rules) * self.width
 
-    def getNextState(self, board, player, action, searching=False):
+    def get_next_state(self, env_state, player, action, searching=False):
         """
         Input:
-            board:     current board
+            env_state:     current env_state
             player:    current player (1 or -1)
             action:    action taken by current player
             searching: boolean set to True when called by MCTS
 
         Returns:
-            nextBoard: board after applying action
-            nextPlayer: player who plays in the next turn (should be -player)
+            next_state: env_state after applying action
+            next_player: player who plays in the next turn (should be -player)
         """
         b = EnvironmentState(MathGame.width)
-        features, move_count, _ = b.decode_player(board, player)
+        features, move_count, _ = b.decode_player(env_state, player)
         expression = self.parser.parse_features(features)
 
         # Figure out the token index of the selected action
@@ -138,7 +138,7 @@ class MathGame(Game):
             out_features = self.parser.make_features(str(root))
             if not searching and MathGame.verbose and player == 1:
                 print("[{}] {}".format(move_count, change.describe()))
-            out_board = b.encode_player(board, player, out_features, move_count + 1)
+            out_board = b.encode_player(env_state, player, out_features, move_count + 1)
         else:
             print(
                 "action is {}, token_index is {}, and token is {}".format(
@@ -170,19 +170,19 @@ class MathGame(Game):
         expression.visitPreorder(visit_fn)
         return result
 
-    def getValidMoves(self, board, player):
+    def getValidMoves(self, env_state, player):
         """
         Input:
-            board: current board
+            env_state: current env_state
             player: current player
 
         Returns:
-            validMoves: a binary vector of length self.getActionSize(), 1 for
-                        moves that are valid from the current board and player,
+            validMoves: a binary vector of length self.get_agent_actions_count(), 1 for
+                        moves that are valid from the current env_state and player,
                         0 for invalid moves
         """
         b = EnvironmentState(MathGame.width)
-        features, _, _ = b.decode_player(board, player)
+        features, _, _ = b.decode_player(env_state, player)
         expression = self.parser.parse_features(features)
 
         actions = self.get_actions_for_expression(expression)
@@ -200,7 +200,7 @@ class MathGame(Game):
         return actions
 
     def get_actions_for_expression(self, expression: MathExpression):
-        actions = [0] * self.getActionSize()
+        actions = [0] * self.get_agent_actions_count()
 
         # Properties of numbers and common simplifications
         for rule_index, rule in enumerate(self.available_rules):
@@ -218,10 +218,10 @@ class MathGame(Game):
 
         return actions
 
-    def getGameEnded(self, board, player, searching=False):
+    def getGameEnded(self, env_state, player, searching=False):
         """
         Input:
-            board:     current board
+            env_state:     current env_state
             player:    current player (1 or -1)
             searching: boolean that is True when called by MCTS simulation
 
@@ -231,7 +231,7 @@ class MathGame(Game):
                
         """
         b = EnvironmentState(MathGame.width)
-        features, move_count, _ = b.decode_player(board, player)
+        features, move_count, _ = b.decode_player(env_state, player)
         expression = self.parser.parse_features(features)
 
         # Check for simplification removes all like terms
@@ -244,18 +244,18 @@ class MathGame(Game):
                 if not isPreferredTermForm(term):
                     is_win = False
             if is_win:
-                    if not searching and MathGame.verbose:
-                        print(
+                if not searching and MathGame.verbose:
+                    print(
                         "\n[Player{}][NOLIKEWIN] {} => {}!".format(
-                                player, self.expression_str, expression
-                            )
+                            player, self.expression_str, expression
                         )
-                    return 1
+                    )
+                return 1
 
         # Check the turn count last because if the previous move that incremented
-        # the turn over the count resulted in a win-condition, it should be honored.
+        # the turn over the count resulted in a win-condition, we want it to be honored.
         if move_count > MathGame.max_moves:
-            f2, move_count_other, _ = b.decode_player(board, player * -1)
+            f2, move_count_other, _ = b.decode_player(env_state, player * -1)
             if searching or move_count_other > MathGame.max_moves:
                 if not searching:
                     e2 = self.parser.parse_features(f2)
@@ -270,47 +270,47 @@ class MathGame(Game):
         # The game continues
         return 0
 
-    def getCanonicalForm(self, board, player):
+    def getCanonicalForm(self, env_state, player):
         """
         Input:
-            board: current board
+            env_state: current env_state
             player: current player (1 or -1)
 
         Returns:
-            canonicalBoard: returns canonical form of board. The canonical form
+            canonicalBoard: returns canonical form of env_state. The canonical form
                             should be independent of player. For e.g. in chess,
                             the canonical form can be chosen to be from the pov
                             of white. When the player is white, we can return
-                            board as is. When the player is black, we can invert
-                            the colors and return the board.
+                            env_state as is. When the player is black, we can invert
+                            the colors and return the env_state.
         """
         # print("gcf: {}".format(player))
-        return EnvironmentState(MathGame.width).get_canonical_board(board, player)
+        return EnvironmentState(MathGame.width).get_canonical_board(env_state, player)
 
-    def getAgentStateSize(self):
+    def get_agent_state_size(self):
         """return shape (x,y) of agent state dimensions"""
         # 2 columns per player, the first for turn data, the second for text inputs
         return (4, MathGame.width)
 
-    def getSymmetries(self, board, pi):
+    def getSymmetries(self, env_state, pi):
         """
         Input:
-            board: current board
-            pi: policy vector of size self.getActionSize()
+            env_state: current env_state
+            pi: policy vector of size self.get_agent_actions_count()
 
         Returns:
-            symmForms: a list of [(board,pi)] where each tuple is a symmetrical
-                       form of the board and the corresponding pi vector. This
+            symmForms: a list of [(env_state,pi)] where each tuple is a symmetrical
+                       form of the env_state and the corresponding pi vector. This
                        is used when training the neural network from examples.
         """
-        return [(board, pi)]
+        return [(env_state, pi)]
 
-    def to_hash_key(self, board):
-        """conversion of board to a string format, required by MCTS for hashing."""
+    def to_hash_key(self, env_state):
+        """conversion of env_state to a string format, required by MCTS for hashing."""
         b = EnvironmentState(MathGame.width)
-        # This is always called for the canonical board which means the
+        # This is always called for the canonical env_state which means the
         # current player is always in player1 slot:
-        features, move_count, _ = b.decode_player(board, 1)
+        features, move_count, _ = b.decode_player(env_state, 1)
         features_key = ",".join([str(f) for f in features])
         return "[{}, {}]".format(move_count, features_key)
 
@@ -318,12 +318,12 @@ class MathGame(Game):
 _parser = None
 
 
-def display(board, player):
+def display(env_state, player):
     global _parser
     if _parser is None:
         _parser = ExpressionParser()
     b = EnvironmentState(MathGame.width)
-    features = b.decode_player(board, player)[0]
+    features = b.decode_player(env_state, player)[0]
     expression = _parser.parse_features(features)
     expression_len = len(str(expression))
     width = 100

@@ -15,59 +15,62 @@ class Game:
     def __init__(self):
         pass
 
-    def getInitBoard(self):
+    def get_initial_state(self):
         """
         Returns:
-            startBoard: a representation of the board (ideally this is the form
+            startBoard: a representation of the env_state (ideally this is the form
                         that will be the input to your neural network)
         """
         pass
 
-    def getAgentStateSize(self):
+    def get_agent_state_size(self):
         """
         Returns:
-            (x,y): a tuple of board dimensions
+            (x,y): a tuple of env_state dimensions
         """
         pass
 
-    def getActionSize(self):
+    def get_agent_state(self, env_state):
+        return env_state[1]
+
+    def get_agent_actions_count(self):
         """
         Returns:
             actionSize: number of all possible actions
         """
         pass
 
-    def getNextState(self, board, player, action, searching=False):
+    def get_next_state(self, env_state, player, action, searching=False):
         """
         Input:
-            board:     current board
+            env_state:     current env_state
             player:    current player (1 or -1)
             action:    action taken by current player
             searching: boolean set to True when called by MCTS
 
         Returns:
-            nextBoard: board after applying action
+            nextBoard: env_state after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
         pass
 
-    def getValidMoves(self, board, player):
+    def getValidMoves(self, env_state, player):
         """
         Input:
-            board: current board
+            env_state: current env_state
             player: current player
 
         Returns:
-            validMoves: a binary vector of length self.getActionSize(), 1 for
-                        moves that are valid from the current board and player,
+            validMoves: a binary vector of length self.get_agent_actions_count(), 1 for
+                        moves that are valid from the current env_state and player,
                         0 for invalid moves
         """
         pass
 
-    def getGameEnded(self, board, player, searching=False):
+    def getGameEnded(self, env_state, player, searching=False):
         """
         Input:
-            board:     current board
+            env_state:     current env_state
             player:    current player (1 or -1)
             searching: boolean that is True when called by MCTS simulation
 
@@ -77,42 +80,42 @@ class Game:
                
         """
 
-    def getCanonicalForm(self, board, player):
+    def getCanonicalForm(self, env_state, player):
         """
         Input:
-            board: current board
+            env_state: current env_state
             player: current player (1 or -1)
 
         Returns:
-            canonicalBoard: returns canonical form of board. The canonical form
+            canonicalBoard: returns canonical form of env_state. The canonical form
                             should be independent of player. For e.g. in chess,
                             the canonical form can be chosen to be from the pov
                             of white. When the player is white, we can return
-                            board as is. When the player is black, we can invert
-                            the colors and return the board.
+                            env_state as is. When the player is black, we can invert
+                            the colors and return the env_state.
         """
         pass
 
-    def getSymmetries(self, board, pi):
+    def getSymmetries(self, env_state, pi):
         """
         Input:
-            board: current board
-            pi: policy vector of size self.getActionSize()
+            env_state: current env_state
+            pi: policy vector of size self.get_agent_actions_count()
 
         Returns:
-            symmForms: a list of [(board,pi)] where each tuple is a symmetrical
-                       form of the board and the corresponding pi vector. This
+            symmForms: a list of [(env_state,pi)] where each tuple is a symmetrical
+                       form of the env_state and the corresponding pi vector. This
                        is used when training the neural network from examples.
         """
         pass
 
-    def to_hash_key(self, board):
+    def to_hash_key(self, env_state):
         """
         Input:
-            board: current board
+            env_state: current env_state
 
         Returns:
-            boardString: a quick conversion of board to a string format.
+            boardString: a quick conversion of env_state to a string format.
                          Required by MCTS for hashing.
         """
         pass

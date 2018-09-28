@@ -4,8 +4,8 @@ class MathModel:
         from tensorflow.python.ops import init_ops
 
         # game params
-        self.board_x, self.board_y = game.getAgentStateSize()
-        self.action_size = game.getActionSize()
+        self.board_x, self.board_y = game.get_agent_state_size()
+        self.action_size = game.get_agent_actions_count()
         self.args = args
 
         # Renaming functions

@@ -27,8 +27,8 @@ class MathNeuralNet(NeuralNet):
 
         self.args = NetConfig()
         self.nnet = MathModel(game, self.args)
-        self.board_x, self.board_y = game.getAgentStateSize()
-        self.action_size = game.getActionSize()
+        self.board_x, self.board_y = game.get_agent_state_size()
+        self.action_size = game.get_agent_actions_count()
         self.saver = None
         if all_memory == True:
             self.session = tf.Session(graph=self.nnet.graph)
@@ -49,7 +49,7 @@ class MathNeuralNet(NeuralNet):
 
     def train(self, examples):
         """
-        examples: list of examples, each example is of form (board, pi, v)
+        examples: list of examples, each example is of form (env_state, pi, v)
         """
 
         total_batches = int(len(examples) / self.args.batch_size)
@@ -120,21 +120,21 @@ class MathNeuralNet(NeuralNet):
             bar.finish()
         return True
 
-    def predict(self, board):
+    def predict(self, env_state):
         """
-        board: numpy array with board
+        env_state: numpy array with env_state
         """
         # timing
         start = time.time()
 
         # preparing input
-        board = board[numpy.newaxis, :, :]
+        env_state = env_state[numpy.newaxis, :, :]
 
         # run
         prob, v = self.session.run(
             [self.nnet.prob, self.nnet.v],
             feed_dict={
-                self.nnet.input_boards: board,
+                self.nnet.input_boards: env_state,
                 self.nnet.dropout: 0,
                 self.nnet.isTraining: False,
             },

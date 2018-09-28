@@ -5,7 +5,7 @@ from ..environment_state import EnvironmentState
 def test_math_game_init():
     game = MathGame()
     assert game is not None
-    state = game.getInitBoard()
+    state = game.get_initial_state()
     assert state is not None
     # State is a numpy encoded ndarray
     assert state.shape is not None
@@ -36,5 +36,5 @@ def test_math_game_win_conditions():
     game = MathGame()
     state = EnvironmentState(MathGame.width)
     for text, is_win in expectations + out_of_scope_valid:
-        board = state.encode_board(text)
-        assert text == text and game.getGameEnded(board, 1) == int(is_win)
+        env_state = state.encode_board(text)
+        assert text == text and game.getGameEnded(env_state, 1) == int(is_win)

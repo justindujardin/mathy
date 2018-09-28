@@ -44,9 +44,9 @@ class EnvironmentState:
         # We store 4 columns with length {self.width} each
         # The columns alternate content between the two players:
         #  data[0] == player_1 metadata
-        #  data[1] == player_1 board
+        #  data[1] == player_1 env_state
         #  data[2] == player_-1 metadata
-        #  data[3] == player_-1 board
+        #  data[3] == player_-1 env_state
         # We store the data this way to
         mode = MODE_COMBINE_LIKE_TERMS
         data = numpy.zeros((4, self.width), dtype="float32")
@@ -66,11 +66,11 @@ class EnvironmentState:
 
         return data
 
-    def slice_player_data(self, board, player):
-        # print("spd: {}".format(board.shape))
-        if board is None:
-            raise Exception("there is no board to decode player from")
-        shaped = numpy.vsplit(board.copy(), 2)
+    def slice_player_data(self, env_state, player):
+        # print("spd: {}".format(env_state.shape))
+        if env_state is None:
+            raise Exception("there is no env_state to decode player from")
+        shaped = numpy.vsplit(env_state.copy(), 2)
         if player is 1:
             player_data = shaped[0]
         elif player is -1:
@@ -81,13 +81,13 @@ class EnvironmentState:
             )
         return player_data
 
-    def encode_player(self, board, player, features, move_count):
-        """Encode a player's state into the board, and return the board"""
+    def encode_player(self, env_state, player, features, move_count):
+        """Encode a player's state into the env_state, and return the env_state"""
         features_len = len(features)
         features = numpy.array(features, dtype="float32").flatten()
-        # print("ep: {}".format(board.shape))
+        # print("ep: {}".format(env_state.shape))
         data = numpy.zeros((2, self.width), dtype="float32")
-        other_data = self.slice_player_data(board, player * -1)
+        other_data = self.slice_player_data(env_state, player * -1)
         data[0][PLAYER_ID_OFFSET] = player
         data[0][MOVE_COUNT_OFFSET] = move_count
         features_len = len(features)
@@ -102,9 +102,9 @@ class EnvironmentState:
         # print("ep: {} (p{} return value)".format(result.shape, player))
         return result
 
-    def decode_player(self, board, player):
-        # print("dp: {}".format(board.shape))
-        player_data = self.slice_player_data(board, player)
+    def decode_player(self, env_state, player):
+        # print("dp: {}".format(env_state.shape))
+        player_data = self.slice_player_data(env_state, player)
         player_index = int(player_data[0][PLAYER_ID_OFFSET])
         move_count = int(player_data[0][MOVE_COUNT_OFFSET])
         # print("{}] decoded player is : {}".format(player, player_index))
@@ -120,9 +120,9 @@ class EnvironmentState:
         # print("{}] text is : {}".format(player, text))
         return out_features, move_count, player_index
 
-    def get_canonical_board(self, board, player):
-        # print("gcb: {}".format(board.shape))
-        result = board.copy()
+    def get_canonical_board(self, env_state, player):
+        # print("gcb: {}".format(env_state.shape))
+        result = env_state.copy()
         split = numpy.vsplit(result, 2)
         if player == 1:
             result = numpy.vstack((split[0], split[1]))

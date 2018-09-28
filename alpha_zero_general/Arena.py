@@ -11,9 +11,9 @@ class Arena:
     def __init__(self, player1, player2, game, display=None):
         """
         Input:
-            player 1,2: two functions that takes board as input, return action
+            player 1,2: two functions that takes env_state as input, return action
             game: Game object
-            display: a function that takes board as input and prints it (e.g.
+            display: a function that takes env_state as input and prints it (e.g.
                      display in othello/OthelloGame). Is necessary for verbose
                      mode.
 
@@ -37,16 +37,16 @@ class Arena:
         """
         players = [self.player2, None, self.player1]
         curPlayer = 1
-        board = self.game.getInitBoard()
+        env_state = self.game.get_initial_state()
         it = 0
-        next_state = self.game.getGameEnded(board, curPlayer)
+        next_state = self.game.getGameEnded(env_state, curPlayer)
         while next_state == 0:
             it += 1
             if verbose:
                 assert self.display
                 print("Turn ", str(it), "Player ", str(curPlayer))
-                self.display(board, curPlayer)
-            canon = self.game.getCanonicalForm(board, curPlayer)
+                self.display(env_state, curPlayer)
+            canon = self.game.getCanonicalForm(env_state, curPlayer)
             action = players[curPlayer + 1](canon)
 
             valids = self.game.getValidMoves(canon, 1)
@@ -54,14 +54,14 @@ class Arena:
             if valids[action] == 0:
                 print(action)
                 assert valids[action] > 0
-            board, curPlayer = self.game.getNextState(board, curPlayer, action)
-            next_state = self.game.getGameEnded(board, curPlayer)
+            env_state, curPlayer = self.game.get_next_state(env_state, curPlayer, action)
+            next_state = self.game.getGameEnded(env_state, curPlayer)
 
         # Display the final move
         if verbose:
             assert self.display
             print("FINAL: ", str(it), "Player ", str(curPlayer))
-            self.display(board, curPlayer)
+            self.display(env_state, curPlayer)
 
         if next_state == -1:
             winner = curPlayer * -1
