@@ -52,7 +52,10 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
-        probs = [x / float(sum(counts)) for x in counts]
+        # If your game ends on the initial state (which can happen with randomly
+        # generated problems) there will be 0 counts, so we protect against division
+        # by zero with max() with a tiny value.
+        probs = [x / float(max(1e-13, sum(counts))) for x in counts]
         return probs
 
     def search(self, canonicalBoard, isRootNode=False):
