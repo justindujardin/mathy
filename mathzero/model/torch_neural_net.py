@@ -163,7 +163,7 @@ class MathNeuralNet(NeuralNet):
     def load_checkpoint(self, file_path: str):
         # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L98
         if not os.path.exists(file_path):
-            raise ValueError(f"No model in path {file_path}")
+            raise ValueError("No model in path {}".format(file_path))
         checkpoint = torch.load(file_path)
         self.nnet.load_state_dict(checkpoint["state_dict"])
 
