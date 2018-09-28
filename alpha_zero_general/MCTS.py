@@ -9,7 +9,9 @@ class MCTS:
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3):
+    def __init__(
+        self, game, nnet, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3
+    ):
         self.game = game
         self.nnet = nnet
         self.num_mcts_sims = num_mcts_sims
@@ -52,10 +54,15 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
-        # If your game ends on the initial state (which can happen with randomly
-        # generated problems) there will be 0 counts, so we protect against division
-        # by zero with max() with a tiny value.
-        probs = [x / float(max(1e-13, sum(counts))) for x in counts]
+        count_sum = float(sum(counts))
+        if count_sum == 0.0:
+            raise ValueError(
+                "there have been no actions taken to derive probabilities from."
+                "This usually means that the problem you generated was solved without"
+                "taking any actions. Make sure to generate problems that take at least"
+                "a few actions to complete"
+            )
+        probs = [x / float(count_sum) for x in counts]
         return probs
 
     def search(self, canonicalBoard, isRootNode=False):
