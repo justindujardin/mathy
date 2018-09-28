@@ -2,3 +2,5 @@ keras
 numpy
 pytest
 plac
+torch 
+torchvision

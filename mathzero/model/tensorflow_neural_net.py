@@ -7,7 +7,7 @@ import sys
 
 from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 from alpha_zero_general.NeuralNet import NeuralNet
-from mathzero.math_model import MathModel
+from mathzero.model.tensorflow_model import MathModel
 
 
 class NetConfig:

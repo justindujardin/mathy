@@ -119,8 +119,10 @@ class Coach:
         return os.path.join(self.checkpoint, "{}.pth.tar".format(self.best_model_name))
 
     def can_load_model(self, model_name):
+        # NOTE: This is kind of ugly, because the file we need to look
+        #       for depends on the underlying ML framework. Hardcode tf/pytorch here
         meta = "{}.meta".format(model_name)
-        return os.path.exists(meta)
+        return os.path.exists(model_name) or os.path.exists(meta)
 
     def save_training_examples(self, iteration):
         folder = self.checkpoint
