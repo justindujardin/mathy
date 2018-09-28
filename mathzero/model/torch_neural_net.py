@@ -6,14 +6,6 @@ import math
 
 from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 from alpha_zero_general.NeuralNet import NeuralNet
-from mathzero.model.torch_model import MathModel
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
-
 
 class NetConfig:
     def __init__(
@@ -23,10 +15,11 @@ class NetConfig:
         epochs=10,
         batch_size=256,
         num_channels=512,
-        cuda=torch.cuda.is_available(),
+        cuda=None,
     ):
+        import torch
+        self.cuda = torch.cuda.is_available() if cuda is None else cuda
         self.lr = lr
-        self.cuda = cuda
         self.dropout = dropout
         self.epochs = epochs
         self.batch_size = batch_size
@@ -35,6 +28,7 @@ class NetConfig:
 
 class MathNeuralNet(NeuralNet):
     def __init__(self, game, all_memory=False):
+        from mathzero.model.torch_model import MathModel
         self.args = NetConfig()
         self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.get_agent_state_size()
@@ -47,7 +41,9 @@ class MathNeuralNet(NeuralNet):
         """
         examples: list of examples, each example is of form (board, pi, v)
         """
-        optimizer = optim.Adam(self.nnet.parameters())
+        import torch
+        from torch.autograd import Variable
+        optimizer = torch.optim.Adam(self.nnet.parameters())
 
         for epoch in range(self.args.epochs):
             print("EPOCH ::: " + str(epoch + 1))
@@ -124,6 +120,8 @@ class MathNeuralNet(NeuralNet):
         """
         board: np array with board
         """
+        import torch
+        from torch.autograd import Variable
         # timing
         start = time.time()
 
@@ -142,15 +140,18 @@ class MathNeuralNet(NeuralNet):
         return torch.exp(pi).data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 
     def loss_pi(self, targets, outputs):
+        import torch
         return -torch.sum(targets * outputs) / targets.size()[0]
 
     def loss_v(self, targets, outputs):
+        import torch
         return torch.sum((targets - outputs.view(-1)) ** 2) / targets.size()[0]
 
     def can_load_checkpoint(self, file_path) -> bool:
         return os.path.exists(file_path)
 
     def save_checkpoint(self, file_path: str):
+        import torch
         dirname = os.path.dirname(file_path)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
@@ -160,6 +161,7 @@ class MathNeuralNet(NeuralNet):
         torch.save({"state_dict": self.nnet.state_dict()}, file_path)
 
     def load_checkpoint(self, file_path: str):
+        import torch
         # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L98
         if not os.path.exists(file_path):
             raise ValueError("No model in path {}".format(file_path))

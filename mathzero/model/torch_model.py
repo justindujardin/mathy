@@ -1,11 +1,11 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
 
 class MathModel(nn.Module):
     def __init__(self, game, args):
+        import torch
+        import torch.nn as nn
+
         # game params
         self.board_x, self.board_y = game.get_agent_state_size()
         self.action_size = game.get_agent_actions_count()
@@ -37,6 +37,10 @@ class MathModel(nn.Module):
         self.fc4 = nn.Linear(32, 1)
 
     def forward(self, s):
+        import torch
+        import torch.nn as nn
+        import torch.nn.functional as F
+
         #                                                           s: batch_size x board_x x board_y
         s = s.view(
             -1, 1, self.board_x, self.board_y
