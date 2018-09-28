@@ -45,7 +45,7 @@ class MathGame(Game):
     """
 
     width = 128
-    verbose = True
+    verbose = False
     draw = 0.0001
     max_moves = 25
 
