@@ -155,9 +155,9 @@ class MathNeuralNet(NeuralNet):
         dirname = os.path.dirname(file_path)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
-            print(f"Creating checkpoint directory: {dirname}")
+            print("Creating checkpoint directory: {}".format(dirname))
         else:
-            print(f"Checkpoint directory exists: {dirname}")
+            print("Checkpoint directory exists: {}".format(dirname))
         torch.save({"state_dict": self.nnet.state_dict()}, file_path)
 
     def load_checkpoint(self, file_path: str):
