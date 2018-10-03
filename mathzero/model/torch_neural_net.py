@@ -7,6 +7,7 @@ import math
 from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 from alpha_zero_general.NeuralNet import NeuralNet
 
+
 class NetConfig:
     def __init__(
         self,
@@ -18,6 +19,7 @@ class NetConfig:
         cuda=None,
     ):
         import torch
+
         self.cuda = torch.cuda.is_available() if cuda is None else cuda
         self.lr = lr
         self.dropout = dropout
@@ -29,6 +31,7 @@ class NetConfig:
 class MathNeuralNet(NeuralNet):
     def __init__(self, game, all_memory=False):
         from mathzero.model.torch_model import MathModel
+
         self.args = NetConfig()
         self.nnet = MathModel(game, self.args)
         self.board_x, self.board_y = game.get_agent_state_size()
@@ -43,6 +46,7 @@ class MathNeuralNet(NeuralNet):
         """
         import torch
         from torch.autograd import Variable
+
         optimizer = torch.optim.Adam(self.nnet.parameters())
 
         for epoch in range(self.args.epochs):
@@ -122,6 +126,7 @@ class MathNeuralNet(NeuralNet):
         """
         import torch
         from torch.autograd import Variable
+
         # timing
         start = time.time()
 
@@ -141,10 +146,12 @@ class MathNeuralNet(NeuralNet):
 
     def loss_pi(self, targets, outputs):
         import torch
+
         return -torch.sum(targets * outputs) / targets.size()[0]
 
     def loss_v(self, targets, outputs):
         import torch
+
         return torch.sum((targets - outputs.view(-1)) ** 2) / targets.size()[0]
 
     def can_load_checkpoint(self, file_path) -> bool:
@@ -152,6 +159,7 @@ class MathNeuralNet(NeuralNet):
 
     def save_checkpoint(self, file_path: str):
         import torch
+
         dirname = os.path.dirname(file_path)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
@@ -162,9 +170,16 @@ class MathNeuralNet(NeuralNet):
 
     def load_checkpoint(self, file_path: str):
         import torch
+
         # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L98
         if not os.path.exists(file_path):
             raise ValueError("No model in path {}".format(file_path))
-        checkpoint = torch.load(file_path)
+        if self.args.cuda:
+            checkpoint = torch.load(file_path)
+        else:
+            checkpoint = torch.load(
+                file_path, map_location=lambda storage, loc: storage
+            )
+
         self.nnet.load_state_dict(checkpoint["state_dict"])
 
