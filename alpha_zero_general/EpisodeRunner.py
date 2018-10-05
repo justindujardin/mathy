@@ -99,9 +99,7 @@ class EpisodeRunner:
             temp = int(move_count < self.config.temperature_threshold)
 
             pi = mcts.getActionProb(canonical_state, temp=temp)
-            sym = game.getSymmetries(canonical_state, pi)
-            for b, p in sym:
-                episode_examples.append([b, current_player, p, None])
+            episode_examples.append([canonical_state, current_player, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state, current_player = game.get_next_state(env_state, current_player, action)
             r = game.getGameEnded(env_state, current_player)

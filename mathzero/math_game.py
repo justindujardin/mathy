@@ -291,19 +291,6 @@ class MathGame(Game):
         # 2 columns per player, the first for turn data, the second for text inputs
         return (4, MathGame.width)
 
-    def getSymmetries(self, env_state, pi):
-        """
-        Input:
-            env_state: current env_state
-            pi: policy vector of size self.get_agent_actions_count()
-
-        Returns:
-            symmForms: a list of [(env_state,pi)] where each tuple is a symmetrical
-                       form of the env_state and the corresponding pi vector. This
-                       is used when training the neural network from examples.
-        """
-        return [(env_state, pi)]
-
     def to_hash_key(self, env_state):
         """conversion of env_state to a string format, required by MCTS for hashing."""
         b = EnvironmentState(MathGame.width)

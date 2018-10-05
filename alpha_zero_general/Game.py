@@ -96,19 +96,6 @@ class Game:
         """
         pass
 
-    def getSymmetries(self, env_state, pi):
-        """
-        Input:
-            env_state: current env_state
-            pi: policy vector of size self.get_agent_actions_count()
-
-        Returns:
-            symmForms: a list of [(env_state,pi)] where each tuple is a symmetrical
-                       form of the env_state and the corresponding pi vector. This
-                       is used when training the neural network from examples.
-        """
-        pass
-
     def to_hash_key(self, env_state):
         """
         Input:
