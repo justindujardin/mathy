@@ -34,6 +34,7 @@ from .core.rules import (
 from .core.profiler import profile_start, profile_end
 from .environment_state import MathEnvironmentState, MathAgentState
 from multiprocessing import cpu_count
+from itertools import groupby
 
 
 class MathGame(Game):
@@ -146,11 +147,6 @@ class MathGame(Game):
             out_env = env_state.encode_player(
                 player, out_problem, agent.move_count + 1
             )
-            # print(
-            #     "player is {}, move count is {}, action is {}, token_index is {}, and token is {}".format(
-            #         player, agent.move_count, action, token_index, str(token)
-            #     )
-            # )
         else:
             print(
                 "action is {}, token_index is {}, and token is {}".format(
@@ -243,6 +239,14 @@ class MathGame(Game):
         """
         agent = env_state.get_player(player)
         expression = self.parser.parse(agent.problem)
+
+        # The player loses if they return to a previous state.
+        for key, group in groupby(sorted(agent.history)):
+            list_group = list(group)
+            list_count = len(list_group)
+            if list_count <= 1:
+                continue
+            return -1
 
         # Check for simplification removes all like terms
         root = expression.getRoot()

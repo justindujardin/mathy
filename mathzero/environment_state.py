@@ -36,18 +36,21 @@ GAME_MODE_OFFSET = 2
 
 
 class MathAgentState(object):
-    def __init__(self, player: int, move_count: int, problem: str, history=[]):
+    def __init__(self, player: int, move_count: int, problem: str, history=None):
         self.player = player
         self.move_count = move_count
         self.problem = problem
-        self.history = history
+        self.history = history[:] if history is not None else []
         if player != 1 and player != -1:
             raise ValueError("player must be 1 or -1, not: {}".format(player))
 
     @classmethod
     def copy(cls, from_state):
         return MathAgentState(
-            from_state.player, from_state.move_count, from_state.problem
+            from_state.player,
+            from_state.move_count,
+            from_state.problem,
+            from_state.history,
         )
 
 
@@ -95,6 +98,7 @@ class MathEnvironmentState(object):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
         agent = out_state.get_player(player)
+        agent.history.append(problem)
         agent.problem = problem
         agent.move_count = move_count
         return out_state
