@@ -99,7 +99,11 @@ class EpisodeRunner:
             temp = int(move_count < self.config.temperature_threshold)
 
             pi = mcts.getActionProb(canonical_state, temp=temp)
-            episode_examples.append([canonical_state, current_player, pi, None])
+            # Store the episode example data for training the neural net
+            example_data = canonical_state
+            if hasattr(example_data, 'to_numpy'):
+                example_data = example_data.to_numpy()
+            episode_examples.append([example_data, current_player, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state, current_player = game.get_next_state(env_state, current_player, action)
             r = game.getGameEnded(env_state, current_player)
