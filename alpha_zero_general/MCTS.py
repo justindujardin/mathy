@@ -96,7 +96,10 @@ class MCTS:
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(canonicalBoard)
+            input_data = canonicalBoard
+            if hasattr(canonicalBoard, 'to_numpy'):
+                input_data = canonicalBoard.to_numpy()
+            self.Ps[s], v = self.nnet.predict(input_data)
             # print('calculating valid moves for: {}'.format(s))
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves

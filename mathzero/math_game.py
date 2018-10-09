@@ -32,7 +32,7 @@ from .core.rules import (
     VariableMultiplyRule,
 )
 from .core.profiler import profile_start, profile_end
-from .environment_state import EnvironmentState
+from .environment_state import MathEnvironmentState, MathAgentState
 from multiprocessing import cpu_count
 
 
@@ -44,7 +44,7 @@ class MathGame(Game):
     """
 
     width = 128
-    verbose = False
+    verbose = True
     draw = 0.0001
     max_moves = 25
 
@@ -80,8 +80,7 @@ class MathGame(Game):
                     problem, MathGame.width
                 )
             )
-        env_state = EnvironmentState(MathGame.width).encode_board(problem)
-
+        env_state = MathEnvironmentState(width=MathGame.width, problem=problem)
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return env_state
 
@@ -96,7 +95,9 @@ class MathGame(Game):
         """Return number of all possible actions"""
         return len(self.available_rules) * self.width
 
-    def get_next_state(self, env_state, player, action, searching=False):
+    def get_next_state(
+        self, env_state: MathEnvironmentState, player, action, searching=False
+    ):
         """
         Input:
             env_state:     current env_state
@@ -108,9 +109,8 @@ class MathGame(Game):
             next_state: env_state after applying action
             next_player: player who plays in the next turn (should be -player)
         """
-        b = EnvironmentState(MathGame.width)
-        features, move_count, _ = b.decode_player(env_state, player)
-        expression = self.parser.parse_features(features)
+        agent = env_state.get_player(player)
+        expression = self.parser.parse(agent.problem)
 
         # Figure out the token index of the selected action
         token_index = action % self.width
@@ -119,7 +119,7 @@ class MathGame(Game):
         token = self.getFocusToken(expression, token_index)
         operation = self.available_rules[action_index]
 
-        # If you get maximum recursion errors, it can mean that you're not
+        # NOTE: If you get maximum recursion errors, it can mean that you're not
         # hitting a terminal state. Force the searching var off here to get
         # more verbose logging if your crash is occurring before the first verbose
         # output.
@@ -131,13 +131,26 @@ class MathGame(Game):
         # NOTE: Also adding constraints caused actions to be avoided and others to be
         #       repeated in odd ways. Assume repetition is part of training.
         # NOTE: Maybe this is solved by something like Actor/Critic updates?
+        #
+        # TODO: This can maybe be solved by treating an expression returning to a previous
+        #       state as a LOSS. If the model should optimize for the shortest paths
+        #       to a solution, it will never be the shortest path if you revisit a previous
+        #       state.
+        # NOTE: The hope is that this will make the problem much simpler for the model
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
-            out_features = self.parser.make_features(str(root))
+            out_problem = str(root)
             if not searching and MathGame.verbose and player == 1:
-                print("[{}] {}".format(move_count, change.describe()))
-            out_board = b.encode_player(env_state, player, out_features, move_count + 1)
+                print("[{}] {}".format(agent.move_count, change.describe()))
+            out_env = env_state.encode_player(
+                player, out_problem, agent.move_count + 1
+            )
+            # print(
+            #     "player is {}, move count is {}, action is {}, token_index is {}, and token is {}".format(
+            #         player, agent.move_count, action, token_index, str(token)
+            #     )
+            # )
         else:
             print(
                 "action is {}, token_index is {}, and token is {}".format(
@@ -150,7 +163,7 @@ class MathGame(Game):
                 )
             )
 
-        return out_board, player * -1
+        return out_env, player * -1
 
     def getFocusToken(
         self, expression: MathExpression, focus_index: int
@@ -180,9 +193,8 @@ class MathGame(Game):
                         moves that are valid from the current env_state and player,
                         0 for invalid moves
         """
-        b = EnvironmentState(MathGame.width)
-        features, _, _ = b.decode_player(env_state, player)
-        expression = self.parser.parse_features(features)
+        agent = env_state.get_player(player)
+        expression = self.parser.parse(agent.problem)
 
         actions = self.get_actions_for_expression(expression)
         # NOTE: Below is verbose output showing which actions are valid.
@@ -217,7 +229,7 @@ class MathGame(Game):
 
         return actions
 
-    def getGameEnded(self, env_state, player, searching=False):
+    def getGameEnded(self, env_state: MathEnvironmentState, player, searching=False):
         """
         Input:
             env_state:     current env_state
@@ -229,9 +241,8 @@ class MathGame(Game):
                small non-zero value for draw.
                
         """
-        b = EnvironmentState(MathGame.width)
-        features, move_count, _ = b.decode_player(env_state, player)
-        expression = self.parser.parse_features(features)
+        agent = env_state.get_player(player)
+        expression = self.parser.parse(agent.problem)
 
         # Check for simplification removes all like terms
         root = expression.getRoot()
@@ -253,11 +264,11 @@ class MathGame(Game):
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
-        if move_count > MathGame.max_moves:
-            f2, move_count_other, _ = b.decode_player(env_state, player * -1)
-            if searching or move_count_other > MathGame.max_moves:
+        if agent.move_count > MathGame.max_moves:
+            agent_other = env_state.get_player(player * -1)
+            if searching or agent_other.move_count > MathGame.max_moves:
                 if not searching:
-                    e2 = self.parser.parse_features(f2)
+                    e2 = self.parser.parse(agent_other.problem)
                     draw_time = int(round(time.time() * 1000))
                     self.write_draw(
                         "[time={}][DRAW] ENDED WITH:\n\t input: {}\n\t 1: {}\n\t 2: {}\n".format(
@@ -269,7 +280,7 @@ class MathGame(Game):
         # The game continues
         return 0
 
-    def getCanonicalForm(self, env_state, player):
+    def getCanonicalForm(self, env_state: MathEnvironmentState, player):
         """
         Input:
             env_state: current env_state
@@ -284,21 +295,19 @@ class MathGame(Game):
                             the colors and return the env_state.
         """
         # print("gcf: {}".format(player))
-        return EnvironmentState(MathGame.width).get_canonical_board(env_state, player)
+        return env_state.get_canonical_board(player)
 
     def get_agent_state_size(self):
         """return shape (x,y) of agent state dimensions"""
         # 2 columns per player, the first for turn data, the second for text inputs
         return (4, MathGame.width)
 
-    def to_hash_key(self, env_state):
+    def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""
-        b = EnvironmentState(MathGame.width)
         # This is always called for the canonical env_state which means the
         # current player is always in player1 slot:
-        features, move_count, _ = b.decode_player(env_state, 1)
-        features_key = ",".join([str(f) for f in features])
-        return "[{}, {}]".format(move_count, features_key)
+        agent = env_state.get_player(1)
+        return "[{}, {}, {}]".format(agent.move_count, agent.player, agent.problem)
 
 
 _parser = None
@@ -308,9 +317,8 @@ def display(env_state, player):
     global _parser
     if _parser is None:
         _parser = ExpressionParser()
-    b = EnvironmentState(MathGame.width)
-    features = b.decode_player(env_state, player)[0]
-    expression = _parser.parse_features(features)
+    agent = env_state.get_player(player)
+    expression = _parser.parse(agent.problem)
     expression_len = len(str(expression))
     width = 100
     if player == 1:

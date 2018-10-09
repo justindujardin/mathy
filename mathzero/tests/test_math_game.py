@@ -1,5 +1,5 @@
 from ..math_game import MathGame
-from ..environment_state import EnvironmentState
+from ..environment_state import EnvironmentAdapter, MathEnvironmentState, MathAgentState
 
 
 def test_math_game_init():
@@ -7,8 +7,10 @@ def test_math_game_init():
     assert game is not None
     state = game.get_initial_state()
     assert state is not None
-    # State is a numpy encoded ndarray
-    assert state.shape is not None
+    # Assert about the structure a bit
+    assert state.agent_one is not None
+    assert state.agent_two is not None
+    assert state.width > 0
 
 
 def test_math_game_win_conditions():
@@ -27,14 +29,12 @@ def test_math_game_win_conditions():
     ]
 
     # Valid solutions but out of scope so they aren't counted as wins.
-    # 
+    #
     # This works because the problem sets exclude this type of > 2 term
     # polynomial expressions
-    out_of_scope_valid = [
-    ]
+    out_of_scope_valid = []
 
     game = MathGame()
-    state = EnvironmentState(MathGame.width)
     for text, is_win in expectations + out_of_scope_valid:
-        env_state = state.encode_board(text)
+        env_state = MathEnvironmentState(problem=text)
         assert text == text and game.getGameEnded(env_state, 1) == int(is_win)
