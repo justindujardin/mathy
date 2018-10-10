@@ -88,6 +88,6 @@ class ExpressionChangeRule:
         return self
 
     def describe(self):
-        return """`{}:\n   {}\n = {}`""".format(
+        return """{}:\n    {}\n    {}""".format(
             self.rule.name, self.begin.getRoot(), self.end.getRoot()
         )
