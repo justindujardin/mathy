@@ -95,8 +95,6 @@ class Coach:
         )
         self.runner.episode_complete = old_update
         bar.finish()
-        # NB! the examples were collected using the model from the previous iteration, so (iteration-1)
-        # self.save_training_examples(iteration - 1)
         self.all_examples.extend(training_examples)
         return training_examples
 

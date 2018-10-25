@@ -53,4 +53,3 @@ class NeuralNet:
         Return True if a given filename points to an existing, loadable, model checkpoint
         """
         return False
-
