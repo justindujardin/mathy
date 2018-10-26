@@ -36,21 +36,15 @@ GAME_MODE_OFFSET = 2
 
 
 class MathAgentState(object):
-    def __init__(self, player: int, move_count: int, problem: str, history=None):
-        self.player = player
+    def __init__(self, move_count: int, problem: str, history=None):
         self.move_count = move_count
         self.problem = problem
         self.history = history[:] if history is not None else []
-        if player != 1 and player != -1:
-            raise ValueError("player must be 1 or -1, not: {}".format(player))
 
     @classmethod
     def copy(cls, from_state):
         return MathAgentState(
-            from_state.player,
-            from_state.move_count,
-            from_state.problem,
-            from_state.history,
+            from_state.move_count, from_state.problem, from_state.history
         )
 
 
@@ -71,16 +65,16 @@ class MathEnvironmentState(object):
         problem: str = None,
         width: int = 128,
         parser: ExpressionParser = None,
+        history_length: int = 12,
     ):
         self.parser = parser if parser is not None else ExpressionParser()
         self.width = width
+        self.history_length = history_length
         if problem is not None:
-            self.agent_one = MathAgentState(1, 0, problem)
-            self.agent_two = MathAgentState(-1, 0, problem)
+            self.agent = MathAgentState(0, problem)
         elif state is not None:
             self.width = state.width
-            self.agent_one = MathAgentState.copy(state.agent_one)
-            self.agent_two = MathAgentState.copy(state.agent_two)
+            self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
 
@@ -88,53 +82,49 @@ class MathEnvironmentState(object):
     def copy(cls, from_state):
         return MathEnvironmentState(state=from_state)
 
-    def get_player(self, player: int) -> MathAgentState:
-        """Helper to get a player by its index"""
-        if player != 1 and player != -1:
-            raise ValueError("player must be 1 or -1, not: {}".format(player))
-        return self.agent_one if player == 1 else self.agent_two
-
-    def encode_player(self, player: int, problem: str, move_count: int):
+    def encode_player(self, problem: str, move_count: int):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
-        agent = out_state.get_player(player)
+        agent = out_state.agent
         agent.history.append(problem)
         agent.problem = problem
         agent.move_count = move_count
         return out_state
 
-    def get_canonical_board(self, player: int):
+    def get_canonical_board(self):
         # print("gcb: {}".format(env_state.shape))
-        out_state = MathEnvironmentState.copy(self)
-        # We swap the agents if the player index doesn't match agent_one
-        if player != 1:
-            a = out_state.agent_two
-            out_state.agent_two = out_state.agent_one
-            out_state.agent_one = a
-        return out_state
+        return MathEnvironmentState.copy(self)
 
     def to_numpy(self):
         # We store 4 columns with length {self.width} each
         # The columns alternate content between the two players:
         #  data[0] == player_1 metadata
         #  data[1] == player_1 env_state
-        #  data[2] == player_-1 metadata
-        #  data[3] == player_-1 env_state
         # We store the data this way to
-        data = numpy.zeros((4, self.width), dtype="float32")
-        data = self.write_agent(0, data, self.agent_one, self.width)
-        data = self.write_agent(2, data, self.agent_two, self.width)
+        data = numpy.zeros((self.history_length + 1, self.width), dtype="float32")
+        # TODO: Decide how to detect/encode modes...
+        data[0][0] = MODE_COMBINE_LIKE_TERMS
+        data = self.write_problem(1, data, self.agent.problem)
+        # Encode up to last (history_length-1) moves into the agent memory
+        history = self.agent.history[-(self.history_length - 1) :]
+        for i, problem in enumerate(history):
+            data = self.write_problem(i + 2, data, problem)
         return data
 
     def write_agent(self, index, data, agent: MathAgentState, width: int):
-        data[index][PLAYER_ID_OFFSET] = agent.player
-        data[index][MOVE_COUNT_OFFSET] = agent.move_count
-        # TODO: Decide how to detect/encode modes...
-        data[index][GAME_MODE_OFFSET] = MODE_COMBINE_LIKE_TERMS
         features = self.parser.make_features(agent.problem)
         features = numpy.array(features, dtype="float32").flatten()
         features_len = len(features)
         for i in range(width):
             ch = features[i] if i < features_len else 0.0
             data[index + 1][i] = ch
+        return data
+
+    def write_problem(self, index, data, problem: str):
+        features = self.parser.make_features(problem)
+        features = numpy.array(features, dtype="float32").flatten()
+        features_len = len(features)
+        for i in range(self.width):
+            ch = features[i] if i < features_len else 0.0
+            data[index][i] = ch
         return data

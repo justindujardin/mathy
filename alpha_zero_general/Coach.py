@@ -81,11 +81,7 @@ class Coach:
 
         episodes_with_args = []
         for j in range(1, num_episodes + 1):
-            episodes_with_args.append(
-                dict(
-                    player=1 if j % 2 == 0 else -1, model=self.get_best_model_filename()
-                )
-            )
+            episodes_with_args.append(dict(model=self.get_best_model_filename()))
 
         old_update = self.runner.episode_complete
         self.runner.episode_complete = types.MethodType(update_episode_bar, self)

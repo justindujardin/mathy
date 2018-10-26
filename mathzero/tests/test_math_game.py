@@ -37,4 +37,4 @@ def test_math_game_win_conditions():
     game = MathGame()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathEnvironmentState(problem=text)
-        assert text == text and game.getGameEnded(env_state, 1) == int(is_win)
+        assert text == text and game.getGameEnded(env_state) == int(is_win)

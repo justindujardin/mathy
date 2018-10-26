@@ -65,9 +65,9 @@ class EpisodeRunner:
             self.episode_complete(i, duration)
         return results
 
-    def execute_episode(self, episode, game, nnet, player, model, **kwargs):
+    def execute_episode(self, episode, game, nnet, model, **kwargs):
         """
-        This function executes one episode of self-play, starting with player 1.
+        This function executes one episode.
         As the game is played, each turn is added as a training example to
         trainExamples. The game continues until getGameEnded returns a non-zero
         value, then the outcome of the game is used to assign values to each example
@@ -90,29 +90,29 @@ class EpisodeRunner:
                 nnet.load_checkpoint(model)
         episode_examples = []
         env_state = game.get_initial_state()
-        current_player = player
         move_count = 0
         mcts = MCTS(game, nnet, self.config.cpuct, self.config.num_mcts_sims)
         while True:
             move_count += 1
-            canonical_state = game.getCanonicalForm(env_state, current_player)
+            canonical_state = game.getCanonicalForm(env_state)
+            # TODO: is this right? I thought temp threshold was for 
+            # percentage of episodes out of the iteration batch?
             temp = int(move_count < self.config.temperature_threshold)
 
             pi = mcts.getActionProb(canonical_state, temp=temp)
             # Store the episode example data for training the neural net
             example_data = canonical_state
-            if hasattr(example_data, 'to_numpy'):
+            if hasattr(example_data, "to_numpy"):
                 example_data = example_data.to_numpy()
-            episode_examples.append([example_data, current_player, pi, None])
+            episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
-            env_state, current_player = game.get_next_state(env_state, current_player, action)
-            r = game.getGameEnded(env_state, current_player)
+            env_state = game.get_next_state(env_state, action)
+            # TODO: support scalar reward that is 
+            r = game.getGameEnded(env_state)
 
             if r != 0:
-                return [
-                    (x[0], x[2], r * ((-1) ** (x[1] != current_player)))
-                    for x in episode_examples
-                ]
+                examples = [(x[0], x[1], r) for x in episode_examples]
+                return examples
 
         return []
 

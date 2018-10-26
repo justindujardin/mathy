@@ -4,12 +4,7 @@ from multiprocessing import cpu_count
 class Game:
     """
     This class specifies the base Game class. To define your own game, subclass
-    this class and implement the functions below. This works when the game is
-    two-player, adversarial and turn-based.
-
-    Use 1 for player1 and -1 for player2.
-
-    See othello/OthelloGame.py for an example implementation.
+    this class and implement the functions below.
     """
 
     def __init__(self):
@@ -18,8 +13,7 @@ class Game:
     def get_initial_state(self):
         """
         Returns:
-            startBoard: a representation of the env_state (ideally this is the form
-                        that will be the input to your neural network)
+            env_state: a representation of the env_state
         """
         pass
 
@@ -40,51 +34,44 @@ class Game:
         """
         pass
 
-    def get_next_state(self, env_state, player, action, searching=False):
+    def get_next_state(self, env_state, action, searching=False):
         """
         Input:
             env_state:     current env_state
-            player:    current player (1 or -1)
-            action:    action taken by current player
+            action:    action taken
             searching: boolean set to True when called by MCTS
 
         Returns:
-            nextBoard: env_state after applying action
-            nextPlayer: player who plays in the next turn (should be -player)
+            state: env_state after applying action
         """
         pass
 
-    def getValidMoves(self, env_state, player):
+    def getValidMoves(self, env_state):
         """
         Input:
             env_state: current env_state
-            player: current player
 
         Returns:
             validMoves: a binary vector of length self.get_agent_actions_count(), 1 for
-                        moves that are valid from the current env_state and player,
-                        0 for invalid moves
+                        moves that are valid from the current env_state, 0 for invalid moves
         """
         pass
 
-    def getGameEnded(self, env_state, player, searching=False):
+    def getGameEnded(self, env_state, searching=False):
         """
         Input:
             env_state:     current env_state
-            player:    current player (1 or -1)
             searching: boolean that is True when called by MCTS simulation
 
         Returns:
-            r: 0 if game has not ended. 1 if player won, -1 if player lost,
-               small non-zero value for draw.
+            r: 0 if game has not ended. 1 if player won, -1 if player lost.
                
         """
 
-    def getCanonicalForm(self, env_state, player):
+    def getCanonicalForm(self, env_state):
         """
         Input:
             env_state: current env_state
-            player: current player (1 or -1)
 
         Returns:
             canonicalBoard: returns canonical form of env_state. The canonical form
@@ -94,6 +81,7 @@ class Game:
                             env_state as is. When the player is black, we can invert
                             the colors and return the env_state.
         """
+        # TODO: I think this is useless with single-actor system
         pass
 
     def to_hash_key(self, env_state):
@@ -114,7 +102,7 @@ class Game:
                           neural network for this game instance.
         """
         # NOTE: we double the CPU count to start out allocating smaller amounts of memory.
-        #       This is because if we oversubscribe CUDA can throw failed to allocate errors 
+        #       This is because if we oversubscribe CUDA can throw failed to allocate errors
         #       with a bunch of workers. This way Tensorflow will grow the allocation per worker
         #       only as needed.
         return 1 / (cpu_count() * 1.5)
