@@ -17,7 +17,7 @@ args = {
     "training_iterations": 100,
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/",
+    "checkpoint": "/mnt/gcs/mzc/agent_1/",
     # "checkpoint": "./training/latest/",
     "best_model_name": "latest",
 }
