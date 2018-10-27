@@ -82,6 +82,9 @@ class MathEnvironmentState(object):
     def copy(cls, from_state):
         return MathEnvironmentState(state=from_state)
 
+    def clone(self):
+        return MathEnvironmentState(state=self)
+
     def encode_player(self, problem: str, move_count: int):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
@@ -90,10 +93,6 @@ class MathEnvironmentState(object):
         agent.problem = problem
         agent.move_count = move_count
         return out_state
-
-    def get_canonical_board(self):
-        # print("gcb: {}".format(env_state.shape))
-        return MathEnvironmentState.copy(self)
 
     def to_numpy(self):
         # We store 4 columns with length {self.width} each

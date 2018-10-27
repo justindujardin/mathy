@@ -94,13 +94,12 @@ class EpisodeRunner:
         mcts = MCTS(game, nnet, self.config.cpuct, self.config.num_mcts_sims)
         while True:
             move_count += 1
-            canonical_state = game.getCanonicalForm(env_state)
             # If the move_count is less than threshold, set temp = 1 else 0
             temp = int(move_count < self.config.temperature_threshold)
 
-            pi = mcts.getActionProb(canonical_state, temp=temp)
+            pi = mcts.getActionProb(env_state.clone(), temp=temp)
             # Store the episode example data for training the neural net
-            example_data = canonical_state
+            example_data = env_state
             if hasattr(example_data, "to_numpy"):
                 example_data = example_data.to_numpy()
             episode_examples.append([example_data, pi, None])

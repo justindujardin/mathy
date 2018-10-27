@@ -29,19 +29,19 @@ class MCTS:
         self.Es = {}  # stores game.getGameEnded ended for env_state s
         self.Vs = {}  # stores game.getValidMoves for env_state s
 
-    def getActionProb(self, canonicalBoard, temp=1):
+    def getActionProb(self, env_state, temp=1):
         """
         This function performs num_mcts_sims simulations of MCTS starting from
-        canonicalBoard.
+        env_state.
 
         Returns:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for _ in range(self.num_mcts_sims):
-            self.search(canonicalBoard, True)
+            self.search(env_state, True)
 
-        s = self.game.to_hash_key(canonicalBoard)
+        s = self.game.to_hash_key(env_state)
         counts = [
             self.Nsa[(s, a)] if (s, a) in self.Nsa else 0
             for a in range(self.game.get_agent_actions_count())
@@ -66,7 +66,7 @@ class MCTS:
         probs = [x / float(count_sum) for x in counts]
         return probs
 
-    def search(self, canonicalBoard, isRootNode=False):
+    def search(self, env_state, isRootNode=False):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -82,23 +82,23 @@ class MCTS:
             v: the value of the current state
         """
 
-        s = self.game.to_hash_key(canonicalBoard)
+        s = self.game.to_hash_key(env_state)
 
         if s not in self.Es:
             # print('calculating ending state for: {}'.format(s))
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, searching=True)
+            self.Es[s] = self.game.getGameEnded(env_state, searching=True)
         if self.Es[s] != 0:
             # terminal node
             return self.Es[s]
 
         if s not in self.Ps:
             # leaf node
-            input_data = canonicalBoard
-            if hasattr(canonicalBoard, "to_numpy"):
-                input_data = canonicalBoard.to_numpy()
+            input_data = env_state
+            if hasattr(env_state, "to_numpy"):
+                input_data = env_state.to_numpy()
             self.Ps[s], v = self.nnet.predict(input_data)
             # print('calculating valid moves for: {}'.format(s))
-            valids = self.game.getValidMoves(canonicalBoard)
+            valids = self.game.getValidMoves(env_state)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -124,7 +124,7 @@ class MCTS:
         # add Dirichlet noise for root node. set epsilon=0 for Arena competitions of trained models
         add_noise = isRootNode and e > 0
         if add_noise:
-            moves = self.game.getValidMoves(canonicalBoard)
+            moves = self.game.getValidMoves(env_state)
             noise = np.random.dirichlet([self.dir_alpha] * len(moves))
 
         # pick the action with the highest upper confidence bound
@@ -154,8 +154,7 @@ class MCTS:
 
         a = np.random.choice(all_best)
 
-        next_s = self.game.get_next_state(canonicalBoard, a, searching=True)
-        next_s = self.game.getCanonicalForm(next_s)
+        next_s = self.game.get_next_state(env_state, a, searching=True)
 
         v = self.search(next_s)
 

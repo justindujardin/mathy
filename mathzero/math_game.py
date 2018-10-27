@@ -274,9 +274,6 @@ class MathGame(Game):
         # The game continues
         return 0
 
-    def getCanonicalForm(self, env_state: MathEnvironmentState):
-        return env_state.get_canonical_board()
-
     def get_agent_state_size(self):
         """return shape (x,y) of agent state dimensions"""
         # (N+1, width) where N is history length and the additional row is for

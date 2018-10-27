@@ -68,22 +68,6 @@ class Game:
                
         """
 
-    def getCanonicalForm(self, env_state):
-        """
-        Input:
-            env_state: current env_state
-
-        Returns:
-            canonicalBoard: returns canonical form of env_state. The canonical form
-                            should be independent of player. For e.g. in chess,
-                            the canonical form can be chosen to be from the pov
-                            of white. When the player is white, we can return
-                            env_state as is. When the player is black, we can invert
-                            the colors and return the env_state.
-        """
-        # TODO: I think this is useless with single-actor system
-        pass
-
     def to_hash_key(self, env_state):
         """
         Input:

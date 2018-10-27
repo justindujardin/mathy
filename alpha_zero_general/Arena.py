@@ -8,48 +8,23 @@ class Arena:
     An Arena class where any 2 agents can be pit against each other.
     """
 
-    def __init__(self, player1, player2, game, display=None):
-        """
-        Input:
-            player 1,2: two functions that takes env_state as input, return action
-            game: Game object
-            display: a function that takes env_state as input and prints it (e.g.
-                     display in othello/OthelloGame). Is necessary for verbose
-                     mode.
-
-        see othello/OthelloPlayers.py for an example. See pit.py for pitting
-        human players/other baselines with each other.
-        """
-        self.player1 = player1
-        self.player2 = player2
+    def __init__(self, player, game, display=None):
+        self.player = player
         self.game = game
         self.display = display
 
     def playGame(self, verbose=False):
-        """
-        Executes one episode of a game.
-
-        Returns:
-            either
-                winner: player who won the game (1 if player1, -1 if player2)
-            or
-                draw result returned from the game that is neither 1, -1, nor 0.
-        """
-        players = [self.player2, None, self.player1]
-        curPlayer = 1
         env_state = self.game.get_initial_state()
         it = 0
         next_state = self.game.getGameEnded(env_state)
         while next_state == 0:
             it += 1
-            if verbose:
-                assert self.display
-                print("Turn ", str(it), "Player ", str(curPlayer))
-                self.display(env_state, curPlayer)
-            canon = self.game.getCanonicalForm(env_state)
-            action = players[curPlayer + 1](canon)
+            if verbose and self.display:
+                print("Turn ", str(it))
+                self.display(env_state)
+            action = self.player(env_state)
 
-            valids = self.game.getValidMoves(canon, 1)
+            valids = self.game.getValidMoves(env_state)
 
             if valids[action] == 0:
                 print(action)
@@ -60,25 +35,17 @@ class Arena:
         # Display the final move
         if verbose:
             assert self.display
-            print("FINAL: ", str(it), "Player ", str(curPlayer))
-            self.display(env_state, curPlayer)
+            print("FINAL: ", str(it))
+            self.display(env_state)
 
-        if next_state == -1:
-            winner = curPlayer * -1
-        elif next_state == 1:
-            winner = curPlayer
-        else:
-            winner = next_state
-
+        is_win = next_state == 1
         if verbose:
-            if winner == 1:
-                outcome_str = "Player 1 WINS"
-            elif winner == -1:
-                outcome_str = "Player 1 LOSES"
+            if is_win:
+                outcome_str = "Problem Solved"
             else:
-                outcome_str = "DRAW"
-            print("\n\t\tGAME OVER: {}\n\n".format(outcome_str))
-        return winner
+                outcome_str = "Failed"
+            print("\n\t\tResult: {}\n\n".format(outcome_str))
+        return is_win
 
     def playGames(self, num, verbose=False):
         """
