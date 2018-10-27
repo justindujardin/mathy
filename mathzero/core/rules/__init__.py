@@ -1,4 +1,4 @@
-from .base_rule import BaseRule
+from ..rule import BaseRule
 from .associative_property import AssociativeSwapRule
 from .commutative_property import CommutativeSwapRule
 from .distributive_factor_out import DistributiveFactorOutRule

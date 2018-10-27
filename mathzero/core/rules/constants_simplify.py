@@ -1,7 +1,7 @@
 from ..tree import LEFT
 from ..expressions import AddExpression, BinaryExpression, ConstantExpression
 from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
-from .base_rule import BaseRule
+from ..rule import BaseRule
 
 
 class ConstantsSimplifyRule(BaseRule):

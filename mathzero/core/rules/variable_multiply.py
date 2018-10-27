@@ -18,7 +18,7 @@ from ..util import (
     factor,
 )
 import numpy
-from .base_rule import BaseRule
+from ..rule import BaseRule
 
 
 class VariableMultiplyRule(BaseRule):

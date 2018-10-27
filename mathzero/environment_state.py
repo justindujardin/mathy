@@ -35,97 +35,96 @@ MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
 
-class EnvironmentState:
-    def __init__(self, width):
-        self.width = width
-        self.parser = ExpressionParser()
+class MathAgentState(object):
+    def __init__(self, move_count: int, problem: str, history=None):
+        self.move_count = move_count
+        self.problem = problem
+        self.history = history[:] if history is not None else []
 
-    def encode_board(self, text):
+    @classmethod
+    def copy(cls, from_state):
+        return MathAgentState(
+            from_state.move_count, from_state.problem, from_state.history
+        )
+
+
+class MathEnvironmentState(object):
+    """Class for interacting with an Environment state.
+    
+    Mutating operations all return a copy of the environment adapter
+    with its own state.
+
+    This allocation strategy requires more memory but removes a class
+    of potential issues around unintentional sharing of data and mutation
+    by two different sources.
+    """
+
+    def __init__(
+        self,
+        state=None,
+        problem: str = None,
+        width: int = 128,
+        parser: ExpressionParser = None,
+        history_length: int = 12,
+    ):
+        self.parser = parser if parser is not None else ExpressionParser()
+        self.width = width
+        self.history_length = history_length
+        if problem is not None:
+            self.agent = MathAgentState(0, problem)
+        elif state is not None:
+            self.width = state.width
+            self.agent = MathAgentState.copy(state.agent)
+        else:
+            raise ValueError("either state or a problem must be provided")
+
+    @classmethod
+    def copy(cls, from_state):
+        return MathEnvironmentState(state=from_state)
+
+    def encode_player(self, problem: str, move_count: int):
+        """Encode a player's state into the env_state, and return the env_state"""
+        out_state = MathEnvironmentState.copy(self)
+        agent = out_state.agent
+        agent.history.append(problem)
+        agent.problem = problem
+        agent.move_count = move_count
+        return out_state
+
+    def get_canonical_board(self):
+        # print("gcb: {}".format(env_state.shape))
+        return MathEnvironmentState.copy(self)
+
+    def to_numpy(self):
         # We store 4 columns with length {self.width} each
         # The columns alternate content between the two players:
         #  data[0] == player_1 metadata
         #  data[1] == player_1 env_state
-        #  data[2] == player_-1 metadata
-        #  data[3] == player_-1 env_state
         # We store the data this way to
-        mode = MODE_COMBINE_LIKE_TERMS
-        data = numpy.zeros((4, self.width), dtype="float32")
-        data[0][PLAYER_ID_OFFSET] = 1
-        data[0][MOVE_COUNT_OFFSET] = 0
-        data[0][GAME_MODE_OFFSET] = mode
-        data[2][PLAYER_ID_OFFSET] = -1
-        data[2][MOVE_COUNT_OFFSET] = 0
-        data[2][GAME_MODE_OFFSET] = mode
-        features = self.parser.make_features(text)
-        features = numpy.array(features, dtype="float32").flatten()
-        features_len = len(features)
-        for i in range(self.width):
-            ch = features[i] if i < features_len else 0.0
-            # Each player starts with the same encoded text
-            data[1][i] = data[3][i] = ch
-
+        data = numpy.zeros((self.history_length + 1, self.width), dtype="float32")
+        # TODO: Decide how to detect/encode modes...
+        data[0][0] = MODE_COMBINE_LIKE_TERMS
+        data = self.write_problem(1, data, self.agent.problem)
+        # Encode up to last (history_length-1) moves into the agent memory
+        history = self.agent.history[-(self.history_length - 1) :]
+        for i, problem in enumerate(history):
+            data = self.write_problem(i + 2, data, problem)
         return data
 
-    def slice_player_data(self, env_state, player):
-        # print("spd: {}".format(env_state.shape))
-        if env_state is None:
-            raise Exception("there is no env_state to decode player from")
-        shaped = numpy.vsplit(env_state.copy(), 2)
-        if player is 1:
-            player_data = shaped[0]
-        elif player is -1:
-            player_data = shaped[1]
-        else:
-            raise ValueError(
-                "invalid player, must be 1 or -1 but is: {}".format(player)
-            )
-        return player_data
-
-    def encode_player(self, env_state, player, features, move_count):
-        """Encode a player's state into the env_state, and return the env_state"""
-        features_len = len(features)
+    def write_agent(self, index, data, agent: MathAgentState, width: int):
+        features = self.parser.make_features(agent.problem)
         features = numpy.array(features, dtype="float32").flatten()
-        # print("ep: {}".format(env_state.shape))
-        data = numpy.zeros((2, self.width), dtype="float32")
-        other_data = self.slice_player_data(env_state, player * -1)
-        data[0][PLAYER_ID_OFFSET] = player
-        data[0][MOVE_COUNT_OFFSET] = move_count
+        features_len = len(features)
+        for i in range(width):
+            ch = features[i] if i < features_len else 0.0
+            data[index + 1][i] = ch
+        return data
+
+    def write_problem(self, index, data, problem: str):
+        features = self.parser.make_features(problem)
+        features = numpy.array(features, dtype="float32").flatten()
         features_len = len(features)
         for i in range(self.width):
             ch = features[i] if i < features_len else 0.0
-            data[1][i] = ch
-        # Order the data based on which player the move is for.
-        if player == 1:
-            result = numpy.vstack((data, other_data))
-        else:
-            result = numpy.vstack((other_data, data))
-        # print("ep: {} (p{} return value)".format(result.shape, player))
-        return result
-
-    def decode_player(self, env_state, player):
-        # print("dp: {}".format(env_state.shape))
-        player_data = self.slice_player_data(env_state, player)
-        player_index = int(player_data[0][PLAYER_ID_OFFSET])
-        move_count = int(player_data[0][MOVE_COUNT_OFFSET])
-        # print("{}] decoded player is : {}".format(player, player_index))
-        # print("{}] decoded move is : {}".format(player, move_count))
-        out_features = []
-        for i in range(0, self.width, 2):
-            value = player_data[1][i]
-            type = int(player_data[1][i + 1])
-            out_features.append([value, type])
-            if type == TokenEOF:
-                break
-
-        # print("{}] text is : {}".format(player, text))
-        return out_features, move_count, player_index
-
-    def get_canonical_board(self, env_state, player):
-        # print("gcb: {}".format(env_state.shape))
-        result = env_state.copy()
-        split = numpy.vsplit(result, 2)
-        if player == 1:
-            result = numpy.vstack((split[0], split[1]))
-        elif player == -1:
-            result = numpy.vstack((split[1], split[0]))
-        return result
+            data[index][i] = ch
+        return data

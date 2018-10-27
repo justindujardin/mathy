@@ -1,4 +1,4 @@
-from ..tree import STOP
+from .tree import STOP
 
 # Basic rule class that visits a tree with a specified visit order.
 class BaseRule:
@@ -88,6 +88,6 @@ class ExpressionChangeRule:
         return self
 
     def describe(self):
-        return """`{}:\n   {}\n = {}`""".format(
+        return """{}:\n    {}\n    {}""".format(
             self.rule.name, self.begin.getRoot(), self.end.getRoot()
         )

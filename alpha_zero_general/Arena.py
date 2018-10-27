@@ -39,14 +39,14 @@ class Arena:
         curPlayer = 1
         env_state = self.game.get_initial_state()
         it = 0
-        next_state = self.game.getGameEnded(env_state, curPlayer)
+        next_state = self.game.getGameEnded(env_state)
         while next_state == 0:
             it += 1
             if verbose:
                 assert self.display
                 print("Turn ", str(it), "Player ", str(curPlayer))
                 self.display(env_state, curPlayer)
-            canon = self.game.getCanonicalForm(env_state, curPlayer)
+            canon = self.game.getCanonicalForm(env_state)
             action = players[curPlayer + 1](canon)
 
             valids = self.game.getValidMoves(canon, 1)
@@ -54,8 +54,8 @@ class Arena:
             if valids[action] == 0:
                 print(action)
                 assert valids[action] > 0
-            env_state, curPlayer = self.game.get_next_state(env_state, curPlayer, action)
-            next_state = self.game.getGameEnded(env_state, curPlayer)
+            env_state = self.game.get_next_state(env_state, action)
+            next_state = self.game.getGameEnded(env_state)
 
         # Display the final move
         if verbose:

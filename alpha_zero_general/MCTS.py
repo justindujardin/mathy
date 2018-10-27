@@ -60,7 +60,8 @@ class MCTS:
                 "there have been no actions taken to derive probabilities from."
                 "This usually means that the problem you generated was solved without"
                 "taking any actions. Make sure to generate problems that take at least"
-                "a few actions to complete"
+                "a few actions to complete\n"
+                "state = {}".format(s)
             )
         probs = [x / float(count_sum) for x in counts]
         return probs
@@ -77,28 +78,27 @@ class MCTS:
         outcome is propogated up the search path. The values of Ns, Nsa, Qsa are
         updated.
 
-        NOTE: the return values are the negative of the value of the current
-        state. This is done since v is in [-1,1] and if v is the value of a
-        state for the current player, then its value is -v for the other player.
-
         Returns:
-            v: the negative of the value of the current canonicalBoard
+            v: the value of the current state
         """
 
         s = self.game.to_hash_key(canonicalBoard)
 
         if s not in self.Es:
             # print('calculating ending state for: {}'.format(s))
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1, searching=True)
+            self.Es[s] = self.game.getGameEnded(canonicalBoard, searching=True)
         if self.Es[s] != 0:
             # terminal node
-            return -self.Es[s]
+            return self.Es[s]
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(canonicalBoard)
+            input_data = canonicalBoard
+            if hasattr(canonicalBoard, "to_numpy"):
+                input_data = canonicalBoard.to_numpy()
+            self.Ps[s], v = self.nnet.predict(input_data)
             # print('calculating valid moves for: {}'.format(s))
-            valids = self.game.getValidMoves(canonicalBoard, 1)
+            valids = self.game.getValidMoves(canonicalBoard)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -115,7 +115,7 @@ class MCTS:
 
             self.Vs[s] = valids
             self.Ns[s] = 0
-            return -v
+            return v
 
         valids = self.Vs[s]
         cur_best = -float("inf")
@@ -124,7 +124,7 @@ class MCTS:
         # add Dirichlet noise for root node. set epsilon=0 for Arena competitions of trained models
         add_noise = isRootNode and e > 0
         if add_noise:
-            moves = self.game.getValidMoves(canonicalBoard, 1)
+            moves = self.game.getValidMoves(canonicalBoard)
             noise = np.random.dirichlet([self.dir_alpha] * len(moves))
 
         # pick the action with the highest upper confidence bound
@@ -154,10 +154,8 @@ class MCTS:
 
         a = np.random.choice(all_best)
 
-        next_s, next_player = self.game.get_next_state(
-            canonicalBoard, 1, a, searching=True
-        )
-        next_s = self.game.getCanonicalForm(next_s, next_player)
+        next_s = self.game.get_next_state(canonicalBoard, a, searching=True)
+        next_s = self.game.getCanonicalForm(next_s)
 
         v = self.search(next_s)
 
@@ -172,4 +170,4 @@ class MCTS:
             self.Nsa[(s, a)] = 1
 
         self.Ns[s] += 1
-        return -v
+        return v

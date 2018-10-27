@@ -37,7 +37,9 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 
 
 if __name__ == "__main__":
-    config = RunnerConfig(num_mcts_sims=50, temperature_threshold=temp, cpuct=1.0)
+    config = RunnerConfig(
+        num_mcts_sims=50, temperature_threshold=round(MathGame.max_moves / 3), cpuct=1.0
+    )
     runner = MathEpisodeRunner(config)
     c = Coach(runner, args)
     if not c.has_examples:
