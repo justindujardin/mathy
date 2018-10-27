@@ -34,6 +34,10 @@ PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
+MODEL_WIDTH = 128
+MODEL_HISTORY_LENGTH = 6
+
+
 
 class MathAgentState(object):
     def __init__(self, move_count: int, problem: str, history=None):
@@ -63,9 +67,9 @@ class MathEnvironmentState(object):
         self,
         state=None,
         problem: str = None,
-        width: int = 128,
+        width: int = MODEL_WIDTH,
         parser: ExpressionParser = None,
-        history_length: int = 12,
+        history_length: int = MODEL_HISTORY_LENGTH,
     ):
         self.parser = parser if parser is not None else ExpressionParser()
         self.width = width

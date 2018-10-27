@@ -6,7 +6,7 @@ from alpha_zero_general.EpisodeRunner import (
 import sys
 from alpha_zero_general.Coach import Coach
 from mathzero.math_game import MathGame
-from mathzero.model.torch_neural_net import MathNeuralNet
+from mathzero.model.tensorflow_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 

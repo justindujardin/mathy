@@ -32,7 +32,12 @@ from .core.rules import (
     VariableMultiplyRule,
 )
 from .core.profiler import profile_start, profile_end
-from .environment_state import MathEnvironmentState, MathAgentState
+from .environment_state import (
+    MathEnvironmentState,
+    MathAgentState,
+    MODEL_WIDTH,
+    MODEL_HISTORY_LENGTH,
+)
 from multiprocessing import cpu_count
 from itertools import groupby
 
@@ -44,8 +49,8 @@ class MathGame(Game):
     few moves as possible.
     """
 
-    width = 128
-    history_length = 12
+    width = MODEL_WIDTH
+    history_length = MODEL_HISTORY_LENGTH
     verbose = True
     draw = 0.0001
     max_moves = 25
@@ -82,7 +87,11 @@ class MathGame(Game):
                     problem, MathGame.width
                 )
             )
-        env_state = MathEnvironmentState(width=MathGame.width, problem=problem)
+        env_state = MathEnvironmentState(
+            width=MathGame.width,
+            history_length=MathGame.history_length,
+            problem=problem,
+        )
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return env_state
 
