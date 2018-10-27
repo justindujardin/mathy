@@ -71,7 +71,7 @@ class MathGame(Game):
     def get_initial_state(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
         if problem is None:
-            problem = self.problems.simplify_multiple_terms(max_terms=3)
+            problem = self.problems.simplify_multiple_terms(max_terms=4)
             # problem = self.problems.most_basic_add_like_terms()
             # problem = self.problems.variable_multiplication(3)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
