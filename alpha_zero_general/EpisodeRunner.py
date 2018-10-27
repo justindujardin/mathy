@@ -95,8 +95,7 @@ class EpisodeRunner:
         while True:
             move_count += 1
             canonical_state = game.getCanonicalForm(env_state)
-            # TODO: is this right? I thought temp threshold was for 
-            # percentage of episodes out of the iteration batch?
+            # If the move_count is less than threshold, set temp = 1 else 0
             temp = int(move_count < self.config.temperature_threshold)
 
             pi = mcts.getActionProb(canonical_state, temp=temp)
@@ -107,7 +106,7 @@ class EpisodeRunner:
             episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state = game.get_next_state(env_state, action)
-            # TODO: support scalar reward that is 
+            # TODO: support scalar reward that is
             r = game.getGameEnded(env_state)
 
             if r != 0:
