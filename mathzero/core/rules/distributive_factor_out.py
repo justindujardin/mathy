@@ -44,12 +44,16 @@ class DistributiveFactorOutRule(BaseRule):
         if not isAddSubtract(node) or isAddSubtract(node.left) or isAddSubtract(node.right):
             return False
 
-        self.leftTerm = getTerm(node.left)
-        if not self.leftTerm:
+        leftTerm = getTerm(node.left)
+        if not leftTerm:
             return False
 
-        self.rightTerm = getTerm(node.right)
-        if not self.rightTerm:
+        rightTerm = getTerm(node.right)
+        if not rightTerm:
+            return False
+
+        # Don't try factoring out terms with multiple variables, e.g "(4z + 84xz)"
+        if len(leftTerm.variables) > 1 or len(rightTerm.variables) > 1:
             return False
 
         f = factorAddTerms(node)
@@ -78,7 +82,11 @@ class DistributiveFactorOutRule(BaseRule):
             if isinstance(node, AddExpression)
             else SubtractExpression(b, c)
         )
-        result = MultiplyExpression(a, inside)
+        # NOTE: we swap the output order of the extracted 
+        #       common factor and what remains to prefer
+        #       ordering that can be expressed without an 
+        #       explicit multiplicat symbol.
+        result = MultiplyExpression(inside, a)
 
         if leftLink:
             unlink(leftLink)
