@@ -37,25 +37,25 @@ class ProblemGenerator:
         result = " + ".join(nums)
         return result
 
-    def binary_operations_no_variables(self, sum=None, max_terms=3):
+    def binary_operations_no_variables(self, sum=None, terms=3):
         if sum is None:
-            sum = random.randint(max_terms * 5, max_terms * 20)
+            sum = random.randint(terms * 5, terms * 20)
         operators = list("+-*")
         result = "{}".format(random.randint(2, 10))
-        for _ in range(max_terms):
+        for _ in range(terms):
             num = random.randint(1, 12)
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}".format(op, num)
         return result
 
-    def simplify_multiple_terms(self, max_terms=4):
+    def simplify_multiple_terms(self, terms=4):
         operators = list("+*")
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
         # Guarantee at least one set of like terms
         result = "{}{}".format(random.randint(2, 10), variable)
         suffix = " + {}{}".format(random.randint(2, 10), variable)
-        for _ in range(random.randint(1, max_terms - 2)):
+        for _ in range(terms):
             variable = variables[random.randint(0, len(variables) - 1)]
             num = random.randint(1, 12)
             var = variable if random.getrandbits(1) == 0 else ""

@@ -2,6 +2,7 @@ import random
 import math
 import numpy
 import time
+import random
 from alpha_zero_general.Game import Game
 from .core.expressions import (
     MathExpression,
@@ -69,9 +70,9 @@ class MathGame(Game):
 
     def get_initial_state(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
-        max_terms = 5
+        complexity = random.randint(3, 5)
         if problem is None:
-            problem = self.problems.simplify_multiple_terms(max_terms=max_terms)
+            problem = self.problems.simplify_multiple_terms(terms=complexity)
             # problem = self.problems.most_basic_add_like_terms()
             # problem = self.problems.variable_multiplication(3)
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
@@ -89,7 +90,7 @@ class MathGame(Game):
             )
         env_state = MathEnvironmentState(problem=problem)
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
-        return env_state, max_terms
+        return env_state, complexity
 
     def write_draw(self, state):
         """Help spot errors in win conditons by always writing out draw values for review"""
