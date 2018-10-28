@@ -184,7 +184,6 @@ class ParallelEpisodeRunner(EpisodeRunner):
                     episode, game, nnet, **args
                 )
                 duration = time.time() - start
-                examples.extend(episode_examples)
                 episode_summary = dict(
                     complexity=episode_complexity,
                     reward=episode_reward,
