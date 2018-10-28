@@ -15,20 +15,20 @@ eps = 100
 args = {
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/agent_2/",
-    # "checkpoint": "./training/latest/",
+    # "checkpoint": "/mnt/gcs/mzc/agent_2/",
+    "checkpoint": "./training/latest/",
     "best_model_name": "latest",
 }
 
 # Single-process implementation for debugging and development
-dev_mode = False
+dev_mode = True
 
 BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
 
 class MathEpisodeRunner(BaseEpisodeRunner):
     def get_game(self):
-        return MathGame()
+        return MathGame(verbose=dev_mode)
 
     def get_nnet(self, game, all_memory=False):
         return MathNeuralNet(game, all_memory)
