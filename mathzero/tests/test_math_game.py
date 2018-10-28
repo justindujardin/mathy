@@ -5,7 +5,9 @@ from ..environment_state import MathEnvironmentState, MathAgentState
 def test_math_game_init():
     game = MathGame()
     assert game is not None
-    state = game.get_initial_state()
+    state, complexity = game.get_initial_state()
+    # Kind of arbitrary, but min 3 terms to keep problems from being too easy.
+    assert complexity >= 3
     assert state is not None
     # Assert about the structure a bit
     assert state.agent is not None

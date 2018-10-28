@@ -14,7 +14,7 @@ class Arena:
         self.display = display
 
     def playGame(self, verbose=False):
-        env_state = self.game.get_initial_state()
+        env_state, complexity = self.game.get_initial_state()
         it = 0
         next_state = self.game.getGameEnded(env_state)
         while next_state == 0:

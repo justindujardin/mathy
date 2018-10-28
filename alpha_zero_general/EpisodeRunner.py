@@ -61,11 +61,16 @@ class EpisodeRunner:
         nnet = self.get_nnet(game)
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            new_examples, episode_reward = self.execute_episode(i, game, nnet, **args)
-            examples.extend(new_examples)
-            results.append(episode_reward)
+            episode_examples, episode_reward, episode_complexity = self.execute_episode(
+                i, game, nnet, **args
+            )
             duration = time.time() - start
-            self.episode_complete(i, episode_reward, duration)
+            examples.extend(episode_examples)
+            episode_summary = dict(
+                complexity=episode_complexity, reward=episode_reward, duration=duration
+            )
+            results.append(episode_summary)
+            self.episode_complete(i, episode_summary)
         return examples, results
 
     def execute_episode(self, episode, game, nnet, model, **kwargs):
@@ -92,7 +97,8 @@ class EpisodeRunner:
             if nnet.can_load_checkpoint(model):
                 nnet.load_checkpoint(model)
         episode_examples = []
-        env_state = game.get_initial_state()
+        env_state, complexity = game.get_initial_state()
+
         move_count = 0
         mcts = MCTS(game, nnet, self.config.cpuct, self.config.num_mcts_sims)
         while True:
@@ -113,11 +119,11 @@ class EpisodeRunner:
 
             if r != 0:
                 examples = [(x[0], x[1], r) for x in episode_examples]
-                return examples, r
+                return examples, r, complexity
 
-        return [], -1
+        return [], -1, complexity
 
-    def episode_complete(self, episode, reward, duration):
+    def episode_complete(self, episode, summary):
         """Called after each episode completes. Useful for things like updating progress indicators"""
         pass
 
@@ -174,11 +180,17 @@ class ParallelEpisodeRunner(EpisodeRunner):
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()
-                new_examples, episode_reward = self.execute_episode(
-                    i, game, nnet, **args
+                episode_examples, episode_reward, episode_complexity = self.execute_episode(
+                    episode, game, nnet, **args
                 )
                 duration = time.time() - start
-                result_queue.put((i, new_examples, duration, episode_reward))
+                examples.extend(episode_examples)
+                episode_summary = dict(
+                    complexity=episode_complexity,
+                    reward=episode_reward,
+                    duration=duration,
+                )
+                result_queue.put((i, episode_examples, episode_summary))
             return 0
 
         # Fill a work queue with episodes to be executed.
@@ -198,11 +210,11 @@ class ParallelEpisodeRunner(EpisodeRunner):
         results = []
         count = 0
         while count != len(episode_args_list):
-            i, episode_examples, duration, reward = result_queue.get()
-            self.episode_complete(i, reward, duration)
+            i, episode_examples, summary = result_queue.get()
+            self.episode_complete(i, summary)
             count += 1
             examples.extend(episode_examples)
-            results.append(reward)
+            results.append(summary)
 
         # Wait for the workers to exit completely
         for proc in processes:

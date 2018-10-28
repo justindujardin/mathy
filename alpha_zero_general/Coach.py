@@ -4,6 +4,7 @@ from collections import deque
 from .Arena import Arena
 from .MCTS import MCTS
 import numpy as np
+import json
 from .pytorch_classification.utils import Bar, AverageMeter
 import time, os, sys
 from pickle import Pickler, Unpickler
@@ -63,7 +64,7 @@ class Coach:
         bar.next()
         current_episode = 0
 
-        def update_episode_bar(self, episode, reward, duration):
+        def episode_complete(self, episode, summary):
             nonlocal current_episode, bar, num_episodes
             current_episode += 1
             bar.suffix = "({eps}/{maxeps}) | Total: {total:} | ETA: {eta:}".format(
@@ -79,17 +80,36 @@ class Coach:
             episodes_with_args.append(dict(model=self.get_best_model_filename()))
 
         old_update = self.runner.episode_complete
-        self.runner.episode_complete = types.MethodType(update_episode_bar, self)
+        self.runner.episode_complete = types.MethodType(episode_complete, self)
         new_examples, episode_rewards = self.runner.execute_episodes(episodes_with_args)
         # Output a few solve/fail stats
+
+        complexity_stats = dict()
         solve = 0
         fail = 0
-        for value in episode_rewards:
+
+        def add_stat(complexity, value):
+            nonlocal complexity_stats, solve, fail
+            if complexity not in complexity_stats:
+                complexity_stats[complexity] = dict(solve=0, fail=0)
             if value == 1:
                 solve += 1
+                complexity_stats[complexity]["solve"] += 1
             elif value == -1:
                 fail += 1
-        print("\n\nPractice results:\n --- Solved ({}) --- Failed ({})\n\n".format(solve, fail))
+                complexity_stats[complexity]["fail"] += 1
+            pass
+
+        for summary in episode_rewards:
+            value = summary["reward"]
+            complexity = str(summary["complexity"])
+            add_stat(complexity, value)
+        print(
+            "\n\nPractice results:\n --- Solved ({}) --- Failed ({})".format(
+                solve, fail
+            )
+        )
+        print("By complexity:\n{}\n\n".format(json.dumps(complexity_stats, indent=2)))
         training_examples = deque(new_examples, maxlen=self.max_training_examples)
         self.runner.episode_complete = old_update
         bar.finish()
