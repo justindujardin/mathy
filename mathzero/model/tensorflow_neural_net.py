@@ -12,7 +12,7 @@ from mathzero.model.tensorflow_model import MathModel
 
 class NetConfig:
     def __init__(
-        self, lr=0.001, dropout=0.3, epochs=10, batch_size=128, num_channels=256
+        self, lr=0.001, dropout=0.3, epochs=10, batch_size=256, num_channels=256
     ):
         self.lr = lr
         self.dropout = dropout
