@@ -47,8 +47,7 @@ class Arena:
 
     def playGames(self, num, verbose=False):
         """
-        Plays num games in which player1 starts num/2 games and player2 starts
-        num/2 games.
+        Evaluate a model by having it attempt to solve num problems.
 
         Returns:
             solved: number of problems solved

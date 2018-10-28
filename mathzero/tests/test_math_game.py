@@ -1,5 +1,5 @@
 from ..math_game import MathGame
-from ..environment_state import EnvironmentAdapter, MathEnvironmentState, MathAgentState
+from ..environment_state import MathEnvironmentState, MathAgentState
 
 
 def test_math_game_init():
@@ -8,8 +8,7 @@ def test_math_game_init():
     state = game.get_initial_state()
     assert state is not None
     # Assert about the structure a bit
-    assert state.agent_one is not None
-    assert state.agent_two is not None
+    assert state.agent is not None
     assert state.width > 0
 
 

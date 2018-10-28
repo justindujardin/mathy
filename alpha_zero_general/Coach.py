@@ -51,36 +51,31 @@ class Coach:
         iterations = self.self_play_iterations
 
         for i in range(1, self.training_iterations + 1):
-            print("------ITER {}------".format(i))
-            # Run self-play episodes
+            print("Session {}".format(i))
             self.run_self_play(i, iterations)
-            # Train the network with the gathered examples from self-play
             self.run_network_training(i)
 
     def run_self_play(self, iteration, num_episodes):
         if iteration < 1 and self.skip_first_self_play:
             return []
-        eps_time = AverageMeter()
-        bar = Bar("Self Play", max=num_episodes)
-        bar.suffix = "Playing first game..."
+        bar = Bar("Practicing", max=num_episodes)
+        bar.suffix = "working on first problem..."
+        bar.next()
         current_episode = 0
 
         def update_episode_bar(self, episode, duration):
-            nonlocal current_episode, bar, eps_time, num_episodes
-            # bookkeeping + plot progress
-            eps_time.update(duration)
+            nonlocal current_episode, bar, num_episodes
             current_episode += 1
-            bar.suffix = "({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}".format(
+            bar.suffix = "({eps}/{maxeps}) | Total: {total:} | ETA: {eta:}".format(
                 eps=current_episode,
                 maxeps=num_episodes,
-                et=eps_time.avg,
                 total=bar.elapsed_td,
                 eta=bar.eta_td,
             )
             bar.next()
 
         episodes_with_args = []
-        for j in range(1, num_episodes + 1):
+        for _ in range(1, num_episodes + 1):
             episodes_with_args.append(dict(model=self.get_best_model_filename()))
 
         old_update = self.runner.episode_complete
@@ -106,9 +101,6 @@ class Coach:
         print("Training with {} examples".format(len(train_examples)))
         return self.runner.train(iteration, train_examples, best)
 
-    def get_checkpoint_filename(self, iteration):
-        return "checkpoint_{}.pth.tar".format(iteration)
-
     def get_best_model_filename(self):
         return os.path.join(self.checkpoint, "{}.pth.tar".format(self.best_model_name))
 
@@ -117,26 +109,6 @@ class Coach:
         #       for depends on the underlying ML framework. Hardcode tf/pytorch here
         meta = "{}.meta".format(model_name)
         return os.path.exists(model_name) or os.path.exists(meta)
-
-    def save_training_examples(self, iteration):
-        folder = self.checkpoint
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        filename = os.path.join(
-            folder, self.get_checkpoint_filename(iteration) + ".examples"
-        )
-        with open(filename, "wb+") as f:
-            Pickler(f).dump(self.all_examples)
-
-    def save_model(self, nnet, name="best"):
-        folder = self.checkpoint
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        filename = os.path.join(self.checkpoint, "{}.pth.tar".format(name))
-        nnet.save_checkpoint(filename)
-        examples_file = "{}.examples".format(filename)
-        with open(examples_file, "wb+") as f:
-            Pickler(f).dump(self.all_examples)
 
     def load_training_examples(self, name=None):
         examplesFile = "{}.examples".format(name)

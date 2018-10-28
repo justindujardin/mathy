@@ -51,11 +51,10 @@ class MathGame(Game):
 
     width = MODEL_WIDTH
     history_length = MODEL_HISTORY_LENGTH
-    verbose = True
-    draw = 0.0001
     max_moves = 25
 
-    def __init__(self):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_rules = [
@@ -79,7 +78,7 @@ class MathGame(Game):
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
         self.expression_str = problem
         # self.expression_str = "4x * 8 * 2"
-        if MathGame.verbose:
+        if self.verbose:
             print("\n\n\t\tNEXT: {}".format(problem))
         if len(list(problem)) > MathGame.width:
             raise ValueError(
@@ -87,11 +86,7 @@ class MathGame(Game):
                     problem, MathGame.width
                 )
             )
-        env_state = MathEnvironmentState(
-            width=MathGame.width,
-            history_length=MathGame.history_length,
-            problem=problem,
-        )
+        env_state = MathEnvironmentState(problem=problem)
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return env_state
 
@@ -99,7 +94,7 @@ class MathGame(Game):
         """Help spot errors in win conditons by always writing out draw values for review"""
         with open("draws.txt", "a") as file:
             file.write("{}\n".format(state))
-        if MathGame.verbose:
+        if self.verbose:
             print(state)
 
     def get_agent_actions_count(self):
@@ -148,7 +143,7 @@ class MathGame(Game):
             change = operation.applyTo(token.rootClone())
             root = change.end.getRoot()
             out_problem = str(root)
-            if not searching and MathGame.verbose:
+            if not searching and self.verbose:
                 print("[{}] {}".format(agent.move_count, change.describe()))
             out_env = env_state.encode_player(out_problem, agent.move_count + 1)
         else:
@@ -248,7 +243,7 @@ class MathGame(Game):
             list_count = len(list_group)
             if list_count <= 1:
                 continue
-            if not searching and MathGame.verbose:
+            if not searching and self.verbose:
                 print("\n[Failed] re-entered previous state: {}".format(list_group[0]))
             return -1
 
@@ -262,7 +257,7 @@ class MathGame(Game):
                 if not isPreferredTermForm(term):
                     is_win = False
             if is_win:
-                if not searching and MathGame.verbose:
+                if not searching and self.verbose:
                     print(
                         "\n[Solved] {} => {}!".format(self.expression_str, expression)
                     )
@@ -272,13 +267,12 @@ class MathGame(Game):
         # the turn over the count resulted in a win-condition, we want it to be honored.
         if agent.move_count > MathGame.max_moves:
             if not searching:
-
                 self.write_draw(
                     "[Failed] exhausted moves:\n\t input: {}\n\t 1: {}\n".format(
                         self.expression_str, expression
                     )
                 )
-            return MathGame.draw
+            return -1
 
         # The game continues
         return 0

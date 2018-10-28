@@ -97,7 +97,7 @@ def test_distributive_factoring():
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
     out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == "7 * (1 + 1)"
+    assert str(out) == "(1 + 1) * 7"
 
 
 def test_distributive_factoring_with_variables():
@@ -106,15 +106,19 @@ def test_distributive_factoring_with_variables():
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == True
     out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == "7x * (2 + 1)"
+    assert str(out) == "(2 + 1) * 7x"
 
 
 def test_distributive_factoring_factors():
-    pass
     parser = ExpressionParser()
     expression = parser.parse("4 + (z + 4)")
     rule = DistributiveFactorOutRule()
     assert rule.canApplyTo(expression) == False
+
+    # Can't extract from terms with multiple variables
+    expression = parser.parse("(z * 4 + z * 84x) + 1")
+    # TODO: This restatement still fails: "(4z + 84xz) + 1"
+    assert rule.findNode(expression) is None
 
 
 def test_common_properties_can_apply_to():
