@@ -20,7 +20,6 @@ class Arena:
         while next_state == 0:
             it += 1
             if verbose and self.display:
-                print("Turn ", str(it))
                 self.display(env_state)
             action = self.player(env_state)
 
@@ -35,7 +34,6 @@ class Arena:
         # Display the final move
         if verbose:
             assert self.display
-            print("FINAL: ", str(it))
             self.display(env_state)
 
         is_win = next_state == 1
@@ -53,27 +51,24 @@ class Arena:
         num/2 games.
 
         Returns:
-            oneWon: games won by player1
-            twoWon: games won by player2
-            draws:  games won by nobody
+            solved: number of problems solved
+            failed: number of problems unsolved
         """
         eps_time = AverageMeter()
-        bar = Bar("Arena.playGames", max=num)
+        bar = Bar("Problem.solve", max=num)
         end = time.time()
         eps = 0
         maxeps = int(num)
 
-        oneWon = 0
-        twoWon = 0
-        draws = 0
+        solved = 0
+        failed = 0
         for _ in range(num):
-            gameResult = self.playGame(verbose=verbose)
-            if gameResult == 1:
-                oneWon += 1
-            elif gameResult == -1:
-                twoWon += 1
+            is_win = self.playGame(verbose=verbose)
+            if is_win:
+                solved += 1
             else:
-                draws += 1
+                failed += 1
+
             # bookkeeping + plot progress
             eps += 1
             eps_time.update(time.time() - end)
@@ -88,4 +83,4 @@ class Arena:
             bar.next()
         bar.finish()
 
-        return oneWon, twoWon, draws
+        return solved, failed
