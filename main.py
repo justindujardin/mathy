@@ -11,13 +11,11 @@ from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
 eps = 100
-temp = int(eps * 0.5)
 
 args = {
-    "training_iterations": 100,
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/agent_1/",
+    "checkpoint": "/mnt/gcs/mzc/agent_2/",
     # "checkpoint": "./training/latest/",
     "best_model_name": "latest",
 }
@@ -38,7 +36,9 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 
 if __name__ == "__main__":
     config = RunnerConfig(
-        num_mcts_sims=50, temperature_threshold=round(MathGame.max_moves / 3), cpuct=1.0
+        num_mcts_sims=150,
+        temperature_threshold=round(MathGame.max_moves * 0.4),
+        cpuct=1.0,
     )
     runner = MathEpisodeRunner(config)
     c = Coach(runner, args)
