@@ -55,7 +55,7 @@ class ProblemGenerator:
         # Guarantee at least one set of like terms
         result = "{}{}".format(random.randint(2, 10), variable)
         suffix = " + {}{}".format(random.randint(2, 10), variable)
-        for _ in range(terms):
+        for _ in range(terms - 2):
             variable = variables[random.randint(0, len(variables) - 1)]
             num = random.randint(1, 12)
             var = variable if random.getrandbits(1) == 0 else ""
