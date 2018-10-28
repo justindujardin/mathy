@@ -54,16 +54,19 @@ class EpisodeRunner:
         Execute (n) episodes of self-play serially. This is mostly useful for debugging, and
         when you cannot fit multiple copies of your model in GPU memory
         """
+        examples = []
         results = []
 
         game = self.get_game()
         nnet = self.get_nnet(game)
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            results.extend(self.execute_episode(i, game, nnet, **args))
+            new_examples, episode_reward = self.execute_episode(i, game, nnet, **args)
+            examples.extend(new_examples)
+            results.append(episode_reward)
             duration = time.time() - start
-            self.episode_complete(i, duration)
-        return results
+            self.episode_complete(i, episode_reward, duration)
+        return examples, results
 
     def execute_episode(self, episode, game, nnet, model, **kwargs):
         """
@@ -110,11 +113,11 @@ class EpisodeRunner:
 
             if r != 0:
                 examples = [(x[0], x[1], r) for x in episode_examples]
-                return examples
+                return examples, r
 
-        return []
+        return [], -1
 
-    def episode_complete(self, episode, duration):
+    def episode_complete(self, episode, reward, duration):
         """Called after each episode completes. Useful for things like updating progress indicators"""
         pass
 
@@ -171,9 +174,11 @@ class ParallelEpisodeRunner(EpisodeRunner):
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()
-                result = self.execute_episode(episode, game, nnet, **args)
+                new_examples, episode_reward = self.execute_episode(
+                    i, game, nnet, **args
+                )
                 duration = time.time() - start
-                result_queue.put((i, result, duration))
+                result_queue.put((i, new_examples, duration, episode_reward))
             return 0
 
         # Fill a work queue with episodes to be executed.
@@ -189,19 +194,21 @@ class ParallelEpisodeRunner(EpisodeRunner):
             proc.start()
 
         # Gather the outputs
+        examples = []
         results = []
         count = 0
         while count != len(episode_args_list):
-            i, result, duration = result_queue.get()
-            self.episode_complete(i, duration)
+            i, episode_examples, duration, reward = result_queue.get()
+            self.episode_complete(i, reward, duration)
             count += 1
-            results.extend(result)
+            examples.extend(episode_examples)
+            results.append(reward)
 
         # Wait for the workers to exit completely
         for proc in processes:
             proc.join()
 
-        return results
+        return examples, results
 
     def train(self, iteration, train_examples, model_path=None):
         def train_and_save(output, i, examples, out_path):

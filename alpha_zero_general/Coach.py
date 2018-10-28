@@ -63,7 +63,7 @@ class Coach:
         bar.next()
         current_episode = 0
 
-        def update_episode_bar(self, episode, duration):
+        def update_episode_bar(self, episode, reward, duration):
             nonlocal current_episode, bar, num_episodes
             current_episode += 1
             bar.suffix = "({eps}/{maxeps}) | Total: {total:} | ETA: {eta:}".format(
@@ -80,10 +80,17 @@ class Coach:
 
         old_update = self.runner.episode_complete
         self.runner.episode_complete = types.MethodType(update_episode_bar, self)
-        training_examples = deque(
-            self.runner.execute_episodes(episodes_with_args),
-            maxlen=self.max_training_examples,
-        )
+        new_examples, episode_rewards = self.runner.execute_episodes(episodes_with_args)
+        # Output a few solve/fail stats
+        solve = 0
+        fail = 0
+        for value in episode_rewards:
+            if value == 1:
+                solve += 1
+            elif value == -1:
+                fail += 1
+        print("\n\nPractice results:\n --- Solved ({}) --- Failed ({})\n\n".format(solve, fail))
+        training_examples = deque(new_examples, maxlen=self.max_training_examples)
         self.runner.episode_complete = old_update
         bar.finish()
         self.all_examples.extend(training_examples)
