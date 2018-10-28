@@ -10,13 +10,13 @@ from mathzero.model.tensorflow_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 100
+eps = 10
 
 args = {
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/agent_2/",
-    # "checkpoint": "./training/latest/",
+    # "checkpoint": "/mnt/gcs/mzc/agent_2/",
+    "checkpoint": "./training/agent_2/",
     "best_model_name": "latest",
 }
 
@@ -36,8 +36,8 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 
 if __name__ == "__main__":
     config = RunnerConfig(
-        num_mcts_sims=150,
-        temperature_threshold=round(MathGame.max_moves * 0.45),
+        num_mcts_sims=(150 if dev_mode else 500),
+        temperature_threshold=round(MathGame.max_moves * 0.5),
         cpuct=1.0,
     )
     runner = MathEpisodeRunner(config)
