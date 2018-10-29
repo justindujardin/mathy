@@ -9,7 +9,7 @@ from .expressions import (
     NegateExpression,
     MathExpression,
 )
-from .tree import LEFT, RIGHT
+from .tree import LEFT, RIGHT, STOP
 from .layout import TreeLayout
 import numpy
 import math
@@ -77,8 +77,40 @@ def isSimpleTerm(expression: MathExpression) -> bool:
     """
     term = getTerm(expression)
     if term == False:
-        return True
-    return bool(len(term.coefficients) <= 1 and len(term.variables) <= 1)
+        return False
+
+    if len(term.coefficients) > 1:
+        return False
+
+    vars = set(term.variables)
+    if len(vars) <= 1:
+        return len(term.variables) <= 1
+    else:
+        # In multivariable case make sure the flow is
+        # Const * Var * Var ...
+        find_const = True
+        fail = False
+
+        def visit_fn(node, depth, data):
+            nonlocal find_const, fail
+            # First node should be a constant
+            if find_const:
+                if not isinstance(node, ConstantExpression):
+                    fail = True
+                    return STOP
+                find_const = False
+                return
+            # Any more terms?
+            if isAddSubtract(node):
+                fail = True
+                return STOP
+            # Any more constants after the first and it's no good
+            if isinstance(node, ConstantExpression):
+                fail = True
+                return STOP
+
+        expression.visitInorder(visit_fn)
+        return fail == False
 
 
 def isPreferredTermForm(expression: MathExpression) -> bool:
@@ -94,10 +126,13 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
     if not isSimpleTerm(expression):
         return False
 
-    # If there are multiple multiplications this term can be simplified further. At most 
+    # If there are multiple multiplications this term can be simplified further. At most
     # we expect a multiply to connect a coefficient and variable.
-    if len(expression.findByType(MultiplyExpression)) > 1:
-        return False
+    # NOTE: the following check is removed because we need to handle multiple variable terms
+    #       e.g. "4xz"
+    # if len(expression.findByType(MultiplyExpression)) > 1:
+    #     return False
+
     # if there's a variable, make sure the coefficient is on the left side
     # for the preferred compact form. i.e. "4x" instead of "x * 4"
     vars = expression.findByType(VariableExpression)
@@ -106,7 +141,8 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
         if isinstance(var.parent, PowerExpression):
             parent = var.parent
         if parent.parent is not None and parent.parent.getSide(parent) == LEFT:
-            return False
+            if isinstance(parent.parent.right, ConstantExpression):
+                return False
 
     return True
 
@@ -121,29 +157,27 @@ def has_like_terms(expression: MathExpression) -> bool:
         y + 2x = True
         x^2 + 4x^3 + 2y = True
     """
-    vars = expression.findByType(VariableExpression)
-    terms = set()
-    for var in vars:
-        var_value = var.identifier
-        var_exp = 1
-        if isinstance(var.parent, PowerExpression):
-            if not isinstance(var.parent.right, ConstantExpression):
-                return True
-            var_exp = var.parent.right.value
 
-        var_key = (var_value, var_exp)
+    seen = set()
+    term_nodes = getTerms(expression)
+    for node in term_nodes:
+        term = getTerm(node)
+        if term == False:
+            continue
+        var_key = ("".join(term.variables), term.exponent)
         # If the same var/power combinaton is found in the expression more than once
         # there are like terms.
-        if var_key in terms:
+        if var_key in seen:
             return True
-        terms.add(var_key)
+        seen.add(var_key)
+
     # Look for multiple free-floating constants
     consts = expression.findByType(ConstantExpression)
     for const in consts:
         if const.parent and isAddSubtract(const.parent):
-            if "const_term" in terms:
+            if "const_term" in seen:
                 return True
-            terms.add("const_term")
+            seen.add("const_term")
     return False
 
 

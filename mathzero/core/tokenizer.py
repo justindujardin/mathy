@@ -1,4 +1,5 @@
 import math
+
 # # Tokenizer
 
 # ##Constants
@@ -29,11 +30,13 @@ class Token:
         self.type = type
 
     def to_feature(self):
-        # Constant values aren't turned into ordinals, but everything else is
+        # Constant values aren't turned into ordinals
         if self.type == TokenConstant:
             token_value = coerce_to_number(self.value)
         elif self.type == TokenEOF:
             token_value = 0
+        elif self.type == TokenFunction:
+            token_value = self.value
         else:
             token_value = ord(self.value)
         return [token_value, float(self.type)]
@@ -164,11 +167,12 @@ class Tokenizer:
             return False
 
         variable = self.eat_token(context, self.is_alpha)
-        tokenType = TokenVariable
         if variable in self.functions:
-            tokenType = TokenFunction
+            context.tokens.append(Token(variable, TokenFunction))
+        else:
+            # Each letter is its own variable
+            [context.tokens.append(Token(c, TokenVariable)) for c in variable]
 
-        context.tokens.append(Token(variable, tokenType))
         context.index += len(variable)
         return len(variable)
 

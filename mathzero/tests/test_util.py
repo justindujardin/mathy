@@ -18,7 +18,15 @@ from ..core.rules import (
 
 
 def test_is_preferred_term_form():
-    examples = [("29y", True), ("z", True), ("z * 10", False), ("4x^2", True)]
+    examples = [
+        ("4xz", True),
+        ("z * 4x", False),
+        ("2x * x", False),
+        ("29y", True),
+        ("z", True),
+        ("z * 10", False),
+        ("4x^2", True),
+    ]
     parser = ExpressionParser()
     for input, expected in examples:
         expr = parser.parse(input)

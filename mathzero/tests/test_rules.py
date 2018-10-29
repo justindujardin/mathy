@@ -176,6 +176,7 @@ def test_like_terms_compare():
 def test_variable_multiplication():
 
     valid = [
+        ("x * z", "xz"),
         ("x * x^3", "x^(1 + 3)"),
         ("y^11 * y", "y^(11 + 1)"),
         ("x^2 * x^7", "x^(2 + 7)"),

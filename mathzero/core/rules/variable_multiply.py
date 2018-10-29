@@ -93,17 +93,27 @@ class VariableMultiplyRule(BaseRule):
         right_var, _ = self.get_child_components(node.right)
         if right_var is None:
             return False
-        return right_var == left_var
+        return True
 
     def applyTo(self, node):
         change = super().applyTo(node).saveParent()
 
-        variable, left_exp = self.get_child_components(node.left)
-        _, right_exp = self.get_child_components(node.right)
+        left_variable, left_exp = self.get_child_components(node.left)
+        right_variable, right_exp = self.get_child_components(node.right)
+
+        # If the variables don't match
+        variable = left_variable
+        if left_variable != right_variable:
+            variable = left_variable + right_variable
 
         inside = AddExpression(
             ConstantExpression(left_exp), ConstantExpression(right_exp)
         )
-        result = PowerExpression(VariableExpression(variable), inside)
+
+        # If both powers are 1, drop them from the output
+        if left_exp == 1 and right_exp == 1:
+            result = VariableExpression(variable)
+        else:
+            result = PowerExpression(VariableExpression(variable), inside)
         change.done(result)
         return change
