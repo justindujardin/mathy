@@ -10,18 +10,18 @@ from mathzero.model.tensorflow_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 10
+eps = 100
 
 args = {
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    # "checkpoint": "/mnt/gcs/mzc/agent_2/",
-    "checkpoint": "./training/agent_2/",
+    "checkpoint": "/mnt/gcs/mzc/agent_2/",
+    # "checkpoint": "./training/agent_2/",
     "best_model_name": "latest",
 }
 
 # Single-process implementation for debugging and development
-dev_mode = True
+dev_mode = False
 
 BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
