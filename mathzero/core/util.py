@@ -85,32 +85,42 @@ def isSimpleTerm(expression: MathExpression) -> bool:
     vars = set(term.variables)
     if len(vars) <= 1:
         return len(term.variables) <= 1
-    else:
-        # In multivariable case make sure the flow is
-        # Const * Var * Var ...
-        find_const = True
-        fail = False
+    # In multivariable case make sure the flow is
+    # Const * Var * Var ...
+    find_const = True
+    fail = False
+    seen_vars = set()
 
-        def visit_fn(node, depth, data):
-            nonlocal find_const, fail
-            # First node should be a constant
-            if find_const:
-                if not isinstance(node, ConstantExpression):
-                    fail = True
-                    return STOP
-                find_const = False
-                return
-            # Any more terms?
-            if isAddSubtract(node):
+    def visit_fn(node, depth, data):
+        nonlocal find_const, fail
+        # First node should be a constant
+        if find_const:
+            if not isinstance(node, ConstantExpression):
                 fail = True
                 return STOP
-            # Any more constants after the first and it's no good
-            if isinstance(node, ConstantExpression):
+            find_const = False
+            return
+        # Any more terms?
+        if isAddSubtract(node):
+            fail = True
+            return STOP
+        # Any more constants after the first and it's no good
+        if isinstance(node, ConstantExpression):
+            fail = True
+            return STOP
+
+        if isinstance(node, VariableExpression):
+            # If a variable is seen multiple times in a term the term 
+            # can be simplified to combine them (and their exponents)
+            # e.g. "1000y * y * z" or "24x * x"
+            if node.identifier in seen_vars:
                 fail = True
                 return STOP
+            # Seen once
+            seen_vars.add(node.identifier)
 
-        expression.visitInorder(visit_fn)
-        return fail == False
+    expression.visitInorder(visit_fn)
+    return fail == False
 
 
 def isPreferredTermForm(expression: MathExpression) -> bool:

@@ -118,6 +118,8 @@ def test_distributive_factoring_factors():
     # Can't extract from terms with multiple variables
     expression = parser.parse("(z * 4 + z * 84x) + 1")
     # TODO: This restatement still fails: "(4z + 84xz) + 1"
+
+    
     assert rule.findNode(expression) is None
 
 
@@ -176,6 +178,7 @@ def test_like_terms_compare():
 def test_variable_multiplication():
 
     valid = [
+        ("x * x", "x^(1 + 1)"),
         ("x * z", "xz"),
         ("x * x^3", "x^(1 + 3)"),
         ("y^11 * y", "y^(11 + 1)"),
