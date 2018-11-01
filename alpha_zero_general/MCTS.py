@@ -91,16 +91,18 @@ class MCTS:
             # terminal node
             return self.Es[s]
 
+        # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            input_data = env_state
-            if hasattr(env_state, "to_numpy"):
-                input_data = env_state.to_numpy()
+            input_data = env_state.to_numpy()
             self.Ps[s], v = self.nnet.predict(input_data)
             # print('calculating valid moves for: {}'.format(s))
+            # print("v = {}".format(v))
+            # print("Ps = {}".format(self.Ps[s].shape))
             valids = self.game.getValidMoves(env_state)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
+            # print("sum Ps = {}".format(sum_Ps_s))
             if sum_Ps_s > 0:
                 # renormalize so values sum to 1
                 self.Ps[s] /= sum_Ps_s
@@ -158,15 +160,17 @@ class MCTS:
 
         v = self.search(next_s)
 
-        if (s, a) in self.Qsa:
-            self.Qsa[(s, a)] = (self.Nsa[(s, a)] * self.Qsa[(s, a)] + v) / (
-                self.Nsa[(s, a)] + 1
+        # state key for next state
+        state_key = (s, a)
+        if state_key in self.Qsa:
+            self.Qsa[state_key] = (self.Nsa[state_key] * self.Qsa[state_key] + v) / (
+                self.Nsa[state_key] + 1
             )
-            self.Nsa[(s, a)] += 1
+            self.Nsa[state_key] += 1
 
         else:
-            self.Qsa[(s, a)] = v
-            self.Nsa[(s, a)] = 1
+            self.Qsa[state_key] = v
+            self.Nsa[state_key] = 1
 
         self.Ns[s] += 1
         return v

@@ -61,7 +61,7 @@ class VariableMultiplyRule(BaseRule):
 
     @property
     def name(self):
-        return "Restate Variable Multiplication"
+        return "Variable Multiplication"
 
     def get_child_components(self, child):
         """
@@ -110,8 +110,8 @@ class VariableMultiplyRule(BaseRule):
             ConstantExpression(left_exp), ConstantExpression(right_exp)
         )
 
-        # If both powers are 1, drop them from the output
-        if left_exp == 1 and right_exp == 1:
+        # If both powers are 1 and the variables don't match, drop them from the output
+        if left_exp == 1 and right_exp == 1 and left_variable != right_variable:
             result = VariableExpression(variable)
         else:
             result = PowerExpression(VariableExpression(variable), inside)

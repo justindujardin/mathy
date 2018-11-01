@@ -70,7 +70,7 @@ class MathGame(Game):
 
     def get_initial_state(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
-        complexity = random.randint(3, 5)
+        complexity = random.randint(3, 4)
         if problem is None:
             problem = self.problems.simplify_multiple_terms(terms=complexity)
             # problem = self.problems.most_basic_add_like_terms()
@@ -81,7 +81,7 @@ class MathGame(Game):
         self.expression_str = problem
         # self.expression_str = "4x * 8 * 2"
         if self.verbose:
-            print("\n\n\t\tNEXT: {}".format(problem))
+            print("\n\n[Problem] {}\n".format(problem))
         if len(list(problem)) > MathGame.width:
             raise ValueError(
                 'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
@@ -146,7 +146,8 @@ class MathGame(Game):
             root = change.end.getRoot()
             out_problem = str(root)
             if not searching and self.verbose:
-                print("[{}] {}".format(agent.move_count, change.describe()))
+                output = """{:<25}: {}""".format(change.rule.name[:25], change.end.getRoot())
+                print("[{}] {}".format(str(agent.move_count).zfill(2), output))
             out_env = env_state.encode_player(out_problem, agent.move_count + 1)
         else:
             print(
@@ -261,7 +262,7 @@ class MathGame(Game):
             if is_win:
                 if not searching and self.verbose:
                     print(
-                        "\n[Solved] {} => {}!".format(self.expression_str, expression)
+                        "\n[Solved] {} => {}\n".format(self.expression_str, expression)
                     )
                 return 1
 

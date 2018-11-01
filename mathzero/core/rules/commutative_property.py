@@ -30,7 +30,7 @@ from ..rule import BaseRule
 class CommutativeSwapRule(BaseRule):
     @property
     def name(self):
-        return "Commutative Move"
+        return "Commutative Swap"
 
     def canApplyTo(self, node):
         # Must be an add/multiply

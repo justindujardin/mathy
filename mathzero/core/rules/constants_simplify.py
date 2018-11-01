@@ -9,7 +9,7 @@ class ConstantsSimplifyRule(BaseRule):
 
     @property
     def name(self):
-        return "Simplify Constant Operation"
+        return "Constant Arithmetic"
 
     def canApplyTo(self, node):
         # Check simple case of left/right child binary op with constants
