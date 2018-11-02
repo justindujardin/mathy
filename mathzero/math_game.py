@@ -52,10 +52,12 @@ class MathGame(Game):
 
     width = MODEL_WIDTH
     history_length = MODEL_HISTORY_LENGTH
-    max_moves = 25
+    # Default number of max moves used for training (can be overridden in init)
+    max_moves = 50
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=False, max_moves=None):
         self.verbose = verbose
+        self.max_moves = max_moves if max_moves is not None else MathGame.max_moves
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_rules = [
@@ -70,7 +72,7 @@ class MathGame(Game):
 
     def get_initial_state(self, problem: str = None):
         """return a numpy encoded version of the input expression"""
-        complexity = random.randint(3, 4)
+        complexity = random.randint(3, 5)
         if problem is None:
             problem = self.problems.simplify_multiple_terms(terms=complexity)
             # problem = self.problems.most_basic_add_like_terms()
@@ -146,7 +148,9 @@ class MathGame(Game):
             root = change.end.getRoot()
             out_problem = str(root)
             if not searching and self.verbose:
-                output = """{:<25}: {}""".format(change.rule.name[:25], change.end.getRoot())
+                output = """{:<25}: {}""".format(
+                    change.rule.name[:25], change.end.getRoot()
+                )
                 print("[{}] {}".format(str(agent.move_count).zfill(2), output))
             out_env = env_state.encode_player(out_problem, agent.move_count + 1)
         else:
@@ -268,7 +272,7 @@ class MathGame(Game):
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
-        if agent.move_count > MathGame.max_moves:
+        if agent.move_count > self.max_moves:
             if not searching:
                 self.write_draw(
                     "[Failed] exhausted moves:\n\t input: {}\n\t 1: {}\n".format(
