@@ -13,6 +13,19 @@ from .tree import LEFT, RIGHT, STOP
 from .layout import TreeLayout
 import numpy
 import math
+import json
+from pathlib import Path
+
+
+def load_rule_tests(name):
+    rule_file = (
+        Path(__file__).parent.parent / "tests" / "rules" / "{}.json".format(name)
+    )
+    print(rule_file)
+    assert rule_file.is_file() == True
+    with open(rule_file, "r") as file:
+        return json.load(file)
+
 
 # Unlink an expression from it's parent.
 #
@@ -67,15 +80,18 @@ def isAddSubtract(node):
     return isinstance(node, AddExpression) or isinstance(node, SubtractExpression)
 
 
-def isSimpleTerm(expression: MathExpression) -> bool:
+def isSimpleTerm(node: MathExpression) -> bool:
     """
-    Return True if a given term has been simplified such that it only has
-    a max of one coefficient and variable.
+    Return True if a given term has been simplified such that it only has at 
+    most one of each variable and a constant.
     Example:
+        Simple = 2x^2 * 2y
+        Complex = 2x * 2x * 2y
+
         Simple = x^2 * 4
         Complex = 2 * 2x^2
     """
-    term = getTerm(expression)
+    term = getTerm(node)
     if term == False:
         return False
 
@@ -110,7 +126,7 @@ def isSimpleTerm(expression: MathExpression) -> bool:
             return STOP
 
         if isinstance(node, VariableExpression):
-            # If a variable is seen multiple times in a term the term 
+            # If a variable is seen multiple times in a term the term
             # can be simplified to combine them (and their exponents)
             # e.g. "1000y * y * z" or "24x * x"
             if node.identifier in seen_vars:
@@ -119,7 +135,7 @@ def isSimpleTerm(expression: MathExpression) -> bool:
             # Seen once
             seen_vars.add(node.identifier)
 
-    expression.visitInorder(visit_fn)
+    node.visitInorder(visit_fn)
     return fail == False
 
 
@@ -139,7 +155,7 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
     # If there are multiple multiplications this term can be simplified further. At most
     # we expect a multiply to connect a coefficient and variable.
     # NOTE: the following check is removed because we need to handle multiple variable terms
-    #       e.g. "4xz"
+    #       e.g. "4x * z"
     # if len(expression.findByType(MultiplyExpression)) > 1:
     #     return False
 

@@ -1,0 +1,10 @@
+{
+    "valid": [
+      { "input": "", "output": "" }, 
+      { "input": "", "output": "" }
+    ],
+    "invalid": [
+      { "input": "" }, 
+      { "input": "" }
+    ]
+  }

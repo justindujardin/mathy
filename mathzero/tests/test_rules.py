@@ -8,7 +8,7 @@ from ..core.expressions import (
     MultiplyExpression,
     DivideExpression,
 )
-from ..core.util import getTerms, termsAreLike
+from ..core.util import getTerms, termsAreLike, load_rule_tests
 from ..core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -40,90 +40,89 @@ exam_simplify_complex_terms = [
 ]
 
 
+def run_rule_tests(name, rule_class, callback=None):
+    """Load and assert about the transformations and validity of rules
+    based on given input examples.
+
+    When debugging a problem it can be useful to provide a "callback" function
+    and add a `"debug": true` value to the example in the rules json file you 
+    want to debug. Then you set a breakpoint and step out of your callback function
+    into the parsing/evaluation of the debug example.
+    """
+    tests = load_rule_tests(name)
+    parser = ExpressionParser()
+    rule = rule_class()
+    has_valid_debug = sum([1 if "debug" in e else 0 for e in tests["valid"]]) > 0
+    has_invalid_debug = sum([1 if "debug" in e else 0 for e in tests["invalid"]]) > 0
+    has_debug = has_invalid_debug or has_valid_debug
+    for ex in tests["valid"]:
+        # Skip over non-debug examples if there are any for easier debugging.
+        if has_debug and "debug" not in ex:
+            continue
+        # Trigger the debug callback so the user can step over into the useful stuff
+        if callback is not None:
+            callback(ex)
+        expression = parser.parse(ex["input"])
+        print(ex)
+        node = rule.findNode(expression)
+        assert node is not None
+        change = rule.applyTo(node)
+        assert str(change.end.getRoot()).strip() == ex["output"]
+    for ex in tests["invalid"]:
+        # Skip over non-debug examples if there are any for easier debugging.
+        if has_debug and "debug" not in ex:
+            continue
+        # Trigger the debug callback so the user can step over into the useful stuff
+        if callback is not None:
+            callback(ex)
+        expression = parser.parse(ex["input"])
+        node = rule.findNode(expression)
+        assert node is None
+
+
+def test_associative_property():
+    def debug(ex):
+        pass
+
+    run_rule_tests("associative_property", AssociativeSwapRule, debug)
+
+
 def test_commutative_property():
-    left = ConstantExpression(4)
-    right = ConstantExpression(17)
-    expr = AddExpression(left, right)
-    assert str(expr) == "4 + 17"
-    rule = CommutativeSwapRule()
+    def debug(ex):
+        pass
 
-    # can find the root-level nodes
-    nodes = rule.findNodes(expr)
-    assert len(nodes) == 1
-
-    # This expression is commutative compatible
-    assert rule.canApplyTo(expr) == True
-
-    # Applying swaps the left/right position of the Const nodes in the Add expression
-    result = rule.applyTo(expr).end.getRoot()
-    assert result.left.value == right.value
-    assert result.right.value == left.value
-    assert str(expr) == "17 + 4"
+    run_rule_tests("commutative_property", CommutativeSwapRule, debug)
 
 
-def test_commutative_property_cannot_apply():
-    left = ConstantExpression(4)
-    right = ConstantExpression(17)
-    expr = DivideExpression(left, right)
-    rule = CommutativeSwapRule()
-    # This expression is NOT commutative compatible because 4 / 3 != 3 / 4
-    assert rule.canApplyTo(expr) == False
-    # Nope
-    assert len(rule.findNodes(expr)) == 0
+def test_constants_simplify():
+    def debug(ex):
+        pass
+
+    run_rule_tests("constants_simplify", ConstantsSimplifyRule, debug)
 
 
-def test_commutative_property_truncate():
-    parser = ExpressionParser()
-    expr = parser.parse("(7 + x) + 2")
-    rule = CommutativeSwapRule()
+def test_distributive_factor_out():
+    def debug(ex):
+        pass
 
-    change = rule.applyTo(expr)
-    assert str(change.end) == "2 + (7 + x)"
+    run_rule_tests("distributive_factor_out", DistributiveFactorOutRule, debug)
 
 
-def test_constants_simplify_rule():
-    parser = ExpressionParser()
-    expectations = [("7 + 4", 11), ("1 - 2", -1), ("4 / 2", 2), ("5 * 5", 25)]
-    for input, output in expectations:
-        expression = parser.parse(input)
-        rule = ConstantsSimplifyRule()
-        assert rule.canApplyTo(expression) == True
-        assert rule.applyTo(expression).end.getRoot().value == output
+def test_distributive_multiply_across():
+    def debug(ex):
+        pass
+
+    run_rule_tests("distributive_multiply_across", DistributiveMultiplyRule, debug)
 
 
-def test_distributive_factoring():
-    parser = ExpressionParser()
-    expression = parser.parse("7 + 7")
-    rule = DistributiveFactorOutRule()
-    assert rule.canApplyTo(expression) == True
-    out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == "(1 + 1) * 7"
+def test_variable_multiply():
+    def debug(ex):
+        pass
+
+    run_rule_tests("variable_multiply", VariableMultiplyRule, debug)
 
 
-def test_distributive_factoring_with_variables():
-    parser = ExpressionParser()
-    expression = parser.parse("14x + 7x")
-    rule = DistributiveFactorOutRule()
-    assert rule.canApplyTo(expression) == True
-    out = rule.applyTo(expression).end.getRoot()
-    assert str(out) == "(2 + 1) * 7x"
-
-
-def test_distributive_factoring_factors():
-    parser = ExpressionParser()
-    expression = parser.parse("4 + (z + 4)")
-    rule = DistributiveFactorOutRule()
-    assert rule.canApplyTo(expression) == False
-
-    # Can't extract from terms with multiple variables
-    expression = parser.parse("(z * 4 + z * 84x) + 1")
-    # TODO: This restatement still fails: "(4z + 84xz) + 1"
-
-    
-    assert rule.findNode(expression) is None
-
-
-def test_common_properties_can_apply_to():
+def test_rule_can_apply_to():
     parser = ExpressionParser()
     expression = parser.parse("7 + 4x - 2")
 
@@ -135,16 +134,6 @@ def test_common_properties_can_apply_to():
     ]
     for action in available_actions:
         assert type(action.canApplyTo(expression)) == bool
-
-
-def test_associative_swap():
-    parser = ExpressionParser()
-    exp = parser.parse("(2 + x) + 9")
-    rule = AssociativeSwapRule()
-    nodes = rule.findNodes(exp)
-    assert len(nodes) == 1
-    change = rule.applyTo(nodes[0])
-    assert str(change.end.getRoot()).strip() == "2 + (x + 9)"
 
 
 def test_like_terms_compare():
@@ -173,22 +162,3 @@ def test_like_terms_compare():
     expr = parser.parse("4z")
     terms = getTerms(expr)
     assert len(terms) == 1
-
-
-def test_variable_multiplication():
-
-    valid = [
-        ("x * x", "x^(1 + 1)"),
-        ("x * z", "xz"),
-        ("x * x^3", "x^(1 + 3)"),
-        ("y^11 * y", "y^(11 + 1)"),
-        ("x^2 * x^7", "x^(2 + 7)"),
-    ]
-    parser = ExpressionParser()
-    rule = VariableMultiplyRule()
-    for input, output in valid:
-        expression = parser.parse(input)
-        node = rule.findNode(expression)
-        assert node is not None
-        change = rule.applyTo(node)
-        assert str(change.end.getRoot()).strip() == output

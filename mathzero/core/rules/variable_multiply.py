@@ -93,7 +93,7 @@ class VariableMultiplyRule(BaseRule):
         right_var, _ = self.get_child_components(node.right)
         if right_var is None:
             return False
-        return True
+        return left_var == right_var
 
     def applyTo(self, node):
         change = super().applyTo(node).saveParent()
