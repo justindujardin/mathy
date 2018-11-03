@@ -18,7 +18,6 @@ from .core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
-from .core.profiler import profile_start, profile_end
 
 # NOTE: store game mode as a bit on the data, then use different win conditions for each game.
 #       hopefully the RL algorithm should be able to learn to play multiple math "games" with the

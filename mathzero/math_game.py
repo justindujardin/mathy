@@ -32,7 +32,6 @@ from .core.rules import (
     ConstantsSimplifyRule,
     VariableMultiplyRule,
 )
-from .core.profiler import profile_start, profile_end
 from .environment_state import (
     MathEnvironmentState,
     MathAgentState,
