@@ -1,6 +1,8 @@
 keras
 numpy
 pytest
+pytest-cov
 plac
 torch 
 torchvision
+

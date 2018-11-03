@@ -17,24 +17,18 @@
             "module": "pit"
         },
         {
-            "name": "MathZero (Director)",
-            "type": "python",
-            "request": "launch",
-            "module": "director"
-        },
-        {
             "name": "Math Model Tests",
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "args": ["--pyargs", "mathzero", "alpha_zero_general.tests"]
+            "args": ["--cov=mathzero", "--pyargs", "mathzero", "alpha_zero_general.tests"]
         },
         {
             "name": "Math Tests (Focused)",
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "args": ["--pyargs", "mathzero", "-k", "'test_math_game'"]
+            "args": ["--pyargs", "mathzero", "-k", "'test_math_game_win_conditions'"]
         },
         {
             "name": "Python: Current File",
