@@ -114,7 +114,7 @@ class EpisodeRunner:
             episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state = game.get_next_state(env_state, action)
-            # TODO: support scalar reward that is
+            # TODO: support scalar reward that's not {1,0,-1,0.0000001}
             r = game.getGameEnded(env_state)
 
             if r != 0:

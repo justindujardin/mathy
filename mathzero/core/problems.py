@@ -1,9 +1,42 @@
 import random
 
 
+MODE_ARITHMETIC = 0
+MODE_SOLVE_FOR_VARIABLE = 1
+MODE_SIMPLIFY_POLYNOMIAL = 2
+
+
 class ProblemGenerator:
-    # https://codereview.stackexchange.com/questions/46226/utility-function-to-split-a-number-into-n-parts-in-the-given-ratio
-    def new_reduce_ratio(self, total_num, min_num, load_list=None):
+    def __init__(self):
+        self.variables = list("xyz")
+        self.operators = list("+*")
+        self.problem_types = [
+            MODE_ARITHMETIC,
+            MODE_SIMPLIFY_POLYNOMIAL,
+            # MODE_SOLVE_FOR_VARIABLE,
+        ]
+
+    def random_problem(self):
+        # Pick a random problem type (TODO: is this wise?)
+        type = self.problem_types[random.randint(0, len(self.problem_types) - 1)]
+        complexity = random.randint(3, 5)
+        if type == MODE_ARITHMETIC:
+            problem = self.arithmetic_expression(terms=complexity)
+        elif type == MODE_SIMPLIFY_POLYNOMIAL:
+            problem = self.simplify_multiple_terms(terms=complexity)
+        elif type == MODE_SOLVE_FOR_VARIABLE:
+            problem = self.solve_for_variable(terms=complexity)
+        return problem, type, complexity
+
+    def random_var(self, exclude_var=None):
+        """Generate a random variable from with an optional variable to exclude"""
+        var = self.variables[random.randint(0, len(self.variables) - 1)]
+        while var == exclude_var:
+            var = self.variables[random.randint(0, len(self.variables) - 1)]
+        return var
+
+    # From stackoverflow: https://bit.ly/2zxeQGf
+    def split_into_parts(self, total_num, min_num, load_list=None):
         if load_list is None:
             load_list = [20, 40, 20, 20]
 
@@ -27,10 +60,9 @@ class ProblemGenerator:
     def sum_and_single_variable(self, sum=None, max_terms=3, variable=None):
         if sum is None:
             sum = random.randint(max_terms * 5, max_terms * 20)
-        variables = list("xyz")
         if variable is None:
-            variable = variables[random.randint(0, len(variables) - 1)]
-        numbers = self.new_reduce_ratio(sum, 3)
+            variable = self.random_var()
+        numbers = self.split_into_parts(sum, 3)
         nums = [str(num) for num in numbers][: max_terms - 1]
         nums.append(variable)
         random.shuffle(nums)
@@ -63,15 +95,24 @@ class ProblemGenerator:
             result = result + " {} {}{}".format(op, num, var)
         return result + suffix
 
+    def arithmetic_expression(self, terms=4):
+        operators = list("+*/-")
+        result = "{} ".format(random.randint(1, 10))
+        for _ in range(terms - 1):
+            num = random.randint(1, 12)
+            op = operators[random.randint(0, len(operators) - 1)]
+            result = result + " {} {}".format(op, num)
+        return result
+
     def variable_multiplication(self, max_terms=4):
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
         constant = random.randint(1, 3)
-        exp = '^{}'.format(constant) if constant > 1 else ''
+        exp = "^{}".format(constant) if constant > 1 else ""
         result = "{}{}".format(variable, exp)
         for _ in range(max_terms - 1):
             constant = random.randint(1, 12)
-            exp = '^{}'.format(constant) if constant > 1 else ''
+            exp = "^{}".format(constant) if constant > 1 else ""
             result = result + " * {}{}".format(variable, exp)
         return result
 
@@ -97,3 +138,18 @@ class ProblemGenerator:
             num = random.randint(1, 12)
             result = result + " + {}{}".format(num, variable)
         return result
+
+    def solve_for_variable(self, terms=4):
+        """Generate a solve for x type problem, e.g. `4x + 2 = 8x`"""
+        variable = self.random_var()
+        # Guarantee at least one set of like terms
+        result = "{}{} = {}".format(
+            random.randint(2, 10), variable, random.randint(2, 10)
+        )
+        suffix = " + {}{}".format(random.randint(2, 10), variable)
+        for _ in range(terms - 3):
+            num = random.randint(1, 12)
+            op = self.operators[random.randint(0, len(self.operators) - 1)]
+            var = variable if random.getrandbits(1) == 0 else ""
+            result = result + " {} {}{}".format(op, num, var)
+        return result + suffix

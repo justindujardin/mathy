@@ -69,13 +69,8 @@ class MathGame(Game):
         ]
         self.expression_str = "unset"
 
-    def get_initial_state(self, problem: str = None):
-        """return a numpy encoded version of the input expression"""
-        complexity = random.randint(3, 5)
-        if problem is None:
-            problem = self.problems.simplify_multiple_terms(terms=complexity)
-            # problem = self.problems.most_basic_add_like_terms()
-            # problem = self.problems.variable_multiplication(3)
+    def get_initial_state(self):
+        (problem, type, complexity) = self.problems.random_problem()
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
@@ -89,7 +84,7 @@ class MathGame(Game):
                     problem, MathGame.width
                 )
             )
-        env_state = MathEnvironmentState(problem=problem)
+        env_state = MathEnvironmentState(problem=problem, problem_type=type)
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return env_state, complexity
 

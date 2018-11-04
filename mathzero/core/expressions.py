@@ -340,6 +340,9 @@ class BinaryExpression(MathExpression):
         if not isinstance(self, BinaryExpression):
             priority = OOO_INVALID
 
+        if isinstance(self, EqualExpression):
+            priority = OOO_INVALID
+
         if isinstance(self, AddExpression) or isinstance(self, SubtractExpression):
             priority = OOO_ADDSUB
 
