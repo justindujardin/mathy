@@ -2,6 +2,7 @@ from .expressions import (
     ConstantExpression,
     VariableExpression,
     MultiplyExpression,
+    DivideExpression,
     PowerExpression,
     AddExpression,
     SubtractExpression,
@@ -80,6 +81,60 @@ def isAddSubtract(node):
     return isinstance(node, AddExpression) or isinstance(node, SubtractExpression)
 
 
+def getSubTerms(node: MathExpression):
+    nodes = node.toList()
+    terms = []
+
+    def safe_pop():
+        nonlocal nodes
+        if len(nodes) > 0:
+            return nodes.pop(0)
+        return None
+
+    current = safe_pop()
+
+    while current is not None:
+        term_const = term_var = term_exp = None
+        # If there's a coefficient, note it
+        if isinstance(current, ConstantExpression):
+            term_const = current
+            current = safe_pop()
+            # Cannot have add/sub in sub-terms
+            if isAddSubtract(current):
+                return False
+            # It should be one of these operators
+            assert current is None or isinstance(
+                current, (MultiplyExpression, DivideExpression, PowerExpression)
+            )
+            if not isinstance(current, PowerExpression):
+                current = safe_pop()
+
+        # Pop off the variable
+        if isinstance(current, VariableExpression):
+            term_var = current
+            current = safe_pop()
+            # cannot have add/sub in sub-terms
+            if isAddSubtract(current):
+                return False
+            # It should be one of these operators
+            assert current is None or isinstance(
+                current, (MultiplyExpression, DivideExpression, PowerExpression)
+            )
+            if not isinstance(current, PowerExpression):
+                current = safe_pop()
+
+        # Look for exponent
+        if isinstance(current, PowerExpression):
+            # pop the power binary expression
+            current = safe_pop()
+            # store the right hand side
+            term_exp = current
+            # pop it off for next term
+            current = safe_pop()
+        terms.append((term_const, term_var, term_exp))
+    return terms
+
+
 def isSimpleTerm(node: MathExpression) -> bool:
     """
     Return True if a given term has been simplified such that it only has at 
@@ -91,52 +146,25 @@ def isSimpleTerm(node: MathExpression) -> bool:
         Simple = x^2 * 4
         Complex = 2 * 2x^2
     """
-    term = getTerm(node)
-    if term == False:
+    sub_terms = getSubTerms(node)
+    if sub_terms is False:
         return False
+    seen = set()
+    co_key = "coefficient"
+    
+    for coefficient, variable, exponent in sub_terms:
+        if coefficient is not None:
+            if co_key in seen:
+                return False
+            seen.add(co_key)
 
-    if len(term.coefficients) > 1:
-        return False
+        if variable is not None or exponent is not None:
+            key = "{}{}".format(variable, exponent)
+            if key in seen:
+                return False
+            seen.add(key)
 
-    vars = set(term.variables)
-    if len(vars) <= 1:
-        return len(term.variables) <= 1
-    # In multivariable case make sure the flow is
-    # Const * Var * Var ...
-    find_const = True
-    fail = False
-    seen_vars = set()
-
-    def visit_fn(node, depth, data):
-        nonlocal find_const, fail
-        # First node should be a constant
-        if find_const:
-            if not isinstance(node, ConstantExpression):
-                fail = True
-                return STOP
-            find_const = False
-            return
-        # Any more terms?
-        if isAddSubtract(node):
-            fail = True
-            return STOP
-        # Any more constants after the first and it's no good
-        if isinstance(node, ConstantExpression):
-            fail = True
-            return STOP
-
-        if isinstance(node, VariableExpression):
-            # If a variable is seen multiple times in a term the term
-            # can be simplified to combine them (and their exponents)
-            # e.g. "1000y * y * z" or "24x * x"
-            if node.identifier in seen_vars:
-                fail = True
-                return STOP
-            # Seen once
-            seen_vars.add(node.identifier)
-
-    node.visitInorder(visit_fn)
-    return fail == False
+    return True
 
 
 def isPreferredTermForm(expression: MathExpression) -> bool:

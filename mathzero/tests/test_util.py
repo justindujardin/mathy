@@ -19,8 +19,8 @@ from ..core.rules import (
 
 def test_is_preferred_term_form():
     examples = [
-        ("4xz", True),
-        ("z * 4x", False),
+        ("4x * z", True),
+        ("z * 4x", True),
         ("2x * x", False),
         ("29y", True),
         ("z", True),

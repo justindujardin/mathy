@@ -42,6 +42,19 @@ class MathExpression(BinaryTreeNode):
         self.classes = list(set(self.classes).union(classes))
         return self
 
+    def toList(self):
+        """
+        Convert this node hierarchy into a list.
+        @returns {Array} Array of {@link MathExpression} visited in order
+        """
+        results = []
+
+        def visit_fn(node, depth, data):
+            return results.append(node)
+
+        self.visitInorder(visit_fn)
+        return results
+
     def findByType(self, instanceType):
         """
         Find an expression in this tree by type.

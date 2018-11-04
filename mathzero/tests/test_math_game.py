@@ -17,9 +17,11 @@ def test_math_game_init():
 def test_math_game_win_conditions():
 
     expectations = [
+        ("4x^2", True),
+        ("100y * x + 2", True),
+        ("10y * 10x + 2", False),
         ("10y + 1000y * (y * z)", False),
         ("4 * (5y + 2)", False),
-        ("4x^2", True),
         ("2", True),
         ("4x * 2", False),
         ("4x * 2x", False),
