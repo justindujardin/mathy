@@ -13,12 +13,14 @@ class ProblemGenerator:
         self.problem_types = [
             MODE_ARITHMETIC,
             MODE_SIMPLIFY_POLYNOMIAL,
-            # MODE_SOLVE_FOR_VARIABLE,
+            MODE_SOLVE_FOR_VARIABLE,
         ]
 
-    def random_problem(self):
+    def random_problem(self, from_types=None):
+        if from_types is None:
+            from_types = self.problem_types
         # Pick a random problem type (TODO: is this wise?)
-        type = self.problem_types[random.randint(0, len(self.problem_types) - 1)]
+        type = from_types[random.randint(0, len(from_types) - 1)]
         complexity = random.randint(3, 5)
         if type == MODE_ARITHMETIC:
             problem = self.arithmetic_expression(terms=complexity)
@@ -97,7 +99,7 @@ class ProblemGenerator:
 
     def arithmetic_expression(self, terms=4):
         operators = list("+*/-")
-        result = "{} ".format(random.randint(1, 10))
+        result = "{}".format(random.randint(1, 10))
         for _ in range(terms - 1):
             num = random.randint(1, 12)
             op = operators[random.randint(0, len(operators) - 1)]

@@ -13,7 +13,7 @@ from .core.expressions import (
     AddExpression,
     VariableExpression,
 )
-from .core.problems import ProblemGenerator
+from .core.problems import ProblemGenerator, MODE_SIMPLIFY_POLYNOMIAL
 from .core.parser import ExpressionParser
 from .core.util import (
     termsAreLike,
@@ -70,7 +70,9 @@ class MathGame(Game):
         self.expression_str = "unset"
 
     def get_initial_state(self):
-        (problem, type, complexity) = self.problems.random_problem()
+        (problem, type, complexity) = self.problems.random_problem(
+            [MODE_SIMPLIFY_POLYNOMIAL]
+        )
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
