@@ -131,6 +131,10 @@ def getSubTerms(node: MathExpression):
             term_exp = current
             # pop it off for next term
             current = safe_pop()
+            
+        # Couldn't find anything
+        if term_const is None and term_exp is None and term_var is None:
+            return False
         terms.append((term_const, term_var, term_exp))
     return terms
 
