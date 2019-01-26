@@ -13,7 +13,7 @@ from .core.expressions import (
     AddExpression,
     VariableExpression,
 )
-from .core.problems import ProblemGenerator, MODE_SIMPLIFY_POLYNOMIAL
+from .core.problems import ProblemGenerator, MODE_SOLVE_FOR_VARIABLE, MODE_SIMPLIFY_POLYNOMIAL
 from .core.parser import ExpressionParser
 from .core.util import (
     termsAreLike,
@@ -253,7 +253,8 @@ class MathGame(Game):
         # Check for simplification removes all like terms
         root = expression.getRoot()
 
-        if not has_like_terms(root):
+        # Check for problem_type specific win conditions
+        if agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL and not has_like_terms(root):
             term_nodes = getTerms(root)
             is_win = True
             for term in term_nodes:

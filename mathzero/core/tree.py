@@ -1,5 +1,6 @@
 import time
 import curses
+import uuid
 
 # ## Constants
 
@@ -20,7 +21,10 @@ class BinaryTreeNode:
     """
 
     #  Allow specifying children in the constructor
-    def __init__(self, left=None, right=None, parent=None):
+    def __init__(self, left=None, right=None, parent=None, id=None):
+        if id is None:
+            id = uuid.uuid4().hex
+        self.id = id
         self.setLeft(left)
         self.setRight(right)
         self.parent = parent
@@ -28,6 +32,7 @@ class BinaryTreeNode:
     def clone(self):
         """Create a clone of this tree"""
         result = self.__class__()
+        result.id = self.id
         if self.left:
             result.setLeft(self.left.clone())
 

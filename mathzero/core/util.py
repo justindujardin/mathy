@@ -131,7 +131,7 @@ def getSubTerms(node: MathExpression):
             term_exp = current
             # pop it off for next term
             current = safe_pop()
-            
+
         # Couldn't find anything
         if term_const is None and term_exp is None and term_var is None:
             return False
@@ -155,7 +155,7 @@ def isSimpleTerm(node: MathExpression) -> bool:
         return False
     seen = set()
     co_key = "coefficient"
-    
+
     for coefficient, variable, exponent in sub_terms:
         if coefficient is not None:
             if co_key in seen:

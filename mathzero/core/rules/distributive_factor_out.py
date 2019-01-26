@@ -85,7 +85,7 @@ class DistributiveFactorOutRule(BaseRule):
         # NOTE: we swap the output order of the extracted 
         #       common factor and what remains to prefer
         #       ordering that can be expressed without an 
-        #       explicit multiplicat symbol.
+        #       explicit multiplication symbol.
         result = MultiplyExpression(inside, a)
 
         if leftLink:

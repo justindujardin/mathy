@@ -12,14 +12,8 @@ OOO_INVALID = -1
 class MathExpression(BinaryTreeNode):
     """A Basic MathExpression node"""
 
-    _idCounter = 0
-
     def __init__(self, id=None, left=None, right=None, parent=None):
-        super().__init__(left, right, parent)
-        if id is None:
-            MathExpression._idCounter = MathExpression._idCounter + 1
-            id = "mn-{}".format(MathExpression._idCounter)
-        self.id = id
+        super().__init__(left, right, parent, id)
         self.classes = [self.id]
         self.clonedNode = None
         self.targetClone = None

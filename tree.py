@@ -3,7 +3,7 @@ from mathzero.core.parser import ExpressionParser
 from mathzero.core.expressions import BinaryExpression, UnaryExpression
 
 parser = ExpressionParser()
-node = parser.parse("2x^4 * 4x^3 + (4 / 8) * x")
+node = parser.parse("(y^2 * 9) * (1 * 7) + 3y")
 renderer = TreeLayout()
 
 
@@ -12,5 +12,10 @@ def print_node(node):
         return node.name
     return str(node)
 
+#      *
+#    /   \
+#   2     ^
+#       /   \
+#      x     4
 
 renderer.render_curses(node, print_node)
