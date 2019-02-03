@@ -14,6 +14,7 @@ class Arena:
         self.display = display
 
     def playGame(self, verbose=False):
+        steps = []
         env_state, complexity = self.game.get_initial_state()
         it = 0
         next_state = self.game.getGameEnded(env_state)
@@ -21,10 +22,9 @@ class Arena:
             it += 1
             if verbose and self.display:
                 self.display(env_state)
+            steps.append(env_state.agent.problem)
             action = self.player(env_state)
-
             valids = self.game.getValidMoves(env_state)
-
             if valids[action] == 0:
                 print(action)
                 assert valids[action] > 0
@@ -35,6 +35,8 @@ class Arena:
         if verbose:
             assert self.display
             self.display(env_state)
+        # Final state
+        steps.append(env_state.agent.problem)
 
         is_win = next_state == 1
         if verbose:
@@ -43,7 +45,7 @@ class Arena:
             else:
                 outcome_str = "Failed"
             print("\n\t\tResult: {}\n\n".format(outcome_str))
-        return is_win
+        return is_win, steps
 
     def playGames(self, num, verbose=False):
         """
@@ -52,7 +54,9 @@ class Arena:
         Returns:
             solved: number of problems solved
             failed: number of problems unsolved
+            details: the problems attempted with each step as ascii math expressions
         """
+        details = {"solved": [], "failed": []}
         eps_time = AverageMeter()
         bar = Bar("Problem.solve", max=num)
         end = time.time()
@@ -62,11 +66,13 @@ class Arena:
         solved = 0
         failed = 0
         for _ in range(num):
-            is_win = self.playGame(verbose=verbose)
+            is_win, steps = self.playGame(verbose=verbose)
             if is_win:
                 solved += 1
+                details["solved"].append(steps)
             else:
                 failed += 1
+                details["failed"].append(steps)
 
             # bookkeeping + plot progress
             eps += 1
@@ -82,4 +88,4 @@ class Arena:
             bar.next()
         bar.finish()
 
-        return solved, failed
+        return solved, failed, details

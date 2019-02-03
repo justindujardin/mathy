@@ -1,3 +1,5 @@
+import uuid
+import json
 from alpha_zero_general.Arena import Arena
 from alpha_zero_general.MCTS import MCTS
 from mathzero.math_game import MathGame, display
@@ -15,4 +17,7 @@ predictor.load_checkpoint("./training/agent_3/latest.pth.tar")
 mcts = MCTS(game, predictor, cpuct=1.0, num_mcts_sims=200, epsilon=0)
 calvin = lambda x: np.argmax(mcts.getActionProb(x, temp=0))
 arena = Arena(calvin, game, display=display)
-print(arena.playGames(100))
+solved, failed, details = arena.playGames(20)
+print(solved, failed)
+with open("visualization/arena_{}".format(uuid.uuid4().hex), "w") as file:
+    file.write(json.dumps(details, indent=2))
