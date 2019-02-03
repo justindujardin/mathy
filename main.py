@@ -10,7 +10,7 @@ from mathzero.model.tensorflow_neural_net import MathNeuralNet
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
-eps = 10
+eps = 100
 
 args = {
     "self_play_iterations": eps,
@@ -19,6 +19,9 @@ args = {
     # "checkpoint": "./training/agent_3/",
     "best_model_name": "latest",
 }
+
+# NOTE: For a new model bootstrap, it won't use examples file if there's not a checkpoint found. 
+# TODO: Fix this :point_up:
 
 # Single-process implementation for debugging and development
 dev_mode = False
