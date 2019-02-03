@@ -19,10 +19,10 @@ class MathModel:
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.input_boards = tf.placeholder(
-                tf.float32, shape=[None, self.board_x, self.board_y]
+                tf.float32, shape=[None, self.board_x, self.board_y], name="input_state"
             )  # s: batch_size x board_x x board_y
-            self.dropout = tf.placeholder(tf.float32)
-            self.isTraining = tf.placeholder(tf.bool, name="is_training")
+            self.dropout = tf.placeholder(tf.float32, name="input_dropout")
+            self.isTraining = tf.placeholder(tf.bool, name="input_training")
 
             x_image = tf.reshape(
                 self.input_boards, [-1, self.board_x, self.board_y, 1]
