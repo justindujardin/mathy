@@ -18,6 +18,12 @@ import json
 from pathlib import Path
 
 
+def is_debug_mode():
+    """Debug mode enables extra logging and assertions, but is slower because of 
+    the increased sanity check measurements."""
+    return False
+
+
 def load_rule_tests(name):
     rule_file = (
         Path(__file__).parent.parent / "tests" / "rules" / "{}.json".format(name)

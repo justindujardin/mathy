@@ -1,4 +1,5 @@
 from .tree import STOP
+from .util import is_debug_mode
 
 # Basic rule class that visits a tree with a specified visit order.
 class BaseRule:
@@ -47,9 +48,10 @@ class BaseRule:
         return False
 
     def applyTo(self, node):
-        if not self.canApplyTo(node):
-            # print('Bad Apply: {}'.format(node))
-            # print('     Root: {}'.format(node.getRoot()))
+        # Only double-check canApply in debug mode
+        if is_debug_mode() and not self.canApplyTo(node):
+            print("Bad Apply: {}".format(node))
+            print("     Root: {}".format(node.getRoot()))
             raise Exception("Cannot apply {} to {}".format(self.name, node))
 
         return ExpressionChangeRule(self, node)
@@ -57,15 +59,10 @@ class BaseRule:
 
 # Basic description of a change to an expression tree
 class ExpressionChangeRule:
-    def __init__(self, rule, node=None, end=None):
+    def __init__(self, rule, node=None):
         self.rule = rule
         self.node = node
         self._saveParent = None
-        if node:
-            self.init(node)
-
-        if node and end:
-            self.done(end)
 
     def saveParent(self, parent=None, side=None):
         if self.node and parent is None:
@@ -77,17 +74,8 @@ class ExpressionChangeRule:
 
         return self
 
-    def init(self, node):
-        self.begin = node.rootClone()
-        return self
-
     def done(self, node):
         if self._saveParent:
             self._saveParent.setSide(node, self._saveSide)
-        self.end = node.rootClone()
+        self.result = node.rootClone()
         return self
-
-    def describe(self):
-        return """{}:\n    {}\n    {}""".format(
-            self.rule.name, self.begin.getRoot(), self.end.getRoot()
-        )

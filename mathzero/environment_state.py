@@ -101,7 +101,7 @@ class MathEnvironmentState(object):
         # TODO: Decide how to detect/encode modes...
         data[0][0] = self.agent.problem_type
         data = self.write_problem(1, data, self.agent.problem)
-        # Encode up to last (history_length-1) moves into the agent memory
+        # Encode up to last (history_length-1) moves into the agent "memory"
         history = self.agent.history[-(self.history_length - 1) :]
         for i, problem in enumerate(history):
             data = self.write_problem(i + 2, data, problem)

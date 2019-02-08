@@ -108,9 +108,7 @@ class EpisodeRunner:
 
             pi = mcts.getActionProb(env_state.clone(), temp=temp)
             # Store the episode example data for training the neural net
-            example_data = env_state
-            if hasattr(example_data, "to_numpy"):
-                example_data = example_data.to_numpy()
+            example_data = env_state.to_numpy()
             episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state = game.get_next_state(env_state, action)

@@ -20,10 +20,13 @@ class BinaryTreeNode:
     children, and a parent.
     """
 
+    _idCounter = 0
+
     #  Allow specifying children in the constructor
     def __init__(self, left=None, right=None, parent=None, id=None):
         if id is None:
-            id = uuid.uuid4().hex
+            BinaryTreeNode._idCounter = BinaryTreeNode._idCounter + 1
+            id = "mn-{}".format(BinaryTreeNode._idCounter)
         self.id = id
         self.setLeft(left)
         self.setRight(right)

@@ -13,7 +13,11 @@ from .core.expressions import (
     AddExpression,
     VariableExpression,
 )
-from .core.problems import ProblemGenerator, MODE_SOLVE_FOR_VARIABLE, MODE_SIMPLIFY_POLYNOMIAL
+from .core.problems import (
+    ProblemGenerator,
+    MODE_SOLVE_FOR_VARIABLE,
+    MODE_SIMPLIFY_POLYNOMIAL,
+)
 from .core.parser import ExpressionParser
 from .core.util import (
     termsAreLike,
@@ -101,6 +105,16 @@ class MathGame(Game):
         """Return number of all possible actions"""
         return len(self.available_rules) * self.width
 
+    def get_action_rule(self, env_state: MathEnvironmentState, action):
+        # Figure out the token index of the selected action
+        token_index = action % self.width
+        # And the action at that token
+        action_index = int(action / (self.width - token_index))
+        rule = self.available_rules[action_index]
+        if not isinstance(rule, BaseRule):
+            raise ValueError("given action does not correspond to a BaseRule")
+        return rule
+
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """
         Input:
@@ -113,13 +127,8 @@ class MathGame(Game):
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-
-        # Figure out the token index of the selected action
-        token_index = action % self.width
-        # And the action at that token
-        action_index = int(action / (self.width - token_index))
-        token = self.getFocusToken(expression, token_index)
-        operation = self.available_rules[action_index]
+        operation = self.get_action_rule(env_state, action)
+        token = self.getFocusToken(expression, action % self.width)
 
         # NOTE: If you get maximum recursion errors, it can mean that you're not
         # hitting a terminal state. Force the searching var off here to get
@@ -134,30 +143,26 @@ class MathGame(Game):
         #       repeated in odd ways. Assume repetition is part of training.
         # NOTE: Maybe this is solved by something like Actor/Critic updates?
         #
-        # TODO: This can maybe be solved by treating an expression returning to a previous
+        # NOTE: This can maybe be solved by treating an expression returning to a previous
         #       state as a LOSS. If the model should optimize for the shortest paths
         #       to a solution, it will never be the shortest path if you revisit a previous
         #       state.
         # NOTE: The hope is that this will make the problem much simpler for the model
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
-            root = change.end.getRoot()
+            root = change.result.getRoot()
             out_problem = str(root)
             if not searching and self.verbose:
                 output = """{:<25}: {}""".format(
-                    change.rule.name[:25], change.end.getRoot()
+                    change.rule.name[:25], change.result.getRoot()
                 )
                 print("[{}] {}".format(str(agent.move_count).zfill(2), output))
             out_env = env_state.encode_player(out_problem, agent.move_count + 1)
         else:
-            print(
-                "action is {}, token_index is {}, and token is {}".format(
-                    action, token_index, str(token)
-                )
-            )
+            print("action is {}, and token is {}".format(action, str(token)))
             raise Exception(
-                "\n\n\tExpression: {}\n\tFocus: {}\n\tIndex: {}\n\tinvalid move selected: {}, {}".format(
-                    expression, token, token_index, action, type(operation)
+                "\n\n\tExpression: {}\n\tFocus: {}\n\tinvalid move selected: {}, {}".format(
+                    expression, token, action, type(operation)
                 )
             )
 
@@ -250,10 +255,8 @@ class MathGame(Game):
                 print("\n[Failed] re-entered previous state: {}".format(list_group[0]))
             return -1
 
-        # Check for simplification removes all like terms
-        root = expression.getRoot()
-
         # Check for problem_type specific win conditions
+        root = expression.getRoot()
         if agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL and not has_like_terms(root):
             term_nodes = getTerms(root)
             is_win = True
