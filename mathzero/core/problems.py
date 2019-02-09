@@ -21,7 +21,8 @@ class ProblemGenerator:
             from_types = self.problem_types
         # Pick a random problem type (TODO: is this wise?)
         type = from_types[random.randint(0, len(from_types) - 1)]
-        complexity = random.randint(3, 5)
+        # TODO: set this back to variable. Trying to force model to get the 5s right.
+        complexity = 5 # random.randint(3, 5)
         if type == MODE_ARITHMETIC:
             problem = self.arithmetic_expression(terms=complexity)
         elif type == MODE_SIMPLIFY_POLYNOMIAL:
