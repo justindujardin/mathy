@@ -67,7 +67,7 @@ def run_rule_tests(name, rule_class, callback=None):
         node = rule.findNode(expression)
         assert node is not None
         change = rule.applyTo(node)
-        assert str(change.end.getRoot()).strip() == ex["output"]
+        assert str(change.result.getRoot()).strip() == ex["output"]
     for ex in tests["invalid"]:
         # Skip over non-debug examples if there are any for easier debugging.
         if has_debug and "debug" not in ex:
