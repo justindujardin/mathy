@@ -116,7 +116,7 @@ class MathExpression(BinaryTreeNode):
         points = []
 
         def path_mark(node):
-            points.append(node.__class__.__name__.lower())
+            points.append(node.__class__.__name__)
 
         node = self
         path_mark(node)
@@ -154,7 +154,7 @@ class MathExpression(BinaryTreeNode):
         node.  See {@link #rootClone} for more details.
         """
         result = super().clone()
-        if self.pathToRoot() == self.targetClone:
+        if self.targetClone is not None and self.pathToRoot() == self.targetClone:
             self.clonedNode = result
 
         return result
