@@ -7,8 +7,8 @@
   "builders": [
     {
       "type": "googlecompute",
-      "image_name": "ml-dojo-img",
-      "image_family": "ml-dojo",
+      "image_name": "mt-tesla-t4-img",
+      "image_family": "mathtastic",
       "disk_size": "20",
       "project_id": "{{user `project_id`}}",
       "source_image_family": "ubuntu-1604-lts",
@@ -19,12 +19,12 @@
   "provisioners": [
     {
       "type": "file",
-      "source": "ml-dojo-packer-deps.sh",
+      "source": "monstertastic-packer-deps.sh",
       "destination": "/tmp/"
     },
     {
       "type": "file",
-      "source": "ml-dojo-terraform-init",
+      "source": "monstertastic-boot-script.sh",
       "destination": "/tmp/"
     },
     {
@@ -35,9 +35,9 @@
     {
       "type": "shell",
       "inline": [
-        "sudo cp /tmp/init-dev-env /usr/local/bin/init-dev-env",
-        "sudo cp /tmp/ml-dojo-terraform-init /usr/local/bin/ml-dojo-terraform-init",
-        "sudo /tmp/ml-dojo-packer-deps.sh"
+        "sudo cp /tmp/init-dev-env /usr/local/bin/",
+        "sudo cp /tmp/monstertastic-boot-script.sh /usr/local/bin/",
+        "sudo /tmp/monstertastic-packer-deps.sh"
       ]
     }
   ]

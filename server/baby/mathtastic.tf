@@ -8,9 +8,9 @@ provider "google" {
   region      = "us-east1-c"
 }
 
-resource "google_compute_instance" "ml-dojo-worker" {
+resource "google_compute_instance" "mathtastic-worker" {
   count                     = "1"
-  name                      = "ml-dojo-worker"
+  name                      = "mathtastic-worker"
   machine_type              = "n1-standard-8"
   zone                      = "us-east1-c"
   metadata_startup_script   = "#!/usr/bin/env bash\n/usr/local/bin/ml-dojo-terraform-init"
@@ -24,8 +24,6 @@ resource "google_compute_instance" "ml-dojo-worker" {
   // Disk storage
   boot_disk {
     initialize_params {
-      // TODO: is this `size` needed anymore? I originally set it for packer.. oops.
-      size = "20" 
       // Custom built image with CUDA and such already installed
       image = "${var.image}"
     }
