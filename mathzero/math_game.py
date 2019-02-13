@@ -56,11 +56,16 @@ class MathGame(Game):
     width = MODEL_WIDTH
     history_length = MODEL_HISTORY_LENGTH
     # Default number of max moves used for training (can be overridden in init)
-    max_moves = 50
+    max_moves_easy = 50
+    max_moves_hard = 35
+    max_moves_expert = 20
 
-    def __init__(self, verbose=False, max_moves=None):
+    def __init__(self, verbose=False, max_moves=None, training_wheels=True):
         self.verbose = verbose
-        self.max_moves = max_moves if max_moves is not None else MathGame.max_moves
+        self.training_wheels = training_wheels
+        self.max_moves = (
+            max_moves if max_moves is not None else MathGame.max_moves_expert
+        )
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_rules = [
@@ -80,6 +85,10 @@ class MathGame(Game):
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
+        # problem = "6z * 12x * 5 * 12x + 8z"
+        # problem = "6z  + 2 - 5z"
+        # problem = "-z + 6z"
+        # problem = "5z + 6z"
         self.expression_str = problem
         # self.expression_str = "4x * 8 * 2"
         if self.verbose:
@@ -245,15 +254,16 @@ class MathGame(Game):
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
 
-        # The player loses if they return to a previous state.
-        for key, group in groupby(sorted(agent.history)):
-            list_group = list(group)
-            list_count = len(list_group)
-            if list_count <= 1:
-                continue
-            if not searching and self.verbose:
-                print("\n[Failed] re-entered previous state: {}".format(list_group[0]))
-            return -1
+        if self.training_wheels is True:
+            # The player loses if they return to a previous state.
+            for key, group in groupby(sorted(agent.history)):
+                list_group = list(group)
+                list_count = len(list_group)
+                if list_count <= 1:
+                    continue
+                if not searching and self.verbose:
+                    print("\n[Failed] re-entered previous state: {}".format(list_group[0]))
+                return -1
 
         # Check for problem_type specific win conditions
         root = expression.getRoot()

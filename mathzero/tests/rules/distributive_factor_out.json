@@ -3,6 +3,7 @@
     "valid": "two nodes connected by a plus can have common units extracted out"
   },
   "valid": [
+    { "input": "6 + 4", "output": "(3.0 + 2) * 2" },
     { "input": "7 + 7", "output": "(1 + 1) * 7" },
     { "input": "14x + 7x", "output": "(2 + 1) * 7x" }
   ],

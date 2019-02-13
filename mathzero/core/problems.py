@@ -21,8 +21,7 @@ class ProblemGenerator:
             from_types = self.problem_types
         # Pick a random problem type (TODO: is this wise?)
         type = from_types[random.randint(0, len(from_types) - 1)]
-        # TODO: set this back to variable. Trying to force model to get the 5s right.
-        complexity = 5 # random.randint(3, 5)
+        complexity = random.randint(3, 5)
         if type == MODE_ARITHMETIC:
             problem = self.arithmetic_expression(terms=complexity)
         elif type == MODE_SIMPLIFY_POLYNOMIAL:
@@ -84,15 +83,16 @@ class ProblemGenerator:
         return result
 
     def simplify_multiple_terms(self, terms=4):
+        max_number = 4096
         operators = list("+*")
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
         # Guarantee at least one set of like terms
-        result = "{}{}".format(random.randint(2, 10), variable)
-        suffix = " + {}{}".format(random.randint(2, 10), variable)
+        result = "{}{}".format(random.randint(2, max_number), variable)
+        suffix = " + {}{}".format(random.randint(2, max_number), variable)
         for _ in range(terms - 2):
             variable = variables[random.randint(0, len(variables) - 1)]
-            num = random.randint(1, 12)
+            num = random.randint(1, max_number)
             var = variable if random.getrandbits(1) == 0 else ""
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}{}".format(op, num, var)

@@ -15,7 +15,7 @@ eps = 100
 args = {
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/web_1/",
+    "checkpoint": "/mnt/gcs/mzc/web_3/",
     # "checkpoint": "./training/agent_3/",
     "best_model_name": "latest",
 }
@@ -40,7 +40,7 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 if __name__ == "__main__":
     config = RunnerConfig(
         num_mcts_sims=(150 if dev_mode else 1000),
-        temperature_threshold=round(MathGame.max_moves * 0.5),
+        temperature_threshold=round(MathGame.max_moves_easy * 0.5),
         cpuct=1.0,
     )
     runner = MathEpisodeRunner(config)

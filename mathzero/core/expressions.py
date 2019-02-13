@@ -229,7 +229,7 @@ class MathExpression(BinaryTreeNode):
 class UnaryExpression(MathExpression):
     """An expression that operates on one sub-expression"""
 
-    def __init__(self, child, operatorOnLeft=True):
+    def __init__(self, child=None, operatorOnLeft=True):
         super().__init__()
         self.child = child
         self.operatorleft = operatorOnLeft
