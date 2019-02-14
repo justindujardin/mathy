@@ -1,5 +1,5 @@
 import random
-
+import sys
 
 MODE_ARITHMETIC = 0
 MODE_SOLVE_FOR_VARIABLE = 1
@@ -8,6 +8,7 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 
 class ProblemGenerator:
     def __init__(self):
+        self.max_int = 4096
         self.variables = list("xyz")
         self.operators = list("+*")
         self.problem_types = [
@@ -83,16 +84,15 @@ class ProblemGenerator:
         return result
 
     def simplify_multiple_terms(self, terms=4):
-        max_number = 4096
         operators = list("+*")
         variables = list("xyz")
         variable = variables[random.randint(0, len(variables) - 1)]
         # Guarantee at least one set of like terms
-        result = "{}{}".format(random.randint(2, max_number), variable)
-        suffix = " + {}{}".format(random.randint(2, max_number), variable)
+        result = "{}{}".format(random.randint(2, self.max_int), variable)
+        suffix = " + {}{}".format(random.randint(2, self.max_int), variable)
         for _ in range(terms - 2):
             variable = variables[random.randint(0, len(variables) - 1)]
-            num = random.randint(1, max_number)
+            num = random.randint(1, self.max_int)
             var = variable if random.getrandbits(1) == 0 else ""
             op = operators[random.randint(0, len(operators) - 1)]
             result = result + " {} {}{}".format(op, num, var)
@@ -136,9 +136,9 @@ class ProblemGenerator:
         variables = list("xyz")
         num_terms = random.randint(min_terms, max_terms)
         variable = variables[random.randint(0, len(variables) - 1)]
-        result = "{}{}".format(random.randint(2, 10), variable)
+        result = "{}{}".format(random.randint(2, max_int), variable)
         for _ in range(num_terms - 1):
-            num = random.randint(1, 12)
+            num = random.randint(0, self.max_int)
             result = result + " + {}{}".format(num, variable)
         return result
 
@@ -147,11 +147,11 @@ class ProblemGenerator:
         variable = self.random_var()
         # Guarantee at least one set of like terms
         result = "{}{} = {}".format(
-            random.randint(2, 10), variable, random.randint(2, 10)
+            random.randint(2, self.max_int), variable, random.randint(2, self.max_int)
         )
-        suffix = " + {}{}".format(random.randint(2, 10), variable)
+        suffix = " + {}{}".format(random.randint(2, self.max_int), variable)
         for _ in range(terms - 3):
-            num = random.randint(1, 12)
+            num = random.randint(1, self.max_int)
             op = self.operators[random.randint(0, len(self.operators) - 1)]
             var = variable if random.getrandbits(1) == 0 else ""
             result = result + " {} {}{}".format(op, num, var)
