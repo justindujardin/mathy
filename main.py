@@ -12,12 +12,9 @@ from mathzero.core.parser import ExpressionParser
 
 eps = 100
 
-args = {
-    "self_play_iterations": eps,
-    "max_training_examples": 200000,
-}
+args = {"self_play_iterations": eps, "max_training_examples": 200000}
 
-# NOTE: For a new model bootstrap, it won't use examples file if there's not a checkpoint found. 
+# NOTE: For a new model bootstrap, it won't use examples file if there's not a checkpoint found.
 # TODO: Fix this :point_up:
 
 # Single-process implementation for debugging and development
@@ -25,20 +22,22 @@ dev_mode = False
 
 BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
+# model_dir = "./training/embedding_1/"
+model_dir = "/mnt/gcs/mzc/embedding_1/"
+
 
 class MathEpisodeRunner(BaseEpisodeRunner):
     def get_game(self):
         return MathGame(verbose=dev_mode)
 
     def get_nnet(self, game, all_memory=False):
-        return MathModel(game)
+        return MathModel(game, model_dir)
 
 
 if __name__ == "__main__":
     config = RunnerConfig(
-        model_dir="/mnt/gcs/mzc/embedding_1/",
-        # model_dir="./training/embedding_1",
-        num_mcts_sims=(150 if dev_mode else 1000),
+        model_dir=model_dir,
+        num_mcts_sims=(15 if dev_mode else 500),
         temperature_threshold=round(MathGame.max_moves_easy * 0.5),
         cpuct=1.0,
     )
