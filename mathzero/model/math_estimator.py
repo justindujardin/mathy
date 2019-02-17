@@ -14,18 +14,22 @@ def math_estimator(features, labels, mode, params):
     dropout = params.get("dropout", 0.1)
     logits = tf.layers.dense(
         net, action_size, bias_initializer=init_ops.glorot_normal_initializer()
-    )  # batch_size x self.action_size
+    )
+    # TODO: add a second policy to have action/position prediction. This should reduce the size considerably
+    # because instead of having to predict (action_count * max_input_len) (~768 currently) actions
+    # it will have to predict (action_count) actions and then another prediction for (action_position)
     policy = tf.nn.softmax(logits, name="out_policy")
-    value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_value")  # batch_size x 1
+    value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_value")
 
     # Compute predictions.
     if mode == tf.estimator.ModeKeys.PREDICT:
         predictions = {"out_value": value, "out_policy": policy, "logits": logits}
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
-    # Compute loss.
-    target_pis = tf.placeholder(tf.float32, shape=[None, action_size])
-    target_vs = tf.placeholder(tf.float32, shape=[None])
+    # Split target policies from target values
+    target_pis = labels[:, 0:-1]
+    target_vs = labels[:, -1]
+
     loss_pi = tf.losses.softmax_cross_entropy(target_pis, logits)
     loss_v = tf.losses.mean_squared_error(target_vs, tf.reshape(value, shape=[-1]))
     total_loss = loss_pi + loss_v

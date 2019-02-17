@@ -21,7 +21,7 @@ class RunnerConfig:
         num_mcts_sims=15,
         temperature_threshold=0.5,
         cpuct=1.0,
-        model_dir=None
+        model_dir=None,
     ):
         self.num_wokers = num_wokers
         self.num_mcts_sims = num_mcts_sims
@@ -115,7 +115,10 @@ class EpisodeRunner:
             r = game.getGameEnded(env_state)
 
             if r != 0:
-                examples = [(x[0], x[1], r) for x in episode_examples]
+                examples = [
+                    {"reward": r, "inputs": x[0], "policy": x[1]}
+                    for x in episode_examples
+                ]
                 return examples, r, complexity
 
         return [], -1, complexity
@@ -129,10 +132,7 @@ class EpisodeRunner:
     ):
         if updated_model is None:
             return False
-        updated_model.save_checkpoint(model_path)
-        examples_file = "{}.examples".format(model_path)
-        with open(examples_file, "wb+") as f:
-            Pickler(f).dump(train_examples)
+        # updated_model.save_checkpoint(model_path)
         return True
 
     def train(self, iteration, train_examples, model_path=None):
@@ -150,13 +150,6 @@ class EpisodeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_game()
         new_net = self.get_nnet(game, True)
-        has_best = new_net.can_load_checkpoint(model_path)
-        if has_best:
-            new_net.load_checkpoint(model_path)
-
-        # shuffle examlpes before training
-        shuffle(train_examples)
-
         # Train the model with the examples
         if new_net.train(train_examples) == False:
             print(

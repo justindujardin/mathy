@@ -1,3 +1,4 @@
+import ujson
 import sys
 import srsly
 import types
@@ -57,7 +58,7 @@ class Coach:
             self.run_network_training(i)
 
     def run_self_play(self, iteration, num_episodes):
-        if iteration < 1 and self.skip_first_self_play:
+        if iteration == 1 and self.skip_first_self_play:
             return []
         bar = Bar("Practicing", max=num_episodes)
         bar.suffix = "working on first problem..."
@@ -123,27 +124,32 @@ class Coach:
         a tuple of (best, new) where best is the existing best trained model (or a blank
         one) and new is the model that was just trained.
         """
-        best = self.get_best_model_filename()
         train_examples = self.all_examples
         # print(train_examples)
         print("Training with {} examples".format(len(train_examples)))
-        return self.runner.train(iteration, train_examples, best)
+        return self.runner.train(
+            iteration, train_examples, self.runner.config.model_dir
+        )
 
     def load_training_examples(self):
-        examples_file = "{}/input.examples".format(self.runner.config.model_dir)
-        if not os.path.isfile(examples_file):
+        file_path = Path(self.runner.config.model_dir) / "input.examples"
+        if not file_path.is_file():
             return False
-        self.all_examples = [
-            f for f in srsly.read_jsonl(examples_file, self.all_examples)
-        ]
-        # examples based on the model were already collected (loaded)
+        examples = []
+        with file_path.open("r", encoding="utf8") as f:
+            for line in f:
+                ex = ujson.loads(line)
+                examples.append(ex)
+        self.all_examples = examples
         self.skip_first_self_play = True
-        return examples_file
+        return str(file_path)
 
     def save_training_examples(self):
         model_dir = Path(self.runner.config.model_dir)
         if not model_dir.is_dir():
             model_dir.mkdir(parents=True, exist_ok=True)
-        examples_file = "{}/input.examples".format(self.runner.config.model_dir)
-        srsly.write_jsonl(examples_file, self.all_examples)
-        return str(examples_file)
+        file_path = model_dir / "input.examples"
+        with file_path.open("w", encoding="utf-8") as f:
+            for line in self.all_examples:
+                f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
+        return str(file_path)

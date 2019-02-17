@@ -7,6 +7,13 @@ from .core.problems import (
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
 )
+from .model.features import (
+    FEATURE_COLUMNS,
+    FEATURE_NODE_COUNT,
+    FEATURE_PROBLEM_TYPE,
+    FEATURE_TOKEN_TYPES,
+    FEATURE_TOKEN_VALUES,
+)
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
@@ -104,10 +111,10 @@ class MathEnvironmentState(object):
             types.append(t.type)
             values.append(t.value)
         input_features = {
-            "token_types": [types],
-            "token_values": [values],
-            "node_count": [len(values)],
-            "problem_type": [self.agent.problem_type],
+            FEATURE_TOKEN_TYPES: types,
+            FEATURE_TOKEN_VALUES: values,
+            FEATURE_NODE_COUNT: len(values),
+            FEATURE_PROBLEM_TYPE: self.agent.problem_type,
         }
         return input_features
 

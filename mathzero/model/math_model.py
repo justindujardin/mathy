@@ -1,14 +1,22 @@
+import collections
 import os
 import time
 import random
 import numpy
 import math
 import sys
-
 from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
 from alpha_zero_general.NeuralNet import NeuralNet
 from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
+from itertools import zip_longest
+from mathzero.model.features import (
+    FEATURE_TOKEN_VALUES,
+    FEATURE_TOKEN_TYPES,
+    FEATURE_NODE_COUNT,
+    FEATURE_PROBLEM_TYPE,
+    FEATURE_COLUMNS,
+)
 
 
 class NetConfig:
@@ -20,7 +28,7 @@ class NetConfig:
 
 
 class MathModel(NeuralNet):
-    def __init__(self, game):
+    def __init__(self, game, model_dir):
         import tensorflow as tf
 
         self.action_size = game.get_agent_actions_count()
@@ -29,23 +37,24 @@ class MathModel(NeuralNet):
         # Feature columns describe how to use the input.
         self.token_value_feature = tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
-                key="token_values", hash_bucket_size=12
+                key=FEATURE_TOKEN_VALUES, hash_bucket_size=12
             ),
-            dimension=3,
+            dimension=2,
         )
         self.feature_tokens_type = tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
-                key="token_types", hash_bucket_size=12, dtype=tf.int16
-            ),
-            dimension=4,
-        )
-
-        self.feature_node_count = tf.feature_column.numeric_column(key="node_count")
-        self.feature_problem_type = tf.feature_column.embedding_column(
-            tf.feature_column.categorical_column_with_hash_bucket(
-                key="problem_type", hash_bucket_size=3, dtype=tf.int16
+                key=FEATURE_TOKEN_TYPES, hash_bucket_size=12, dtype=tf.int64
             ),
             dimension=2,
+        )
+
+        self.feature_node_count = tf.feature_column.numeric_column(
+            key=FEATURE_NODE_COUNT, dtype=tf.int16
+        )
+        self.feature_problem_type = tf.feature_column.indicator_column(
+            tf.feature_column.categorical_column_with_identity(
+                key=FEATURE_PROBLEM_TYPE, num_buckets=32
+            )
         )
         self.feature_columns = [
             self.feature_problem_type,
@@ -53,15 +62,14 @@ class MathModel(NeuralNet):
             self.feature_node_count,
             self.token_value_feature,
         ]
-
-        self.nnet = tf.estimator.Estimator(
+        self.network = tf.estimator.Estimator(
             model_fn=math_estimator,
-            model_dir="training/embedding_one",
+            model_dir=model_dir,
             params={
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
                 "learning_rate": 0.1,
-                "hidden_units": [8, 2],
+                "hidden_units": [3, 3],
             },
         )
 
@@ -70,6 +78,48 @@ class MathModel(NeuralNet):
         examples: list of examples, each example is of form (env_state, pi, v)
         """
         import tensorflow as tf
+        import logging
+
+        # Define the training inputs
+        def get_train_inputs(examples, batch_size):
+
+            from json import loads, dumps
+            import tensorflow as tf
+
+            with tf.name_scope("PreprocessData"):
+                inputs = {}
+                outputs = []
+                for feature_key in FEATURE_COLUMNS:
+                    inputs[feature_key] = []
+                # Build up a feature map that can work as input
+                for ex in examples:
+                    ex_input = ex["inputs"]
+                    ex_append = {}
+                    for feature_key in FEATURE_COLUMNS:
+                        inputs[feature_key].append(ex_input[feature_key])
+                    target_pi = numpy.array(ex["policy"], dtype="float32")
+                    target_value = ex["reward"]
+                    outputs.append(
+                        numpy.concatenate((target_pi, [target_value]), axis=0)
+                    )
+                # Pad the variable length columns to longest in the list
+                inputs[FEATURE_TOKEN_TYPES] = numpy.array(
+                    list(zip_longest(*inputs[FEATURE_TOKEN_TYPES], fillvalue=-1))
+                ).T
+                inputs[FEATURE_TOKEN_VALUES] = numpy.array(
+                    list(zip_longest(*inputs[FEATURE_TOKEN_VALUES], fillvalue=0))
+                ).T
+                inputs[FEATURE_NODE_COUNT] = numpy.array(
+                    inputs[FEATURE_NODE_COUNT], dtype="int16"
+                )
+                inputs[FEATURE_PROBLEM_TYPE] = numpy.array(
+                    inputs[FEATURE_PROBLEM_TYPE], dtype="int8"
+                )
+                dataset = tf.data.Dataset.from_tensor_slices(
+                    (inputs, numpy.array(outputs))
+                )
+                dataset = dataset.shuffle(1000).batch(batch_size)
+                return dataset
 
         total_batches = int(len(examples) / self.args.batch_size)
         if total_batches == 0:
@@ -80,96 +130,42 @@ class MathModel(NeuralNet):
                 self.args.epochs, len(examples)
             )
         )
-
-        def train_input_fn(examples, outputs, batch_size):
-            dataset = tf.data.Dataset.from_tensor_slices(examples, outputs)
-            assert examples.shape[0] == outputs.shape[0]
-            dataset = dataset.shuffle(1000).batch(batch_size)
-            return dataset
-
-        self.classifier.train(
-            input_fn=lambda: train_input_fn(train_x, train_y, self.args.batch_size),
+        logging.getLogger().setLevel(logging.INFO)
+        self.network.train(
+            input_fn=lambda: get_train_inputs(examples, self.args.batch_size),
             steps=self.args.epochs,
         )
-
-        # for epoch in range(self.args.epochs):
-        #     print("EPOCH ::: " + str(epoch + 1))
-        #     data_time = AverageMeter()
-        #     batch_time = AverageMeter()
-        #     pi_losses = AverageMeter()
-        #     v_losses = AverageMeter()
-        #     end = time.time()
-
-        #     bar = Bar("Training Net", max=int(len(examples) / self.args.batch_size))
-        #     batch_idx = 0
-
-        #     # self.session.run(tf.local_variables_initializer())
-        #     while batch_idx < total_batches:
-        #         sample_ids = numpy.random.randint(
-        #             len(examples), size=self.args.batch_size
-        #         )
-        #         boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
-
-        #         # predict and compute gradient and do SGD step
-        #         input_dict = {
-        #             self.nnet.input_boards: boards,
-        #             self.nnet.target_pis: pis,
-        #             self.nnet.target_vs: vs,
-        #             self.nnet.dropout: self.args.dropout,
-        #             self.nnet.isTraining: True,
-        #         }
-
-        #         # measure data loading time
-        #         data_time.update(time.time() - end)
-
-        #         # record loss
-        #         self.session.run(self.nnet.train_step, feed_dict=input_dict)
-        #         pi_loss, v_loss = self.session.run(
-        #             [self.nnet.loss_pi, self.nnet.loss_v], feed_dict=input_dict
-        #         )
-        #         pi_losses.update(pi_loss, len(boards))
-        #         v_losses.update(v_loss, len(boards))
-
-        #         # measure elapsed time
-        #         batch_time.update(time.time() - end)
-        #         end = time.time()
-        #         batch_idx += 1
-
-        #         # plot progress
-        #         bar.suffix = "({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss_pi: {lpi:.4f} | Loss_v: {lv:.3f}".format(
-        #             batch=batch_idx,
-        #             size=int(len(examples) / self.args.batch_size),
-        #             data=data_time.avg,
-        #             bt=batch_time.avg,
-        #             total=bar.elapsed_td,
-        #             eta=bar.eta_td,
-        #             lpi=pi_losses.avg,
-        #             lv=v_losses.avg,
-        #         )
-        #         bar.next()
-        #     bar.finish()
+        logging.getLogger().setLevel(logging.WARN)
         return True
 
     def predict(self, env_state: MathEnvironmentState):
-        """
-        env_state: numpy array with env_state
-        """
         import tensorflow as tf
 
+        def predict_fn(input_env_state: MathEnvironmentState, batch_size):
+            import tensorflow as tf
+
+            tokens = input_env_state.parser.tokenize(input_env_state.agent.problem)
+            types = []
+            values = []
+            for t in tokens:
+                types.append(t.type)
+                values.append(t.value)
+            input_features = {
+                FEATURE_TOKEN_TYPES: [types],
+                FEATURE_TOKEN_VALUES: [values],
+                FEATURE_NODE_COUNT: [len(values)],
+                FEATURE_PROBLEM_TYPE: [input_env_state.agent.problem_type],
+            }
+            dataset = tf.data.Dataset.from_tensor_slices(input_features)
+            assert batch_size is not None, "batch_size must not be None"
+            dataset = dataset.batch(batch_size)
+            return dataset
+
         start = time.time()
-        predictions = self.nnet.predict(
+        predictions = self.network.predict(
             input_fn=lambda: predict_fn(env_state, batch_size=self.args.batch_size)
         )
         prediction = next(predictions)
         # print("predict : {0:03f}".format(time.time() - start))
         return prediction["out_policy"], prediction["out_value"][0]
 
-
-def predict_fn(input_env_state: MathEnvironmentState, batch_size):
-    import tensorflow as tf
-
-    input_features = input_env_state.to_input_features()
-    dataset = tf.data.Dataset.from_tensor_slices(input_features)
-    assert batch_size is not None, "batch_size must not be None"
-    dataset = dataset.batch(batch_size)
-    return dataset
