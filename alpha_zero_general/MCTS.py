@@ -94,8 +94,7 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            input_data = env_state.to_numpy()
-            self.Ps[s], v = self.nnet.predict(input_data)
+            self.Ps[s], v = self.nnet.predict(env_state)
             # print('calculating valid moves for: {}'.format(s))
             # print("v = {}".format(v))
             # print("Ps = {}".format(self.Ps[s].shape))

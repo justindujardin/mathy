@@ -3,11 +3,11 @@ import json
 from alpha_zero_general.Arena import Arena
 from alpha_zero_general.MCTS import MCTS
 from mathzero.math_game import MathGame, display
-from mathzero.model.tensorflow_neural_net import MathNeuralNet
+from mathzero.model.math_model import MathModel
 import numpy as np
 
 game = MathGame(verbose=True, max_moves=50)
-predictor = MathNeuralNet(game)
+predictor = MathModel(game)
 predictor.load_checkpoint("./training/web_1/latest.pth.tar")
 mcts = MCTS(game, predictor, cpuct=1.0, num_mcts_sims=200, epsilon=0)
 calvin = lambda x: np.argmax(mcts.getActionProb(x, temp=0))

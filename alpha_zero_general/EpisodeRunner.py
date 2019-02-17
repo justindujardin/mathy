@@ -21,11 +21,13 @@ class RunnerConfig:
         num_mcts_sims=15,
         temperature_threshold=0.5,
         cpuct=1.0,
+        model_dir=None
     ):
         self.num_wokers = num_wokers
         self.num_mcts_sims = num_mcts_sims
         self.temperature_threshold = temperature_threshold
         self.cpuct = cpuct
+        self.model_dir = model_dir
 
 
 class EpisodeRunner:
@@ -93,9 +95,6 @@ class EpisodeRunner:
             raise NotImplementedError("EpisodeRunner.get_game returned None type")
         if nnet is None:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
-        if model is not None:
-            if nnet.can_load_checkpoint(model):
-                nnet.load_checkpoint(model)
         episode_examples = []
         env_state, complexity = game.get_initial_state()
 
@@ -108,7 +107,7 @@ class EpisodeRunner:
 
             pi = mcts.getActionProb(env_state.clone(), temp=temp)
             # Store the episode example data for training the neural net
-            example_data = env_state.to_numpy()
+            example_data = env_state.to_input_features()
             episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state = game.get_next_state(env_state, action)

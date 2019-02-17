@@ -8,7 +8,9 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 
 class ProblemGenerator:
     def __init__(self):
-        self.max_int = 4096
+        self.max_int = 12
+        self.max_complexity = 3
+        self.min_complexity = 3
         self.variables = list("xyz")
         self.operators = list("+*")
         self.problem_types = [
@@ -22,7 +24,7 @@ class ProblemGenerator:
             from_types = self.problem_types
         # Pick a random problem type (TODO: is this wise?)
         type = from_types[random.randint(0, len(from_types) - 1)]
-        complexity = random.randint(3, 5)
+        complexity = random.randint(self.min_complexity, self.max_complexity)
         if type == MODE_ARITHMETIC:
             problem = self.arithmetic_expression(terms=complexity)
         elif type == MODE_SIMPLIFY_POLYNOMIAL:

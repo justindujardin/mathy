@@ -5,21 +5,37 @@ import math
 # ##Constants
 
 # Define the known types of tokens for the Tokenizer.
+TokensMap = {
+    "None": 1 << 0,
+    "Constant": 1 << 1,
+    "Variable": 1 << 2,
+    "Plus": 1 << 3,
+    "Minus": 1 << 4,
+    "Multiply": 1 << 5,
+    "Divide": 1 << 6,
+    "Exponent": 1 << 7,
+    "Factorial": 1 << 8,
+    "OpenParen": 1 << 9,
+    "CloseParen": 1 << 10,
+    "Function": 1 << 11,
+    "Equal": 1 << 12,
+    "EOF": 1 << 13,
+}
 
-TokenNone = 1 << 0
-TokenConstant = 1 << 1
-TokenVariable = 1 << 2
-TokenPlus = 1 << 3
-TokenMinus = 1 << 4
-TokenMultiply = 1 << 5
-TokenDivide = 1 << 6
-TokenExponent = 1 << 7
-TokenFactorial = 1 << 8
-TokenOpenParen = 1 << 9
-TokenCloseParen = 1 << 10
-TokenFunction = 1 << 11
-TokenEqual = 1 << 12
-TokenEOF = 1 << 13
+TokenNone = TokensMap["None"]
+TokenConstant = TokensMap["Constant"]
+TokenVariable = TokensMap["Variable"]
+TokenPlus = TokensMap["Plus"]
+TokenMinus = TokensMap["Minus"]
+TokenMultiply = TokensMap["Multiply"]
+TokenDivide = TokensMap["Divide"]
+TokenExponent = TokensMap["Exponent"]
+TokenFactorial = TokensMap["Factorial"]
+TokenOpenParen = TokensMap["OpenParen"]
+TokenCloseParen = TokensMap["CloseParen"]
+TokenFunction = TokensMap["Function"]
+TokenEqual = TokensMap["Equal"]
+TokenEOF = TokensMap["EOF"]
 
 # ##Tokenizer
 
@@ -48,7 +64,11 @@ class Token:
         token_type = feature[1]
         token_value = feature[0]
         if token_type == TokenConstant:
-            token_value = str(int(token_value) if math.isclose(token_value % 1, 0.0) else float(token_value))
+            token_value = str(
+                int(token_value)
+                if math.isclose(token_value % 1, 0.0)
+                else float(token_value)
+            )
         elif token_type == TokenEOF:
             token_value = ""
         else:

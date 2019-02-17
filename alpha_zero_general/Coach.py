@@ -1,4 +1,5 @@
 import sys
+import srsly
 import types
 from collections import deque
 from .Arena import Arena
@@ -7,6 +8,7 @@ import numpy as np
 import json
 from .pytorch_classification.utils import Bar, AverageMeter
 import time, os, sys
+from pathlib import Path
 from pickle import Pickler, Unpickler
 from random import shuffle
 import os
@@ -32,14 +34,11 @@ class Coach:
         self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
         self.max_training_examples = args.get("max_training_examples", 200000)
         self.model_arena_iterations = args.get("model_arena_iterations", 30)
-        self.checkpoint = args.get("checkpoint", "./training/")
-        self.best_model_name = args.get("best_model_name", "best")
-        self.all_examples = []  # history of examples from args.save_examples_from_last_n_iterations latest iterations
-        self.skip_first_self_play = False  # can be overriden in loadTrainExamples()
-        best = self.get_best_model_filename()
-        if self.can_load_model(best):
-            print("Loading examples from best model training: {}".format(best))
-            self.load_training_examples(best)
+        self.all_examples = []
+        self.skip_first_self_play = False
+        loaded = self.load_training_examples()
+        if loaded is not False:
+            print("Loaded examples from: {}".format(loaded))
 
     def learn(self):
         """
@@ -54,6 +53,7 @@ class Coach:
         for i in range(1, self.training_iterations + 1):
             print("Session {}".format(i))
             self.run_self_play(i, iterations)
+            self.save_training_examples()
             self.run_network_training(i)
 
     def run_self_play(self, iteration, num_episodes):
@@ -77,7 +77,7 @@ class Coach:
 
         episodes_with_args = []
         for _ in range(1, num_episodes + 1):
-            episodes_with_args.append(dict(model=self.get_best_model_filename()))
+            episodes_with_args.append(dict(model=self.runner.config.model_dir))
 
         old_update = self.runner.episode_complete
         self.runner.episode_complete = types.MethodType(episode_complete, self)
@@ -114,6 +114,7 @@ class Coach:
         self.runner.episode_complete = old_update
         bar.finish()
         self.all_examples.extend(training_examples)
+        self.save_training_examples()
         return training_examples
 
     def run_network_training(self, iteration):
@@ -128,21 +129,21 @@ class Coach:
         print("Training with {} examples".format(len(train_examples)))
         return self.runner.train(iteration, train_examples, best)
 
-    def get_best_model_filename(self):
-        return os.path.join(self.checkpoint, "{}.pth.tar".format(self.best_model_name))
-
-    def can_load_model(self, model_name):
-        # NOTE: This is kind of ugly, because the file we need to look
-        #       for depends on the underlying ML framework. Hardcode tf/pytorch here
-        meta = "{}.meta".format(model_name)
-        return os.path.exists(model_name) or os.path.exists(meta)
-
-    def load_training_examples(self, name=None):
-        examplesFile = "{}.examples".format(name)
-        if not os.path.isfile(examplesFile):
+    def load_training_examples(self):
+        examples_file = "{}/input.examples".format(self.runner.config.model_dir)
+        if not os.path.isfile(examples_file):
             return False
-        with open(examplesFile, "rb") as f:
-            self.all_examples = Unpickler(f).load()
+        self.all_examples = [
+            f for f in srsly.read_jsonl(examples_file, self.all_examples)
+        ]
         # examples based on the model were already collected (loaded)
         self.skip_first_self_play = True
-        return True
+        return examples_file
+
+    def save_training_examples(self):
+        model_dir = Path(self.runner.config.model_dir)
+        if not model_dir.is_dir():
+            model_dir.mkdir(parents=True, exist_ok=True)
+        examples_file = "{}/input.examples".format(self.runner.config.model_dir)
+        srsly.write_jsonl(examples_file, self.all_examples)
+        return str(examples_file)

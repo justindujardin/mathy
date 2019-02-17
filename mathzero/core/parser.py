@@ -175,33 +175,6 @@ class ExpressionParser:
             _tokens_cache[input] = self.tokenizer.tokenize(input)
         return _tokens_cache[input][:]
 
-    def make_features(self, tokens_or_text):
-        """
-        Make a list of tokenized features from text input, to make the learning 
-        objective easier for the model. The intuition being that it's more 
-        """
-        # Token list
-        tokens = None
-        if type(tokens_or_text) == list:
-            tokens = tokens_or_text
-        elif type(tokens_or_text) == str:
-            tokens = self.tokenize(tokens_or_text)
-        else:
-            raise ValueError(
-                "features can only be created from a token list or str input expression"
-            )
-        return [t.to_feature() for t in tokens]
-
-    def parse_features(self, features):
-        try:
-            tokens = [Token.from_feature(f) for f in features]
-            return self.evaluate(tokens)
-        except InvalidSyntax as err:
-            print("Failed to parse features:\n{}".format(features))
-            print("Error was:\n{}".format(err))
-            print("tokens:\n{}".format([str(t.value) for t in tokens if t.type != TokenEOF]))
-            raise err
-
     # Parse a string representation of an expression into a tree that can be
     # later evaluated.
     # Returns : The evaluatable expression tree.
