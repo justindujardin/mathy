@@ -21,11 +21,13 @@ class RunnerConfig:
         num_mcts_sims=15,
         temperature_threshold=0.5,
         cpuct=1.0,
+        model_dir=None,
     ):
         self.num_wokers = num_wokers
         self.num_mcts_sims = num_mcts_sims
         self.temperature_threshold = temperature_threshold
         self.cpuct = cpuct
+        self.model_dir = model_dir
 
 
 class EpisodeRunner:
@@ -93,9 +95,6 @@ class EpisodeRunner:
             raise NotImplementedError("EpisodeRunner.get_game returned None type")
         if nnet is None:
             raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
-        if model is not None:
-            if nnet.can_load_checkpoint(model):
-                nnet.load_checkpoint(model)
         episode_examples = []
         env_state, complexity = game.get_initial_state()
 
@@ -108,7 +107,7 @@ class EpisodeRunner:
 
             pi = mcts.getActionProb(env_state.clone(), temp=temp)
             # Store the episode example data for training the neural net
-            example_data = env_state.to_numpy()
+            example_data = env_state.to_input_features()
             episode_examples.append([example_data, pi, None])
             action = numpy.random.choice(len(pi), p=pi)
             env_state = game.get_next_state(env_state, action)
@@ -116,7 +115,10 @@ class EpisodeRunner:
             r = game.getGameEnded(env_state)
 
             if r != 0:
-                examples = [(x[0], x[1], r) for x in episode_examples]
+                examples = [
+                    {"reward": r, "inputs": x[0], "policy": x[1]}
+                    for x in episode_examples
+                ]
                 return examples, r, complexity
 
         return [], -1, complexity
@@ -130,10 +132,7 @@ class EpisodeRunner:
     ):
         if updated_model is None:
             return False
-        updated_model.save_checkpoint(model_path)
-        examples_file = "{}.examples".format(model_path)
-        with open(examples_file, "wb+") as f:
-            Pickler(f).dump(train_examples)
+        # updated_model.save_checkpoint(model_path)
         return True
 
     def train(self, iteration, train_examples, model_path=None):
@@ -151,13 +150,6 @@ class EpisodeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_game()
         new_net = self.get_nnet(game, True)
-        has_best = new_net.can_load_checkpoint(model_path)
-        if has_best:
-            new_net.load_checkpoint(model_path)
-
-        # shuffle examlpes before training
-        shuffle(train_examples)
-
         # Train the model with the examples
         if new_net.train(train_examples) == False:
             print(

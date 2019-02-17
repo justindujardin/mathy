@@ -1,27 +1,18 @@
 import random
 import numpy
-from .core.expressions import (
-    MathExpression,
-    ConstantExpression,
-    STOP,
-    AddExpression,
-    VariableExpression,
-)
+from .core.tree import STOP
 from .core.parser import ExpressionParser
-from .core.tokenizer import Token, TokenEOF
-from .core.util import termsAreLike
-from .core.rules import (
-    BaseRule,
-    AssociativeSwapRule,
-    CommutativeSwapRule,
-    DistributiveFactorOutRule,
-    DistributiveMultiplyRule,
-    ConstantsSimplifyRule,
-)
 from .core.problems import (
     MODE_ARITHMETIC,
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
+)
+from .model.features import (
+    FEATURE_COLUMNS,
+    FEATURE_NODE_COUNT,
+    FEATURE_PROBLEM_TYPE,
+    FEATURE_TOKEN_TYPES,
+    FEATURE_TOKEN_VALUES,
 )
 
 PLAYER_ID_OFFSET = 0
@@ -96,31 +87,34 @@ class MathEnvironmentState(object):
         agent.move_count = move_count
         return out_state
 
-    def to_numpy(self):
-        data = numpy.zeros((self.history_length + 1, self.width), dtype="float32")
-        # TODO: Decide how to detect/encode modes...
-        data[0][0] = self.agent.problem_type
-        data = self.write_problem(1, data, self.agent.problem)
-        # Encode up to last (history_length-1) moves into the agent "memory"
-        history = self.agent.history[-(self.history_length - 1) :]
-        for i, problem in enumerate(history):
-            data = self.write_problem(i + 2, data, problem)
-        return data
+    def make_features(self, tokens_or_text):
+        """
+        Make a list of tokenized features from text input, to make the learning 
+        objective easier for the model.
+        """
+        # Token list
+        tokens = None
+        if type(tokens_or_text) == list:
+            tokens = tokens_or_text
+        elif type(tokens_or_text) == str:
+            tokens = self.parser.tokenize(tokens_or_text)
+        else:
+            raise ValueError(
+                "features can only be created from a token list or str input expression"
+            )
 
-    def write_agent(self, index, data, agent: MathAgentState, width: int):
-        features = self.parser.make_features(agent.problem)
-        features = numpy.array(features, dtype="float32").flatten()
-        features_len = len(features)
-        for i in range(width):
-            ch = features[i] if i < features_len else 0.0
-            data[index + 1][i] = ch
-        return data
+    def to_input_features(self):
+        tokens = self.parser.tokenize(self.agent.problem)
+        types = []
+        values = []
+        for t in tokens:
+            types.append(t.type)
+            values.append(t.value)
+        input_features = {
+            FEATURE_TOKEN_TYPES: types,
+            FEATURE_TOKEN_VALUES: values,
+            FEATURE_NODE_COUNT: len(values),
+            FEATURE_PROBLEM_TYPE: self.agent.problem_type,
+        }
+        return input_features
 
-    def write_problem(self, index, data, problem: str):
-        features = self.parser.make_features(problem)
-        features = numpy.array(features, dtype="float32").flatten()
-        features_len = len(features)
-        for i in range(self.width):
-            ch = features[i] if i < features_len else 0.0
-            data[index][i] = ch
-        return data

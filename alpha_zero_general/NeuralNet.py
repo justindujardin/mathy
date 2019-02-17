@@ -31,21 +31,3 @@ class NeuralNet:
             v: a float in [-1,1] that gives the value of the current env_state
         """
         pass
-
-    def save_checkpoint(self, filename):
-        """
-        Saves the current neural network (with its parameters) in filename
-        """
-        pass
-
-    def load_checkpoint(self, filename):
-        """
-        Loads parameters of the neural network from filename
-        """
-        pass
-
-    def can_load_checkpoint(self, file_path) -> bool:
-        """
-        Return True if a given filename points to an existing, loadable, model checkpoint
-        """
-        return False

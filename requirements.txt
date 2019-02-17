@@ -1,8 +1,10 @@
 keras
 numpy
+pandas
 pytest
 pytest-cov
 plac
-torch 
-torchvision
+srsly
+# dev 
+matplotlib
 

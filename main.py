@@ -6,7 +6,7 @@ from alpha_zero_general.EpisodeRunner import (
 import sys
 from alpha_zero_general.Coach import Coach
 from mathzero.math_game import MathGame
-from mathzero.model.tensorflow_neural_net import MathNeuralNet
+from mathzero.model.math_model import MathModel
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
 
@@ -15,9 +15,6 @@ eps = 100
 args = {
     "self_play_iterations": eps,
     "max_training_examples": 200000,
-    "checkpoint": "/mnt/gcs/mzc/web_3/",
-    # "checkpoint": "./training/agent_3/",
-    "best_model_name": "latest",
 }
 
 # NOTE: For a new model bootstrap, it won't use examples file if there's not a checkpoint found. 
@@ -34,11 +31,13 @@ class MathEpisodeRunner(BaseEpisodeRunner):
         return MathGame(verbose=dev_mode)
 
     def get_nnet(self, game, all_memory=False):
-        return MathNeuralNet(game, all_memory)
+        return MathModel(game)
 
 
 if __name__ == "__main__":
     config = RunnerConfig(
+        model_dir="/mnt/gcs/mzc/embedding_1/",
+        # model_dir="./training/embedding_1",
         num_mcts_sims=(150 if dev_mode else 1000),
         temperature_threshold=round(MathGame.max_moves_easy * 0.5),
         cpuct=1.0,
