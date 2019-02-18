@@ -4,7 +4,7 @@ pandas
 pytest
 pytest-cov
 plac
-srsly
+ujson
 # dev 
 matplotlib
 
