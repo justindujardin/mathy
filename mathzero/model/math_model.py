@@ -31,6 +31,10 @@ class MathModel(NeuralNet):
     def __init__(self, game, model_dir):
         import tensorflow as tf
 
+        # session_config = tf.ConfigProto()
+        # session_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+        # estimator_config = tf.estimator.RunConfig(session_config=session_config)
+        # my_estimator = tf.estimator.Estimator(..., config=estimator_config)
         self.action_size = game.get_agent_actions_count()
 
         self.args = NetConfig()
