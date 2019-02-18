@@ -15,6 +15,8 @@ import os
 from multiprocessing import Pool, Array, Process, Queue, cpu_count, Value
 from .Game import Game
 
+INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
+
 
 class Coach:
     """
@@ -131,7 +133,7 @@ class Coach:
         )
 
     def load_training_examples(self):
-        file_path = Path(self.runner.config.model_dir) / "input.examples"
+        file_path = Path(self.runner.config.model_dir) / INPUT_EXAMPLES_FILE_NAME
         if not file_path.is_file():
             return False
         examples = []
@@ -147,7 +149,7 @@ class Coach:
         model_dir = Path(self.runner.config.model_dir)
         if not model_dir.is_dir():
             model_dir.mkdir(parents=True, exist_ok=True)
-        file_path = model_dir / "input.examples"
+        file_path = model_dir / INPUT_EXAMPLES_FILE_NAME
         with file_path.open("w", encoding="utf-8") as f:
             for line in self.all_examples:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
