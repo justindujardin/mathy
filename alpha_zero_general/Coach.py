@@ -1,6 +1,5 @@
 import ujson
 import sys
-import srsly
 import types
 from collections import deque
 from .Arena import Arena
