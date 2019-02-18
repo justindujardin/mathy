@@ -68,7 +68,7 @@ class MathModel(NeuralNet):
         ]
         self.network = tf.estimator.Estimator(
             model_fn=math_estimator,
-            model_dir="{}model/".format(model_dir),
+            model_dir=model_dir,
             params={
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
