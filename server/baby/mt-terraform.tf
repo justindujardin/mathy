@@ -1,5 +1,5 @@
 variable "image" {
-  default = "ml-dojo-img"
+  default = "mt-baby-worker-img"
 }
 
 // Configure the Google Cloud provider
@@ -10,12 +10,17 @@ provider "google" {
 
 resource "google_compute_instance" "mathtastic-worker" {
   count                     = "1"
-  name                      = "mathtastic-worker"
-  machine_type              = "n1-standard-8"
+  name                      = "mt-baby-worker"
+  machine_type              = "n1-standard-1"
   zone                      = "us-east1-c"
-  metadata_startup_script   = "#!/usr/bin/env bash\n/usr/local/bin/ml-dojo-terraform-init"
   tags                      = ["gpu-compute"]
-  // Use an optimized Tensorflow build that from: https://github.com/mind/wheels/
+
+  // We use this key instead of the `startup-script` key to force instance recreation when the contents change
+  metadata_startup_script = "${file("${path.module}/mt-terraform-startup.sh")}"
+  metadata {
+    shutdown-script = "${file("${path.module}/mt-terraform-shutdown.sh")}"
+  }
+  // Use an optimized Tensorflow build that requires Broadwell or newer, from: https://github.com/mind/wheels/
   min_cpu_platform = "Intel Broadwell"
   // Stopping for update is required to set the cpu platform: 
   // https://www.terraform.io/docs/providers/google/r/compute_instance.html#min_cpu_platform
@@ -51,6 +56,6 @@ resource "google_compute_instance" "mathtastic-worker" {
   }
   guest_accelerator {
     count = 1
-    type = "nvidia-tesla-p100"
+    type = "nvidia-tesla-k80"
   }
 }
