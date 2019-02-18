@@ -30,14 +30,14 @@ class MathEpisodeRunner(BaseEpisodeRunner):
     def get_game(self):
         return MathGame(verbose=dev_mode)
 
-    def get_nnet(self, game, all_memory=False):
-        return MathModel(game, model_dir)
+    def get_predictor(self, game, all_memory=False):
+        return MathModel(game, model_dir, all_memory)
 
 
 if __name__ == "__main__":
     config = RunnerConfig(
         model_dir=model_dir,
-        num_mcts_sims=(15 if dev_mode else 500),
+        num_mcts_sims=(15 if dev_mode else 1000),
         temperature_threshold=round(MathGame.max_moves_easy * 0.5),
         cpuct=1.0,
     )

@@ -10,10 +10,10 @@ class MCTS:
     """
 
     def __init__(
-        self, game, nnet, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3
+        self, game, predictor, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3
     ):
         self.game = game
-        self.nnet = nnet
+        self.predictor = predictor
         self.num_mcts_sims = num_mcts_sims
         self.cpuct = cpuct
         self.dir_alpha = dir_alpha
@@ -53,7 +53,7 @@ class MCTS:
             probs[bestA] = 1
             return probs
 
-        counts = [x ** (1. / temp) for x in counts]
+        counts = [x ** (1.0 / temp) for x in counts]
         count_sum = float(sum(counts))
         if count_sum == 0.0:
             raise ValueError(
@@ -94,7 +94,7 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(env_state)
+            self.Ps[s], v = self.predictor.predict(env_state)
             # print('calculating valid moves for: {}'.format(s))
             # print("v = {}".format(v))
             # print("Ps = {}".format(self.Ps[s].shape))

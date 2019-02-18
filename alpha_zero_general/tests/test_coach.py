@@ -8,7 +8,7 @@ class MockEpisodeRunner(EpisodeRunner):
     def get_game(self):
         return Game()
 
-    def get_nnet(self, game, data=None):
+    def get_predictor(self, game, data=None):
         return NeuralNet(game)
 
 

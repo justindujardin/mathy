@@ -10,6 +10,7 @@ from alpha_zero_general.NeuralNet import NeuralNet
 from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
 from itertools import zip_longest
+from mathzero.model.math_predictor import MathPredictor
 from mathzero.model.features import (
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
@@ -28,13 +29,14 @@ class NetConfig:
 
 
 class MathModel(NeuralNet):
-    def __init__(self, game, model_dir):
+    def __init__(self, game, model_dir, all_memory=False, dev_mode=False):
         import tensorflow as tf
 
-        # session_config = tf.ConfigProto()
-        # session_config.gpu_options.per_process_gpu_memory_fraction = 0.5
-        # estimator_config = tf.estimator.RunConfig(session_config=session_config)
-        # my_estimator = tf.estimator.Estimator(..., config=estimator_config)
+        session_config = tf.ConfigProto()
+        session_config.gpu_options.per_process_gpu_memory_fraction = (
+            game.get_gpu_fraction()
+        )
+        estimator_config = tf.estimator.RunConfig(session_config=session_config)
         self.action_size = game.get_agent_actions_count()
 
         self.args = NetConfig()
@@ -67,6 +69,7 @@ class MathModel(NeuralNet):
             self.token_value_feature,
         ]
         self.network = tf.estimator.Estimator(
+            config=estimator_config,
             model_fn=math_estimator,
             model_dir=model_dir,
             params={
@@ -76,6 +79,7 @@ class MathModel(NeuralNet):
                 "hidden_units": [3, 3],
             },
         )
+        self._predictor = MathPredictor(self.network)
 
     def train(self, examples):
         """
@@ -143,33 +147,20 @@ class MathModel(NeuralNet):
         return True
 
     def predict(self, env_state: MathEnvironmentState):
-        import tensorflow as tf
-
-        def predict_fn(input_env_state: MathEnvironmentState, batch_size):
-            import tensorflow as tf
-
-            tokens = input_env_state.parser.tokenize(input_env_state.agent.problem)
-            types = []
-            values = []
-            for t in tokens:
-                types.append(t.type)
-                values.append(t.value)
-            input_features = {
-                FEATURE_TOKEN_TYPES: [types],
-                FEATURE_TOKEN_VALUES: [values],
-                FEATURE_NODE_COUNT: [len(values)],
-                FEATURE_PROBLEM_TYPE: [input_env_state.agent.problem_type],
-            }
-            dataset = tf.data.Dataset.from_tensor_slices(input_features)
-            assert batch_size is not None, "batch_size must not be None"
-            dataset = dataset.batch(batch_size)
-            return dataset
-
+        tokens = env_state.parser.tokenize(env_state.agent.problem)
+        types = []
+        values = []
+        for t in tokens:
+            types.append(t.type)
+            values.append(t.value)
+        input_features = {
+            FEATURE_TOKEN_TYPES: [types],
+            FEATURE_TOKEN_VALUES: [values],
+            FEATURE_NODE_COUNT: [len(values)],
+            FEATURE_PROBLEM_TYPE: [env_state.agent.problem_type],
+        }
         start = time.time()
-        predictions = self.network.predict(
-            input_fn=lambda: predict_fn(env_state, batch_size=self.args.batch_size)
-        )
-        prediction = next(predictions)
+        prediction = self._predictor.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         return prediction["out_policy"], prediction["out_value"][0]
 

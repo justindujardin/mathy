@@ -46,9 +46,9 @@ class EpisodeRunner:
     def get_game(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_nnet(self, game, all_memory=False):
+    def get_predictor(self, game, all_memory=False):
         raise NotImplementedError(
-            "neural net implementation must be provided by subclass"
+            "predictor implementation must be provided by subclass"
         )
 
     def execute_episodes(self, episode_args_list):
@@ -60,11 +60,11 @@ class EpisodeRunner:
         results = []
 
         game = self.get_game()
-        nnet = self.get_nnet(game)
+        predictor = self.get_predictor(game)
         for i, args in enumerate(episode_args_list):
             start = time.time()
             episode_examples, episode_reward, episode_complexity = self.execute_episode(
-                i, game, nnet, **args
+                i, game, predictor, **args
             )
             duration = time.time() - start
             examples.extend(episode_examples)
@@ -75,7 +75,7 @@ class EpisodeRunner:
             self.episode_complete(i, episode_summary)
         return examples, results
 
-    def execute_episode(self, episode, game, nnet, model, **kwargs):
+    def execute_episode(self, episode, game, predictor, model, **kwargs):
         """
         This function executes one episode.
         As the game is played, each turn is added as a training example to
@@ -93,13 +93,13 @@ class EpisodeRunner:
         """
         if game is None:
             raise NotImplementedError("EpisodeRunner.get_game returned None type")
-        if nnet is None:
-            raise NotImplementedError("EpisodeRunner.get_nnet returned None type")
+        if predictor is None:
+            raise NotImplementedError("EpisodeRunner.get_predictor returned None type")
         episode_examples = []
         env_state, complexity = game.get_initial_state()
 
         move_count = 0
-        mcts = MCTS(game, nnet, self.config.cpuct, self.config.num_mcts_sims)
+        mcts = MCTS(game, predictor, self.config.cpuct, self.config.num_mcts_sims)
         while True:
             move_count += 1
             # If the move_count is less than threshold, set temp = 1 else 0
@@ -149,7 +149,7 @@ class EpisodeRunner:
 
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_game()
-        new_net = self.get_nnet(game, True)
+        new_net = self.get_predictor(game, True)
         # Train the model with the examples
         if new_net.train(train_examples) == False:
             print(
@@ -166,7 +166,7 @@ class ParallelEpisodeRunner(EpisodeRunner):
         def worker(work_queue, result_queue):
             """Pull items out of the work queue and execute episodes until there are no items left"""
             game = self.get_game()
-            nnet = self.get_nnet(game)
+            nnet = self.get_predictor(game)
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()

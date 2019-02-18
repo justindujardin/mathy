@@ -79,7 +79,7 @@ class Game:
         """
         pass
 
-    def getGPUFraction(self):
+    def get_gpu_fraction(self):
         """
         Returns:
             gpu_fraction: the fraction of GPU memory to dedicate to the 
