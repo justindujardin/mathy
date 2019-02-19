@@ -1,4 +1,5 @@
 from multiprocessing import Queue
+from queue import Empty
 from threading import Thread
 from mathzero.model.features import (
     FEATURE_TOKEN_VALUES,
@@ -30,7 +31,10 @@ class MathPredictor(object):
         """
 
         while True:
-            result = self.input_queue.get()
+            try:
+                result = self.input_queue.get(timeout=1)
+            except Empty:
+                continue
             if result is None:
                 return
             yield result
