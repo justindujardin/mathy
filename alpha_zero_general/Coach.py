@@ -1,3 +1,5 @@
+import tempfile
+from shutil import copyfile
 import ujson
 import sys
 import types
@@ -149,8 +151,14 @@ class Coach:
         model_dir = Path(self.runner.config.model_dir)
         if not model_dir.is_dir():
             model_dir.mkdir(parents=True, exist_ok=True)
-        file_path = model_dir / INPUT_EXAMPLES_FILE_NAME
-        with file_path.open("w", encoding="utf-8") as f:
+
+        # Write to local file then copy over (don't thrash virtual file systems like GCS)
+        _, tmp_file = tempfile.mkstemp()
+        with Path(tmp_file).open("w", encoding="utf-8") as f:
             for line in self.all_examples:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
-        return str(file_path)
+
+        out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
+        copyfile(tmp_file, str(out_file))
+        os.remove(tmp_file)
+        return str(out_file)
