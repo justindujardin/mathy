@@ -34,7 +34,7 @@ class MathModel(NeuralNet):
 
         session_config = tf.ConfigProto()
         session_config.gpu_options.per_process_gpu_memory_fraction = (
-            game.get_gpu_fraction()
+            game.get_gpu_fraction() if all_memory is False else 1
         )
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
         self.action_size = game.get_agent_actions_count()
