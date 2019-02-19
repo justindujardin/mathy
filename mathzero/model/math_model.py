@@ -76,7 +76,7 @@ class MathModel(NeuralNet):
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
                 "learning_rate": 0.1,
-                "hidden_units": [3, 3],
+                "hidden_units": [10, 10],
             },
         )
         self._predictor = MathPredictor(self.network)
@@ -139,10 +139,11 @@ class MathModel(NeuralNet):
             )
         )
         logging.getLogger().setLevel(logging.INFO)
-        self.network.train(
-            input_fn=lambda: get_train_inputs(examples, self.args.batch_size),
-            steps=self.args.epochs,
-        )
+        for i in range(self.args.epochs):
+            print("EPOCH: {}".format(i + 1))
+            self.network.train(
+                input_fn=lambda: get_train_inputs(examples, self.args.batch_size)
+            )
         logging.getLogger().setLevel(logging.WARN)
         return True
 
