@@ -1,6 +1,7 @@
 import tensorflow as tf
 import logging
 import time
+import sys
 from datetime import datetime
 
 
@@ -39,3 +40,4 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
             sec_per_batch,
         )
         print(template % args)
+        sys.stdout.flush()        

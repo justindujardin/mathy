@@ -1,3 +1,4 @@
+import sys
 import collections
 import os
 import time
@@ -140,6 +141,7 @@ class MathModel(NeuralNet):
         )
         for i in range(self.args.epochs):
             print("EPOCH: {}".format(i + 1))
+            sys.stdout.flush()
             self.network.train(
                 hooks=[TrainingLoggerHook(1, self.args.batch_size)],
                 input_fn=lambda: get_train_inputs(examples, self.args.batch_size),
