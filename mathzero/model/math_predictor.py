@@ -78,7 +78,7 @@ class MathPredictor(object):
     def start(self):
         if self.prediction_thread is not None:
             raise ValueError("thread is already started")
-        self.prediction_thread = Thread(target=self.predict_from_queue)
+        self.prediction_thread = Thread(target=self.predict_from_queue, daemon=True)
         self.prediction_thread.start()
 
     def stop(self):
