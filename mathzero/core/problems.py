@@ -8,9 +8,9 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 
 class ProblemGenerator:
     def __init__(self):
-        self.max_int = 12
+        self.max_int = 2048
         self.max_complexity = 3
-        self.min_complexity = 3
+        self.min_complexity = 7
         self.variables = list("xyz")
         self.operators = list("+*")
         self.problem_types = [
