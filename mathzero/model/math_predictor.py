@@ -35,6 +35,8 @@ class MathPredictor(object):
                 result = self.input_queue.get(timeout=1)
             except Empty:
                 continue
+            except EOFError:
+                return
             if result is None:
                 return
             yield result
@@ -78,4 +80,3 @@ class MathPredictor(object):
     def destroy(self):
         self.input_queue.put(None)
         return self.prediction_thread.join()
-

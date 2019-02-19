@@ -86,7 +86,7 @@ class MathModel(NeuralNet):
         examples: list of examples, each example is of form (env_state, pi, v)
         """
         import tensorflow as tf
-        import logging
+        from .math_hooks import TrainingLoggerHook
 
         # Define the training inputs
         def get_train_inputs(examples, batch_size):
@@ -138,13 +138,12 @@ class MathModel(NeuralNet):
                 self.args.epochs, len(examples)
             )
         )
-        logging.getLogger().setLevel(logging.INFO)
         for i in range(self.args.epochs):
             print("EPOCH: {}".format(i + 1))
             self.network.train(
-                input_fn=lambda: get_train_inputs(examples, self.args.batch_size)
+                hooks=[TrainingLoggerHook(1, self.args.batch_size)],
+                input_fn=lambda: get_train_inputs(examples, self.args.batch_size),
             )
-        logging.getLogger().setLevel(logging.WARN)
         return True
 
     def predict(self, env_state: MathEnvironmentState):
