@@ -1,4 +1,4 @@
-from queue import Queue
+from multiprocessing import Queue
 from threading import Thread
 from mathzero.model.features import (
     FEATURE_TOKEN_VALUES,
