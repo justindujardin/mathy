@@ -168,12 +168,13 @@ class ParallelEpisodeRunner(EpisodeRunner):
         def worker(work_queue, result_queue):
             """Pull items out of the work queue and execute episodes until there are no items left"""
             game = self.get_game()
-            nnet = self.get_predictor(game)
+            predictor = self.get_predictor(game)
+            predictor.start()
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()
                 episode_examples, episode_reward, episode_complexity = self.execute_episode(
-                    episode, game, nnet, **args
+                    episode, game, predictor, **args
                 )
                 duration = time.time() - start
                 episode_summary = dict(
@@ -182,6 +183,7 @@ class ParallelEpisodeRunner(EpisodeRunner):
                     duration=duration,
                 )
                 result_queue.put((i, episode_examples, episode_summary))
+            predictor.stop()
             return 0
 
         # Fill a work queue with episodes to be executed.
