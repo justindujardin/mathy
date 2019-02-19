@@ -75,7 +75,7 @@ class MathModel(NeuralNet):
             params={
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
-                "learning_rate": 0.1,
+                "learning_rate": self.args.lr,
                 "hidden_units": [10, 10],
             },
         )
@@ -129,9 +129,9 @@ class MathModel(NeuralNet):
                 dataset = dataset.shuffle(1000).batch(batch_size)
                 return dataset
 
-        total_batches = int(len(examples) / self.args.batch_size)
-        if total_batches == 0:
-            return False
+        # total_batches = int(len(examples) / self.args.batch_size)
+        # if total_batches == 0:
+        #     return False
 
         print(
             "Training neural net for ({}) epochs with ({}) examples...".format(
