@@ -21,11 +21,7 @@ class MathPredictor(object):
         self.estimator = estimator
         self.input_queue = Queue(maxsize=1)
         self.output_queue = Queue(maxsize=1)
-        # We set the generator thread as daemon
-        # (see https://docs.python.org/3/library/threading.html#threading.Thread.daemon)
-        # This means that when all other threads are dead,
-        # this thread will not prevent the Python program from exiting
-        self.prediction_thread = Thread(target=self.predict_from_queue, daemon=True)
+        self.prediction_thread = Thread(target=self.predict_from_queue)
         self.prediction_thread.start()
 
     def generate_from_queue(self):
@@ -34,7 +30,10 @@ class MathPredictor(object):
         """
 
         while True:
-            yield self.input_queue.get()
+            result = self.input_queue.get()
+            if result is None:
+                return
+            yield result
 
     def predict_from_queue(self):
         """ Adds a prediction from the model to the output_queue.
@@ -71,3 +70,8 @@ class MathPredictor(object):
             self.generate_from_queue, output_types=output_types
         )
         return dataset
+
+    def destroy(self):
+        self.input_queue.put(None)
+        return self.prediction_thread.join()
+

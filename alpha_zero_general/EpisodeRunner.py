@@ -73,6 +73,7 @@ class EpisodeRunner:
             )
             results.append(episode_summary)
             self.episode_complete(i, episode_summary)
+        predictor.destroy()
         return examples, results
 
     def execute_episode(self, episode, game, predictor, model, **kwargs):
