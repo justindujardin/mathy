@@ -31,9 +31,11 @@ def math_estimator(features, labels, mode, params):
     target_vs = labels[:, -1]
 
     loss_pi = tf.losses.softmax_cross_entropy(target_pis, logits, loss_collection="mt")
+    metric_loss_pi = tf.summary.scalar("loss_pi", loss_pi)
     loss_v = tf.losses.mean_squared_error(
         target_vs, tf.reshape(value, shape=[-1]), loss_collection="mt"
     )
+    metric_loss_v = tf.summary.scalar("loss_v", loss_v)
     total_loss = loss_pi + loss_v
 
     # Compute evaluation metrics.

@@ -166,3 +166,8 @@ class MathModel(NeuralNet):
         # print("predict : {0:03f}".format(time.time() - start))
         return prediction["out_policy"], prediction["out_value"][0]
 
+    def start(self):
+        self._predictor.start()
+
+    def stop(self):
+        self._predictor.stop()

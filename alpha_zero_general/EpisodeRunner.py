@@ -61,6 +61,7 @@ class EpisodeRunner:
 
         game = self.get_game()
         predictor = self.get_predictor(game)
+        predictor.start()
         for i, args in enumerate(episode_args_list):
             start = time.time()
             episode_examples, episode_reward, episode_complexity = self.execute_episode(
@@ -73,7 +74,7 @@ class EpisodeRunner:
             )
             results.append(episode_summary)
             self.episode_complete(i, episode_summary)
-        predictor.destroy()
+        predictor.stop()
         return examples, results
 
     def execute_episode(self, episode, game, predictor, model, **kwargs):

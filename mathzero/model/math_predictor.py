@@ -22,8 +22,7 @@ class MathPredictor(object):
         self.estimator = estimator
         self.input_queue = Queue(maxsize=1)
         self.output_queue = Queue(maxsize=1)
-        self.prediction_thread = Thread(target=self.predict_from_queue)
-        self.prediction_thread.start()
+        self.prediction_thread = None
 
     def generate_from_queue(self):
         """ Generator which yields items from the input queue.
@@ -55,9 +54,8 @@ class MathPredictor(object):
             self.output_queue.put(i)
 
     def predict(self, features):
-
-        # Get predictions dictionary
-
+        if self.prediction_thread is None:
+            raise ValueError("No thread started, so the prediction will never return")
         self.input_queue.put(features)
         predictions = self.output_queue.get()  # The latest predictions generator
 
@@ -77,6 +75,16 @@ class MathPredictor(object):
         )
         return dataset
 
-    def destroy(self):
+    def start(self):
+        if self.prediction_thread is not None:
+            raise ValueError("thread is already started")
+        self.prediction_thread = Thread(target=self.predict_from_queue)
+        self.prediction_thread.start()
+
+    def stop(self):
+        if self.prediction_thread is None:
+            raise ValueError("thread is already stopped")
+        thread = self.prediction_thread
         self.input_queue.put(None)
-        return self.prediction_thread.join()
+        self.prediction_thread = None
+        thread.join()
