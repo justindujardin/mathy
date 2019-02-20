@@ -27,7 +27,7 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
             return
         self._start_time = current_time
         loss_pi, loss_v = run_values.results
-        examples_per_sec = self.batch_size / duration
+        examples_per_sec = self.log_every_n * self.batch_size / duration
         sec_per_batch = duration
         template = "%s: step %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f (%.1f examples/sec; %.3f sec/batch)"
         args = (
