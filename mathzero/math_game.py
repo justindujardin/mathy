@@ -64,7 +64,7 @@ class MathGame(Game):
         self.verbose = verbose
         self.training_wheels = training_wheels
         self.max_moves = (
-            max_moves if max_moves is not None else MathGame.max_moves_expert
+            max_moves if max_moves is not None else MathGame.max_moves_hard
         )
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()

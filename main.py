@@ -23,7 +23,7 @@ dev_mode = False
 BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
 # model_dir = "./training/embedding_1/"
-model_dir = "/mnt/gcs/mzc/embedding_1/"
+model_dir = "/mnt/gcs/mzc/embedding_2/"
 
 
 class MathEpisodeRunner(BaseEpisodeRunner):
@@ -37,8 +37,8 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 if __name__ == "__main__":
     config = RunnerConfig(
         model_dir=model_dir,
-        num_mcts_sims=(15 if dev_mode else 1000),
-        temperature_threshold=round(MathGame.max_moves_easy * 0.5),
+        num_mcts_sims=(100 if dev_mode else 1500),
+        temperature_threshold=round(MathGame.max_moves_easy* 0.7),
         cpuct=1.0,
     )
     runner = MathEpisodeRunner(config)
