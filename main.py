@@ -37,7 +37,7 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 if __name__ == "__main__":
     config = RunnerConfig(
         model_dir=model_dir,
-        num_mcts_sims=(100 if dev_mode else 1500),
+        num_mcts_sims=(100 if dev_mode else 2500),
         temperature_threshold=round(MathGame.max_moves_easy* 0.7),
         cpuct=1.0,
     )
