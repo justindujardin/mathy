@@ -13,6 +13,7 @@ from mathzero.environment_state import MathEnvironmentState
 from itertools import zip_longest
 from mathzero.model.math_predictor import MathPredictor
 from mathzero.model.features import (
+    parse_examples_for_training,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
@@ -22,10 +23,10 @@ from mathzero.model.features import (
 
 
 class NetConfig:
-    def __init__(self, lr=0.001, dropout=0.2, epochs=10, batch_size=256):
+    def __init__(self, lr=0.0001, dropout=0.2, max_steps=100, batch_size=256):
         self.lr = lr
         self.dropout = dropout
-        self.epochs = epochs
+        self.max_steps = max_steps
         self.batch_size = batch_size
 
 
@@ -80,72 +81,22 @@ class MathModel(NeuralNet):
                 "hidden_units": [10, 10],
             },
         )
-        self._predictor = MathPredictor(self.network)
+        self._worker = MathPredictor(self.network, self.args)
 
     def train(self, examples):
-        """
-        examples: list of examples, each example is of form (env_state, pi, v)
-        """
-        import tensorflow as tf
+        """examples: list of examples in JSON format"""
         from .math_hooks import TrainingLoggerHook
 
-        # Define the training inputs
-        def get_train_inputs(examples, batch_size):
-
-            from json import loads, dumps
-            import tensorflow as tf
-
-            with tf.name_scope("PreprocessData"):
-                inputs = {}
-                outputs = []
-                for feature_key in FEATURE_COLUMNS:
-                    inputs[feature_key] = []
-                # Build up a feature map that can work as input
-                for ex in examples:
-                    ex_input = ex["inputs"]
-                    ex_append = {}
-                    for feature_key in FEATURE_COLUMNS:
-                        inputs[feature_key].append(ex_input[feature_key])
-                    target_pi = numpy.array(ex["policy"], dtype="float32")
-                    target_value = ex["reward"]
-                    outputs.append(
-                        numpy.concatenate((target_pi, [target_value]), axis=0)
-                    )
-                # Pad the variable length columns to longest in the list
-                inputs[FEATURE_TOKEN_TYPES] = numpy.array(
-                    list(zip_longest(*inputs[FEATURE_TOKEN_TYPES], fillvalue=-1))
-                ).T
-                inputs[FEATURE_TOKEN_VALUES] = numpy.array(
-                    list(zip_longest(*inputs[FEATURE_TOKEN_VALUES], fillvalue=0))
-                ).T
-                inputs[FEATURE_NODE_COUNT] = numpy.array(
-                    inputs[FEATURE_NODE_COUNT], dtype="int16"
-                )
-                inputs[FEATURE_PROBLEM_TYPE] = numpy.array(
-                    inputs[FEATURE_PROBLEM_TYPE], dtype="int8"
-                )
-                dataset = tf.data.Dataset.from_tensor_slices(
-                    (inputs, numpy.array(outputs))
-                )
-                dataset = dataset.shuffle(1000).batch(batch_size)
-                return dataset
-
-        # total_batches = int(len(examples) / self.args.batch_size)
-        # if total_batches == 0:
-        #     return False
-
         print(
-            "Training neural net for ({}) epochs with ({}) examples...".format(
-                self.args.epochs, len(examples)
+            "Training neural net for at most ({}) steps with ({}) examples...".format(
+                self.args.max_steps, len(examples)
             )
         )
-        for i in range(self.args.epochs):
-            print("EPOCH: {}".format(i + 1))
-            sys.stdout.flush()
-            self.network.train(
-                hooks=[TrainingLoggerHook(1, self.args.batch_size)],
-                input_fn=lambda: get_train_inputs(examples, self.args.batch_size),
-            )
+        self.network.train(
+            hooks=[TrainingLoggerHook(self.args.batch_size)],
+            steps=self.args.max_steps,
+            input_fn=lambda: parse_examples_for_training(examples),
+        )
         return True
 
     def predict(self, env_state: MathEnvironmentState):
@@ -162,12 +113,12 @@ class MathModel(NeuralNet):
             FEATURE_PROBLEM_TYPE: [env_state.agent.problem_type],
         }
         start = time.time()
-        prediction = self._predictor.predict(input_features)
+        prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         return prediction["out_policy"], prediction["out_value"][0]
 
     def start(self):
-        self._predictor.start()
+        self._worker.start()
 
     def stop(self):
-        self._predictor.stop()
+        self._worker.stop()

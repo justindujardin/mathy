@@ -8,7 +8,7 @@ from datetime import datetime
 class TrainingLoggerHook(tf.train.SessionRunHook):
     """Log training progress to the console, including pi and value losses"""
 
-    def __init__(self, log_frequency, batch_size):
+    def __init__(self, batch_size):
         self.batch_size = batch_size
 
     def begin(self):

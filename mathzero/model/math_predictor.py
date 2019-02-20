@@ -11,18 +11,46 @@ from mathzero.model.features import (
 
 
 class MathPredictor(object):
-    """Provide a cached estimator implementation. This avoids re-creating the estimator for each
-    prediction, which can cripple performance.
+    """Provide a cached estimator implementation. This avoids re-creating the device for each
+    prediction. Device creation can cripple performance for GPU workflows where it 
+    is an expensive operation.
 
-    Original implementation from: https://github.com/ElementAI/multithreaded-estimators :clap: :bow:
+    Original implementation from: https://github.com/ElementAI/multithreaded-estimators
     """
 
-    def __init__(self, estimator, verbose=False):
-        self.verbose = verbose
+    def __init__(self, estimator, args):
+        self.args = args
         self.estimator = estimator
         self.input_queue = Queue(maxsize=1)
         self.output_queue = Queue(maxsize=1)
-        self.prediction_thread = None
+        self.worker_thread = None
+
+    def start(self):
+        """Start a worker thread to predict with a shared device. Device creation can
+        be expensive with GPUs so this speeds things up considerably in that use-case.
+        """
+        if self.worker_thread is not None:
+            raise ValueError("thread is already started")
+        worker_fn = self.predict_from_queue
+        self.worker_thread = Thread(target=worker_fn)
+        self.worker_thread.start()
+
+    def stop(self):
+        """Stop the current worker thread"""
+        if self.worker_thread is None:
+            raise ValueError("thread is already stopped")
+        thread = self.worker_thread
+        self.input_queue.put(None)
+        self.worker_thread = None
+        thread.join()
+
+    def predict(self, features):
+        """Predict from features for a given single input"""
+        if self.worker_thread is None:
+            raise ValueError("No thread started, so the prediction will never return")
+        self.input_queue.put(features)
+        predictions = self.output_queue.get()
+        return predictions
 
     def generate_from_queue(self):
         """ Generator which yields items from the input queue.
@@ -47,19 +75,8 @@ class MathPredictor(object):
         Here, we are iterating through the output generator, which will be 
         populated in lock-step with the input generator.
         """
-
         for i in self.estimator.predict(input_fn=self.queued_predict_input_fn):
-            if self.verbose:
-                print("Putting in output queue")
             self.output_queue.put(i)
-
-    def predict(self, features):
-        if self.prediction_thread is None:
-            raise ValueError("No thread started, so the prediction will never return")
-        self.input_queue.put(features)
-        predictions = self.output_queue.get()  # The latest predictions generator
-
-        return predictions
 
     def queued_predict_input_fn(self):
         import tensorflow as tf
@@ -75,16 +92,3 @@ class MathPredictor(object):
         )
         return dataset
 
-    def start(self):
-        if self.prediction_thread is not None:
-            raise ValueError("thread is already started")
-        self.prediction_thread = Thread(target=self.predict_from_queue, daemon=True)
-        self.prediction_thread.start()
-
-    def stop(self):
-        if self.prediction_thread is None:
-            raise ValueError("thread is already stopped")
-        thread = self.prediction_thread
-        self.input_queue.put(None)
-        self.prediction_thread = None
-        thread.join()
