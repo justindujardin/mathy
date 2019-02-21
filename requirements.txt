@@ -7,4 +7,5 @@ plac
 ujson
 # dev 
 matplotlib
+tensorboard
 
