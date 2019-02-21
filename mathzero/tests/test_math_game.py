@@ -1,13 +1,14 @@
 from ..math_game import MathGame
 from ..environment_state import MathEnvironmentState, MathAgentState
+from ..util import is_terminal_reward
 
 
 def test_math_game_init():
     game = MathGame()
     assert game is not None
     state, complexity = game.get_initial_state()
-    # Kind of arbitrary, but min 3 terms to keep problems from being too easy.
-    assert complexity >= 3
+    # Kind of arbitrary, ensure there's more than one term
+    assert complexity >= 1
     assert state is not None
     # Assert about the structure a bit
     assert state.agent is not None
@@ -41,4 +42,5 @@ def test_math_game_win_conditions():
     game = MathGame()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathEnvironmentState(problem=text)
-        assert text == text and game.getGameEnded(env_state) == int(is_win)
+        reward = game.get_state_reward(env_state)
+        assert text == text and is_terminal_reward(reward) == int(is_win)

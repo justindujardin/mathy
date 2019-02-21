@@ -3,7 +3,7 @@ import math
 import numpy
 import time
 import random
-from alpha_zero_general.Game import Game
+from .util import LOSE_REWARD, WIN_REWARD
 from .core.expressions import (
     MathExpression,
     ConstantExpression,
@@ -13,7 +13,7 @@ from .core.expressions import (
     AddExpression,
     VariableExpression,
 )
-from .core.problems import (
+from .training.problems import (
     ProblemGenerator,
     MODE_SOLVE_FOR_VARIABLE,
     MODE_SIMPLIFY_POLYNOMIAL,
@@ -44,9 +44,10 @@ from .environment_state import (
 )
 from multiprocessing import cpu_count
 from itertools import groupby
+from multiprocessing import cpu_count
 
 
-class MathGame(Game):
+class MathGame:
     """
     Implement a math solving game where a player wins by executing the right sequence 
     of actions to reduce a math expression to an agreeable basic representation in as 
@@ -75,6 +76,18 @@ class MathGame(Game):
             VariableMultiplyRule(),
         ]
         self.expression_str = "unset"
+
+    def get_gpu_fraction(self):
+        """
+        Returns:
+            gpu_fraction: the fraction of GPU memory to dedicate to the 
+                          neural network for this game instance.
+        """
+        # NOTE: we double the CPU count to start out allocating smaller amounts of memory.
+        #       This is because if we oversubscribe CUDA can throw failed to allocate errors
+        #       with a bunch of workers. This way Tensorflow will grow the allocation per worker
+        #       only as needed.
+        return 1 / (cpu_count() * 1.5)
 
     def get_initial_state(self):
         (problem, type, complexity) = self.problems.random_problem(
@@ -210,16 +223,12 @@ class MathGame(Game):
 
         actions = self.get_actions_for_expression(expression)
         # NOTE: Below is verbose output showing which actions are valid.
-        # if not searching:
-        #     print_list = self.available_actions + self.available_rules
-        #     [
-        #         print(
-        #             "action[{}][{}] = {}".format(
-        #                 i, bool(a), type(print_list[i]) if a != 0 else ""
-        #             )
-        #         )
-        #         for i, a in enumerate(actions)
-        #     ]
+        # out_string = "{} :".format(agent.problem)
+        # for i, action in enumerate(actions):
+        #     if action == 0:
+        #         continue
+        #     out_string = out_string + " {}".format(self.available_rules[i].name)
+        # print(out_string)
         return actions
 
     def get_actions_for_expression(self, expression: MathExpression):
@@ -238,32 +247,31 @@ class MathGame(Game):
                 # )
         return actions
 
-    def getGameEnded(self, env_state: MathEnvironmentState, searching=False):
+    def get_state_reward(self, env_state: MathEnvironmentState, searching=False):
         """
         Input:
             env_state:     current env_state
             searching: boolean that is True when called by MCTS simulation
 
         Returns:
-            r: 0 if game has not ended. 1 if player won, -1 if player lost,
-               small non-zero value for draw.
+            r: the scalar reward value for the given environment state
                
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
 
-        if self.training_wheels is True:
-            # The player loses if they return to a previous state.
-            for key, group in groupby(sorted(agent.history)):
-                list_group = list(group)
-                list_count = len(list_group)
-                if list_count <= 1:
-                    continue
-                if not searching and self.verbose:
-                    print(
-                        "\n[Failed] re-entered previous state: {}".format(list_group[0])
-                    )
-                return -1
+        # if self.training_wheels is True:
+        #     # The player loses if they return to a previous state.
+        #     for key, group in groupby(sorted(agent.history)):
+        #         list_group = list(group)
+        #         list_count = len(list_group)
+        #         if list_count <= 1:
+        #             continue
+        #         if not searching and self.verbose:
+        #             print(
+        #                 "\n[Failed] re-entered previous state: {}".format(list_group[0])
+        #             )
+        #         return -1
 
         # Check for problem_type specific win conditions
         root = expression.getRoot()
@@ -278,7 +286,7 @@ class MathGame(Game):
                     print(
                         "\n[Solved] {} => {}\n".format(self.expression_str, expression)
                     )
-                return 1
+                return WIN_REWARD + agent.move_count
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
@@ -289,22 +297,18 @@ class MathGame(Game):
                         self.expression_str, expression
                     )
                 )
-            return -1
+            return LOSE_REWARD - agent.move_count
 
-        # The game continues
-        return 0
-
-    def get_agent_state_size(self):
-        """return shape (x,y) of agent state dimensions"""
-        # (N+1, width) where N is history length and the additional row is for
-        # game state.
-        return (MathGame.history_length + 1, MathGame.width)
+        # The game continues at a reward cost of one per step
+        return -(agent.move_count + 1)
 
     def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""
         # return str(env_state.agent.problem)
         return "[{}, {}]".format(
-            env_state.agent.problem, ", ".join(env_state.agent.history)
+            env_state.agent.move_count,
+            env_state.agent.problem,
+            ", ".join(env_state.agent.history),
         )
 
 

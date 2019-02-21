@@ -6,12 +6,14 @@ from itertools import zip_longest
 FEATURE_TOKEN_VALUES = "token_values"
 FEATURE_TOKEN_TYPES = "token_types"
 FEATURE_NODE_COUNT = "node_count"
+FEATURE_MOVE_COUNT = "move_count"
 FEATURE_PROBLEM_TYPE = "problem_type"
 FEATURE_COLUMNS = [
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
+    FEATURE_MOVE_COUNT,
 ]
 
 
@@ -47,6 +49,9 @@ def parse_examples_for_training(examples):
         ).T
         inputs[FEATURE_NODE_COUNT] = numpy.array(
             inputs[FEATURE_NODE_COUNT], dtype="int16"
+        )
+        inputs[FEATURE_MOVE_COUNT] = numpy.array(
+            inputs[FEATURE_MOVE_COUNT], dtype="int16"
         )
         inputs[FEATURE_PROBLEM_TYPE] = numpy.array(
             inputs[FEATURE_PROBLEM_TYPE], dtype="int8"

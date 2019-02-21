@@ -2,7 +2,7 @@ import random
 import numpy
 from .core.tree import STOP
 from .core.parser import ExpressionParser
-from .core.problems import (
+from .training.problems import (
     MODE_ARITHMETIC,
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
@@ -11,6 +11,7 @@ from .model.features import (
     FEATURE_COLUMNS,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
+    FEATURE_MOVE_COUNT,
     FEATURE_TOKEN_TYPES,
     FEATURE_TOKEN_VALUES,
 )
@@ -104,15 +105,25 @@ class MathEnvironmentState(object):
             )
 
     def to_input_features(self):
-        tokens = self.parser.tokenize(self.agent.problem)
         types = []
         values = []
-        for t in tokens:
-            types.append(t.type)
-            values.append(t.value)
+
+        def add_tokens(tokens):
+            nonlocal types, values
+            for t in tokens:
+                types.append(t.type)
+                values.append(t.value)
+            # Insert break characters
+            types.append(-1)
+            values.append("|")
+
+        for problem in self.agent.history:
+            add_tokens(self.parser.tokenize(problem))
+        add_tokens(self.parser.tokenize(self.agent.problem))
         input_features = {
             FEATURE_TOKEN_TYPES: types,
             FEATURE_TOKEN_VALUES: values,
+            FEATURE_MOVE_COUNT: self.agent.move_count,
             FEATURE_NODE_COUNT: len(values),
             FEATURE_PROBLEM_TYPE: self.agent.problem_type,
         }

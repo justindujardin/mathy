@@ -1,14 +1,14 @@
-from alpha_zero_general.EpisodeRunner import (
-    EpisodeRunner,
-    ParallelEpisodeRunner,
-    RunnerConfig,
-)
 import sys
-from alpha_zero_general.Coach import Coach
+from mathzero.training.practice_session import PracticeSession
 from mathzero.math_game import MathGame
 from mathzero.model.math_model import MathModel
 from mathzero.core.expressions import ConstantExpression
 from mathzero.core.parser import ExpressionParser
+from mathzero.training.practice_runner import (
+    PracticeRunner,
+    ParallelPracticeRunner,
+    RunnerConfig,
+)
 
 eps = 100
 
@@ -20,10 +20,10 @@ args = {"self_play_iterations": eps, "max_training_examples": 200000}
 # Single-process implementation for debugging and development
 dev_mode = False
 
-BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
+BaseEpisodeRunner = PracticeRunner if dev_mode else ParallelPracticeRunner
 
 # model_dir = "./training/embedding_1/"
-model_dir = "/mnt/gcs/mzc/embedding_2/"
+model_dir = "/mnt/gcs/mzc/embedding_4/"
 
 
 class MathEpisodeRunner(BaseEpisodeRunner):
@@ -37,12 +37,12 @@ class MathEpisodeRunner(BaseEpisodeRunner):
 if __name__ == "__main__":
     config = RunnerConfig(
         model_dir=model_dir,
-        num_mcts_sims=(100 if dev_mode else 2500),
-        temperature_threshold=round(MathGame.max_moves_easy* 0.7),
+        num_mcts_sims=(100 if dev_mode else 1500),
+        temperature_threshold=round(MathGame.max_moves_easy * 0.7),
         cpuct=1.0,
     )
     runner = MathEpisodeRunner(config)
-    c = Coach(runner, args)
+    c = PracticeSession(runner, args)
     if not c.has_examples:
         prompt = "No existing examples found. Session will build new training examples. Continue? [y|N]"
         r = input(prompt)

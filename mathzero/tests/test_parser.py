@@ -37,38 +37,3 @@ def test_mult_exp_precedence():
 
     expression = parser.parse("7 * 10 * 6x * 3x + 5x")
     assert expression is not None
-
-
-def test_parse_features():
-    """Regression test for a few cases where features were improperly encoded and crashed"""
-
-    parser = ExpressionParser()
-    exp = parser.parse_features(
-        [
-            [14.0, 2],
-            [120.0, 4],
-            [43.0, 8],
-            [7.0, 2],
-            [120.0, 4],
-            [43.0, 8],
-            [2.0, 2],
-            [0.0, 8192],
-        ]
-    )
-    assert exp is not None
-    exp = parser.parse_features(
-        [
-            [40.0, 512],
-            [120.0, 4],
-            [42.0, 32],
-            [14.0, 2],
-            [43.0, 8],
-            [7.0, 2],
-            [120.0, 4],
-            [41.0, 1024],
-            [43.0, 8],
-            [2.0, 2],
-            [0.0, 8192],
-        ]
-    )
-    assert exp is not None

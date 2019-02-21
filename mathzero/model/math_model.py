@@ -6,17 +6,17 @@ import random
 import numpy
 import math
 import sys
-from alpha_zero_general.pytorch_classification.utils import Bar, AverageMeter
-from alpha_zero_general.NeuralNet import NeuralNet
+from itertools import zip_longest
+from pytorch_classification.utils import Bar, AverageMeter
 from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
-from itertools import zip_longest
 from mathzero.model.math_predictor import MathPredictor
 from mathzero.model.features import (
     parse_examples_for_training,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
+    FEATURE_MOVE_COUNT,
     FEATURE_PROBLEM_TYPE,
     FEATURE_COLUMNS,
 )
@@ -33,7 +33,7 @@ class NetConfig:
         self.log_frequency = log_frequency
 
 
-class MathModel(NeuralNet):
+class MathModel:
     def __init__(self, game, model_dir, all_memory=False, dev_mode=False):
         import tensorflow as tf
 
@@ -60,6 +60,9 @@ class MathModel(NeuralNet):
             dimension=2,
         )
 
+        self.feature_move_count = tf.feature_column.numeric_column(
+            key=FEATURE_MOVE_COUNT, dtype=tf.int16
+        )
         self.feature_node_count = tf.feature_column.numeric_column(
             key=FEATURE_NODE_COUNT, dtype=tf.int16
         )
@@ -72,6 +75,7 @@ class MathModel(NeuralNet):
             self.feature_problem_type,
             self.feature_tokens_type,
             self.feature_node_count,
+            self.feature_move_count,
             self.token_value_feature,
         ]
         self.network = tf.estimator.Estimator(
@@ -106,7 +110,7 @@ class MathModel(NeuralNet):
         self.network.train(
             hooks=[
                 # tf.train.FeedFnHook(feed_fn=feed_fn),
-                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
+                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency)
             ],
             steps=self.args.max_steps,
             input_fn=lambda: parse_examples_for_training(examples),
@@ -124,6 +128,7 @@ class MathModel(NeuralNet):
             FEATURE_TOKEN_TYPES: [types],
             FEATURE_TOKEN_VALUES: [values],
             FEATURE_NODE_COUNT: [len(values)],
+            FEATURE_MOVE_COUNT: [env_state.agent.move_count],
             FEATURE_PROBLEM_TYPE: [env_state.agent.problem_type],
         }
         start = time.time()
