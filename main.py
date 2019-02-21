@@ -23,7 +23,7 @@ dev_mode = False
 BaseEpisodeRunner = PracticeRunner if dev_mode else ParallelPracticeRunner
 
 # model_dir = "./training/embedding_1/"
-model_dir = "/mnt/gcs/mzc/embedding_4/"
+model_dir = "/mnt/gcs/mzc/embedding_5/"
 
 
 class MathEpisodeRunner(BaseEpisodeRunner):

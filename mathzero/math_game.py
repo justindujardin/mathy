@@ -131,7 +131,9 @@ class MathGame:
         rule = self.available_rules[action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
-        focus = random.randint(0, 3)
+        # This is a magic number, since we find the nearest applicable node.
+        # TODO: Replace this with the predicted focus value, once it is normalized to a value in the node range.
+        focus = 1
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
         nearest_possible_index = min(
