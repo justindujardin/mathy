@@ -42,10 +42,12 @@ class MCTS:
             self.search(env_state, True)
 
         s = self.game.to_hash_key(env_state)
-        counts = [
-            self.Nsa[(s, a)] if (s, a) in self.Nsa else 0
-            for a in range(self.game.get_agent_actions_count())
-        ]
+        counts = []
+        for a in range(self.game.get_agent_actions_count()):
+            if (s, a) in self.Nsa:
+                counts.append(self.Nsa[(s, a)])
+            else:
+                counts.append(0)
 
         if temp == 0:
             bestA = np.argmax(counts)
@@ -94,9 +96,9 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.predictor.predict(env_state)
+            self.Ps[s], action_v, _ = self.predictor.predict(env_state)
             # print('calculating valid moves for: {}'.format(s))
-            # print("v = {}".format(v))
+            # print("action_v = {}".format(action_v))
             # print("Ps = {}".format(self.Ps[s].shape))
             valids = self.game.getValidMoves(env_state)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
@@ -116,7 +118,7 @@ class MCTS:
 
             self.Vs[s] = valids
             self.Ns[s] = 0
-            return v
+            return action_v
 
         valids = self.Vs[s]
         cur_best = -float("inf")
@@ -157,19 +159,19 @@ class MCTS:
 
         next_s = self.game.get_next_state(env_state, a, searching=True)
 
-        v = self.search(next_s)
+        action_v = self.search(next_s)
 
         # state key for next state
         state_key = (s, a)
         if state_key in self.Qsa:
-            self.Qsa[state_key] = (self.Nsa[state_key] * self.Qsa[state_key] + v) / (
-                self.Nsa[state_key] + 1
-            )
+            self.Qsa[state_key] = (
+                self.Nsa[state_key] * self.Qsa[state_key] + action_v
+            ) / (self.Nsa[state_key] + 1)
             self.Nsa[state_key] += 1
 
         else:
-            self.Qsa[state_key] = v
+            self.Qsa[state_key] = action_v
             self.Nsa[state_key] = 1
 
         self.Ns[s] += 1
-        return v
+        return action_v

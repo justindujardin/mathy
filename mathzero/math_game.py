@@ -63,9 +63,7 @@ class MathGame(Game):
     def __init__(self, verbose=False, max_moves=None, training_wheels=True):
         self.verbose = verbose
         self.training_wheels = training_wheels
-        self.max_moves = (
-            max_moves if max_moves is not None else MathGame.max_moves_hard
-        )
+        self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.available_rules = [
@@ -112,17 +110,21 @@ class MathGame(Game):
 
     def get_agent_actions_count(self):
         """Return number of all possible actions"""
-        return len(self.available_rules) * self.width
+        return len(self.available_rules)
 
-    def get_action_rule(self, env_state: MathEnvironmentState, action):
-        # Figure out the token index of the selected action
-        token_index = action % self.width
-        # And the action at that token
-        action_index = int(action / (self.width - token_index))
-        rule = self.available_rules[action_index]
+    def get_action_rule(
+        self, env_state: MathEnvironmentState, expression: MathExpression, action: int
+    ):
+        rule = self.available_rules[action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
-        return rule
+        focus = random.randint(0, 3)
+        # Find the nearest node that can apply the given action
+        possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
+        nearest_possible_index = min(
+            possible_node_indices, key=lambda x: abs(x - focus)
+        )
+        return rule, self.get_token_at_index(expression, nearest_possible_index)
 
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """
@@ -136,8 +138,7 @@ class MathGame(Game):
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        operation = self.get_action_rule(env_state, action)
-        token = self.getFocusToken(expression, action % self.width)
+        operation, token = self.get_action_rule(env_state, expression, action)
 
         # NOTE: If you get maximum recursion errors, it can mean that you're not
         # hitting a terminal state. Force the searching var off here to get
@@ -177,7 +178,7 @@ class MathGame(Game):
 
         return out_env
 
-    def getFocusToken(
+    def get_token_at_index(
         self, expression: MathExpression, focus_index: int
     ) -> MathExpression:
         """Get the token that is `focus_index` from the left of the expression"""
@@ -194,7 +195,7 @@ class MathGame(Game):
         expression.visitPreorder(visit_fn)
         return result
 
-    def getValidMoves(self, env_state):
+    def getValidMoves(self, env_state: MathEnvironmentState):
         """
         Input:
             env_state: current env_state
@@ -229,15 +230,12 @@ class MathGame(Game):
             nodes = rule.findNodes(expression)
             for node in nodes:
                 token_index = node.r_index
-                action_index = (self.width * rule_index) + token_index
-                actions[action_index] = 1
-
+                actions[rule_index] = 1
                 # print(
                 #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
                 #         action_index, rule.name, node.r_index, str(node)
                 #     )
                 # )
-
         return actions
 
     def getGameEnded(self, env_state: MathEnvironmentState, searching=False):
@@ -262,7 +260,9 @@ class MathGame(Game):
                 if list_count <= 1:
                     continue
                 if not searching and self.verbose:
-                    print("\n[Failed] re-entered previous state: {}".format(list_group[0]))
+                    print(
+                        "\n[Failed] re-entered previous state: {}".format(list_group[0])
+                    )
                 return -1
 
         # Check for problem_type specific win conditions

@@ -7,10 +7,10 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 
 
 class ProblemGenerator:
-    def __init__(self):
-        self.max_int = 2048
-        self.max_complexity = 4
-        self.min_complexity = 3
+    def __init__(self, min_complexity=3, max_complexity=3, max_const=12):
+        self.max_int = max_const
+        self.max_complexity = min_complexity
+        self.min_complexity = max_complexity
         self.variables = list("xyz")
         self.operators = list("+*")
         self.problem_types = [

@@ -15,27 +15,39 @@ def math_estimator(features, labels, mode, params):
     logits = tf.layers.dense(
         net, action_size, bias_initializer=init_ops.glorot_normal_initializer()
     )
-    # TODO: add a second policy to have action/position prediction. This should reduce the size considerably
-    # because instead of having to predict (action_count * max_input_len) (~768 currently) actions
-    # it will have to predict (action_count) actions and then another prediction for (action_position)
-    policy = tf.nn.softmax(logits, name="out_policy")
+
+    action_policy = tf.nn.softmax(logits, name="out_policy")
+    focus_value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_focus")
     value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_value")
 
     # Compute predictions.
     if mode == tf.estimator.ModeKeys.PREDICT:
-        predictions = {"out_value": value, "out_policy": policy, "logits": logits}
+        predictions = {
+            "out_value": value,
+            "out_policy": action_policy,
+            "out_focus": focus_value,
+        }
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
     # Split target policies from target values
-    target_pis = labels[:, 0:-1]
+    # target_action_policy = labels[:, 0:-2]
+    # target_focus = labels[:, -2:-1]
+    target_action_policy = labels[:, 0:-1]
     target_vs = labels[:, -1]
 
-    loss_pi = tf.losses.softmax_cross_entropy(target_pis, logits, loss_collection="mt")
+    loss_pi = tf.losses.softmax_cross_entropy(
+        target_action_policy, logits, loss_collection="mt"
+    )
     metric_loss_pi = tf.summary.scalar("loss_pi", loss_pi)
+    # loss_focus = tf.losses.mean_squared_error(
+    #     target_focus, tf.reshape(focus_value, shape=[-1]), loss_collection="mt"
+    # )
+    # metric_loss_focus = tf.summary.scalar("loss_focus", loss_focus)
     loss_v = tf.losses.mean_squared_error(
         target_vs, tf.reshape(value, shape=[-1]), loss_collection="mt"
     )
     metric_loss_v = tf.summary.scalar("loss_v", loss_v)
+    # total_loss = loss_pi + loss_v + loss_focus
     total_loss = loss_pi + loss_v
 
     # Compute evaluation metrics.

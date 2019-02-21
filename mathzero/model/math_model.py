@@ -89,6 +89,7 @@ class MathModel(NeuralNet):
 
     def train(self, examples):
         """examples: list of examples in JSON format"""
+        import tensorflow as tf
         from .math_hooks import TrainingLoggerHook
 
         print(
@@ -96,8 +97,17 @@ class MathModel(NeuralNet):
                 self.args.max_steps, len(examples)
             )
         )
+
+        features, labels = parse_examples_for_training(examples)
+
+        # def feed_fn():
+        #     return {"policy_labels": {}, "focus_labels": {}}
+
         self.network.train(
-            hooks=[TrainingLoggerHook(self.args.batch_size, self.args.log_frequency)],
+            hooks=[
+                # tf.train.FeedFnHook(feed_fn=feed_fn),
+                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
+            ],
             steps=self.args.max_steps,
             input_fn=lambda: parse_examples_for_training(examples),
         )
@@ -119,7 +129,12 @@ class MathModel(NeuralNet):
         start = time.time()
         prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
-        return prediction["out_policy"], prediction["out_value"][0]
+        # print("focus is : {0:03f}".format(prediction["out_focus"][0]))
+        return (
+            prediction["out_policy"],
+            prediction["out_value"][0],
+            prediction["out_focus"][0],
+        )
 
     def start(self):
         self._worker.start()
