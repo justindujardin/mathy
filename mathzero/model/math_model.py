@@ -24,7 +24,7 @@ from mathzero.model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.0001, dropout=0.2, max_steps=1000, batch_size=256, log_frequency=25
+        self, lr=0.0001, dropout=0.2, max_steps=10000, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -86,7 +86,7 @@ class MathModel:
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
                 "learning_rate": self.args.lr,
-                "hidden_units": [10, 10],
+                "hidden_units": [32, 32],
             },
         )
         self._worker = MathPredictor(self.network, self.args)
@@ -94,7 +94,7 @@ class MathModel:
     def train(self, examples):
         """examples: list of examples in JSON format"""
         import tensorflow as tf
-        from .math_hooks import TrainingLoggerHook
+        from .math_hooks import TrainingLoggerHook, TrainingEarlyStopHook
 
         print(
             "Training neural net for at most ({}) steps with ({}) examples...".format(
@@ -110,7 +110,8 @@ class MathModel:
         self.network.train(
             hooks=[
                 # tf.train.FeedFnHook(feed_fn=feed_fn),
-                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency)
+                TrainingEarlyStopHook(),
+                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
             ],
             steps=self.args.max_steps,
             input_fn=lambda: parse_examples_for_training(examples),
@@ -128,7 +129,7 @@ class MathModel:
             FEATURE_TOKEN_TYPES: [types],
             FEATURE_TOKEN_VALUES: [values],
             FEATURE_NODE_COUNT: [len(values)],
-            FEATURE_MOVE_COUNT: [env_state.agent.move_count],
+            FEATURE_MOVE_COUNT: [env_state.agent.moves_remaining],
             FEATURE_PROBLEM_TYPE: [env_state.agent.problem_type],
         }
         start = time.time()

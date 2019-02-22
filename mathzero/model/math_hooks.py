@@ -3,12 +3,13 @@ import logging
 import time
 import sys
 from datetime import datetime
+from math import isclose
 
 
 class TrainingLoggerHook(tf.train.SessionRunHook):
     """Log training progress to the console, including pi and value losses"""
 
-    def __init__(self, batch_size, log_every_n=10):
+    def __init__(self, batch_size, log_every_n=100):
         self.batch_size = batch_size
         self.log_every_n = log_every_n
 
@@ -41,3 +42,45 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
         )
         print(template % args)
         sys.stdout.flush()
+
+
+class TrainingEarlyStopHook(tf.train.SessionRunHook):
+    def __init__(
+        self, watch_pi=True, watch_value=True, stop_after_n_steps_without_change=250
+    ):
+        self.num_steps = stop_after_n_steps_without_change
+        self.steps_without_change = 0
+        self.watch_pi = watch_pi
+        self.watch_value = watch_value
+        self.last_loss_pi = 0
+        self.last_loss_v = 0
+
+    def after_run(self, run_context, run_values):
+        def truncate(value):
+            return float("%.3f" % (float(value)))
+
+        loss_pi, loss_v = run_values.results
+        loss_pi = truncate(loss_pi)
+        loss_v = truncate(loss_v)
+        self.steps_without_change = self.steps_without_change + 1
+        if (
+            self.watch_pi is True
+            and loss_pi < self.last_loss_pi
+            and not isclose(loss_pi, self.last_loss_pi)
+        ):
+            self.steps_without_change = 0
+        elif (
+            self.watch_value is True
+            and loss_v < self.last_loss_v
+            and not isclose(loss_v, self.last_loss_v)
+        ):
+            self.steps_without_change = 0
+        self.last_loss_v = loss_v
+        self.last_loss_pi = loss_pi
+        if self.steps_without_change >= self.num_steps:
+            print("STOPPING because monitored metrics stopped decreasing.")
+            run_context.request_stop()
+
+    def before_run(self, run_context):
+        return tf.train.SessionRunArgs(tf.get_collection("mt"))
+

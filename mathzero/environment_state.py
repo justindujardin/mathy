@@ -25,8 +25,8 @@ MODEL_HISTORY_LENGTH = 6
 
 
 class MathAgentState(object):
-    def __init__(self, move_count: int, problem: str, problem_type: int, history=None):
-        self.move_count = move_count
+    def __init__(self, moves_remaining: int, problem: str, problem_type: int, history=None):
+        self.moves_remaining = moves_remaining
         self.problem = problem
         self.problem_type = problem_type
         self.history = history[:] if history is not None else []
@@ -34,7 +34,7 @@ class MathAgentState(object):
     @classmethod
     def copy(cls, from_state):
         return MathAgentState(
-            from_state.move_count,
+            from_state.moves_remaining,
             from_state.problem,
             from_state.problem_type,
             from_state.history,
@@ -56,18 +56,15 @@ class MathEnvironmentState(object):
         self,
         state=None,
         problem: str = None,
+        max_moves=10,
         problem_type: int = MODE_SIMPLIFY_POLYNOMIAL,
-        width: int = MODEL_WIDTH,
-        parser: ExpressionParser = None,
-        history_length: int = MODEL_HISTORY_LENGTH,
     ):
-        self.parser = parser if parser is not None else ExpressionParser()
-        self.width = width
-        self.history_length = history_length
+        self.parser = ExpressionParser()
+        self.max_moves = max_moves
         if problem is not None:
-            self.agent = MathAgentState(0, problem, problem_type)
+            self.agent = MathAgentState(max_moves, problem, problem_type)
         elif state is not None:
-            self.width = state.width
+            self.max_moves = state.max_moves
             self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
@@ -79,13 +76,13 @@ class MathEnvironmentState(object):
     def clone(self):
         return MathEnvironmentState(state=self)
 
-    def encode_player(self, problem: str, move_count: int):
+    def encode_player(self, problem: str, moves_remaining: int):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
         agent = out_state.agent
         agent.history.append(problem)
         agent.problem = problem
-        agent.move_count = move_count
+        agent.moves_remaining = moves_remaining
         return out_state
 
     def make_features(self, tokens_or_text):
@@ -108,20 +105,12 @@ class MathEnvironmentState(object):
         types = []
         values = []
 
-        def add_tokens(tokens):
-            nonlocal types, values
-            for t in tokens:
-                types.append(t.type)
-                values.append(t.value)
-            # Insert break characters
-            types.append(-1)
-            values.append("|")
+        for t in self.parser.tokenize(self.agent.problem):
+            types.append(t.type)
+            values.append(t.value)
 
-        for problem in self.agent.history:
-            add_tokens(self.parser.tokenize(problem))
-        add_tokens(self.parser.tokenize(self.agent.problem))
         input_features = {
-            FEATURE_MOVE_COUNT: self.agent.move_count,
+            FEATURE_MOVE_COUNT: self.agent.moves_remaining,
             FEATURE_NODE_COUNT: len(values),
             FEATURE_PROBLEM_TYPE: self.agent.problem_type,
             FEATURE_TOKEN_TYPES: types,

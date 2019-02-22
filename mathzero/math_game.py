@@ -54,19 +54,21 @@ class MathGame:
     few moves as possible.
     """
 
-    width = MODEL_WIDTH
     history_length = MODEL_HISTORY_LENGTH
     # Default number of max moves used for training (can be overridden in init)
     max_moves_easy = 50
     max_moves_hard = 35
     max_moves_expert = 20
 
-    def __init__(self, verbose=False, max_moves=None, training_wheels=True):
+    def __init__(
+        self, verbose=False, max_moves=None, lesson=None, training_wheels=True
+    ):
         self.verbose = verbose
         self.training_wheels = training_wheels
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
+        self.lesson = lesson
         self.available_rules = [
             ConstantsSimplifyRule(),
             DistributiveFactorOutRule(),
@@ -90,9 +92,15 @@ class MathGame:
         return 1 / (cpu_count() * 1.5)
 
     def get_initial_state(self):
-        (problem, type, complexity) = self.problems.random_problem(
-            [MODE_SIMPLIFY_POLYNOMIAL]
-        )
+
+        if self.lesson is None:
+            (problem, type, complexity) = self.problems.random_problem(
+                [MODE_SIMPLIFY_POLYNOMIAL]
+            )
+        else:
+            (problem, complexity) = self.lesson.problem_fn()
+            type = self.lesson.problem_type
+
         # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
         # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
         # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
@@ -104,13 +112,9 @@ class MathGame:
         # self.expression_str = "4x * 8 * 2"
         if self.verbose:
             print("\n\n[Problem] {}\n".format(problem))
-        if len(list(problem)) > MathGame.width:
-            raise ValueError(
-                'Expression "{}" is too long for the current model to process. Max width is: {}'.format(
-                    problem, MathGame.width
-                )
-            )
-        env_state = MathEnvironmentState(problem=problem, problem_type=type)
+        env_state = MathEnvironmentState(
+            problem=problem, problem_type=type, max_moves=self.max_moves
+        )
         # NOTE: This is called for each episode, so it can be thought of like "onInitEpisode()"
         return env_state, complexity
 
@@ -181,8 +185,8 @@ class MathGame:
                 output = """{:<25}: {}""".format(
                     change.rule.name[:25], change.result.getRoot()
                 )
-                print("[{}] {}".format(str(agent.move_count).zfill(2), output))
-            out_env = env_state.encode_player(out_problem, agent.move_count + 1)
+                print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
+            out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
         else:
             print("action is {}, and token is {}".format(action, str(token)))
             raise Exception(
@@ -262,18 +266,18 @@ class MathGame:
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
 
-        # if self.training_wheels is True:
-        #     # The player loses if they return to a previous state.
-        #     for key, group in groupby(sorted(agent.history)):
-        #         list_group = list(group)
-        #         list_count = len(list_group)
-        #         if list_count <= 1:
-        #             continue
-        #         if not searching and self.verbose:
-        #             print(
-        #                 "\n[Failed] re-entered previous state: {}".format(list_group[0])
-        #             )
-        #         return -1
+        if self.training_wheels is True:
+            # The player loses if they return to a previous state.
+            for key, group in groupby(sorted(agent.history)):
+                list_group = list(group)
+                list_count = len(list_group)
+                if list_count <= 1:
+                    continue
+                if not searching and self.verbose:
+                    print(
+                        "\n[Failed] re-entered previous state: {}".format(list_group[0])
+                    )
+                return LOSE_REWARD - agent.moves_remaining
 
         # Check for problem_type specific win conditions
         root = expression.getRoot()
@@ -288,29 +292,27 @@ class MathGame:
                     print(
                         "\n[Solved] {} => {}\n".format(self.expression_str, expression)
                     )
-                return WIN_REWARD + agent.move_count
+                return WIN_REWARD + agent.moves_remaining
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
-        if agent.move_count > self.max_moves:
+        if agent.moves_remaining <= 0:
             if not searching:
                 self.write_draw(
                     "[Failed] exhausted moves:\n\t input: {}\n\t 1: {}\n".format(
                         self.expression_str, expression
                     )
                 )
-            return LOSE_REWARD - agent.move_count
+            return LOSE_REWARD - agent.moves_remaining
 
         # The game continues at a reward cost of one per step
-        return -(agent.move_count + 1)
+        return -1
 
     def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""
         # return str(env_state.agent.problem)
         return "[{}, {}]".format(
-            env_state.agent.move_count,
-            env_state.agent.problem,
-            ", ".join(env_state.agent.history),
+            env_state.agent.moves_remaining, env_state.agent.problem
         )
 
 
