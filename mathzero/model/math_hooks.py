@@ -27,16 +27,17 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
         if self._step % self.log_every_n != 0:
             return
         self._start_time = current_time
-        loss_pi, loss_v = run_values.results
+        loss_pi, loss_v, loss_focus = run_values.results
         examples_per_sec = self.log_every_n * self.batch_size / duration
         sec_per_batch = duration
-        template = "%s: step %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f (%.1f examples/sec; %.3f sec/batch)"
+        template = "%s: step %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f, loss_f = %.3f (%.1f examples/sec; %.3f sec/batch)"
         args = (
             datetime.now(),
             self._step,
-            loss_pi + loss_v,
+            loss_pi + loss_v + loss_focus,
             loss_pi,
             loss_v,
+            loss_focus,
             examples_per_sec,
             sec_per_batch,
         )
@@ -46,12 +47,14 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
 
 class TrainingEarlyStopHook(tf.train.SessionRunHook):
     def __init__(
-        self, watch_pi=True, watch_value=True, stop_after_n_steps_without_change=250
+        self, watch_pi=True, watch_value=True, watch_focus=True, stop_after_n=150
     ):
-        self.num_steps = stop_after_n_steps_without_change
+        self.num_steps = stop_after_n
         self.steps_without_change = 0
+        self.watch_focus = watch_focus
         self.watch_pi = watch_pi
         self.watch_value = watch_value
+        self.last_loss_focus = 0
         self.last_loss_pi = 0
         self.last_loss_v = 0
 
@@ -59,8 +62,9 @@ class TrainingEarlyStopHook(tf.train.SessionRunHook):
         def truncate(value):
             return float("%.3f" % (float(value)))
 
-        loss_pi, loss_v = run_values.results
+        loss_pi, loss_v, loss_focus = run_values.results
         loss_pi = truncate(loss_pi)
+        loss_focus = truncate(loss_focus)
         loss_v = truncate(loss_v)
         self.steps_without_change = self.steps_without_change + 1
         if (
@@ -75,8 +79,15 @@ class TrainingEarlyStopHook(tf.train.SessionRunHook):
             and not isclose(loss_v, self.last_loss_v)
         ):
             self.steps_without_change = 0
+        elif (
+            self.watch_focus is True
+            and loss_focus < self.last_loss_focus
+            and not isclose(loss_focus, self.last_loss_focus)
+        ):
+            self.steps_without_change = 0
         self.last_loss_v = loss_v
         self.last_loss_pi = loss_pi
+        self.last_loss_focus = loss_focus
         if self.steps_without_change >= self.num_steps:
             print("STOPPING because monitored metrics stopped decreasing.")
             run_context.request_stop()

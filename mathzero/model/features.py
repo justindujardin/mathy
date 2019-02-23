@@ -22,7 +22,8 @@ def parse_examples_for_training(examples):
     params:
         examples: the JSONL items from `examples.jsonl`
     returns: 
-        tuple of (examples, labels) for training
+        tuple of (examples, labels) for training where labels are a tuple 
+        of (target_policy, target_reward, target_focus)
     """
     import tensorflow as tf
 
@@ -38,8 +39,11 @@ def parse_examples_for_training(examples):
             for feature_key in FEATURE_COLUMNS:
                 inputs[feature_key].append(ex_input[feature_key])
             target_pi = numpy.array(ex["policy"], dtype="float32")
-            target_value = ex["reward"]
-            outputs.append(numpy.concatenate((target_pi, [target_value]), axis=0))
+            target_reward = ex["reward"]
+            target_focus = ex["focus"]
+            outputs.append(
+                numpy.concatenate((target_pi, [target_reward, target_focus]), axis=0)
+            )
         # Pad the variable length columns to longest in the list
         inputs[FEATURE_TOKEN_TYPES] = numpy.array(
             list(zip_longest(*inputs[FEATURE_TOKEN_TYPES], fillvalue=-1))

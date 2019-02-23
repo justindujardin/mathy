@@ -16,7 +16,7 @@ def is_lose_reward(reward):
     return reward <= LOSE_REWARD
 
 
-def discount_rewards(r, gamma=0.2):
+def discount_rewards(r, gamma=0.5):
     """Discount a list of float rewards to encourage rapid convergance"""
     discounted_r = numpy.zeros_like(r, dtype=numpy.float32)
     running_add = 0

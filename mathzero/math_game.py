@@ -129,21 +129,43 @@ class MathGame:
         """Return number of all possible actions"""
         return len(self.available_rules)
 
-    def get_action_rule(
-        self, env_state: MathEnvironmentState, expression: MathExpression, action: int
+    def get_focus_at_index(
+        self,
+        env_state: MathEnvironmentState,
+        action: int,
+        expression: MathExpression = None,
     ):
+        """Find the nearest actionable node index for the environment state 
+        and given action.
+        
+        Returns: a tuple of (node_index, rule_instance) or (-1, None) if no 
+                 applicable nodes are found
+        """
+
+        if expression is None:
+            expression = self.parser.parse(env_state.agent.problem)
         rule = self.available_rules[action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
+
         # This is a magic number, since we find the nearest applicable node.
         # TODO: Replace this with the predicted focus value, once it is normalized to a value in the node range.
         focus = 1
+
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
+        if len(possible_node_indices) == 0:
+            return -1, None
         nearest_possible_index = min(
             possible_node_indices, key=lambda x: abs(x - focus)
         )
-        return rule, self.get_token_at_index(expression, nearest_possible_index)
+        return nearest_possible_index, rule
+
+    def get_action_rule(
+        self, env_state: MathEnvironmentState, expression: MathExpression, action: int
+    ):
+        node_index, node_rule = self.get_focus_at_index(env_state, action, expression)
+        return node_rule, self.get_token_at_index(expression, node_index)
 
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """

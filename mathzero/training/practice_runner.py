@@ -2,9 +2,8 @@ import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
 from sys import stdin
-
 import numpy
-
+from ..environment_state import MathEnvironmentState
 from ..util import (
     LOSE_REWARD,
     WIN_REWARD,
@@ -13,6 +12,8 @@ from ..util import (
     normalize_rewards,
 )
 from .mcts import MCTS
+from ..math_game import MathGame
+from ..model.math_model import MathModel
 
 
 class RunnerConfig:
@@ -57,6 +58,89 @@ class PracticeRunner:
             "predictor implementation must be provided by subclass"
         )
 
+    def act(
+        self,
+        game: MathGame,
+        env_state: MathEnvironmentState,
+        mcts: MCTS,
+        model: MathModel,
+        move_count,
+        history,
+    ):
+        """Take an action, criticize it and return the next state. If the next state
+        is terminal, return policy examples for training.
+
+        The process follows these steps:
+           1. Simulate an action roll-out using MCTS and return a probability
+              distribution over the actions that the agent can take.
+           2. 
+
+        returns: A tuple of (new_env_state, terminal_results_or_none)
+        
+        NOTE: This is an attempt to combine Actor-Critic with MCTS. I'm not sure if it's 
+        correct, but I suppose the training will tell us pretty quickly. If anyone else 
+        sees this message, let's talk about how it turned out, and what kind of docstring 
+        should go here.
+        """
+
+        # Hold on to the episode example data for training the neural net
+        example_data = env_state.to_input_features()
+
+        # If the move_count is less than threshold, set temp = 1 else 0
+        temp = int(move_count < self.config.temperature_threshold)
+        pi = mcts.getActionProb(env_state.clone(), temp=temp)
+        action = numpy.random.choice(len(pi), p=pi)
+        focus_action, _ = game.get_focus_at_index(env_state, action)
+        next_state = game.get_next_state(env_state, action)
+        example_text = next_state.agent.problem
+        r = game.get_state_reward(next_state)
+        is_term = is_terminal_reward(r)
+        is_win = True if is_term and r > 0 else False
+        if is_term:
+            r = abs(r - WIN_REWARD) if is_win else r - LOSE_REWARD
+        history.append([example_data, pi, r, example_text, focus_action])
+
+        # Keep going if the reward signal is not terminal
+        if not is_term:
+            return next_state, None
+
+        rewards = [x[2] for x in history]
+        if not is_win:
+            rewards.reverse()
+        discounts = list(discount_rewards(rewards))
+
+        if is_win:
+            anchor_discount = -numpy.max(discounts)
+        else:
+            anchor_discount = abs(numpy.min(discounts))
+
+        max_discount = [anchor_discount]
+        # Note that we insert negative(max_discounted_reward) so that normalizing
+        # the reward will never make a WIN value that is less than 0. Then we slice off
+        # the last element from the normalized values.
+        rewards = normalize_rewards(discounts + max_discount)[:-1]
+
+        # Floating point is tricky, so sometimes the values near zero will flip
+        # their signs, so force the appropriate sign. This is okay(?) because it's
+        # only small value changes, e.g. (-0.001 to 0.001)
+        if is_win:
+            rewards = [min(abs(r) + 1e-3, 1.0) for r in rewards]
+        else:
+            rewards = [max(-abs(r) - 1e-3, -1) for r in rewards]
+        examples = []
+        for i, x in enumerate(history):
+            examples.append(
+                {
+                    "reward": float(rewards[i]),
+                    "focus": float(x[4]),
+                    "text": x[3],
+                    "policy": x[1],
+                    "inputs": x[0],
+                }
+            )
+        episode_reward = rewards[0]
+        return next_state, (examples, episode_reward, is_win)
+
     def execute_episodes(self, episode_args_list):
         """
         Execute (n) episodes of self-play serially. This is mostly useful for debugging, and
@@ -70,7 +154,7 @@ class PracticeRunner:
         predictor.start()
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            episode_examples, episode_reward, episode_complexity, is_win = self.execute_episode(
+            episode_examples, episode_reward, is_win, episode_complexity = self.execute_episode(
                 i, game, predictor, **args
             )
             duration = time.time() - start
@@ -99,64 +183,18 @@ class PracticeRunner:
         if predictor is None:
             raise NotImplementedError("PracticeRunner.get_predictor returned None type")
 
-        episode_examples = []
         env_state, complexity = game.get_initial_state()
 
+        episode_history = []
         move_count = 0
         mcts = MCTS(game, predictor, self.config.cpuct, self.config.num_mcts_sims)
         while True:
             move_count += 1
-            # If the move_count is less than threshold, set temp = 1 else 0
-            temp = int(move_count < self.config.temperature_threshold)
-
-            pi = mcts.getActionProb(env_state.clone(), temp=temp)
-            # Store the episode example data for training the neural net
-            example_data = env_state.to_input_features()
-            action = numpy.random.choice(len(pi), p=pi)
-            env_state = game.get_next_state(env_state, action)
-            example_text = env_state.agent.problem
-            r = game.get_state_reward(env_state)
-            is_term = is_terminal_reward(r)
-            is_win = True if is_term and r > 0 else False
-            if is_term:
-                r = abs(r - WIN_REWARD) if is_win else r - LOSE_REWARD
-            episode_examples.append([example_data, pi, r, example_text])
-            if is_term:
-                rewards = [x[2] for x in episode_examples]
-                if not is_win:
-                    rewards.reverse()
-                discounts = list(discount_rewards(rewards))
-
-                if is_win:
-                    anchor_discount = -numpy.max(discounts)
-                else:
-                    anchor_discount = abs(numpy.min(discounts))
-
-                max_discount = [anchor_discount]
-                # Note that we insert negative(max_discounted_reward) so that normalizing
-                # the reward will never make a WIN value that is less than 0.
-                rewards = normalize_rewards(discounts + max_discount)
-                # Floating point is tricky, so sometimes the values near zero will flip
-                # their signs, so force the appropriate sign. This is okay(?) because it's
-                # only small value changes, e.g. (-0.001 to 0.001)
-                if is_win:
-                    rewards = [min(abs(r) + 1e-3, 1.0) for r in rewards]
-                else:
-                    rewards = [max(-abs(r) - 1e-3, -1) for r in rewards]
-                examples = []
-                for i, x in enumerate(episode_examples):
-                    examples.append(
-                        {
-                            "reward": float(rewards[i]),
-                            "text": x[3],
-                            "policy": x[1],
-                            "inputs": x[0],
-                        }
-                    )
-                    pass
-                return examples, rewards[0], complexity, is_win
-
-        return [], -1, complexity, False
+            env_state, result = self.act(
+                game, env_state, mcts, predictor, move_count, episode_history
+            )
+            if result is not None:
+                return result + (complexity,)
 
     def episode_complete(self, episode, summary):
         """Called after each episode completes. Useful for things like updating progress indicators"""
@@ -207,7 +245,7 @@ class ParallelPracticeRunner(PracticeRunner):
                 episode, args = work_queue.get()
                 start = time.time()
                 try:
-                    episode_examples, episode_reward, episode_complexity, is_win = self.execute_episode(
+                    episode_examples, episode_reward, is_win, episode_complexity = self.execute_episode(
                         episode, game, predictor, **args
                     )
                 except Exception as e:

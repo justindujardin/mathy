@@ -96,18 +96,13 @@ class MathModel:
     def train(self, examples):
         """examples: list of examples in JSON format"""
         from .math_hooks import TrainingLoggerHook, TrainingEarlyStopHook
+        import tensorflow as tf
 
         print(
-            "Training neural net for at most ({}) steps with ({}) examples...".format(
+            "Training model for up to ({}) steps with ({}) examples...".format(
                 self.args.max_steps, len(examples)
             )
         )
-
-        features, labels = parse_examples_for_training(examples)
-
-        # def feed_fn():
-        #     return {"policy_labels": {}, "focus_labels": {}}
-
         self.network.train(
             hooks=[
                 TrainingEarlyStopHook(),
