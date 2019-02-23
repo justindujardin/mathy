@@ -68,12 +68,13 @@ class PracticeRunner:
         history,
     ):
         """Take an action, criticize it and return the next state. If the next state
-        is terminal, return policy examples for training.
+        is terminal, return training examples for the episode feature, policy, and focus
+        values.
 
         The process follows these steps:
            1. Simulate an action roll-out using MCTS and return a probability
               distribution over the actions that the agent can take.
-           2. 
+           2. Choose an action and produce a next_state environment.
 
         returns: A tuple of (new_env_state, terminal_results_or_none)
         
@@ -90,15 +91,21 @@ class PracticeRunner:
         temp = int(move_count < self.config.temperature_threshold)
         pi = mcts.getActionProb(env_state.clone(), temp=temp)
         action = numpy.random.choice(len(pi), p=pi)
-        focus_action, _ = game.get_focus_at_index(env_state, action)
+
+        # Calculate focus loss, and save agent focus for output into our examples file
+        agent_focus = env_state.agent.focus
+        mcts_focus = mcts.getFocusProb(env_state)
+
         next_state = game.get_next_state(env_state, action)
+        # Predict focus for the next state
+        next_state.agent.focus = mcts.getFocusProb(next_state)
         example_text = next_state.agent.problem
         r = game.get_state_reward(next_state)
         is_term = is_terminal_reward(r)
         is_win = True if is_term and r > 0 else False
         if is_term:
             r = abs(r - WIN_REWARD) if is_win else r - LOSE_REWARD
-        history.append([example_data, pi, r, example_text, focus_action])
+        history.append([example_data, pi, r, example_text, env_state.agent.focus])
 
         # Keep going if the reward signal is not terminal
         if not is_term:

@@ -36,15 +36,11 @@ class PracticeSession:
         return bool(len(self.all_examples) > 0)
 
     def __init__(self, runner, lesson: LessonExercise = None, lesson_plan_name=None):
-        # if args is None:
-        #     args = dict()
         self.runner = runner
         self.lesson = lesson
         if lesson is None:
             raise ValueError("cannot train without LessonExercise")
         self.training_iterations = 50
-        # self.model_win_loss_ratio = args.get("model_win_loss_ratio", 0.6)
-        # self.model_arena_iterations = args.get("model_arena_iterations", 30)
         self.all_examples = []
         self.skip_first_self_play = False
         loaded = self.load_training_examples()
@@ -66,8 +62,6 @@ class PracticeSession:
                     return
 
     def run_self_play(self, iteration, num_episodes):
-        # if iteration == 1 and self.skip_first_self_play:
-        #     return 0, 0, {}, []
         bar = Bar(self.lesson.name.upper(), max=num_episodes)
         bar.suffix = "working on first problem..."
         bar.next()
@@ -79,7 +73,7 @@ class PracticeSession:
         def episode_complete(self, episode, summary):
             nonlocal current_episode, bar, num_episodes, solved, failed
             current_episode += 1
-            if summary["solved"] is True:
+            if summary.get("solved", False) is True:
                 solved = solved + 1
             else:
                 failed = failed + 1
@@ -103,7 +97,6 @@ class PracticeSession:
             episodes_with_args
         )
         # Output a few solve/fail stats
-
         complexity_stats = dict()
         solve = 0
         fail = 0

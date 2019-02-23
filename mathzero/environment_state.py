@@ -25,10 +25,18 @@ MODEL_HISTORY_LENGTH = 6
 
 
 class MathAgentState(object):
-    def __init__(self, moves_remaining: int, problem: str, problem_type: int, history=None):
+    def __init__(
+        self,
+        moves_remaining: int,
+        problem: str,
+        problem_type: int,
+        focus=0.5,
+        history=None,
+    ):
         self.moves_remaining = moves_remaining
         self.problem = problem
         self.problem_type = problem_type
+        self.focus = focus
         self.history = history[:] if history is not None else []
 
     @classmethod
@@ -37,6 +45,7 @@ class MathAgentState(object):
             from_state.moves_remaining,
             from_state.problem,
             from_state.problem_type,
+            from_state.focus,
             from_state.history,
         )
 
@@ -75,6 +84,12 @@ class MathEnvironmentState(object):
 
     def clone(self):
         return MathEnvironmentState(state=self)
+
+    def encode_focus(self, focus):
+        """Encode a player's focus into the env_state, and return the env_state"""
+        out_state = MathEnvironmentState.copy(self)
+        out_state.agent.focus = focus
+        return out_state
 
     def encode_player(self, problem: str, moves_remaining: int):
         """Encode a player's state into the env_state, and return the env_state"""

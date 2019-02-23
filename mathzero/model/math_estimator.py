@@ -17,7 +17,7 @@ def math_estimator(features, labels, mode, params):
     )
 
     action_policy = tf.nn.softmax(logits, name="out_policy")
-    focus_value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_focus")
+    focus_value = tf.nn.sigmoid(tf.layers.dense(logits, 1), "out_focus")
     value = tf.nn.tanh(tf.layers.dense(logits, 1), "out_value")
 
     # Compute predictions.

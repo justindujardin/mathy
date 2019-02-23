@@ -1,6 +1,7 @@
 import math
 import numpy
 from ..util import is_terminal_reward
+from ..environment_state import MathEnvironmentState
 
 EPS = 1e-8
 
@@ -26,6 +27,8 @@ class MCTS:
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
+        # Focus prediction cache
+        self._focus_predictions = {}
 
         self.Es = {}  # stores game.get_state_reward ended for env_state s
         self.Vs = {}  # stores game.getValidMoves for env_state s
@@ -74,6 +77,21 @@ class MCTS:
         probs = [x / float(count_sum) for x in counts]
         return probs
 
+    def getFocusProb(self, env_state: MathEnvironmentState, ignore_cache=False):
+        """
+        This function returns the predicted focus value for the given environment state. 
+
+        Returns:
+            probs: a focus value between 0.0 and 1.0 that represents the token that 
+                   an action should be applied to given the current state.
+
+        NOTE: could use this to filter the valid actions
+        """
+        hash_key = self.game.to_hash_key(env_state)
+        if hash_key not in self._focus_predictions or ignore_cache is True:
+            _, _, self._focus_predictions[hash_key] = self.predictor.predict(env_state)
+        return self._focus_predictions[hash_key]
+
     def search(self, env_state, isRootNode=False):
         """
         This function performs one iteration of MCTS. It is recursively called
@@ -102,9 +120,10 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], action_v, _ = self.predictor.predict(env_state)
-            # print('calculating valid moves for: {}'.format(s))
+            self.Ps[s], action_v, self._focus_predictions[s] = self.predictor.predict(env_state)
+            # print("calculating valid moves for: {}".format(s))
             # print("action_v = {}".format(action_v))
+            # print("focus_v = {}".format(self._focus_predictions[s]))
             # print("Ps = {}".format(self.Ps[s].shape))
             valids = self.game.getValidMoves(env_state)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves

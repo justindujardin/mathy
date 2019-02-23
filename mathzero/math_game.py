@@ -129,6 +129,33 @@ class MathGame:
         """Return number of all possible actions"""
         return len(self.available_rules)
 
+    def get_focus_example_from_token_index(
+        self, expression: MathExpression, focus_index
+    ):
+        """Given an index into an expression, get 0-1 focus value
+        that points back to that token, for model input data.
+        """
+        count = 0
+        result = None
+
+        def visit_fn(node, depth, data):
+            nonlocal count
+            count = count + 1
+
+        expression.visitPreorder(visit_fn)
+        return focus / count
+
+    def get_token_index_from_focus(self, expression: MathExpression, focus_value):
+        """Given a 0-1 focus value, return a tuple of (token_index, focus_error)"""
+        count = 0
+
+        def visit_fn(node, depth, data):
+            nonlocal count
+            count = count + 1
+
+        expression.visitPreorder(visit_fn)
+        return int(count * focus_value)
+
     def get_focus_at_index(
         self,
         env_state: MathEnvironmentState,
@@ -148,9 +175,8 @@ class MathGame:
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
 
-        # This is a magic number, since we find the nearest applicable node.
-        # TODO: Replace this with the predicted focus value, once it is normalized to a value in the node range.
-        focus = 1
+        # Select an actionable node around the agent focus
+        focus = self.get_token_index_from_focus(expression, env_state.agent.focus)
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
@@ -333,8 +359,10 @@ class MathGame:
     def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""
         # return str(env_state.agent.problem)
-        return "[{}, {}]".format(
-            env_state.agent.moves_remaining, env_state.agent.problem
+        return "[{}|{}|{}]".format(
+            env_state.agent.moves_remaining,
+            int(env_state.agent.focus * 10),
+            env_state.agent.problem,
         )
 
 
