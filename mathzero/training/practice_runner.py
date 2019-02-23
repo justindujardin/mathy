@@ -217,7 +217,7 @@ class ParallelPracticeRunner(PracticeRunner):
                         )
                     )
                     print(e)
-                    result_queue.put((i, [], {"input": game.problem, "error": str(e)}))
+                    result_queue.put((i, [], {"error": str(e)}))
                     continue
                 duration = time.time() - start
                 episode_summary = dict(
