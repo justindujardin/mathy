@@ -26,14 +26,18 @@ def rand_int():
 def rand_op():
     return operators[random.randint(0, len(operators) - 1)]
 
-def combine_multiple_like_add_terms(num_terms):
+
+def combine_multiple_like_add_terms(num_terms, optional_var=True):
     variable = rand_var()
     # Guarantee at least one set of like terms
     result = "{}{} ".format(rand_int(), variable)
     suffix = " + {}{}".format(rand_int(), variable)
     for i in range(num_terms - 2):
-        result = result + " + {}{}".format(rand_int(), maybe_var())
+        result = result + " + {}{}".format(
+            rand_int(), maybe_var() if optional_var else rand_var()
+        )
     return result + suffix, num_terms
+
 
 def simplify_multiple_terms(num_terms):
     variable = rand_var()
@@ -45,6 +49,7 @@ def simplify_multiple_terms(num_terms):
     for i in range(num_terms - 2):
         result = result + " {} {}{}".format(rand_op(), rand_int(), maybe_var())
     return result + suffix, num_terms
+
 
 class ProblemGenerator:
     def __init__(self, min_complexity=3, max_complexity=5, max_const=24):

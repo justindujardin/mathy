@@ -112,20 +112,22 @@ class PracticeRunner:
             return next_state, None
 
         rewards = [x[2] for x in history]
-        if not is_win:
-            rewards.reverse()
         discounts = list(discount_rewards(rewards))
 
+        # Note that we insert negative(max_discounted_reward) so that normalizing
+        # the reward will never make a WIN value that is less than 0 or a lose that is
+        # greater than 0.
         if is_win:
             anchor_discount = -numpy.max(discounts)
         else:
             anchor_discount = abs(numpy.min(discounts))
+        # Compute the normalized values, and slice off the last (anchor) element
+        rewards = normalize_rewards(discounts + [anchor_discount])[:-1]
 
-        max_discount = [anchor_discount]
-        # Note that we insert negative(max_discounted_reward) so that normalizing
-        # the reward will never make a WIN value that is less than 0. Then we slice off
-        # the last element from the normalized values.
-        rewards = normalize_rewards(discounts + max_discount)[:-1]
+        # If we're losing, reverse the reward values so they get more negative as
+        # the agent approaches the losing move.
+        if not is_win:
+            numpy.flip(rewards)
 
         # Floating point is tricky, so sometimes the values near zero will flip
         # their signs, so force the appropriate sign. This is okay(?) because it's

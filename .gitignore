@@ -1,12 +1,13 @@
 *.pyc
 .DS_Store
 
+.coverage
 /temp/
 /.project
 /.pydevproject
 .env
 .pytest_cache
-training/
+.training/
 .vscode
 program.prof
 .terraform
