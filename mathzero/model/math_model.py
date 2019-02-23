@@ -7,7 +7,9 @@ import numpy
 import math
 import sys
 from itertools import zip_longest
-from pytorch_classification.utils import Bar, AverageMeter
+from lib.progress.bar import Bar
+from lib.average_meter import AverageMeter
+
 from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
 from mathzero.model.math_predictor import MathPredictor

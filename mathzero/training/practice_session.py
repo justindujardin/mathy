@@ -18,7 +18,9 @@ import ujson
 from .examination_runner import ExaminationRunner
 from .lessons import LessonExercise
 from .mcts import MCTS
-from pytorch_classification.utils import AverageMeter, Bar
+from lib.progress.bar import Bar
+from lib.average_meter import AverageMeter
+
 from ..util import is_lose_reward, is_win_reward
 
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"

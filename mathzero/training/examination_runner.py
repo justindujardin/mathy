@@ -2,7 +2,8 @@ import time
 
 import numpy as np
 
-from pytorch_classification.utils import AverageMeter, Bar
+from lib.average_meter import AverageMeter
+from lib.progress.bar import Bar
 
 from ..util import is_lose_reward, is_terminal_reward, is_win_reward
 
