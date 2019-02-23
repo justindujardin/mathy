@@ -10,10 +10,10 @@ provider "google" {
 
 resource "google_compute_instance" "mathtastic-worker" {
   count                     = "1"
-  name                      = "mt-baby-worker"
-  machine_type              = "n1-standard-8"
+  name                      = "mt-cpu-worker"
+  machine_type              = "n1-standard-24"
   zone                      = "us-east1-c"
-  tags                      = ["gpu-compute"]
+  tags                      = ["cpu-compute"]
 
   // We use this key instead of the `startup-script` key to force instance recreation when the contents change
   metadata_startup_script = "${file("${path.module}/mt-terraform-startup.sh")}"
@@ -53,9 +53,5 @@ resource "google_compute_instance" "mathtastic-worker" {
     on_host_maintenance = "TERMINATE"
     preemptible = true
     automatic_restart = false
-  }
-  guest_accelerator {
-    count = 1
-    type = "nvidia-tesla-k80"
   }
 }
