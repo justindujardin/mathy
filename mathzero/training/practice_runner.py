@@ -142,7 +142,7 @@ class PracticeRunner:
                 {
                     "reward": float(rewards[i]),
                     "focus": float(x[4]),
-                    "text": x[3],
+                    "before": x[3],
                     "policy": x[1],
                     "inputs": x[0],
                 }

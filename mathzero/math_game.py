@@ -61,7 +61,7 @@ class MathGame:
     max_moves_expert = 20
 
     def __init__(
-        self, verbose=False, max_moves=None, lesson=None, training_wheels=True
+        self, verbose=False, max_moves=None, lesson=None, training_wheels=False
     ):
         self.verbose = verbose
         self.training_wheels = training_wheels

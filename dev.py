@@ -15,6 +15,12 @@ from mathzero.training.lessons import build_lesson_plan, LessonExercise
 import random
 
 
+def two_variable_terms():
+    variable = rand_var()
+    problem = "{}{} + {}{}".format(rand_int(), variable, rand_int(), variable)
+    return problem, 2
+
+
 @plac.annotations(
     agent_name=(
         "The name of the model to train. This changes the output folder.",
@@ -32,7 +38,7 @@ def main(agent_name="default"):
                 LessonExercise(
                     lesson_name="QuickSelfPlay",
                     problem_count=5,
-                    problem_fn=lambda: combine_multiple_like_add_terms(4),
+                    problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=15,
                     mcts_sims=100,

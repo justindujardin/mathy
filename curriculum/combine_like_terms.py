@@ -62,8 +62,8 @@ lessons = build_lesson_plan(
             problem_count=100,
             problem_fn=three_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=25,
-            mcts_sims=250,
+            max_turns=30,
+            mcts_sims=350,
         ),
         LessonExercise(
             lesson_name="Four variable terms",
