@@ -206,9 +206,19 @@ class ParallelPracticeRunner(PracticeRunner):
             while work_queue.empty() == False:
                 episode, args = work_queue.get()
                 start = time.time()
-                episode_examples, episode_reward, episode_complexity, is_win = self.execute_episode(
-                    episode, game, predictor, **args
-                )
+                try:
+                    episode_examples, episode_reward, episode_complexity, is_win = self.execute_episode(
+                        episode, game, predictor, **args
+                    )
+                except Exception as e:
+                    print(
+                        "ERROR: self practice thread threw an exception: {}".format(
+                            str(e)
+                        )
+                    )
+                    print(e)
+                    result_queue.put((i, [], {"input": game.problem, "error": str(e)}))
+                    continue
                 duration = time.time() - start
                 episode_summary = dict(
                     complexity=episode_complexity,
@@ -240,8 +250,9 @@ class ParallelPracticeRunner(PracticeRunner):
             i, episode_examples, summary = result_queue.get()
             self.episode_complete(i, summary)
             count += 1
-            examples.extend(episode_examples)
-            results.append(summary)
+            if "error" not in summary:
+                examples.extend(episode_examples)
+                results.append(summary)
 
         # Wait for the workers to exit completely
         for proc in processes:
