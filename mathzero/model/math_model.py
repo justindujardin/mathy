@@ -51,13 +51,13 @@ class MathModel:
             tf.feature_column.categorical_column_with_hash_bucket(
                 key=FEATURE_TOKEN_VALUES, hash_bucket_size=12
             ),
-            dimension=2,
+            dimension=32,
         )
         self.feature_tokens_type = tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
                 key=FEATURE_TOKEN_TYPES, hash_bucket_size=12, dtype=tf.int64
             ),
-            dimension=2,
+            dimension=4,
         )
 
         self.feature_move_count = tf.feature_column.numeric_column(
@@ -86,14 +86,13 @@ class MathModel:
                 "feature_columns": self.feature_columns,
                 "action_size": self.action_size,
                 "learning_rate": self.args.lr,
-                "hidden_units": [32, 32],
+                "hidden_units": [4, 4],
             },
         )
         self._worker = MathPredictor(self.network, self.args)
 
     def train(self, examples):
         """examples: list of examples in JSON format"""
-        import tensorflow as tf
         from .math_hooks import TrainingLoggerHook, TrainingEarlyStopHook
 
         print(
@@ -109,7 +108,6 @@ class MathModel:
 
         self.network.train(
             hooks=[
-                # tf.train.FeedFnHook(feed_fn=feed_fn),
                 TrainingEarlyStopHook(),
                 TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
             ],
