@@ -1,3 +1,15 @@
+from .features import FEATURE_NODE_COUNT, FEATURE_TOKEN_VALUES, FEATURE_TOKEN_TYPES
+
+
+def length(sequence):
+    import tensorflow as tf
+
+    used = tf.sign(tf.reduce_max(tf.abs(sequence), 2))
+    length = tf.reduce_sum(used, 1)
+    length = tf.cast(length, tf.int32)
+    return length
+
+
 def math_estimator(features, labels, mode, params):
     """TensorFlow custom estimator for RL policy/value network"""
     import tensorflow as tf
@@ -7,6 +19,23 @@ def math_estimator(features, labels, mode, params):
 
     # Input features
     net = tf.feature_column.input_layer(features, params["feature_columns"])
+
+    # max_length = 512
+    # num_hidden = 64
+
+    # token_types_shape = tf.shape(features[FEATURE_TOKEN_TYPES])
+    # batch_size = token_types_shape[0]
+    # time_steps = tf.reduce_max(token_types_shape[1])
+    # sequence_input = tf.convert_to_tensor(features[FEATURE_TOKEN_TYPES], dtype=tf.int32)
+    # # sequence_input = tf.reshape(token_types_tensor, shape=[batch_size, time_steps, 1])
+    # # sequence = tf.placeholder(tf.float32, [None, max_length, frame_size])
+    # output, state = tf.nn.dynamic_rnn(
+    #     tf.contrib.rnn.GRUCell(num_hidden),
+    #     sequence_input,
+    #     dtype=tf.int32,
+    #     sequence_length=length(sequence_input),
+    # )
+
     training = mode == tf.estimator.ModeKeys.TRAIN
     for units in params["hidden_units"]:
         net = tf.layers.dense(net, units=units, activation=tf.nn.relu)

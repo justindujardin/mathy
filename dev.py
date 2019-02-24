@@ -37,7 +37,7 @@ def main(agent_name="default"):
             [
                 LessonExercise(
                     lesson_name="QuickSelfPlay",
-                    problem_count=5,
+                    problem_count=1,
                     problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=15,
@@ -45,8 +45,8 @@ def main(agent_name="default"):
                 ),
                 LessonExercise(
                     lesson_name="DifficultSelfPlay",
-                    problem_count=2,
-                    problem_fn=lambda: combine_multiple_like_add_terms(10),
+                    problem_count=10,
+                    problem_fn=lambda: combine_multiple_like_add_terms(6),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=50,
                     mcts_sims=25,

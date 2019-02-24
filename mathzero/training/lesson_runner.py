@@ -52,12 +52,14 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
         # lesson.num_mcts_sims = num_mcts_sims
         class LessonRunner(BaseEpisodeRunner):
             def get_game(self):
-                return MathGame(verbose=dev_mode, lesson=lesson)
+                return MathGame(
+                    verbose=dev_mode, lesson=lesson, max_moves=lesson.max_turns
+                )
 
             def get_predictor(self, game, all_memory=False):
                 return MathModel(game, model_dir, all_memory)
 
-        num_to_advance = 3
+        num_to_advance = 1
         progress_counter = 0
 
         def session_done(lesson_exercise, num_solved, num_failed):

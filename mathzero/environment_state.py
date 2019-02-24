@@ -11,7 +11,8 @@ from .model.features import (
     FEATURE_COLUMNS,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
-    FEATURE_MOVE_COUNT,
+    FEATURE_MOVE_COUNTER,
+    FEATURE_MOVES_REMAINING,
     FEATURE_TOKEN_TYPES,
     FEATURE_TOKEN_VALUES,
 )
@@ -125,7 +126,8 @@ class MathEnvironmentState(object):
             values.append(t.value)
 
         input_features = {
-            FEATURE_MOVE_COUNT: self.agent.moves_remaining,
+            FEATURE_MOVE_COUNTER: self.max_moves - self.agent.moves_remaining,
+            FEATURE_MOVES_REMAINING: self.agent.moves_remaining,
             FEATURE_NODE_COUNT: len(values),
             FEATURE_PROBLEM_TYPE: self.agent.problem_type,
             FEATURE_TOKEN_TYPES: types,

@@ -18,7 +18,8 @@ from mathzero.model.features import (
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
-    FEATURE_MOVE_COUNT,
+    FEATURE_MOVE_COUNTER,
+    FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
     FEATURE_COLUMNS,
 )
@@ -49,36 +50,40 @@ class MathModel:
 
         self.args = NetConfig()
         # Feature columns describe how to use the input.
-        self.token_value_feature = tf.feature_column.embedding_column(
+        self.f_token_values = tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
-                key=FEATURE_TOKEN_VALUES, hash_bucket_size=12
+                key=FEATURE_TOKEN_VALUES, hash_bucket_size=12, dtype=tf.string
             ),
             dimension=32,
         )
-        self.feature_tokens_type = tf.feature_column.embedding_column(
+        self.f_token_types = tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
-                key=FEATURE_TOKEN_TYPES, hash_bucket_size=12, dtype=tf.int64
+                key=FEATURE_TOKEN_TYPES, hash_bucket_size=12, dtype=tf.int32
             ),
             dimension=4,
         )
 
-        self.feature_move_count = tf.feature_column.numeric_column(
-            key=FEATURE_MOVE_COUNT, dtype=tf.int16
+        self.f_move_count = tf.feature_column.numeric_column(
+            key=FEATURE_MOVE_COUNTER, dtype=tf.int16
         )
-        self.feature_node_count = tf.feature_column.numeric_column(
+        self.f_moves_remaining = tf.feature_column.numeric_column(
+            key=FEATURE_MOVES_REMAINING, dtype=tf.int16
+        )
+        self.f_node_count = tf.feature_column.numeric_column(
             key=FEATURE_NODE_COUNT, dtype=tf.int16
         )
-        self.feature_problem_type = tf.feature_column.indicator_column(
+        self.f_problem_type = tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_identity(
                 key=FEATURE_PROBLEM_TYPE, num_buckets=32
             )
         )
         self.feature_columns = [
-            self.feature_problem_type,
-            self.feature_tokens_type,
-            self.feature_node_count,
-            self.feature_move_count,
-            self.token_value_feature,
+            self.f_problem_type,
+            self.f_node_count,
+            self.f_move_count,
+            self.f_moves_remaining,
+            self.f_token_types,
+            self.f_token_values,
         ]
         self.network = tf.estimator.Estimator(
             config=estimator_config,
@@ -124,7 +129,10 @@ class MathModel:
             FEATURE_TOKEN_TYPES: [types],
             FEATURE_TOKEN_VALUES: [values],
             FEATURE_NODE_COUNT: [len(values)],
-            FEATURE_MOVE_COUNT: [env_state.agent.moves_remaining],
+            FEATURE_MOVES_REMAINING: [
+                env_state.max_moves - env_state.agent.moves_remaining
+            ],
+            FEATURE_MOVE_COUNTER: [env_state.agent.moves_remaining],
             FEATURE_PROBLEM_TYPE: [env_state.agent.problem_type],
         }
         start = time.time()

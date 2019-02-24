@@ -5,7 +5,8 @@ from mathzero.model.features import (
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
-    FEATURE_MOVE_COUNT,
+    FEATURE_MOVE_COUNTER,
+    FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
     FEATURE_COLUMNS,
 )
@@ -84,9 +85,10 @@ class MathPredictor(object):
 
         output_types = {
             FEATURE_TOKEN_VALUES: tf.string,
-            FEATURE_TOKEN_TYPES: tf.int64,
+            FEATURE_TOKEN_TYPES: tf.int32,
             FEATURE_NODE_COUNT: tf.int32,
-            FEATURE_MOVE_COUNT: tf.int32,
+            FEATURE_MOVE_COUNTER: tf.int32,
+            FEATURE_MOVES_REMAINING: tf.int32,
             FEATURE_PROBLEM_TYPE: tf.int32,
         }
         dataset = tf.data.Dataset.from_generator(
