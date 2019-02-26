@@ -2,6 +2,7 @@
 """Executing training and evaluation against the agent curriculum, automatically progressing
 to the next level as the agent gets better.
 """
+import os
 import numpy
 import plac
 from mathzero.training.lesson_runner import lesson_runner
@@ -13,6 +14,10 @@ from mathzero.training.problems import (
 )
 from mathzero.training.lessons import build_lesson_plan, LessonExercise
 import random
+import tensorflow as tf
+
+# Allow inspecting Tensor and Dataset values in the debugger
+tf.compat.v1.enable_eager_execution()
 
 
 def two_variable_terms():
@@ -30,6 +35,7 @@ def two_variable_terms():
     )
 )
 def main(agent_name="default"):
+    # os.rmdir("/mnt/gcs/mzc/default/")
     lesson_runner(
         agent_name,
         build_lesson_plan(
@@ -37,7 +43,23 @@ def main(agent_name="default"):
             [
                 LessonExercise(
                     lesson_name="QuickSelfPlay",
-                    problem_count=1,
+                    problem_count=4,
+                    problem_fn=lambda: two_variable_terms(),
+                    problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    max_turns=15,
+                    mcts_sims=100,
+                ),
+                LessonExercise(
+                    lesson_name="QuickSelfPlay2",
+                    problem_count=4,
+                    problem_fn=lambda: two_variable_terms(),
+                    problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    max_turns=15,
+                    mcts_sims=100,
+                ),
+                LessonExercise(
+                    lesson_name="QuickSelfPlay3",
+                    problem_count=4,
                     problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=15,

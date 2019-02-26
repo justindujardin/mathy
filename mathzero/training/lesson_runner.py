@@ -59,7 +59,7 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
             def get_predictor(self, game, all_memory=False):
                 return MathModel(game, model_dir, all_memory)
 
-        num_to_advance = 1
+        num_to_advance = 2
         progress_counter = 0
 
         def session_done(lesson_exercise, num_solved, num_failed):

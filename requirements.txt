@@ -5,7 +5,11 @@ pytest
 pytest-cov
 plac
 ujson
-# dev 
-matplotlib
+tensorflow_estimator
+tf-nightly-2.0-preview
 tensorboard
 
+
+# dev 
+matplotlib
+black

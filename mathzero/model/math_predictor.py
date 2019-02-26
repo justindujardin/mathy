@@ -55,10 +55,6 @@ class MathPredictor(object):
         return predictions
 
     def generate_from_queue(self):
-        """ Generator which yields items from the input queue.
-        This lives within our 'prediction thread'.
-        """
-
         while True:
             try:
                 result = self.input_queue.get(timeout=1)
@@ -71,12 +67,6 @@ class MathPredictor(object):
             yield result
 
     def predict_from_queue(self):
-        """ Adds a prediction from the model to the output_queue.
-        This lives within our 'prediction thread'.
-        Note: estimators accept generators as inputs and return generators as output.
-        Here, we are iterating through the output generator, which will be 
-        populated in lock-step with the input generator.
-        """
         for i in self.estimator.predict(input_fn=self.queued_predict_input_fn):
             self.output_queue.put(i)
 
@@ -85,7 +75,7 @@ class MathPredictor(object):
 
         output_types = {
             FEATURE_TOKEN_VALUES: tf.string,
-            FEATURE_TOKEN_TYPES: tf.int32,
+            FEATURE_TOKEN_TYPES: tf.int8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

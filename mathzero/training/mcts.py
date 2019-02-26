@@ -120,7 +120,9 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], action_v, self._focus_predictions[s] = self.predictor.predict(env_state)
+            self.Ps[s], action_v, self._focus_predictions[s] = self.predictor.predict(
+                env_state
+            )
             # print("calculating valid moves for: {}".format(s))
             # print("action_v = {}".format(action_v))
             # print("focus_v = {}".format(self._focus_predictions[s]))

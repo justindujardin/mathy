@@ -4,9 +4,18 @@ import time
 import sys
 from datetime import datetime
 from math import isclose
+from tensorflow_estimator.python.estimator.hooks.session_run_hook import SessionRunHook
+
+# These are the tensors from our multi-head predictions. We fetch their current values
+# in the below hooks
+MATH_OUTPUT_TENSORS = {
+    "policy": "policy/weighted_loss/value:0",
+    "value": "value/weighted_loss/value:0",
+    "focus": "focus/weighted_loss/value:0",
+}
 
 
-class TrainingLoggerHook(tf.train.SessionRunHook):
+class TrainingLoggerHook(SessionRunHook):
     """Log training progress to the console, including pi and value losses"""
 
     def __init__(self, batch_size, log_every_n=100):
@@ -18,16 +27,28 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
         self._start_time = time.time()
 
     def before_run(self, run_context):
+        global MATH_OUTPUT_TENSORS
+        from tensorflow.python.training import training
+        import tensorflow as tf
+
         self._step += 1
-        return tf.train.SessionRunArgs(tf.get_collection("mt"))
+
+        return training.SessionRunArgs(MATH_OUTPUT_TENSORS)
 
     def after_run(self, run_context, run_values):
+        import tensorflow as tf
+
+        def truncate(value):
+            return float("%.3f" % (float(value)))
+
         current_time = time.time()
         duration = current_time - self._start_time
         if self._step % self.log_every_n != 0:
             return
         self._start_time = current_time
-        loss_pi, loss_v, loss_focus = run_values.results
+        loss_pi = truncate(run_values.results["policy"])
+        loss_focus = truncate(run_values.results["focus"])
+        loss_v = truncate(run_values.results["value"])
         examples_per_sec = self.log_every_n * self.batch_size / duration
         sec_per_batch = duration
         template = "%s: step %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f, loss_f = %.3f (%.1f examples/sec; %.3f sec/batch)"
@@ -45,7 +66,7 @@ class TrainingLoggerHook(tf.train.SessionRunHook):
         sys.stdout.flush()
 
 
-class TrainingEarlyStopHook(tf.train.SessionRunHook):
+class TrainingEarlyStopHook(SessionRunHook):
     def __init__(
         self, watch_pi=True, watch_value=True, watch_focus=True, stop_after_n=150
     ):
@@ -59,13 +80,14 @@ class TrainingEarlyStopHook(tf.train.SessionRunHook):
         self.last_loss_v = 0
 
     def after_run(self, run_context, run_values):
+        import tensorflow as tf
+
         def truncate(value):
             return float("%.3f" % (float(value)))
 
-        loss_pi, loss_v, loss_focus = run_values.results
-        loss_pi = truncate(loss_pi)
-        loss_focus = truncate(loss_focus)
-        loss_v = truncate(loss_v)
+        loss_pi = truncate(run_values.results["policy"])
+        loss_focus = truncate(run_values.results["focus"])
+        loss_v = truncate(run_values.results["value"])
         self.steps_without_change = self.steps_without_change + 1
         if (
             self.watch_pi is True
@@ -93,5 +115,8 @@ class TrainingEarlyStopHook(tf.train.SessionRunHook):
             run_context.request_stop()
 
     def before_run(self, run_context):
-        return tf.train.SessionRunArgs(tf.get_collection("mt"))
+        global MATH_OUTPUT_TENSORS
+        from tensorflow.python.training import training
+
+        return training.SessionRunArgs(MATH_OUTPUT_TENSORS)
 
