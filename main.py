@@ -2,12 +2,16 @@
 """Executing training and evaluation against the agent curriculum, automatically progressing
 to the next level as the agent gets better.
 """
+import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = 5
 import tempfile
 import numpy
 import plac
 from mathzero.training.lesson_runner import lesson_runner
 from curriculum.combine_like_terms import lessons
 import tensorflow as tf
+
 
 tf.compat.v1.logging.set_verbosity("CRITICAL")
 
