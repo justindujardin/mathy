@@ -59,23 +59,25 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
             def get_predictor(self, game, all_memory=False):
                 return MathModel(game, model_dir, all_memory)
 
-        num_to_advance = 2
+        num_to_advance = 1
         progress_counter = 0
 
         def session_done(lesson_exercise, num_solved, num_failed):
-            nonlocal num_to_advance, progress_counter
-            if num_failed == 0:
-                progress_counter = progress_counter + 1
-            else:
-                progress_counter = 0
-            if progress_counter == num_to_advance:
-                print(
-                    "\n\n{} COMPLETED! [get all the problems right {} times in a row]\n\n".format(
-                        lesson_exercise.name, num_to_advance
-                    )
-                )
-                progress_counter = 0
-                return False
+            # NOTE: Trying rotating through all the challenges rather than overfitting on one
+            return False
+            # nonlocal num_to_advance, progress_counter
+            # if num_failed == 0:
+            #     progress_counter = progress_counter + 1
+            # else:
+            #     progress_counter = 0
+            # if progress_counter == num_to_advance:
+            #     print(
+            #         "\n\n{} COMPLETED! [get all the problems right {} times in a row]\n\n".format(
+            #             lesson_exercise.name, num_to_advance
+            #         )
+            #     )
+            #     progress_counter = 0
+            #     return False
 
         print("Practicing {} - {}...".format(lesson_plan.name, lesson.name))
         args = {

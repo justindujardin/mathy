@@ -54,7 +54,7 @@ def make_self_play_input_fn(examples, batch_size):
             _lazy_examples, output_types=output_types
         )
         dataset = dataset.batch(batch_size=batch_size)
-        dataset = dataset.prefetch(batch_size)
+        dataset = dataset.prefetch(batch_size).repeat(10)
         return dataset
 
     return _input_fn

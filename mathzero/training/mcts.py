@@ -135,10 +135,9 @@ class MCTS:
                 # renormalize so values sum to 1
                 self.Ps[s] /= sum_Ps_s
             else:
-                # if all valid moves were masked make all valid moves equally probable
-
-                # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
-                # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
+                # If all valid moves were masked make all valid moves equally probable
+                # NOTE: This can happen if your model is under/over fitting.
+                # See more: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
                 print("All valid moves were masked, do workaround.")
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= numpy.sum(self.Ps[s])

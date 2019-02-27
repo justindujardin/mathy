@@ -16,51 +16,62 @@ def math_estimator(features, labels, mode, params):
     from tensorflow.feature_column import make_parse_example_spec
     from tensorflow.keras.layers import (
         DenseFeatures,
+        Activation,
         Dense,
         RNN,
         SimpleRNNCell,
         Input,
         Embedding,
         LSTM,
+        Concatenate,
+        Flatten,
+        BatchNormalization,
     )
     from tensorflow.keras.experimental import SequenceFeatures
     from tensorflow_estimator.contrib.estimator.python import estimator
     from tensorflow.python.training import adam
     from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import Concatenate, Flatten
+
+    def dense_with_activation(input, units=32):
+        activate = Activation("relu")
+        normalize = BatchNormalization()
+        dense = Dense(units, use_bias=False)
+        return activate(normalize(dense(input)))
 
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
-    feature_columns = params["feature_columns"]
+    training = mode == tf.estimator.ModeKeys.TRAIN
+
     sequence_columns = params["sequence_columns"]
-    sequence_features_layer = SequenceFeatures(
-        sequence_columns, name="sequence_features"
-    )
-    features_layer = DenseFeatures(feature_columns, name="input_features")
     sequence_features = {
         FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
         FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
     }
-    sequence_layer_out, sequence_length = sequence_features_layer(sequence_features)
-    context_layer_out = features_layer(features)
+    sequence_inputs, sequence_length = SequenceFeatures(
+        sequence_columns, name="sequence_features"
+    )(sequence_features)
+    lstm_out = LSTM(3, return_sequences=True)(sequence_inputs)
+    lstm_last = lstm_out[:, -1]
+    lstm_last = dense_with_activation(lstm_last, 6)
+
+    #
+    # Non-sequence input layers
+    #
+    feature_columns = params["feature_columns"]
+    features_layer = DenseFeatures(feature_columns, name="input_features")
+    context_inputs = features_layer(features)
+    context_inputs = dense_with_activation(context_inputs)
+
+    # Concatenated context and sequence vectors
+    network = Concatenate()([context_inputs, lstm_last])
     for units in params["hidden_units"]:
-        context_layer_out = Dense(units, activation=tf.nn.relu)(context_layer_out)
+        network = dense_with_activation(network, 2)
 
-    sequence_layer_dense = Flatten()(sequence_layer_out)
-    context_layer_dense = Flatten()(context_layer_out)
-    network = Concatenate()([sequence_layer_dense, context_layer_dense])
-
-    training = mode == tf.estimator.ModeKeys.TRAIN
-    lstm_out = Flatten()(LSTM(32)(sequence_layer_out))
-    focus_net = Dense(6)(lstm_out)
-    value_net = Dense(12)(lstm_out)
-    policy_net = Dense(action_size)(lstm_out)
-
-    value_logits = Dense(1, activation="tanh", name="value_output")(value_net)
+    value_logits = Dense(1, activation="tanh", name="value_output")(network)
     policy_logits = Dense(action_size, activation="softmax", name="policy_output")(
-        policy_net
+        network
     )
-    focus_logits = Dense(1, activation="sigmoid", name="focus_output")(focus_net)
+    focus_logits = Dense(1, activation="sigmoid", name="focus_output")(network)
     logits = {"policy": policy_logits, "value": value_logits, "focus": focus_logits}
 
     # Optimizer (for all tasks)
