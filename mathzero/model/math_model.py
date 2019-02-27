@@ -29,7 +29,7 @@ from mathzero.model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.01, dropout=0.2, max_steps=10000, batch_size=2048, log_frequency=250
+        self, lr=0.001, dropout=0.2, max_steps=10000, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -51,24 +51,7 @@ class MathModel:
         session_config.gpu_options.allow_growth = True
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
         self.action_size = game.get_agent_actions_count()
-
         self.args = NetConfig()
-        #
-        # Context feature columns (non-sequence)
-        #
-        # self.f_token_values = tf.feature_column.embedding_column(
-        #     tf.feature_column.categorical_column_with_hash_bucket(
-        #         key=FEATURE_TOKEN_VALUES, hash_bucket_size=12, dtype=tf.string
-        #     ),
-        #     dimension=32,
-        # )
-        # self.f_token_types = tf.feature_column.embedding_column(
-        #     tf.feature_column.categorical_column_with_hash_bucket(
-        #         key=FEATURE_TOKEN_TYPES, hash_bucket_size=12, dtype=tf.int8
-        #     ),
-        #     dimension=4,
-        # )
-
         self.f_move_count = tf.feature_column.numeric_column(
             key=FEATURE_MOVE_COUNTER, dtype=tf.int16
         )
@@ -99,9 +82,6 @@ class MathModel:
             ),
             dimension=32,
         )
-        # self.f_token_types_sequence = tf.feature_column.sequence_numeric_column(
-        #     FEATURE_TOKEN_TYPES
-        # )
         self.f_token_values_sequence = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
                 key=FEATURE_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
