@@ -25,7 +25,13 @@ def main(agent_name=None):
                 agent_name
             )
         )
-    lesson_runner(agent_name, lessons, parallel=True, dev_mode=False)
+    counter = 0
+    while True:
+        print("[Lesson:{}]".format(counter))
+        counter = counter + 1
+        lesson_runner(
+            agent_name, lessons, parallel=True, dev_mode=False, skip_completed=False
+        )
 
 
 if __name__ == "__main__":

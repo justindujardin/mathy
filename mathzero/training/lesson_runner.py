@@ -12,7 +12,9 @@ from mathzero.core.parser import ExpressionParser, ParserException
 from .lessons import LessonPlan, LessonExercise
 
 
-def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
+def lesson_runner(
+    agent_name, lesson_plan, parallel=True, dev_mode=False, skip_completed=True
+):
     """Practice a concept for up to (n) lessons or until the concept is learned as defined
     by the lesson plan. """
     lessons = lesson_plan.lessons[:]
@@ -21,7 +23,7 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
     BaseEpisodeRunner = PracticeRunner if not parallel else ParallelPracticeRunner
 
     # If we're resuming a training session, start at the lesson we left off with last time
-    if lesson_checkpoint.is_file():
+    if lesson_checkpoint.is_file() and skip_completed is True:
         with lesson_checkpoint.open("r", encoding="utf8") as f:
             lesson_state = json.loads(f.read())
     else:
