@@ -7,6 +7,9 @@ import numpy
 import plac
 from mathzero.training.lesson_runner import lesson_runner
 from curriculum.combine_like_terms import lessons
+import tensorflow as tf
+
+tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 @plac.annotations(
