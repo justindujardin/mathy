@@ -68,9 +68,15 @@ class TrainingLoggerHook(SessionRunHook):
 
 class TrainingEarlyStopHook(SessionRunHook):
     def __init__(
-        self, watch_pi=True, watch_value=True, watch_focus=True, stop_after_n=150
+        self,
+        watch_pi=True,
+        watch_value=True,
+        watch_focus=True,
+        stop_after_n=150,
+        min_steps=1500,
     ):
         self.num_steps = stop_after_n
+        self.min_steps = min_steps
         self.steps_without_change = 0
         self.watch_focus = watch_focus
         self.watch_pi = watch_pi
@@ -78,6 +84,18 @@ class TrainingEarlyStopHook(SessionRunHook):
         self.last_loss_focus = 0
         self.last_loss_pi = 0
         self.last_loss_v = 0
+
+    def begin(self):
+        self._step = -1
+
+    def before_run(self, run_context):
+        global MATH_OUTPUT_TENSORS
+        from tensorflow.python.training import training
+        import tensorflow as tf
+
+        self._step += 1
+
+        return training.SessionRunArgs(MATH_OUTPUT_TENSORS)
 
     def after_run(self, run_context, run_values):
         import tensorflow as tf
@@ -110,8 +128,10 @@ class TrainingEarlyStopHook(SessionRunHook):
         self.last_loss_v = loss_v
         self.last_loss_pi = loss_pi
         self.last_loss_focus = loss_focus
-        if self.steps_without_change >= self.num_steps:
-            print("STOPPING because monitored metrics stopped decreasing.")
+        if self.steps_without_change >= self.num_steps and self._step > self.min_steps:
+            print(
+                "STOPPING because monitored metrics stopped decreasing, and min-steps exceeded."
+            )
             run_context.request_stop()
 
     def before_run(self, run_context):
