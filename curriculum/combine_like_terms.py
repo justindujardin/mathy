@@ -41,22 +41,22 @@ def six_variable_terms():
 lessons = build_lesson_plan(
     "Combine Like Terms",
     [
-        LessonExercise(
-            lesson_name="Two terms",
-            problem_count=200,
-            problem_fn=two_variable_terms,
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=7,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="Two variable terms separated by a constant",
-            problem_count=250,
-            problem_fn=two_variable_terms,
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=10,
-            mcts_sims=250,
-        ),
+        # LessonExercise(
+        #     lesson_name="Two terms",
+        #     problem_count=200,
+        #     problem_fn=two_variable_terms,
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     max_turns=7,
+        #     mcts_sims=250,
+        # ),
+        # LessonExercise(
+        #     lesson_name="Two variable terms separated by a constant",
+        #     problem_count=250,
+        #     problem_fn=two_variable_terms,
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     max_turns=10,
+        #     mcts_sims=250,
+        # ),
         LessonExercise(
             lesson_name="Three variable terms",
             problem_count=128,

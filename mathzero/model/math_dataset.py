@@ -53,8 +53,8 @@ def make_self_play_input_fn(examples, batch_size):
         dataset = tf.data.Dataset.from_generator(
             _lazy_examples, output_types=output_types
         )
-        dataset = dataset.batch(batch_size=batch_size)
-        dataset = dataset.prefetch(batch_size).repeat(10)
+        dataset = dataset.shuffle(1000000).repeat(2).batch(batch_size=batch_size)
+        dataset = dataset.prefetch(batch_size)
         return dataset
 
     return _input_fn

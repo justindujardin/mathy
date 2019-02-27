@@ -70,10 +70,10 @@ class TrainingEarlyStopHook(SessionRunHook):
     def __init__(
         self,
         watch_pi=True,
-        watch_value=True,
-        watch_focus=True,
-        stop_after_n=150,
-        min_steps=1500,
+        watch_value=False,
+        watch_focus=False,
+        stop_after_n=50,
+        min_steps=500,
     ):
         self.num_steps = stop_after_n
         self.min_steps = min_steps
