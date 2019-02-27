@@ -4,7 +4,7 @@ to the next level as the agent gets better.
 """
 import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = 5
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 import tempfile
 import numpy
 import plac
