@@ -71,7 +71,7 @@ lessons = build_lesson_plan(
             problem_fn=four_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=25,
-            mcts_sims=200,
+            mcts_sims=500,
         ),
         LessonExercise(
             lesson_name="Five variable terms",
@@ -79,7 +79,7 @@ lessons = build_lesson_plan(
             problem_fn=six_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=30,
-            mcts_sims=200,
+            mcts_sims=1000,
         ),
         LessonExercise(
             lesson_name="Six variable terms",
@@ -87,7 +87,7 @@ lessons = build_lesson_plan(
             problem_fn=six_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=30,
-            mcts_sims=200,
+            mcts_sims=2000,
         ),
     ],
 )
