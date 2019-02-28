@@ -11,6 +11,30 @@ from ..environment_state import to_sparse_tensor
 from .math_attention import attention
 
 
+def BiDirectionalLSTM(units, name="bi_lstm_stack"):
+    """Bi-directional stacked LSTM using Tensorflow's keras implementation"""
+    import tensorflow as tf
+    from tensorflow.keras.layers import LSTM, Concatenate
+
+    # On the second stacked LSTM we reduce the dimensionality by half, because... I
+    # felt like it might be cool because some CNNs use it to great effect.
+    # TODO: Investigate whether this is a good idea?
+    half_units = int(units / 2)
+
+    def func(input_layer):
+        rnn_fwd1 = LSTM(units, return_sequences=True, name="fwd_lstm")(input_layer)
+        rnn_fwd2 = LSTM(half_units, return_sequences=True, name="fwd_lstm")(rnn_fwd1)
+        rnn_bwd1 = LSTM(
+            units, return_sequences=True, go_backwards=True, name="bwd_lstm"
+        )(input_layer)
+        rnn_bwd2 = LSTM(
+            half_units, return_sequences=True, go_backwards=True, name="bwd_lstm"
+        )(rnn_bwd1)
+        return Concatenate(name=name)([rnn_fwd2, rnn_bwd2])
+
+    return func
+
+
 def math_estimator(features, labels, mode, params):
     import tensorflow as tf
     from tensorflow.python.ops import init_ops
@@ -51,22 +75,8 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="sequence_features"
     )(sequence_features)
 
-    def BiDirectionalLSTM(lstm_units):
-        def func(input_):
-            rnn_fwd1 = LSTM(lstm_units, return_sequences=True)(input_)
-            rnn_bwd1 = LSTM(lstm_units, return_sequences=True, go_backwards=True)(
-                input_
-            )
-            rnn_bidir1 = Concatenate(name="bi_rnn_out")([rnn_fwd1, rnn_bwd1])
-            return rnn_bidir1
-
-        return func
-
-    with tf.name_scope("encode_attend_sequences"):
-        lstm = LSTM(32, return_sequences=True)(sequence_inputs)
-        lstm = LSTM(24, return_sequences=True)(lstm)
-        lstm = BiDirectionalLSTM(12)(sequence_inputs)
-        sequence_vectors = attention(lstm, 16)
+    lstm = BiDirectionalLSTM(128)(sequence_inputs)
+    sequence_vectors = attention(lstm, 16)
 
     #
     # Non-sequence input layers
@@ -74,16 +84,16 @@ def math_estimator(features, labels, mode, params):
     feature_columns = params["feature_columns"]
     features_layer = DenseFeatures(feature_columns, name="input_features")
     context_inputs = features_layer(features)
-    context_inputs = dense_with_activation(context_inputs, 4, "context_vectors")
+    context_inputs = dense_with_activation(context_inputs, 8, "context_embed")
 
     # Concatenated context and sequence vectors
     network = Concatenate(name="math_vectors")([context_inputs, sequence_vectors])
 
-    focus_logits = Dense(1, activation="sigmoid", name="focus_output")(network)
-    value_logits = Dense(1, activation="tanh", name="value_output")(network)
-    policy_logits = Dense(action_size, activation="softmax", name="policy_output")(
+    value_logits = Dense(1, activation="tanh", name="value_logits")(network)
+    policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
         network
     )
+    focus_logits = Dense(1, activation="sigmoid", name="focus_logits")(network)
     logits = {"policy": policy_logits, "value": value_logits, "focus": focus_logits}
 
     # Optimizer (for all tasks)

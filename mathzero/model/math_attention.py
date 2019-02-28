@@ -3,7 +3,9 @@ import tensorflow as tf
 #
 # Originally from: https://github.com/ilivans/tf-rnn-attention
 #
-def attention(inputs, attention_size, time_major=False, return_alphas=False, name=None):
+def attention(
+    inputs, attention_size, time_major=False, return_alphas=False, name="attention"
+):
     """
     Attention mechanism layer which reduces RNN/Bi-RNN outputs with Attention vector.
     The idea was proposed in the article by Z. Yang et al., "Hierarchical Attention Networks
@@ -47,7 +49,6 @@ def attention(inputs, attention_size, time_major=False, return_alphas=False, nam
         In case of Bidirectional RNN, this will be a `Tensor` shaped:
             `[batch_size, cell_fw.output_size + cell_bw.output_size]`.
     """
-
     if isinstance(inputs, tuple):
         # In case of Bi-RNN, concatenate the forward and the backward RNN outputs.
         inputs = tf.concat(inputs, 2)
@@ -57,24 +58,24 @@ def attention(inputs, attention_size, time_major=False, return_alphas=False, nam
         inputs = tf.array_ops.transpose(inputs, [1, 0, 2])
 
     hidden_size = inputs.shape[2]  # D value - hidden size of the RNN layer
+    with tf.name_scope(name):
+        # Trainable parameters
+        w_omega = tf.Variable(
+            tf.compat.v1.random_normal([hidden_size, attention_size], stddev=0.1)
+        )
+        b_omega = tf.Variable(tf.compat.v1.random_normal([attention_size], stddev=0.1))
+        u_omega = tf.Variable(tf.compat.v1.random_normal([attention_size], stddev=0.1))
 
-    # Trainable parameters
-    w_omega = tf.Variable(
-        tf.compat.v1.random_normal([hidden_size, attention_size], stddev=0.1)
-    )
-    b_omega = tf.Variable(tf.compat.v1.random_normal([attention_size], stddev=0.1))
-    u_omega = tf.Variable(tf.compat.v1.random_normal([attention_size], stddev=0.1))
+        # Applying fully connected layer with non-linear activation to each of the B*T timestamps;
+        #  the shape of `v` is (B,T,D)*(D,A)=(B,T,A), where A=attention_size
+        v = tf.tanh(tf.tensordot(inputs, w_omega, axes=1) + b_omega, name=name)
 
-    # Applying fully connected layer with non-linear activation to each of the B*T timestamps;
-    #  the shape of `v` is (B,T,D)*(D,A)=(B,T,A), where A=attention_size
-    v = tf.tanh(tf.tensordot(inputs, w_omega, axes=1) + b_omega)
-
-    # For each of the timestamps its vector of size A from `v` is reduced with `u` vector
-    vu = tf.tensordot(v, u_omega, axes=1, name="vu")  # (B,T) shape
-    alphas = tf.nn.softmax(vu, name="alphas")  # (B,T) shape
+        # For each of the timestamps its vector of size A from `v` is reduced with `u` vector
+        vu = tf.tensordot(v, u_omega, axes=1, name="vu")  # (B,T) shape
+        alphas = tf.nn.softmax(vu, name="alphas")  # (B,T) shape
 
     # Output of (Bi-)RNN is reduced with attention vector; the result has (B,D) shape
-    output = tf.reduce_sum(inputs * tf.expand_dims(alphas, -1), 1)
+    output = tf.reduce_sum(inputs * tf.expand_dims(alphas, -1), 1, name="out_attn")
 
     if not return_alphas:
         return output
