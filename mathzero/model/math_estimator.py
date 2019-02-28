@@ -8,6 +8,7 @@ from .features import (
     TRAIN_LABELS_AS_MATRIX,
 )
 from ..environment_state import to_sparse_tensor
+from .math_attention import attention
 
 
 def math_estimator(features, labels, mode, params):
@@ -18,8 +19,6 @@ def math_estimator(features, labels, mode, params):
         DenseFeatures,
         Activation,
         Dense,
-        RNN,
-        SimpleRNNCell,
         Input,
         Embedding,
         LSTM,
@@ -32,11 +31,12 @@ def math_estimator(features, labels, mode, params):
     from tensorflow.python.training import adam
     from tensorflow.keras.models import Model
 
-    def dense_with_activation(input, units=32):
-        activate = Activation("relu")
-        normalize = BatchNormalization()
-        dense = Dense(units, use_bias=False)
-        return activate(normalize(dense(input)))
+    def dense_with_activation(input, units, name):
+        with tf.compat.v1.variable_scope(name):
+            activate = Activation("relu")
+            normalize = BatchNormalization()
+            dense = Dense(units, use_bias=False)
+            return activate(normalize(dense(input)))
 
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
@@ -50,9 +50,23 @@ def math_estimator(features, labels, mode, params):
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="sequence_features"
     )(sequence_features)
-    lstm_out = LSTM(3, return_sequences=True)(sequence_inputs)
-    lstm_last = lstm_out[:, -1]
-    lstm_last = dense_with_activation(lstm_last, 6)
+
+    def BiDirectionalLSTM(lstm_units):
+        def func(input_):
+            rnn_fwd1 = LSTM(lstm_units, return_sequences=True)(input_)
+            rnn_bwd1 = LSTM(lstm_units, return_sequences=True, go_backwards=True)(
+                input_
+            )
+            rnn_bidir1 = Concatenate(name="bi_rnn_out")([rnn_fwd1, rnn_bwd1])
+            return rnn_bidir1
+
+        return func
+
+    with tf.name_scope("encode_attend_sequences"):
+        lstm = LSTM(32, return_sequences=True)(sequence_inputs)
+        lstm = LSTM(24, return_sequences=True)(lstm)
+        lstm = BiDirectionalLSTM(12)(sequence_inputs)
+        sequence_vectors = attention(lstm, 16)
 
     #
     # Non-sequence input layers
@@ -60,18 +74,16 @@ def math_estimator(features, labels, mode, params):
     feature_columns = params["feature_columns"]
     features_layer = DenseFeatures(feature_columns, name="input_features")
     context_inputs = features_layer(features)
-    context_inputs = dense_with_activation(context_inputs)
+    context_inputs = dense_with_activation(context_inputs, 4, "context_vectors")
 
     # Concatenated context and sequence vectors
-    network = Concatenate()([context_inputs, lstm_last])
-    for units in params["hidden_units"]:
-        network = dense_with_activation(network, 2)
+    network = Concatenate(name="math_vectors")([context_inputs, sequence_vectors])
 
+    focus_logits = Dense(1, activation="sigmoid", name="focus_output")(network)
     value_logits = Dense(1, activation="tanh", name="value_output")(network)
     policy_logits = Dense(action_size, activation="softmax", name="policy_output")(
         network
     )
-    focus_logits = Dense(1, activation="sigmoid", name="focus_output")(network)
     logits = {"policy": policy_logits, "value": value_logits, "focus": focus_logits}
 
     # Optimizer (for all tasks)

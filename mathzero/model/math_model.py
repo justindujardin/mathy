@@ -29,7 +29,12 @@ from mathzero.model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.00001, dropout=0.2, max_steps=10000, batch_size=256, log_frequency=250
+        self,
+        lr=0.00001,
+        dropout=0.2,
+        max_steps=10000,
+        batch_size=256,
+        log_frequency=250,
     ):
         self.lr = lr
         self.dropout = dropout

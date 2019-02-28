@@ -71,7 +71,7 @@ def main(agent_name="default"):
                     problem_fn=lambda: combine_multiple_like_add_terms(6),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=50,
-                    mcts_sims=25,
+                    mcts_sims=100,
                 ),
             ],
         ),

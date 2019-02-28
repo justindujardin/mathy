@@ -22,9 +22,15 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         "positional",
         None,
         str,
-    )
+    ),
+    transfer_from=(
+        "The name of another model to warm start this one from. Think Transfer Learning",
+        "positional",
+        None,
+        str,
+    ),
 )
-def main(agent_name=None):
+def main(agent_name=None, transfer_from=None):
     if agent_name is None:
         agent_name = next(tempfile._get_candidate_names())
         print(

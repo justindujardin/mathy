@@ -46,12 +46,6 @@ def lesson_runner(
         )
     while len(lessons) > 0:
         lesson = lessons.pop(0)
-        # lesson.name = lesson_name
-        # lesson.problem_fn = problem_fn
-        # lesson.problem_type = problem_type
-        # lesson.problem_count = problem_count
-        # lesson.max_turns = max_turns
-        # lesson.num_mcts_sims = num_mcts_sims
         class LessonRunner(BaseEpisodeRunner):
             def get_game(self):
                 return MathGame(
@@ -84,12 +78,11 @@ def lesson_runner(
         print("Practicing {} - {}...".format(lesson_plan.name, lesson.name))
         args = {
             "self_play_iterations": lesson.problem_count,
-            "max_training_examples": 200000,
         }
         config = RunnerConfig(
             model_dir=model_dir,
             num_mcts_sims=lesson.mcts_sims,
-            temperature_threshold=round(MathGame.max_moves_easy * 0.6),
+            temperature_threshold=round(MathGame.max_moves_easy * 0.3),
             cpuct=1.0,
         )
         runner = LessonRunner(config)
