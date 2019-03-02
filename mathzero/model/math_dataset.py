@@ -16,7 +16,7 @@ from .features import (
 )
 
 
-def make_self_play_input_fn(examples, batch_size):
+def make_training_input_fn(examples, batch_size):
     """Return an input function that lazily loads self-play examples from 
     the given file during training
     """

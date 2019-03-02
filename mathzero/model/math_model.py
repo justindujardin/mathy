@@ -111,7 +111,6 @@ class MathModel:
                 "action_size": self.action_size,
                 "learning_rate": self.args.lr,
                 "batch_size": self.args.batch_size,
-                "hidden_units": [2, 2],
             },
         )
         self._worker = MathPredictor(self.network, self.args)
@@ -120,7 +119,7 @@ class MathModel:
         """examples: list of examples in JSON format"""
         from .math_hooks import TrainingLoggerHook, TrainingEarlyStopHook
         import tensorflow as tf
-        from .math_dataset import make_self_play_input_fn
+        from .math_dataset import make_training_input_fn
 
         print(
             "Training model for up to ({}) steps with ({}) examples...".format(
@@ -133,8 +132,7 @@ class MathModel:
                 TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
             ],
             steps=self.args.max_steps,
-            # input_fn=lambda: parse_examples_for_training(examples),
-            input_fn=make_self_play_input_fn(examples, self.args.batch_size),
+            input_fn=make_training_input_fn(examples, self.args.batch_size),
         )
         return True
 

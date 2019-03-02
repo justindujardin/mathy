@@ -183,7 +183,7 @@ class MCTS:
 
         a = numpy.random.choice(all_best)
 
-        next_s = self.game.get_next_state(env_state, a, searching=True)
+        next_s, _, _ = self.game.get_next_state(env_state, a, searching=True)
 
         action_v = self.search(next_s)
 

@@ -13,6 +13,7 @@ from ..util import (
 )
 from .mcts import MCTS
 from ..math_game import MathGame
+from ..core.expressions import MathExpression
 from ..model.math_model import MathModel
 
 
@@ -85,27 +86,33 @@ class PracticeRunner:
         """
 
         # Hold on to the episode example data for training the neural net
-        example_data = env_state.to_input_features()
+        state = env_state.clone()
+        example_data = state.to_input_features()
 
         # If the move_count is less than threshold, set temp = 1 else 0
         temp = int(move_count < self.config.temperature_threshold)
-        pi = mcts.getActionProb(env_state.clone(), temp=temp)
+        pi = mcts.getActionProb(state, temp=temp)
         action = numpy.random.choice(len(pi), p=pi)
 
-        # Calculate focus loss, and save agent focus for output into our examples file
-        agent_focus = env_state.agent.focus
-        mcts_focus = mcts.getFocusProb(env_state)
+        # Calculate focus value for output into examples file. This is a
+        # "forced" focus based on the selected action from the MCTS search.
+        expression = state.parser.parse(state.agent.problem)
+        node_index, _ = game.get_focus_at_index(env_state, action, expression)
+        state.agent.focus = node_index / expression.countNodes()
 
-        next_state = game.get_next_state(env_state, action)
-        # Predict focus for the next state
+        # Calculate the next state based on the selected action
+        next_state, next_state_reward, is_done = game.get_next_state(state, action)
+
+        # Where to focus for the next comes from the network predictions
         next_state.agent.focus = mcts.getFocusProb(next_state)
+
         example_text = next_state.agent.problem
         r = game.get_state_reward(next_state)
         is_term = is_terminal_reward(r)
         is_win = True if is_term and r > 0 else False
         if is_term:
             r = abs(r - WIN_REWARD) if is_win else r - LOSE_REWARD
-        history.append([example_data, pi, r, example_text, env_state.agent.focus])
+        history.append([example_data, pi, r, example_text, state.agent.focus])
 
         # Keep going if the reward signal is not terminal
         if not is_term:
