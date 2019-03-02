@@ -6,5 +6,6 @@
     ],
     "python.unitTest.unittestEnabled": false,
     "python.unitTest.nosetestsEnabled": false,
-    "python.unitTest.pyTestEnabled": true
+    "python.unitTest.pyTestEnabled": false,
+    "python.unitTest.promptToConfigure": false
 }

@@ -1,6 +1,6 @@
 *.pyc
 .DS_Store
-
+doom/
 .coverage
 /temp/
 /.project
