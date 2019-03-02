@@ -15,7 +15,6 @@ from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
 from mathzero.model.math_predictor import MathPredictor
 from mathzero.model.features import (
-    parse_examples_for_training,
     pad_array,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
