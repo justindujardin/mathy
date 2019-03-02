@@ -27,7 +27,7 @@ def rand_op():
     return operators[random.randint(0, len(operators) - 1)]
 
 
-def combine_multiple_like_add_terms(num_terms, optional_var=True):
+def combine_multiple_like_add_terms(num_terms, optional_var=False):
     variable = rand_var()
     # Guarantee at least one set of like terms
     result = "{}{} ".format(rand_int(), variable)

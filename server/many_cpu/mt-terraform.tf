@@ -11,7 +11,7 @@ provider "google" {
 resource "google_compute_instance" "mathtastic-worker" {
   count                     = "1"
   name                      = "mt-cpu-worker"
-  machine_type              = "n1-standard-24"
+  machine_type              = "n1-highcpu-64"
   zone                      = "us-east1-c"
   tags                      = ["cpu-compute"]
 
@@ -29,7 +29,7 @@ resource "google_compute_instance" "mathtastic-worker" {
   // Disk storage
   boot_disk {
     initialize_params {
-      // Custom built image with CUDA and such already installed
+      // Custom built image with Tensorflow and such installed
       image = "${var.image}"
     }
   }
@@ -42,7 +42,7 @@ resource "google_compute_instance" "mathtastic-worker" {
   }
 
   service_account {
-    scopes = ["userinfo-email", "compute-ro", "storage-full" ]
+    scopes = ["userinfo-email", "compute-ro", "storage-full"]
   }
 
   # ------------------------------------------------
