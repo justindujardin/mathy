@@ -67,11 +67,11 @@ lessons = build_lesson_plan(
         ),
         LessonExercise(
             lesson_name="Five variable terms",
-            problem_count=12,
+            problem_count=8,
             problem_fn=six_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=30,
-            mcts_sims=1000,
+            max_turns=35,
+            mcts_sims=1500,
         ),
     ],
 )
