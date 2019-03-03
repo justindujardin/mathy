@@ -12,12 +12,11 @@ from .math_attention import attention
 
 
 def BiDirectionalLSTM(units, name="bi_lstm_stack"):
-    """Bi-directional stacked LSTM using Tensorflow's keras implementation"""
+    """Bi-directional stacked LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
     from tensorflow.keras.layers import LSTM, Concatenate
 
-    # On the second stacked LSTM we reduce the dimensionality by half, because... I
-    # felt like it might be cool because some CNNs use it to great effect.
+    # On the second stacked LSTM we reduce the dimensionality by half, because... I felt like it
     # TODO: Investigate whether this is a good idea?
     half_units = int(units / 2)
 
@@ -99,7 +98,36 @@ def math_estimator(features, labels, mode, params):
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
 
-    # Model prediction heads
+    tf.compat.v1.summary.scalar("logits/max_value", tf.reduce_max(value_logits))
+    tf.compat.v1.summary.scalar("logits/min_value", tf.reduce_min(value_logits))
+    tf.compat.v1.summary.scalar("logits/mean_value", tf.reduce_mean(value_logits))
+    tf.compat.v1.summary.scalar("logits/max_focus", tf.reduce_max(focus_logits))
+    tf.compat.v1.summary.scalar("logits/min_focus", tf.reduce_min(focus_logits))
+    tf.compat.v1.summary.scalar("logits/mean_focus", tf.reduce_mean(focus_logits))
+    tf.compat.v1.summary.histogram("logits/policy", policy_logits)
+    tf.compat.v1.summary.histogram("logits/focus", focus_logits)
+    tf.compat.v1.summary.histogram("logits/values", value_logits)
+
+    # Training targets
+    if labels is not None:
+        for target in [
+            TRAIN_LABELS_TARGET_FOCUS,
+            TRAIN_LABELS_TARGET_PI,
+            TRAIN_LABELS_TARGET_REWARD,
+        ]:
+            tensor = labels[target]
+            tf.compat.v1.summary.scalar(
+                "targets/{}/max_value".format(target), tf.reduce_max(tensor)
+            )
+            tf.compat.v1.summary.scalar(
+                "targets/{}/min_value".format(target), tf.reduce_min(tensor)
+            )
+            tf.compat.v1.summary.scalar(
+                "targets/{}/mean_value".format(target), tf.reduce_mean(tensor)
+            )
+            tf.compat.v1.summary.histogram("targets/{}".format(target), tensor)
+
+    # Multi-task prediction heads
     policy_head = estimator.head.regression_head(
         name="policy", label_dimension=action_size
     )
