@@ -15,6 +15,7 @@ from .mcts import MCTS
 from ..math_game import MathGame
 from ..core.expressions import MathExpression
 from ..model.math_model import MathModel
+from ..actors.actor_mcts import ActorMCTS
 
 
 class RunnerConfig:
@@ -27,13 +28,13 @@ class RunnerConfig:
         self,
         num_wokers=cpu_count(),
         num_mcts_sims=15,
-        temperature_threshold=0.5,
+        num_exploration_moves=0.5,
         cpuct=1.0,
         model_dir=None,
     ):
         self.num_wokers = num_wokers
         self.num_mcts_sims = num_mcts_sims
-        self.temperature_threshold = temperature_threshold
+        self.num_exploration_moves = num_exploration_moves
         self.cpuct = cpuct
         self.model_dir = model_dir
 
@@ -58,104 +59,6 @@ class PracticeRunner:
         raise NotImplementedError(
             "predictor implementation must be provided by subclass"
         )
-
-    def act(
-        self,
-        game: MathGame,
-        env_state: MathEnvironmentState,
-        mcts: MCTS,
-        model: MathModel,
-        move_count,
-        history,
-    ):
-        """Take an action, criticize it and return the next state. If the next state
-        is terminal, return training examples for the episode feature, policy, and focus
-        values.
-
-        The process follows these steps:
-           1. Simulate an action roll-out using MCTS and return a probability
-              distribution over the actions that the agent can take.
-           2. Choose an action and produce a next_state environment.
-
-        returns: A tuple of (new_env_state, terminal_results_or_none)
-        
-        NOTE: This is an attempt to combine Actor-Critic with MCTS. I'm not sure if it's 
-        correct, but I suppose the training will tell us pretty quickly. If anyone else 
-        sees this message, let's talk about how it turned out, and what kind of docstring 
-        should go here.
-        """
-
-        # Hold on to the episode example data for training the neural net
-        state = env_state.clone()
-        example_data = state.to_input_features()
-
-        # If the move_count is less than threshold, set temp = 1 else 0
-        temp = int(move_count < self.config.temperature_threshold)
-        pi = mcts.getActionProb(state, temp=temp)
-        action = numpy.random.choice(len(pi), p=pi)
-
-        # Calculate focus value for output into examples file. This is a
-        # "forced" focus based on the selected action from the MCTS search.
-        expression = state.parser.parse(state.agent.problem)
-        node_index, _ = game.get_focus_at_index(env_state, action, expression)
-        state.agent.focus = node_index / expression.countNodes()
-
-        # Calculate the next state based on the selected action
-        next_state, next_state_reward, is_done = game.get_next_state(state, action)
-
-        # Where to focus for the next comes from the network predictions
-        next_state.agent.focus = mcts.getFocusProb(next_state)
-
-        example_text = next_state.agent.problem
-        r = game.get_state_reward(next_state)
-        is_term = is_terminal_reward(r)
-        is_win = True if is_term and r > 0 else False
-        if is_term:
-            r = abs(r - WIN_REWARD) if is_win else r - LOSE_REWARD
-        history.append([example_data, pi, r, example_text, state.agent.focus])
-
-        # Keep going if the reward signal is not terminal
-        if not is_term:
-            return next_state, None
-
-        rewards = [x[2] for x in history]
-        discounts = list(discount_rewards(rewards))
-
-        # Note that we insert negative(max_discounted_reward) so that normalizing
-        # the reward will never make a WIN value that is less than 0 or a lose that is
-        # greater than 0.
-        if is_win:
-            anchor_discount = -numpy.max(discounts)
-        else:
-            anchor_discount = abs(numpy.min(discounts))
-        # Compute the normalized values, and slice off the last (anchor) element
-        rewards = normalize_rewards(discounts + [anchor_discount])[:-1]
-
-        # If we're losing, reverse the reward values so they get more negative as
-        # the agent approaches the losing move.
-        if not is_win:
-            numpy.flip(rewards)
-
-        # Floating point is tricky, so sometimes the values near zero will flip
-        # their signs, so force the appropriate sign. This is okay(?) because it's
-        # only small value changes, e.g. (-0.001 to 0.001)
-        if is_win:
-            rewards = [min(abs(r) + 1e-3, 1.0) for r in rewards]
-        else:
-            rewards = [max(-abs(r) - 1e-3, -1) for r in rewards]
-        examples = []
-        for i, x in enumerate(history):
-            examples.append(
-                {
-                    "reward": float(rewards[i]),
-                    "focus": float(x[4]),
-                    "before": x[3],
-                    "policy": x[1],
-                    "inputs": x[0],
-                }
-            )
-        episode_reward = rewards[0]
-        return next_state, (examples, episode_reward, is_win)
 
     def execute_episodes(self, episode_args_list):
         """
@@ -204,11 +107,10 @@ class PracticeRunner:
         episode_history = []
         move_count = 0
         mcts = MCTS(game, predictor, self.config.cpuct, self.config.num_mcts_sims)
+        actor = ActorMCTS(mcts, self.config.num_exploration_moves)
         while True:
             move_count += 1
-            env_state, result = self.act(
-                game, env_state, mcts, predictor, move_count, episode_history
-            )
+            env_state, result = actor.step(game, env_state, predictor, episode_history)
             if result is not None:
                 return result + (complexity,)
 

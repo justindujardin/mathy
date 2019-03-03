@@ -8,8 +8,8 @@ from vizdoom import DoomGame
 from random import choice
 from time import sleep
 from time import time
-from worker import Worker
-from actor_critic import AC_Network
+from worker import MathWorker
+from actor_critic import A3CModel
 import scipy.signal
 
 max_episode_length = 300
@@ -32,7 +32,7 @@ with tf.device("/cpu:0"):
         0, dtype=tf.int32, name="global_episodes", trainable=False
     )
     trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    master_network = AC_Network(
+    master_network = A3CModel(
         s_size, a_size, "global", None
     )  # Generate global network
     num_workers = (
@@ -42,7 +42,7 @@ with tf.device("/cpu:0"):
     # Create worker classes
     for i in range(num_workers):
         workers.append(
-            Worker(DoomGame(), i, s_size, a_size, trainer, model_path, global_episodes)
+            MathWorker(DoomGame(), i, s_size, a_size, trainer, model_path, global_episodes)
         )
     saver = tf.train.Saver(max_to_keep=5)
 
@@ -56,7 +56,7 @@ with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
     # This is where the asynchronous magic happens.
-    # Start the "work" process for each worker in a separate threat.
+    # Start the "work" process for each worker in a separate thread.
     worker_threads = []
     for worker in workers:
         worker_work = lambda: worker.work(max_episode_length, gamma, sess, coord, saver)

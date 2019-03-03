@@ -17,6 +17,7 @@ class MCTS:
         self.game = game
         self.predictor = predictor
         self.num_mcts_sims = num_mcts_sims
+        # cpuct is a hyperparameter controlling the degree of exploration (1.0 in suragnair experiments.)
         self.cpuct = cpuct
         self.dir_alpha = dir_alpha
         # Set epsilon = 0 to disable dirichlet noise in root node.

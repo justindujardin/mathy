@@ -82,7 +82,7 @@ def lesson_runner(
         config = RunnerConfig(
             model_dir=model_dir,
             num_mcts_sims=lesson.mcts_sims,
-            temperature_threshold=round(MathGame.max_moves_easy * 0.3),
+            num_exploration_moves=round(MathGame.max_moves_easy * 0.3),
             cpuct=1.0,
         )
         runner = LessonRunner(config)
