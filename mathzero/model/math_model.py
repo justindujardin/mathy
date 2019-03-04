@@ -28,16 +28,11 @@ from mathzero.model.features import (
 
 class NetConfig:
     def __init__(
-        self,
-        lr=0.00001,
-        dropout=0.2,
-        max_steps=10000,
-        batch_size=256,
-        log_frequency=250,
+        self, lr=0.001, dropout=0.2, epochs=10, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
-        self.max_steps = max_steps
+        self.epochs = epochs
         self.batch_size = batch_size
         self.log_frequency = log_frequency
 
@@ -116,21 +111,25 @@ class MathModel:
 
     def train(self, examples):
         """examples: list of examples in JSON format"""
-        from .math_hooks import TrainingLoggerHook, TrainingEarlyStopHook
+        from .math_hooks import EpochTrainerHook
         import tensorflow as tf
         from .math_dataset import make_training_input_fn
 
+        # Limit to latest max_examples for training
+        max_examples = 15000
+        examples = examples[:-max_examples]
+
         print(
-            "Training model for up to ({}) steps with ({}) examples...".format(
-                self.args.max_steps, len(examples)
+            "Training {} epochs with {} examples and learning rate {}...".format(
+                self.args.epochs, len(examples), self.args.lr
             )
         )
+        max_steps = len(examples) * self.args.epochs
         self.network.train(
             hooks=[
-                TrainingEarlyStopHook(),
-                TrainingLoggerHook(self.args.batch_size, self.args.log_frequency),
+                EpochTrainerHook(self.args.epochs, len(examples), self.args.batch_size)
             ],
-            steps=self.args.max_steps,
+            steps=max_steps,
             input_fn=make_training_input_fn(examples, self.args.batch_size),
         )
         return True

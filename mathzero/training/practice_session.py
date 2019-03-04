@@ -134,11 +134,8 @@ class PracticeSession:
         a tuple of (best, new) where best is the existing best trained model (or a blank
         one) and new is the model that was just trained.
         """
-        train_examples = self.all_examples
-        # print(train_examples)
-        print("Training with {} examples".format(len(train_examples)))
         return self.runner.train(
-            iteration, train_examples, self.runner.config.model_dir
+            iteration, self.all_examples, self.runner.config.model_dir
         )
 
     def load_training_examples(self):

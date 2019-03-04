@@ -98,35 +98,41 @@ def math_estimator(features, labels, mode, params):
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
 
-    tf.compat.v1.summary.scalar("logits/max_value", tf.reduce_max(value_logits))
-    tf.compat.v1.summary.scalar("logits/min_value", tf.reduce_min(value_logits))
-    tf.compat.v1.summary.scalar("logits/mean_value", tf.reduce_mean(value_logits))
-    tf.compat.v1.summary.scalar("logits/max_focus", tf.reduce_max(focus_logits))
-    tf.compat.v1.summary.scalar("logits/min_focus", tf.reduce_min(focus_logits))
-    tf.compat.v1.summary.scalar("logits/mean_focus", tf.reduce_mean(focus_logits))
-    tf.compat.v1.summary.histogram("logits/policy", policy_logits)
-    tf.compat.v1.summary.histogram("logits/focus", focus_logits)
-    tf.compat.v1.summary.histogram("logits/values", value_logits)
+    with tf.compat.v1.variable_scope("stats"):
 
-    # Training targets
-    if labels is not None:
-        for target in [
-            TRAIN_LABELS_TARGET_FOCUS,
-            TRAIN_LABELS_TARGET_PI,
-            TRAIN_LABELS_TARGET_REWARD,
-        ]:
-            tensor = labels[target]
-            tf.compat.v1.summary.scalar(
-                "targets/{}/max_value".format(target), tf.reduce_max(tensor)
-            )
-            tf.compat.v1.summary.scalar(
-                "targets/{}/min_value".format(target), tf.reduce_min(tensor)
-            )
-            tf.compat.v1.summary.scalar(
-                "targets/{}/mean_value".format(target), tf.reduce_mean(tensor)
-            )
-            tf.compat.v1.summary.histogram("targets/{}".format(target), tensor)
+        # Output values
+        tf.compat.v1.summary.scalar("value/mean", tf.reduce_mean(value_logits))
+        tf.compat.v1.summary.scalar(
+            "value/variance", tf.math.reduce_variance(value_logits)
+        )
+        tf.compat.v1.summary.scalar("focus/mean", tf.reduce_mean(focus_logits))
+        tf.compat.v1.summary.scalar(
+            "focus/variance", tf.math.reduce_variance(focus_logits)
+        )
+        tf.compat.v1.summary.histogram("policy/logits", policy_logits)
 
+        # Training targets
+        if labels is not None:
+            tf.compat.v1.summary.scalar(
+                "focus/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_FOCUS])
+            )
+            tf.compat.v1.summary.scalar(
+                "focus/target_variance",
+                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_FOCUS]),
+            )
+            tf.compat.v1.summary.scalar(
+                "value/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_REWARD])
+            )
+            tf.compat.v1.summary.scalar(
+                "value/target_variance",
+                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_REWARD]),
+            )
+            tf.compat.v1.summary.histogram(
+                "policy/target", labels[TRAIN_LABELS_TARGET_PI]
+            )
+            tf.compat.v1.summary.histogram(
+                "focus/target", labels[TRAIN_LABELS_TARGET_FOCUS]
+            )
     # Multi-task prediction heads
     policy_head = estimator.head.regression_head(
         name="policy", label_dimension=action_size

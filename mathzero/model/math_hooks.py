@@ -15,12 +15,13 @@ MATH_OUTPUT_TENSORS = {
 }
 
 
-class TrainingLoggerHook(SessionRunHook):
-    """Log training progress to the console, including pi and value losses"""
+class EpochTrainerHook(SessionRunHook):
+    """Train for a given number of epochs, logging training progress to the console"""
 
-    def __init__(self, batch_size, log_every_n=100):
+    def __init__(self, epochs, examples_count, batch_size):
+        self.epochs = epochs
+        self.examples_count = examples_count
         self.batch_size = batch_size
-        self.log_every_n = log_every_n
 
     def begin(self):
         self._step = -1
@@ -41,20 +42,23 @@ class TrainingLoggerHook(SessionRunHook):
         def truncate(value):
             return float("%.3f" % (float(value)))
 
+        steps_per_epoch = max(int(self.examples_count / self.batch_size), 1)
+        total_steps = self.epochs * steps_per_epoch
+        if self._step % steps_per_epoch != 0:
+            return
+        current_epoch = int(self._step / steps_per_epoch)
         current_time = time.time()
         duration = current_time - self._start_time
-        if self._step % self.log_every_n != 0:
-            return
         self._start_time = current_time
         loss_pi = truncate(run_values.results["policy"])
         loss_focus = truncate(run_values.results["focus"])
         loss_v = truncate(run_values.results["value"])
-        examples_per_sec = self.log_every_n * self.batch_size / duration
+        examples_per_sec = steps_per_epoch * (self.batch_size / duration)
         sec_per_batch = duration
-        template = "%s: step %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f, loss_f = %.3f (%.1f examples/sec; %.3f sec/batch)"
+        template = "%s: Epoch %d, loss = %.3f loss_pi = %.3f, loss_v = %.3f, loss_f = %.3f (%.1f examples/sec; %.3f sec/batch)"
         args = (
             datetime.now(),
-            self._step,
+            current_epoch,
             loss_pi + loss_v + loss_focus,
             loss_pi,
             loss_v,
@@ -64,6 +68,10 @@ class TrainingLoggerHook(SessionRunHook):
         )
         print(template % args)
         sys.stdout.flush()
+        # Stop after the last epoch
+        if self._step >= total_steps:
+            print("-- STOPPING AFTER LAST EPOCH")
+            return run_context.request_stop()
 
 
 class TrainingEarlyStopHook(SessionRunHook):
