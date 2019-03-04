@@ -117,7 +117,7 @@ class MathModel:
 
         # Limit to latest max_examples for training
         max_examples = 15000
-        examples = examples[:-max_examples]
+        examples = examples[-max_examples:]
 
         print(
             "Training {} epochs with {} examples and learning rate {}...".format(
