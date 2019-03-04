@@ -45,7 +45,9 @@ class PracticeSession:
         self.skip_first_self_play = False
         loaded = self.load_training_examples()
         if loaded is not False:
-            print("Loaded examples from: {}".format(loaded))
+            print(
+                "Loaded ({}) examples from: {}".format(len(self.all_examples), loaded)
+            )
 
     def learn(self, stop_eval_fn=None):
         """Practice and learn in a loop, optionally evaluating competency after the 
