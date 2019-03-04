@@ -12,7 +12,9 @@ from mathzero.core.parser import ExpressionParser, ParserException
 from .lessons import LessonPlan, LessonExercise
 
 
-def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
+def lesson_runner(
+    agent_name, lesson_plan, parallel=True, dev_mode=False, skip_completed=True
+):
     """Practice a concept for up to (n) lessons or until the concept is learned as defined
     by the lesson plan. """
     lessons = lesson_plan.lessons[:]
@@ -21,7 +23,7 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
     BaseEpisodeRunner = PracticeRunner if not parallel else ParallelPracticeRunner
 
     # If we're resuming a training session, start at the lesson we left off with last time
-    if lesson_checkpoint.is_file():
+    if lesson_checkpoint.is_file() and skip_completed is True:
         with lesson_checkpoint.open("r", encoding="utf8") as f:
             lesson_state = json.loads(f.read())
     else:
@@ -44,12 +46,6 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
         )
     while len(lessons) > 0:
         lesson = lessons.pop(0)
-        # lesson.name = lesson_name
-        # lesson.problem_fn = problem_fn
-        # lesson.problem_type = problem_type
-        # lesson.problem_count = problem_count
-        # lesson.max_turns = max_turns
-        # lesson.num_mcts_sims = num_mcts_sims
         class LessonRunner(BaseEpisodeRunner):
             def get_game(self):
                 return MathGame(
@@ -63,29 +59,30 @@ def lesson_runner(agent_name, lesson_plan, parallel=True, dev_mode=False):
         progress_counter = 0
 
         def session_done(lesson_exercise, num_solved, num_failed):
-            nonlocal num_to_advance, progress_counter
-            if num_failed == 0:
-                progress_counter = progress_counter + 1
-            else:
-                progress_counter = 0
-            if progress_counter == num_to_advance:
-                print(
-                    "\n\n{} COMPLETED! [get all the problems right {} times in a row]\n\n".format(
-                        lesson_exercise.name, num_to_advance
-                    )
-                )
-                progress_counter = 0
-                return False
+            # NOTE: Trying rotating through all the challenges rather than overfitting on one
+            return False
+            # nonlocal num_to_advance, progress_counter
+            # if num_failed == 0:
+            #     progress_counter = progress_counter + 1
+            # else:
+            #     progress_counter = 0
+            # if progress_counter == num_to_advance:
+            #     print(
+            #         "\n\n{} COMPLETED! [get all the problems right {} times in a row]\n\n".format(
+            #             lesson_exercise.name, num_to_advance
+            #         )
+            #     )
+            #     progress_counter = 0
+            #     return False
 
         print("Practicing {} - {}...".format(lesson_plan.name, lesson.name))
         args = {
             "self_play_iterations": lesson.problem_count,
-            "max_training_examples": 200000,
         }
         config = RunnerConfig(
             model_dir=model_dir,
             num_mcts_sims=lesson.mcts_sims,
-            temperature_threshold=round(MathGame.max_moves_easy * 0.6),
+            num_exploration_moves=round(MathGame.max_moves_easy * 0.3),
             cpuct=1.0,
         )
         runner = LessonRunner(config)

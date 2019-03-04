@@ -3,7 +3,7 @@ import math
 import numpy
 import time
 import random
-from .util import LOSE_REWARD, WIN_REWARD
+from .util import LOSE_REWARD, WIN_REWARD, is_terminal_reward
 from .core.expressions import (
     MathExpression,
     ConstantExpression,
@@ -100,16 +100,7 @@ class MathGame:
         else:
             (problem, complexity) = self.lesson.problem_fn()
             type = self.lesson.problem_type
-
-        # TODO: Remove this stateful variable that is used mostly for printing out "{from} -> {to}" at game end
-        # NOTE: If we store a plane for history per user we could do something like [first_state, last_n-2, last_n-1, last_n, current]
-        # problem = "(((10z + 8) + 11z * 4) + 1z) + 9z"
-        # problem = "6z * 12x * 5 * 12x + 8z"
-        # problem = "6z  + 2 - 5z"
-        # problem = "-z + 6z"
-        # problem = "5z + 6z"
         self.expression_str = problem
-        # self.expression_str = "4x * 8 * 2"
         if self.verbose:
             print("\n\n[Problem] {}\n".format(problem))
         env_state = MathEnvironmentState(
@@ -146,7 +137,8 @@ class MathGame:
         return focus / count
 
     def get_token_index_from_focus(self, expression: MathExpression, focus_value):
-        """Given a 0-1 focus value, return a tuple of (token_index, focus_error)"""
+        """Given a 0-1 focus value, return the index of the node it nearest 
+        points to in the expression when visited left-to-right."""
         count = 0
 
         def visit_fn(node, depth, data):
@@ -200,8 +192,10 @@ class MathGame:
             action:    action taken
             searching: boolean set to True when called by MCTS
 
-        Returns:
+        Returns: tuple of (next_state, reward, is_done)
             next_state: env_state after applying action
+            reward: reward value for the state
+            is_done: boolean indicating if the episode is done
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -225,6 +219,12 @@ class MathGame:
         #       to a solution, it will never be the shortest path if you revisit a previous
         #       state.
         # NOTE: The hope is that this will make the problem much simpler for the model
+        # NOTE: Update... the returning to a state resulting in a loss seemed to work, but 
+        #       actually produces a bad reward signal. Because we report each move as an input
+        #       to the model, with the sequence part just be a stream of token types/values, the
+        #       reward value of LOSS being attached to a state just because it was re-entered
+        #       does not amount to useful information. Without a sample representing the entire 
+        #       episode, the LOSS signal can only be noise to the optimizer.
         if isinstance(operation, BaseRule) and operation.canApplyTo(token):
             change = operation.applyTo(token.rootClone())
             root = change.result.getRoot()
@@ -242,8 +242,8 @@ class MathGame:
                     expression, token, action, type(operation)
                 )
             )
-
-        return out_env
+        reward = self.get_state_reward(out_env, searching)
+        return out_env, reward, is_terminal_reward(reward)
 
     def get_token_at_index(
         self, expression: MathExpression, focus_index: int

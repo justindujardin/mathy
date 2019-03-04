@@ -36,6 +36,18 @@ class MathExpression(BinaryTreeNode):
         self.classes = list(set(self.classes).union(classes))
         return self
 
+    def countNodes(self):
+        """Return the number of nodes in this expression"""
+        count = 0
+
+        def visit_fn(node, depth, data):
+            nonlocal count
+            count = count + 1
+
+        self.visitInorder(visit_fn)
+        return count
+
+
     def toList(self):
         """
         Convert this node hierarchy into a list.

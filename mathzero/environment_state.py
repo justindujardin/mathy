@@ -2,11 +2,13 @@ import random
 import numpy
 from .core.tree import STOP
 from .core.parser import ExpressionParser
+from .core.tokenizer import TokenEOF
 from .training.problems import (
     MODE_ARITHMETIC,
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
 )
+
 from .model.features import (
     FEATURE_COLUMNS,
     FEATURE_NODE_COUNT,
@@ -23,6 +25,7 @@ GAME_MODE_OFFSET = 2
 
 MODEL_WIDTH = 128
 MODEL_HISTORY_LENGTH = 6
+INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 
 class MathAgentState(object):
@@ -31,13 +34,13 @@ class MathAgentState(object):
         moves_remaining: int,
         problem: str,
         problem_type: int,
-        focus=0.5,
+        focus=None,
         history=None,
     ):
         self.moves_remaining = moves_remaining
         self.problem = problem
         self.problem_type = problem_type
-        self.focus = focus
+        self.focus = random.uniform(0, 1) if focus is None else focus
         self.history = history[:] if history is not None else []
 
     @classmethod
@@ -117,21 +120,51 @@ class MathEnvironmentState(object):
                 "features can only be created from a token list or str input expression"
             )
 
-    def to_input_features(self):
+    def to_input_features(self, return_batch=False):
+        """Output a one element array of features that can be fed to the 
+        neural network for prediction.
+
+        When return_batch is true, the outputs will have an array of features for each
+        so the result can be directly passed to the predictor.
+        """
+        import tensorflow as tf
+
+        expression = self.parser.parse(self.agent.problem)
+        tokens = self.parser.tokenize(self.agent.problem)
         types = []
         values = []
-
-        for t in self.parser.tokenize(self.agent.problem):
+        for t in tokens:
             types.append(t.type)
             values.append(t.value)
 
-        input_features = {
-            FEATURE_MOVE_COUNTER: self.max_moves - self.agent.moves_remaining,
-            FEATURE_MOVES_REMAINING: self.agent.moves_remaining,
-            FEATURE_NODE_COUNT: len(values),
-            FEATURE_PROBLEM_TYPE: self.agent.problem_type,
-            FEATURE_TOKEN_TYPES: types,
-            FEATURE_TOKEN_VALUES: values,
-        }
-        return input_features
+        def maybe_wrap(value):
+            nonlocal return_batch
+            return [value] if return_batch else value
 
+        return {
+            FEATURE_TOKEN_TYPES: maybe_wrap(types),
+            FEATURE_TOKEN_VALUES: maybe_wrap(values),
+            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
+            FEATURE_MOVES_REMAINING: maybe_wrap(
+                self.max_moves - self.agent.moves_remaining
+            ),
+            FEATURE_MOVE_COUNTER: maybe_wrap(self.agent.moves_remaining),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
+        }
+
+
+def to_sparse_tensor(sequence, dtype=None, fill_value=-1):
+    import tensorflow as tf
+
+    if dtype is None:
+        dtype = tf.int32
+
+    tensor = tf.convert_to_tensor(sequence, dtype=dtype)
+    idx = tf.where(tf.not_equal(tensor, fill_value))
+    # Make the sparse tensor
+    # Use tf.shape(a_t, out_type=tf.int64) instead of a_t.get_shape()
+    # if tensor shape is dynamic
+    sparse = tf.SparseTensor(
+        idx, tf.gather_nd(tensor, idx), tf.shape(tensor, out_type=dtype)
+    )
+    return sparse

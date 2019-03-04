@@ -13,6 +13,12 @@ from mathzero.training.problems import (
 )
 from mathzero.training.lessons import build_lesson_plan, LessonExercise
 import random
+import tensorflow as tf
+
+tf.compat.v1.logging.set_verbosity("CRITICAL")
+
+# Allow inspecting Tensor and Dataset values in the debugger
+tf.compat.v1.enable_eager_execution()
 
 
 def two_variable_terms():
@@ -37,7 +43,23 @@ def main(agent_name="default"):
             [
                 LessonExercise(
                     lesson_name="QuickSelfPlay",
-                    problem_count=1,
+                    problem_count=4,
+                    problem_fn=lambda: two_variable_terms(),
+                    problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    max_turns=15,
+                    mcts_sims=100,
+                ),
+                LessonExercise(
+                    lesson_name="QuickSelfPlay2",
+                    problem_count=4,
+                    problem_fn=lambda: two_variable_terms(),
+                    problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    max_turns=15,
+                    mcts_sims=100,
+                ),
+                LessonExercise(
+                    lesson_name="QuickSelfPlay3",
+                    problem_count=4,
                     problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=15,
@@ -49,7 +71,7 @@ def main(agent_name="default"):
                     problem_fn=lambda: combine_multiple_like_add_terms(6),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=50,
-                    mcts_sims=25,
+                    mcts_sims=100,
                 ),
             ],
         ),

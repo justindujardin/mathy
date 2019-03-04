@@ -1,0 +1,7 @@
+matplotlib
+pillow
+scipy
+numpy
+tensorflow
+vizdoom
+moviepy

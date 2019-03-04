@@ -2,11 +2,18 @@
 """Executing training and evaluation against the agent curriculum, automatically progressing
 to the next level as the agent gets better.
 """
+import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 import tempfile
 import numpy
 import plac
 from mathzero.training.lesson_runner import lesson_runner
 from curriculum.combine_like_terms import lessons
+import tensorflow as tf
+
+
+tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 @plac.annotations(
@@ -15,9 +22,15 @@ from curriculum.combine_like_terms import lessons
         "positional",
         None,
         str,
-    )
+    ),
+    transfer_from=(
+        "The name of another model to warm start this one from. Think Transfer Learning",
+        "positional",
+        None,
+        str,
+    ),
 )
-def main(agent_name=None):
+def main(agent_name=None, transfer_from=None):
     if agent_name is None:
         agent_name = next(tempfile._get_candidate_names())
         print(
@@ -25,7 +38,13 @@ def main(agent_name=None):
                 agent_name
             )
         )
-    lesson_runner(agent_name, lessons, parallel=True, dev_mode=False)
+    counter = 0
+    while True:
+        print("[Lesson:{}]".format(counter))
+        counter = counter + 1
+        lesson_runner(
+            agent_name, lessons, parallel=True, dev_mode=False, skip_completed=False
+        )
 
 
 if __name__ == "__main__":

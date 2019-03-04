@@ -17,6 +17,7 @@ class MCTS:
         self.game = game
         self.predictor = predictor
         self.num_mcts_sims = num_mcts_sims
+        # cpuct is a hyperparameter controlling the degree of exploration (1.0 in suragnair experiments.)
         self.cpuct = cpuct
         self.dir_alpha = dir_alpha
         # Set epsilon = 0 to disable dirichlet noise in root node.
@@ -120,7 +121,9 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], action_v, self._focus_predictions[s] = self.predictor.predict(env_state)
+            self.Ps[s], action_v, self._focus_predictions[s] = self.predictor.predict(
+                env_state
+            )
             # print("calculating valid moves for: {}".format(s))
             # print("action_v = {}".format(action_v))
             # print("focus_v = {}".format(self._focus_predictions[s]))
@@ -133,10 +136,9 @@ class MCTS:
                 # renormalize so values sum to 1
                 self.Ps[s] /= sum_Ps_s
             else:
-                # if all valid moves were masked make all valid moves equally probable
-
-                # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
-                # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
+                # If all valid moves were masked make all valid moves equally probable
+                # NOTE: This can happen if your model is under/over fitting.
+                # See more: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
                 print("All valid moves were masked, do workaround.")
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= numpy.sum(self.Ps[s])
@@ -182,7 +184,7 @@ class MCTS:
 
         a = numpy.random.choice(all_best)
 
-        next_s = self.game.get_next_state(env_state, a, searching=True)
+        next_s, _, _ = self.game.get_next_state(env_state, a, searching=True)
 
         action_v = self.search(next_s)
 
