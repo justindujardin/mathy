@@ -29,7 +29,7 @@ def BiDirectionalLSTM(units, name="bi_lstm_stack"):
         rnn_bwd2 = LSTM(
             half_units, return_sequences=True, go_backwards=True, name="bwd_lstm"
         )(rnn_bwd1)
-        return Concatenate(name=name)([rnn_fwd2, rnn_bwd2])
+        return Concatenate(name=name)([rnn_fwd2, rnn_bwd2, input_layer])
 
     return func
 
@@ -137,7 +137,18 @@ def math_estimator(features, labels, mode, params):
     policy_head = estimator.head.regression_head(
         name="policy", label_dimension=action_size
     )
-    focus_head = estimator.head.regression_head(name="focus", label_dimension=1)
     value_head = estimator.head.regression_head(name="value", label_dimension=1)
-    multi_head = estimator.multi_head.multi_head([policy_head, value_head, focus_head])
+    multi_head = estimator.multi_head.multi_head([policy_head, value_head])
+    return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
+
+
+from tensorflow_estimator.contrib.estimator.python import estimator
+
+
+def multi_task_model_fn(features, labels, mode, params):
+    # ...
+    logits = {"policy": policy_logits, "value": value_logits}
+    policy_head = estimator.head.regression_head(name="policy", label_dimension=actions)
+    value_head = estimator.head.regression_head(name="value", label_dimension=1)
+    multi_head = estimator.multi_head.multi_head([policy_head, value_head])
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
