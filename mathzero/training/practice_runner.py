@@ -5,7 +5,7 @@ from sys import stdin
 
 import numpy
 
-from ..actors.actor_mcts import ActorMCTS
+from .actor_mcts import ActorMCTS
 from ..core.expressions import MathExpression
 from ..environment_state import MathEnvironmentState
 from ..math_game import MathGame
