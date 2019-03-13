@@ -19,6 +19,7 @@ from ..core.rules import (
 from ..core.util import getTerms, has_like_terms, isPreferredTermForm
 from ..environment_state import MathEnvironmentState
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
+from .math_embeddings import MathEmbeddings
 from ..util import (
     REWARD_LOSE,
     REWARD_PREVIOUS_LOCATION,
@@ -45,10 +46,11 @@ class MathEnvironment(py_environment.PyEnvironment):
     of actions to reduce a math expression to an agreeable target representation.
     """
 
-    def __init__(self, lesson=None, max_moves=None, verbose=True):
+    def __init__(self, lesson=None, max_moves=None, verbose=False):
+        self.model_dir = "./training/embeddings"
         self.verbose = verbose
         self.discount = 1.0
-        self.max_moves = max_moves if max_moves is not None else 30
+        self.max_moves = max_moves if max_moves is not None else 50
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.lesson = lesson
@@ -60,7 +62,6 @@ class MathEnvironment(py_environment.PyEnvironment):
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]
-
         # Focus buckets
         self._focus_buckets = 3
 
@@ -68,6 +69,11 @@ class MathEnvironment(py_environment.PyEnvironment):
         # certain parts of an expression, without limiting sequence length or exploding
         # the action space by selecting from actions*max_supported_length actions.
         self._action_count = len(self.available_rules) * self._focus_buckets
+        self.embedding_dimensions = 32
+        self.embedding_model = MathEmbeddings(
+            self._action_count, self.model_dir, self.embedding_dimensions
+        )
+        self.embedding_model.start()
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
             dtype=numpy.int32,
@@ -75,37 +81,9 @@ class MathEnvironment(py_environment.PyEnvironment):
             maximum=self._action_count,
             name="action",
         )
-        # self._action_spec = {
-        #     "action": array_spec.BoundedArraySpec(
-        #         shape=(), dtype=numpy.int32, minimum=0, maximum=1, name="action"
-        #     ),
-        #     "focus": array_spec.BoundedArraySpec(
-        #         shape=(), dtype=numpy.int32, minimum=0, maximum=1, name="focus"
-        #     ),
-        # }
         self._observation_spec = tensor_spec.TensorSpec(
-            shape=(), dtype=numpy.int32, name="embeddings"
+            shape=(self.embedding_dimensions,), dtype=numpy.float32, name="embeddings"
         )
-        # self._observation_spec = {
-        #     FEATURE_TOKEN_VALUES: tensor_spec.TensorSpec(
-        #         shape=(None,), dtype=numpy.int32, name=FEATURE_TOKEN_VALUES
-        #     ),
-        #     FEATURE_TOKEN_TYPES: tensor_spec.TensorSpec(
-        #         shape=(None,), dtype=numpy.int8, name=FEATURE_TOKEN_TYPES
-        #     ),
-        #     FEATURE_NODE_COUNT: tensor_spec.TensorSpec(
-        #         shape=(), dtype=numpy.int32, name=FEATURE_NODE_COUNT
-        #     ),
-        #     FEATURE_MOVE_COUNTER: tensor_spec.TensorSpec(
-        #         shape=(), dtype=numpy.int32, name=FEATURE_MOVE_COUNTER
-        #     ),
-        #     FEATURE_MOVES_REMAINING: tensor_spec.TensorSpec(
-        #         shape=(), dtype=numpy.int32, name=FEATURE_MOVES_REMAINING
-        #     ),
-        #     FEATURE_PROBLEM_TYPE: tensor_spec.TensorSpec(
-        #         shape=(), dtype=numpy.int32, name=FEATURE_PROBLEM_TYPE
-        #     ),
-        # }
         self._state = None
         self._episode_ended = False
 
@@ -118,10 +96,10 @@ class MathEnvironment(py_environment.PyEnvironment):
     def _reset(self):
         self._state = self.get_initial_state()
         self._episode_ended = False
-        return time_step.restart(self._state.to_input_features())
+        return time_step.restart(self.embedding_model.predict(self._state))
 
     def _step(self, action):
-
+        searching = False
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
             # a new episode.
@@ -132,21 +110,21 @@ class MathEnvironment(py_environment.PyEnvironment):
         expression = self.parser.parse(agent.problem)
         operation, token = self.get_action_rule(expression, action)
 
-        # NOTE: How do we replace focus with a single action and still make the number of actions
-        #       constant despite sequence length?
-
         if not isinstance(operation, BaseRule) or not operation.canApplyTo(token):
             # TODO: How to use MaskedDistribution with SAC agent? For now penalize to keep things moving.
-            # msg = "Invalid move selected ({}) for expression({}) with focus({}). Rule({}) does not apply."
-            out_env = self._state.encode_player(
+            msg = "Invalid move selected ({}) for expression({}) with focus({}). Rule({}) does not apply."
+
+            self._state = self._state.encode_player(
                 agent.problem, agent.moves_remaining - 1
             )
-            return time_step.transition(
-                out_env.to_input_features(),
-                reward=REWARD_INVALID_ACTION,
-                discount=self.discount,
+            out_features = self.embedding_model.predict(self._state)
+            if self._state.agent.moves_remaining <= 0:
+                self._episode_ended = True
+                return time_step.termination(out_features, REWARD_LOSE)
+            res = time_step.transition(
+                out_features, reward=REWARD_INVALID_ACTION, discount=self.discount
             )
-            # raise ValueError(msg.format(action, expression, token, type(operation)))
+            return res
 
         change = operation.applyTo(token.rootClone())
         root = change.result.getRoot()
@@ -156,46 +134,44 @@ class MathEnvironment(py_environment.PyEnvironment):
                 change.rule.name[:25], change.result.getRoot()
             )
             print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
-        out_env = self._state.encode_player(out_problem, agent.moves_remaining - 1)
-        reward = self.get_state_value(out_env, searching)
-        is_done = is_terminal_reward(reward) or agent.moves_remaining <= 0
-        out_features = out_env.to_input_features()
-
-        agent = env_state.agent
-        expression = self.parser.parse(agent.problem)
-
-        # The agent is penalized for returning to a previous state.
-        for key, group in groupby(sorted(agent.history)):
-            list_group = list(group)
-            list_count = len(list_group)
-            if list_count <= 1:
-                continue
-            if not searching and self.verbose:
-                print("\n[Penalty] re-entered previous state: {}".format(list_group[0]))
-
-            return time_step.transition(
-                out_features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
-            )
+        self._state = self._state.encode_player(out_problem, agent.moves_remaining - 1)
+        out_features = self.embedding_model.predict(self._state)
+        expression = self.parser.parse(self._state.agent.problem)
 
         # Check for problem_type specific win conditions
         root = expression.getRoot()
-        if agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL and not has_like_terms(root):
+        if (
+            self._state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
+            and not has_like_terms(root)
+        ):
             term_nodes = getTerms(root)
             is_win = True
             for term in term_nodes:
                 if not isPreferredTermForm(term):
                     is_win = False
             if is_win:
-                if not searching and self.verbose:
-                    print(
-                        "\n[Solved] {} => {}\n".format(self.expression_str, expression)
-                    )
+                self._episode_ended = True
+                print("\n[Solved] {} => {}\n".format(self.expression_str, expression))
                 return time_step.termination(out_features, REWARD_WIN)
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
-        if agent.moves_remaining <= 0:
+        if self._state.agent.moves_remaining <= 0:
+            self._episode_ended = True
             return time_step.termination(out_features, REWARD_LOSE)
+
+        # The agent is penalized for returning to a previous state.
+        for key, group in groupby(sorted(self._state.agent.history)):
+            list_group = list(group)
+            list_count = len(list_group)
+            if list_count <= 1:
+                continue
+            # if not searching and self.verbose:
+            #     print("\n[Penalty] re-entered previous state: {}".format(list_group[0]))
+
+            return time_step.transition(
+                out_features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
+            )
 
         # The game continues at a reward cost of one per step
         return time_step.transition(
@@ -287,20 +263,19 @@ class MathEnvironment(py_environment.PyEnvironment):
         env: MathEnvironment = self._state
         if expression is None:
             expression = self.parser.parse(env_state.agent.problem)
-
-        bucket_action = action % self._focus_buckets
-        bucket_number = (action - bucket_action) / self._focus_buckets
+        bucket_action = action % len(self.available_rules)
+        bucket_focus = (action - bucket_action) / self._focus_buckets
         # If we're not in bucket 0, divide by number of buckets to get
         # a value in the range 0-1 which points left-to-right in the expression
         # for where to apply the action
-        if bucket_number > 0.0:
-            bucket_number = bucket_number / self._focus_buckets
+        if bucket_focus > 0.0:
+            bucket_focus = (bucket_focus - 1) * (1 / self._focus_buckets)
         rule = self.available_rules[bucket_action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
 
         # Select an actionable node around the agent focus
-        focus = self.get_token_index_from_focus(expression, bucket_number)
+        focus = self.get_token_index_from_focus(expression, bucket_focus)
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
@@ -309,10 +284,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         nearest_possible_index = min(
             possible_node_indices, key=lambda x: abs(x - focus)
         )
-        return nearest_possible_index, rule
-
-        node_index, node_rule = self.get_focus_at_index(env_state, action, expression)
-        return node_rule, self.get_token_at_index(expression, node_index)
+        return rule, self.get_token_at_index(expression, nearest_possible_index)
 
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """

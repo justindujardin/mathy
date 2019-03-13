@@ -50,12 +50,12 @@ flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
 flags.DEFINE_string('env_name', 'HalfCheetah-v2', 'Agent test environment.')
 flags.DEFINE_integer('num_iterations', 100000,
                      'Total number train/eval iterations to perform.')
-flags.DEFINE_integer('initial_collect_steps', 100000,
+flags.DEFINE_integer('initial_collect_steps', 10000,
                      'Initial number of collect steps.')
-flags.DEFINE_integer('log_interval', 10000, 'Interval for logging to stdout.')
-flags.DEFINE_integer('eval_interval', 500000,
+flags.DEFINE_integer('log_interval', 500, 'Interval for logging to stdout.')
+flags.DEFINE_integer('eval_interval', 10000,
                      'Interval for performing evaluations.')
-flags.DEFINE_integer('num_eval_episodes', 100,
+flags.DEFINE_integer('num_eval_episodes', 10,
                      'Number of episodes to perform during evaluation.')
 flags.DEFINE_multi_string('config_file', None,
                           'Path to the trainer config files.')
@@ -86,7 +86,7 @@ def train_eval(
     critic_action_fc_layers=None,
     critic_joint_fc_layers=(256, 256),
     # Params for collect
-    initial_collect_steps=10000,
+    initial_collect_steps=100000,
     collect_steps_per_iteration=1,
     replay_buffer_capacity=1000000,
     # Params for target update
@@ -172,6 +172,7 @@ def train_eval(
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars,
+        squash_actions=False,
         train_step_counter=global_step)
     tf_agent.initialize()
 
