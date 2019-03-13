@@ -43,6 +43,7 @@ lessons = build_lesson_plan(
     [
         # LessonExercise(
         #     lesson_name="Two terms",
+        #     num_exploration_moves=1,
         #     problem_count=100,
         #     problem_fn=two_variable_terms,
         #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -52,6 +53,7 @@ lessons = build_lesson_plan(
         # LessonExercise(
         #     lesson_name="Two variable terms separated by a constant",
         #     problem_count=100,
+        #     num_exploration_moves=3,
         #     problem_fn=two_variable_terms,
         #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
         #     max_turns=10,
@@ -60,6 +62,7 @@ lessons = build_lesson_plan(
         LessonExercise(
             lesson_name="Three variable terms",
             problem_count=20,
+            num_exploration_moves=5,
             problem_fn=three_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=15,
@@ -71,6 +74,7 @@ lessons = build_lesson_plan(
             problem_fn=four_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=25,
+            num_exploration_moves=10,
             mcts_sims=750,
         ),
         LessonExercise(
@@ -78,6 +82,7 @@ lessons = build_lesson_plan(
             problem_count=5,
             problem_fn=six_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            num_exploration_moves=15,
             max_turns=30,
             mcts_sims=1000,
         ),
@@ -86,6 +91,7 @@ lessons = build_lesson_plan(
             problem_count=2,
             problem_fn=six_variable_terms,
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            num_exploration_moves=20,
             max_turns=40,
             mcts_sims=1000,
         ),

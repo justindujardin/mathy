@@ -9,7 +9,7 @@ import tempfile
 import numpy
 import plac
 from mathzero.training.lesson_runner import lesson_runner
-from curriculum.combine_like_terms import lessons
+from curriculum.level1 import lessons
 import tensorflow as tf
 
 

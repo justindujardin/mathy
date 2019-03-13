@@ -15,6 +15,7 @@ class LessonExercise:
         max_turns,
         problem_count,
         mcts_sims,
+        num_exploration_moves,
         training_wheels=False,
     ):
         self.name = lesson_name
@@ -24,6 +25,7 @@ class LessonExercise:
         self.max_turns = max_turns
         self.mcts_sims = mcts_sims
         self.training_wheels = training_wheels
+        self.num_exploration_moves = num_exploration_moves
 
 
 class LessonPlan:

@@ -23,6 +23,13 @@
       "module": "dev"
     },
     {
+      "name": "MathZero (tf_agent)",
+      "type": "python",
+      "request": "launch",
+      "module": "mathzero.agent.train_eval",
+      "args": ["--root_dir=./training/dev/"]
+    },
+    {
       "name": "Math Model Tests",
       "type": "python",
       "request": "launch",
