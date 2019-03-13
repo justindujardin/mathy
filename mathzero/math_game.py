@@ -1,50 +1,27 @@
-import random
 import math
-import numpy
-import time
-import random
-from .util import LOSE_REWARD, WIN_REWARD, is_terminal_reward
-from .core.expressions import (
-    MathExpression,
-    ConstantExpression,
-    MultiplyExpression,
-    PowerExpression,
-    STOP,
-    AddExpression,
-    VariableExpression,
-)
-from .training.problems import (
-    ProblemGenerator,
-    MODE_SOLVE_FOR_VARIABLE,
-    MODE_SIMPLIFY_POLYNOMIAL,
-)
-from .core.parser import ExpressionParser
-from .core.util import (
-    termsAreLike,
-    isAddSubtract,
-    getTerms,
-    getTerm,
-    isPreferredTermForm,
-    has_like_terms,
-)
-from .core.rules import (
-    BaseRule,
-    AssociativeSwapRule,
-    CommutativeSwapRule,
-    DistributiveFactorOutRule,
-    DistributiveMultiplyRule,
-    ConstantsSimplifyRule,
-    VariableMultiplyRule,
-)
-from .environment_state import (
-    MathEnvironmentState,
-    MathAgentState,
-    MODEL_WIDTH,
-    MODEL_HISTORY_LENGTH,
-)
-from multiprocessing import cpu_count
 from itertools import groupby
 from multiprocessing import cpu_count
+from .core.expressions import STOP, MathExpression
+from .core.parser import ExpressionParser
+from .core.rules import (
+    AssociativeSwapRule,
+    BaseRule,
+    CommutativeSwapRule,
+    ConstantsSimplifyRule,
+    DistributiveFactorOutRule,
+    DistributiveMultiplyRule,
+    VariableMultiplyRule,
+)
+from .core.util import getTerms, has_like_terms, isPreferredTermForm
+from .environment_state import MathEnvironmentState
+from .training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
+from .util import (
+    REWARD_LOSE,
+    REWARD_PREVIOUS_LOCATION,
+    REWARD_TIMESTEP,
+    REWARD_WIN,
+    is_terminal_reward,
+)
 
 
 class MathGame:
@@ -54,7 +31,6 @@ class MathGame:
     few moves as possible.
     """
 
-    history_length = MODEL_HISTORY_LENGTH
     # Default number of max moves used for training (can be overridden in init)
     max_moves_easy = 50
     max_moves_hard = 35
@@ -194,56 +170,29 @@ class MathGame:
 
         Returns: tuple of (next_state, reward, is_done)
             next_state: env_state after applying action
-            reward: reward value for the state
+            reward: reward value for the action taken
             is_done: boolean indicating if the episode is done
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
         operation, token = self.get_action_rule(env_state, expression, action)
 
-        # NOTE: If you get maximum recursion errors, it can mean that you're not
-        # hitting a terminal state. Force the searching var off here to get
-        # more verbose logging if your crash is occurring before the first verbose
-        # output.
-        # searching = False
+        if not isinstance(operation, BaseRule) or not operation.canApplyTo(token):
+            msg = "Invalid move selected ({}) for expression({}) with focus({}). Rule({}) does not apply."
+            raise Exception(msg.format(action, expression, token, type(operation)))
 
-        # Enforce constraints to keep training time and complexity down?
-        # - can't commutative swap immediately to return to previous state.
-        # NOTE: leaving these ideas here, but optimization made them less necessary
-        # NOTE: Also adding constraints caused actions to be avoided and others to be
-        #       repeated in odd ways. Assume repetition is part of training.
-        # NOTE: Maybe this is solved by something like Actor/Critic updates?
-        #
-        # NOTE: This can maybe be solved by treating an expression returning to a previous
-        #       state as a LOSS. If the model should optimize for the shortest paths
-        #       to a solution, it will never be the shortest path if you revisit a previous
-        #       state.
-        # NOTE: The hope is that this will make the problem much simpler for the model
-        # NOTE: Update... the returning to a state resulting in a loss seemed to work, but 
-        #       actually produces a bad reward signal. Because we report each move as an input
-        #       to the model, with the sequence part just be a stream of token types/values, the
-        #       reward value of LOSS being attached to a state just because it was re-entered
-        #       does not amount to useful information. Without a sample representing the entire 
-        #       episode, the LOSS signal can only be noise to the optimizer.
-        if isinstance(operation, BaseRule) and operation.canApplyTo(token):
-            change = operation.applyTo(token.rootClone())
-            root = change.result.getRoot()
-            out_problem = str(root)
-            if not searching and self.verbose:
-                output = """{:<25}: {}""".format(
-                    change.rule.name[:25], change.result.getRoot()
-                )
-                print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
-            out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
-        else:
-            print("action is {}, and token is {}".format(action, str(token)))
-            raise Exception(
-                "\n\n\tExpression: {}\n\tFocus: {}\n\tinvalid move selected: {}, {}".format(
-                    expression, token, action, type(operation)
-                )
+        change = operation.applyTo(token.rootClone())
+        root = change.result.getRoot()
+        out_problem = str(root)
+        if not searching and self.verbose:
+            output = """{:<25}: {}""".format(
+                change.rule.name[:25], change.result.getRoot()
             )
-        reward = self.get_state_reward(out_env, searching)
-        return out_env, reward, is_terminal_reward(reward)
+            print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
+        out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
+        reward = self.get_state_value(out_env, searching)
+        is_done = is_terminal_reward(reward) or agent.moves_remaining <= 0
+        return out_env, reward, is_done
 
     def get_token_at_index(
         self, expression: MathExpression, focus_index: int
@@ -262,7 +211,7 @@ class MathGame:
         expression.visitPreorder(visit_fn)
         return result
 
-    def getValidMoves(self, env_state: MathEnvironmentState):
+    def get_valid_moves(self, env_state: MathEnvironmentState):
         """
         Input:
             env_state: current env_state
@@ -301,8 +250,10 @@ class MathGame:
                 # )
         return actions
 
-    def get_state_reward(self, env_state: MathEnvironmentState, searching=False):
-        """
+    def get_state_value(self, env_state: MathEnvironmentState, searching=False):
+        """Get the value of the current state
+
+
         Input:
             env_state:     current env_state
             searching: boolean that is True when called by MCTS simulation
@@ -314,18 +265,15 @@ class MathGame:
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
 
-        if self.training_wheels is True:
-            # The player loses if they return to a previous state.
-            for key, group in groupby(sorted(agent.history)):
-                list_group = list(group)
-                list_count = len(list_group)
-                if list_count <= 1:
-                    continue
-                if not searching and self.verbose:
-                    print(
-                        "\n[Failed] re-entered previous state: {}".format(list_group[0])
-                    )
-                return LOSE_REWARD - agent.moves_remaining
+        # The agent is penalized for returning to a previous state.
+        for key, group in groupby(sorted(agent.history)):
+            list_group = list(group)
+            list_count = len(list_group)
+            if list_count <= 1:
+                continue
+            if not searching and self.verbose:
+                print("\n[Penalty] re-entered previous state: {}".format(list_group[0]))
+            return REWARD_PREVIOUS_LOCATION
 
         # Check for problem_type specific win conditions
         root = expression.getRoot()
@@ -340,7 +288,7 @@ class MathGame:
                     print(
                         "\n[Solved] {} => {}\n".format(self.expression_str, expression)
                     )
-                return WIN_REWARD + agent.moves_remaining
+                return REWARD_WIN
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
@@ -351,10 +299,10 @@ class MathGame:
                         self.expression_str, expression
                     )
                 )
-            return LOSE_REWARD - agent.moves_remaining
+            return REWARD_LOSE
 
         # The game continues at a reward cost of one per step
-        return -1
+        return REWARD_TIMESTEP
 
     def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""

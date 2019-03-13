@@ -21,8 +21,6 @@ from .mcts import MCTS
 from lib.progress.bar import Bar
 from lib.average_meter import AverageMeter
 
-from ..util import is_lose_reward, is_win_reward
-
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 
@@ -153,7 +151,7 @@ class PracticeSession:
         self.skip_first_self_play = True
         return str(file_path)
 
-    def save_training_examples(self):
+    def save_training_examples_jsonl(self):
         model_dir = Path(self.runner.config.model_dir)
         if not model_dir.is_dir():
             model_dir.mkdir(parents=True, exist_ok=True)
@@ -168,3 +166,35 @@ class PracticeSession:
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
         return str(out_file)
+
+    def save_training_examples_tfrecord(self):
+        model_dir = Path(self.runner.config.model_dir)
+        if not model_dir.is_dir():
+            model_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write to local file then copy over (don't thrash virtual file systems like GCS)
+        _, tmp_file = tempfile.mkstemp()
+
+        writer = tf.io.TFRecordWriter(tmp_file)
+        for example in self.all_examples:
+            ex = tf.train.SequenceExample()
+            # A non-sequential feature of our example
+            sequence_length = len(sequence)
+            ex.context.feature["length"].int64_list.value.append(sequence_length)
+            # Feature lists for the two sequential features of our example
+            fl_tokens = ex.feature_lists.feature_list["tokens"]
+            fl_labels = ex.feature_lists.feature_list["labels"]
+            for token, label in zip(sequence, labels):
+                fl_tokens.feature.add().int64_list.value.append(token)
+                fl_labels.feature.add().int64_list.value.append(label)
+
+            ex = make_example(sequence, label_sequence)
+            writer.write(ex.SerializeToString())
+        writer.close()
+
+        out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
+        copyfile(tmp_file, str(out_file))
+        os.remove(tmp_file)
+        return str(out_file)
+
+

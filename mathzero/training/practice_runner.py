@@ -2,20 +2,16 @@ import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
 from sys import stdin
+
 import numpy
-from ..environment_state import MathEnvironmentState
-from ..util import (
-    LOSE_REWARD,
-    WIN_REWARD,
-    discount_rewards,
-    is_terminal_reward,
-    normalize_rewards,
-)
-from .mcts import MCTS
-from ..math_game import MathGame
-from ..core.expressions import MathExpression
-from ..model.math_model import MathModel
+
 from ..actors.actor_mcts import ActorMCTS
+from ..core.expressions import MathExpression
+from ..environment_state import MathEnvironmentState
+from ..math_game import MathGame
+from ..model.math_model import MathModel
+from ..util import REWARD_LOSE, REWARD_WIN, is_terminal_reward, normalize_rewards
+from .mcts import MCTS
 
 
 class RunnerConfig:
@@ -28,7 +24,7 @@ class RunnerConfig:
         self,
         num_wokers=cpu_count(),
         num_mcts_sims=15,
-        num_exploration_moves=0.5,
+        num_exploration_moves=5,
         cpuct=1.0,
         model_dir=None,
     ):
@@ -93,7 +89,7 @@ class PracticeRunner:
         """
         This function executes one episode.
         As the game is played, each turn is added as a training example to
-        trainExamples. The game continues until get_state_reward returns a non-zero
+        trainExamples. The game continues until get_state_value returns a non-zero
         value, then the outcome of the game is used to assign values to each example
         in trainExamples.
         """

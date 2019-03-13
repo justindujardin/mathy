@@ -1,22 +1,27 @@
 import numpy
 
-LOSE_REWARD = -100000
-WIN_REWARD = 100000
+# From TZ: "my rule of thumb is win/loss = +/-1, and everything else is determined in orders of magnitude of importance
+# so for instance, my timestep penalty might be -0.01, picking up a gem or something might be +0.1"
+REWARD_LOSE = -1
+REWARD_WIN = 1
+REWARD_TIMESTEP = -0.01
+REWARD_PREVIOUS_LOCATION = -0.03
+REWARD_INVALID_ACTION = -0.5
 
 
 def is_terminal_reward(reward):
-    return reward >= WIN_REWARD or reward <= LOSE_REWARD
+    return reward == REWARD_WIN or reward == REWARD_LOSE
 
 
 def is_win_reward(reward):
-    return reward >= WIN_REWARD
+    return reward == REWARD_WIN
 
 
 def is_lose_reward(reward):
-    return reward <= LOSE_REWARD
+    return reward == REWARD_LOSE
 
 
-def discount_rewards(r, gamma=0.99):
+def discount(r, gamma=0.99):
     """Discount a list of float rewards to encourage rapid convergance"""
     discounted_r = numpy.zeros_like(r, dtype=numpy.float32)
     running_add = 0

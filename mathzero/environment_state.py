@@ -23,8 +23,6 @@ PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
-MODEL_WIDTH = 128
-MODEL_HISTORY_LENGTH = 6
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 
@@ -34,11 +32,13 @@ class MathAgentState(object):
         moves_remaining: int,
         problem: str,
         problem_type: int,
+        reward=0.0,
         focus=None,
         history=None,
     ):
         self.moves_remaining = moves_remaining
         self.problem = problem
+        self.reward = reward
         self.problem_type = problem_type
         self.focus = random.uniform(0, 1) if focus is None else focus
         self.history = history[:] if history is not None else []
@@ -48,6 +48,7 @@ class MathAgentState(object):
         return MathAgentState(
             from_state.moves_remaining,
             from_state.problem,
+            from_state.reward,
             from_state.problem_type,
             from_state.focus,
             from_state.history,
@@ -88,12 +89,6 @@ class MathEnvironmentState(object):
 
     def clone(self):
         return MathEnvironmentState(state=self)
-
-    def encode_focus(self, focus):
-        """Encode a player's focus into the env_state, and return the env_state"""
-        out_state = MathEnvironmentState.copy(self)
-        out_state.agent.focus = focus
-        return out_state
 
     def encode_player(self, problem: str, moves_remaining: int):
         """Encode a player's state into the env_state, and return the env_state"""
@@ -145,10 +140,10 @@ class MathEnvironmentState(object):
             FEATURE_TOKEN_TYPES: maybe_wrap(types),
             FEATURE_TOKEN_VALUES: maybe_wrap(values),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_MOVES_REMAINING: maybe_wrap(
+            FEATURE_MOVE_COUNTER: maybe_wrap(
                 self.max_moves - self.agent.moves_remaining
             ),
-            FEATURE_MOVE_COUNTER: maybe_wrap(self.agent.moves_remaining),
+            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
             FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
         }
 

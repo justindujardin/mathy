@@ -31,8 +31,8 @@ class MCTS:
         # Focus prediction cache
         self._focus_predictions = {}
 
-        self.Es = {}  # stores game.get_state_reward ended for env_state s
-        self.Vs = {}  # stores game.getValidMoves for env_state s
+        self.Es = {}  # stores game.get_state_value ended for env_state s
+        self.Vs = {}  # stores game.get_valid_moves for env_state s
 
     def getActionProb(self, env_state, temp=1):
         """
@@ -64,7 +64,7 @@ class MCTS:
         count_sum = float(sum(counts))
         if count_sum == 0.0:
             # Arg, no valid moves picked from the tree! Let's go ahead and make each
-            valids = numpy.array(self.game.getValidMoves(env_state))
+            valids = numpy.array(self.game.get_valid_moves(env_state))
             # raise ValueError(
             #     "there have been no actions taken to derive probabilities from. "
             #     "This usually means that the problem you generated was solved without "
@@ -113,7 +113,7 @@ class MCTS:
 
         if s not in self.Es:
             # print('calculating ending state for: {}'.format(s))
-            self.Es[s] = self.game.get_state_reward(env_state, searching=True)
+            self.Es[s] = self.game.get_state_value(env_state, searching=True)
         if is_terminal_reward(self.Es[s]):
             # terminal node
             return self.Es[s]
@@ -128,7 +128,7 @@ class MCTS:
             # print("action_v = {}".format(action_v))
             # print("focus_v = {}".format(self._focus_predictions[s]))
             # print("Ps = {}".format(self.Ps[s].shape))
-            valids = self.game.getValidMoves(env_state)
+            valids = self.game.get_valid_moves(env_state)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = numpy.sum(self.Ps[s])
             # print("sum Ps = {}".format(sum_Ps_s))
@@ -154,7 +154,7 @@ class MCTS:
         # add Dirichlet noise for root node. set epsilon=0 for ExaminationRunner competitions of trained models
         add_noise = isRootNode and e > 0
         if add_noise:
-            moves = self.game.getValidMoves(env_state)
+            moves = self.game.get_valid_moves(env_state)
             noise = numpy.random.dirichlet([self.dir_alpha] * len(moves))
 
         # pick the action with the highest upper confidence bound

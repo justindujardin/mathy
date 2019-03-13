@@ -18,18 +18,21 @@ class ExaminationRunner:
         steps = []
         env_state, complexity = self.game.get_initial_state()
         it = 0
-        next_state_reward = self.game.get_state_reward(env_state)
-        while not is_terminal_reward(next_state_reward):
+        done = False
+        next_state_reward = self.game.get_state_value(env_state)
+        while done is False:
             it += 1
             if verbose and self.display:
                 self.display(env_state)
             steps.append(env_state.agent.problem)
             action = self.agent(env_state)
-            valids = self.game.getValidMoves(env_state)
+            valids = self.game.get_valid_moves(env_state)
             if valids[action] == 0:
                 print(action)
                 assert valids[action] > 0
-            env_state, next_state_reward, _  = self.game.get_next_state(env_state, action)
+            env_state, next_state_reward, done = self.game.get_next_state(
+                env_state, action
+            )
 
         # Display the final move
         if verbose:

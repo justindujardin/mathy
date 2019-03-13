@@ -30,7 +30,7 @@ def rand_op():
 def combine_multiple_like_add_terms(num_terms, optional_var=False):
     variable = rand_var()
     # Guarantee at least one set of like terms
-    result = "{}{} ".format(rand_int(), variable)
+    result = "{}{}".format(rand_int(), variable)
     suffix = " + {}{}".format(rand_int(), variable)
     for i in range(num_terms - 2):
         result = result + " + {}{}".format(
@@ -39,7 +39,7 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms):
+def simplify_multiple_terms(num_terms, optional_var=False):
     variable = rand_var()
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
@@ -47,7 +47,9 @@ def simplify_multiple_terms(num_terms):
     result = "{}{}".format(rand_int(), variable)
     suffix = " {} {}{}".format(rand_op(), rand_int(), variable)
     for i in range(num_terms - 2):
-        result = result + " {} {}{}".format(rand_op(), rand_int(), maybe_var())
+        result = result + " {} {}{}".format(
+            rand_op(), rand_int(), maybe_var() if optional_var else rand_var()
+        )
     return result + suffix, num_terms
 
 
