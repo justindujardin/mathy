@@ -7,6 +7,7 @@ plac
 ujson
 tensorflow_estimator
 tf-nightly-2.0-preview
+tf-agents-nightly
 tensorboard
 
 

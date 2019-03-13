@@ -15,10 +15,9 @@ from mathzero.training.lessons import build_lesson_plan, LessonExercise
 import random
 import tensorflow as tf
 
-tf.compat.v1.logging.set_verbosity("CRITICAL")
 
-# Allow inspecting Tensor and Dataset values in the debugger
 tf.compat.v1.enable_eager_execution()
+tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 def two_variable_terms():
@@ -43,17 +42,19 @@ def main(agent_name="default"):
             [
                 LessonExercise(
                     lesson_name="QuickSelfPlay",
-                    problem_count=4,
-                    problem_fn=lambda: two_variable_terms(),
+                    problem_count=1,
+                    problem_fn=lambda: combine_multiple_like_add_terms(3),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                     max_turns=15,
-                    mcts_sims=100,
+                    num_exploration_moves=5,
+                    mcts_sims=250,
                 ),
                 LessonExercise(
                     lesson_name="QuickSelfPlay2",
                     problem_count=4,
                     problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    num_exploration_moves=10,
                     max_turns=15,
                     mcts_sims=100,
                 ),
@@ -62,6 +63,7 @@ def main(agent_name="default"):
                     problem_count=4,
                     problem_fn=lambda: two_variable_terms(),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    num_exploration_moves=10,
                     max_turns=15,
                     mcts_sims=100,
                 ),
@@ -70,6 +72,7 @@ def main(agent_name="default"):
                     problem_count=10,
                     problem_fn=lambda: combine_multiple_like_add_terms(6),
                     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                    num_exploration_moves=20,
                     max_turns=50,
                     mcts_sims=100,
                 ),
