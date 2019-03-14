@@ -39,6 +39,7 @@ from tf_agents.metrics import py_metrics
 from tf_agents.metrics import tf_metrics
 from tf_agents.metrics import tf_py_metric
 from tf_agents.networks import actor_distribution_network
+from tf_agents.policies.actor_policy import ActorPolicy
 from tf_agents.networks import normal_projection_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
@@ -50,21 +51,38 @@ flags.DEFINE_string(
     os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"),
     "Root directory for writing logs/summaries/checkpoints.",
 )
-flags.DEFINE_integer(
-    "num_iterations", 100000, "Total number train/eval iterations to perform."
-)
-flags.DEFINE_integer(
-    "initial_collect_steps", 100000, "Initial number of collect steps."
-)
-flags.DEFINE_integer("log_interval", 1000, "Interval for logging to stdout.")
-flags.DEFINE_integer("eval_interval", 10000, "Interval for performing evaluations.")
-flags.DEFINE_integer(
-    "num_eval_episodes", 100, "Number of episodes to perform during evaluation."
-)
-flags.DEFINE_multi_string("config_file", None, "Path to the trainer config files.")
-flags.DEFINE_multi_string("binding", None, "Gin binding to pass through.")
 
 FLAGS = flags.FLAGS
+
+
+class MathObservationNormalizer(object):
+    def normalize(self, obervation):
+        print("normalize obs: ", obervation)
+        print("normalize obs: ", obervation.numpy())
+        return obervation
+
+
+class MathActorPolicy(ActorPolicy):
+    """Actor Policy with pre-processing to embed inputs into fixed-size vector observations."""
+
+    def __init__(
+        self,
+        time_step_spec=None,
+        action_spec=None,
+        actor_network=None,
+        info_spec=(),
+        clip=True,
+        name=None,
+    ):
+        super(MathActorPolicy, self).__init__(
+            time_step_spec=time_step_spec,
+            action_spec=action_spec,
+            actor_network=actor_network,
+            info_spec=info_spec,
+            observation_normalizer=MathObservationNormalizer(),
+            clip=clip,
+            name=name,
+        )
 
 
 @gin.configurable
@@ -89,9 +107,9 @@ def train_eval(
     critic_action_fc_layers=None,
     critic_joint_fc_layers=(256, 256),
     # Params for collect
-    initial_collect_steps=100000,
-    collect_steps_per_iteration=1,
-    replay_buffer_capacity=1000000,
+    initial_collect_steps=1000,
+    collect_steps_per_iteration=10,
+    replay_buffer_capacity=100000,
     # Params for target update
     target_update_tau=0.005,
     target_update_period=1,
@@ -103,16 +121,16 @@ def train_eval(
     alpha_learning_rate=3e-4,
     td_errors_loss_fn=tf.compat.v1.losses.mean_squared_error,
     gamma=0.99,
-    reward_scale_factor=1.0,
+    reward_scale_factor=10.0,
     gradient_clipping=None,
-    use_tf_functions=True,
+    use_tf_functions=False,
     # Params for eval
     num_eval_episodes=100,
-    eval_interval=50000,
+    eval_interval=5000,
     # Params for summaries and logging
-    train_checkpoint_interval=10000,
-    policy_checkpoint_interval=5000,
-    rb_checkpoint_interval=50000,
+    train_checkpoint_interval=1000,
+    policy_checkpoint_interval=500,
+    rb_checkpoint_interval=1000,
     log_interval=1000,
     summary_interval=1000,
     summaries_flush_secs=10,
@@ -176,6 +194,7 @@ def train_eval(
             alpha_optimizer=tf.compat.v1.train.AdamOptimizer(
                 learning_rate=alpha_learning_rate
             ),
+            # actor_policy_ctor=MathActorPolicy,
             target_update_tau=target_update_tau,
             target_update_period=target_update_period,
             td_errors_loss_fn=td_errors_loss_fn,
@@ -223,9 +242,16 @@ def train_eval(
             max_to_keep=1,
             replay_buffer=replay_buffer,
         )
+        # embeddings_network = math_embeddings_network()
+        # embeddings_checkpointer = common.Checkpointer(
+        #     ckpt_dir=os.path.join(train_dir, "embeddings"),
+        #     max_to_keep=1,
+        #     embeddings_network=embeddings_network,
+        # )
 
         train_checkpointer.initialize_or_restore()
         rb_checkpointer.initialize_or_restore()
+        # embeddings_checkpointer.initialize_or_restore()
 
         initial_collect_driver = dynamic_step_driver.DynamicStepDriver(
             tf_env,
@@ -335,15 +361,7 @@ def train_eval(
 def main(_):
     tf.compat.v1.enable_v2_behavior()
     logging.set_verbosity(logging.INFO)
-    gin.parse_config_files_and_bindings(FLAGS.config_file, FLAGS.binding)
-    train_eval(
-        FLAGS.root_dir,
-        num_iterations=FLAGS.num_iterations,
-        initial_collect_steps=FLAGS.initial_collect_steps,
-        log_interval=FLAGS.log_interval,
-        eval_interval=FLAGS.eval_interval,
-        num_eval_episodes=FLAGS.num_eval_episodes,
-    )
+    train_eval(FLAGS.root_dir)
 
 
 if __name__ == "__main__":

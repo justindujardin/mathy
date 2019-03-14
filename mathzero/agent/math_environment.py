@@ -25,6 +25,7 @@ from ..util import (
     REWARD_PREVIOUS_LOCATION,
     REWARD_INVALID_ACTION,
     REWARD_TIMESTEP,
+    REWARD_NEW_LOCATION,
     REWARD_WIN,
     is_terminal_reward,
 )
@@ -121,10 +122,9 @@ class MathEnvironment(py_environment.PyEnvironment):
             if self._state.agent.moves_remaining <= 0:
                 self._episode_ended = True
                 return time_step.termination(out_features, REWARD_LOSE)
-            res = time_step.transition(
+            return time_step.transition(
                 out_features, reward=REWARD_INVALID_ACTION, discount=self.discount
             )
-            return res
 
         change = operation.applyTo(token.rootClone())
         root = change.result.getRoot()
@@ -173,9 +173,9 @@ class MathEnvironment(py_environment.PyEnvironment):
                 out_features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
             )
 
-        # The game continues at a reward cost of one per step
+        # We're in a new state, have a little reward!
         return time_step.transition(
-            out_features, reward=REWARD_TIMESTEP, discount=self.discount
+            out_features, reward=REWARD_NEW_LOCATION, discount=self.discount
         )
 
     def get_initial_state(self):

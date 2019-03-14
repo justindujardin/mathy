@@ -14,7 +14,7 @@ from lib.average_meter import AverageMeter
 from mathzero.model.math_estimator import math_estimator
 from mathzero.environment_state import MathEnvironmentState
 from mathzero.model.math_predictor import MathPredictor
-from mathzero.agent.embeddings_estimator import embeddings_estimator
+from mathzero.agent.math_embeddings_estimator import embeddings_estimator
 from mathzero.model.features import (
     pad_array,
     FEATURE_TOKEN_VALUES,

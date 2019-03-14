@@ -54,7 +54,7 @@ def simplify_multiple_terms(num_terms, optional_var=False):
 
 
 class ProblemGenerator:
-    def __init__(self, min_complexity=3, max_complexity=5, max_const=24):
+    def __init__(self, min_complexity=3, max_complexity=4, max_const=256):
         self.min_complexity = min_complexity
         self.max_complexity = max_complexity
         self.max_const = max_const
@@ -84,11 +84,11 @@ class ProblemGenerator:
             # complexity = 3
 
             # Three terms with optional variables
-            problem = self.simplify_multiple_terms(terms=3)
-            complexity = 3
+            # problem = self.simplify_multiple_terms(terms=3)
+            # complexity = 3
 
             # Expert:
-            # problem = self.simplify_multiple_terms(terms=complexity)
+            problem = self.simplify_multiple_terms(terms=complexity)
 
         elif type == MODE_SOLVE_FOR_VARIABLE:
             problem = self.solve_for_variable(terms=complexity)

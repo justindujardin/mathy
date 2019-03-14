@@ -86,3 +86,57 @@ def embeddings_estimator(features, labels, mode, params):
     assert mode == tf.estimator.ModeKeys.PREDICT
     predictions = {"embedding": embedding}
     return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+
+
+def math_embeddings_network(features, labels, mode, params):
+    import tensorflow as tf
+
+    from tensorflow.keras.layers import (
+        DenseFeatures,
+        Activation,
+        Dense,
+        Flatten,
+        LSTM,
+        Concatenate,
+        BatchNormalization,
+    )
+    from tensorflow.keras.experimental import SequenceFeatures
+    from tensorflow_estimator.contrib.estimator.python import estimator
+
+    def dense_with_activation(input, units, name):
+        with tf.compat.v1.variable_scope(name):
+            activate = Activation("relu")
+            normalize = BatchNormalization()
+            dense = Dense(units, use_bias=False)
+            return activate(normalize(dense(input)))
+
+    action_size = params["action_size"]
+    embedding_dimensions = params["embedding_dimensions"]
+    sequence_columns = params["sequence_columns"]
+    sequence_features = {
+        FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
+        FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
+    }
+    sequence_inputs, sequence_length = SequenceFeatures(
+        sequence_columns, name="sequence_features"
+    )(sequence_features)
+
+    lstm = BiDirectionalLSTM(128)(sequence_inputs)
+    sequence_vectors = attention(lstm, 16)
+
+    #
+    # Non-sequence input layers
+    #
+    feature_columns = params["feature_columns"]
+    features_layer = DenseFeatures(feature_columns, name="input_features")
+    context_inputs = features_layer(features)
+    context_inputs = dense_with_activation(context_inputs, 8, "context_embed")
+
+    # Concatenated context and sequence vectors
+    embedding = Concatenate(name="math_vectors")([context_inputs, sequence_vectors])
+    embedding = Dense(embedding_dimensions)(embedding)
+    embedding = tf.cast(embedding, tf.float32)
+    # Compute predictions.
+    assert mode == tf.estimator.ModeKeys.PREDICT
+    predictions = {"embedding": embedding}
+    return tf.estimator.EstimatorSpec(mode, predictions=predictions)
