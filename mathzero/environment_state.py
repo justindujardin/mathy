@@ -141,10 +141,10 @@ class MathEnvironmentState(object):
             FEATURE_TOKEN_VALUES: maybe_wrap(values),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
             FEATURE_MOVE_COUNTER: maybe_wrap(
-                self.max_moves - self.agent.moves_remaining
+                int(self.max_moves - self.agent.moves_remaining)
             ),
             FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
         }
 
 

@@ -23,11 +23,19 @@
       "module": "dev"
     },
     {
-      "name": "MathZero (tf_agent)",
+      "name": "math_agent (sac)",
       "type": "python",
       "request": "launch",
-      "module": "mathzero.agent.train_eval",
-      "args": ["--root_dir=./training/dev/"]
+      "pythonPath": "${workspaceFolder}/.env/bin/python",
+      "module": "sac",
+      "args": ["--root_dir=.training/debug/"]
+    },
+    {
+      "name": "math_agent (dqn)",
+      "type": "python",
+      "request": "launch",
+      "module": "dqn",
+      "args": ["--root_dir=.training/dqn/"]
     },
     {
       "name": "Math Model Tests",

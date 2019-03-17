@@ -1,5 +1,6 @@
 import numpy
 import tensorflow as tf
+import os
 from tf_agents.environments import py_environment, time_step, utils, wrappers
 from tf_agents.specs import array_spec, tensor_spec
 import math
@@ -20,6 +21,7 @@ from ..core.util import getTerms, has_like_terms, isPreferredTermForm
 from ..environment_state import MathEnvironmentState
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
 from .math_embeddings import MathEmbeddings
+from .math_embeddings_estimator import math_embeddings_network
 from ..util import (
     REWARD_LOSE,
     REWARD_PREVIOUS_LOCATION,
@@ -38,6 +40,7 @@ from ..model.features import (
     FEATURE_TOKEN_TYPES,
 )
 
+
 tf.compat.v1.enable_v2_behavior()
 
 
@@ -47,8 +50,13 @@ class MathEnvironment(py_environment.PyEnvironment):
     of actions to reduce a math expression to an agreeable target representation.
     """
 
-    def __init__(self, lesson=None, max_moves=None, verbose=False):
-        self.model_dir = "./training/embeddings"
+    def __init__(
+        self, agent, root_dir, encoder=None, lesson=None, max_moves=None, verbose=False
+    ):
+        if agent not in ["dqn", "sac", "td3"]:
+            raise ValueError(f"unsupported agent type: {agent}")
+        self.agent = agent
+        self.model_dir = os.path.join(root_dir, "embeddings")
         self.verbose = verbose
         self.discount = 1.0
         self.max_moves = max_moves if max_moves is not None else 50
@@ -71,10 +79,13 @@ class MathEnvironment(py_environment.PyEnvironment):
         # the action space by selecting from actions*max_supported_length actions.
         self._action_count = len(self.available_rules) * self._focus_buckets
         self.embedding_dimensions = 32
-        self.embedding_model = MathEmbeddings(
-            self._action_count, self.model_dir, self.embedding_dimensions
+        self.encoder = math_embeddings_network(
+            self.action_size, self.embedding_dimensions
         )
+        self.embedding_model = MathEmbeddings(self.encoder)
         self.embedding_model.start()
+        self._state = None
+        self._episode_ended = False
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
             dtype=numpy.int32,
@@ -82,11 +93,18 @@ class MathEnvironment(py_environment.PyEnvironment):
             maximum=self._action_count,
             name="action",
         )
-        self._observation_spec = tensor_spec.TensorSpec(
-            shape=(self.embedding_dimensions,), dtype=numpy.float32, name="embeddings"
+        self._observation_spec = (
+            tensor_spec.TensorSpec(
+                shape=(self.embedding_dimensions),
+                dtype=numpy.float32,
+                name="encoded_input",
+            ),
         )
-        self._state = None
-        self._episode_ended = False
+
+    @property
+    def action_size(self):
+        """Return the number of available actions"""
+        return self._action_count
 
     def action_spec(self):
         return self._action_spec
@@ -94,10 +112,24 @@ class MathEnvironment(py_environment.PyEnvironment):
     def observation_spec(self):
         return self._observation_spec
 
+    def observation_from_state(self, env_state: MathEnvironmentState):
+        features = env_state.to_input_features(return_batch=True)
+        observation = features
+        import time
+        if self.encoder is not None:
+            start = time.time()
+            observation = self.encoder(observation)
+            print("predict : {0:03f}".format(time.time() - start))
+            return tf.squeeze(observation)
+        # observation = self.embedding_model.predict(env_state)
+        # return tf.squeeze(observation)
+
     def _reset(self):
         self._state = self.get_initial_state()
         self._episode_ended = False
-        return time_step.restart(self.embedding_model.predict(self._state))
+
+        # return time_step.restart(self.embedding_model.predict(self._state))
+        return time_step.restart(self.observation_from_state(self._state))
 
     def _step(self, action):
         searching = False
@@ -118,7 +150,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             self._state = self._state.encode_player(
                 agent.problem, agent.moves_remaining - 1
             )
-            out_features = self.embedding_model.predict(self._state)
+            out_features = self.observation_from_state(self._state)
             if self._state.agent.moves_remaining <= 0:
                 self._episode_ended = True
                 return time_step.termination(out_features, REWARD_LOSE)
@@ -135,7 +167,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             )
             print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
         self._state = self._state.encode_player(out_problem, agent.moves_remaining - 1)
-        out_features = self.embedding_model.predict(self._state)
+        out_features = self.observation_from_state(self._state)
         expression = self.parser.parse(self._state.agent.problem)
 
         # Check for problem_type specific win conditions
