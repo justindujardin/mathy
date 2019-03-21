@@ -5,7 +5,7 @@ import numpy as np
 from lib.average_meter import AverageMeter
 from lib.progress.bar import Bar
 
-from ..util import is_lose_reward, is_terminal_reward, is_win_reward
+from ..util import is_lose_reward, is_terminal_transition, is_win_reward
 
 
 class ExaminationRunner:
@@ -19,7 +19,6 @@ class ExaminationRunner:
         env_state, complexity = self.game.get_initial_state()
         it = 0
         done = False
-        next_state_reward = self.game.get_state_value(env_state)
         while done is False:
             it += 1
             if verbose and self.display:

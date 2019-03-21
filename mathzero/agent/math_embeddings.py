@@ -39,11 +39,74 @@ class NetConfig:
 
 
 class MathEmbeddings:
-    def __init__(self, network):
+    def __init__(self, num_actions, model_dir, embedding_dimensions):
         import tensorflow as tf
-        self.args = NetConfig()
 
-        self.network = network
+        self.model_dir = model_dir
+        self.embedding_dimensions = 32
+
+        session_config = tf.compat.v1.ConfigProto()
+        estimator_config = tf.estimator.RunConfig(
+            session_config=session_config, tf_random_seed=1337
+        )
+        self.action_size = num_actions
+        self.args = NetConfig()
+        self.f_move_count = tf.feature_column.numeric_column(
+            key=FEATURE_MOVE_COUNTER, dtype=tf.int16
+        )
+        self.f_moves_remaining = tf.feature_column.numeric_column(
+            key=FEATURE_MOVES_REMAINING, dtype=tf.int16
+        )
+        self.f_node_count = tf.feature_column.numeric_column(
+            key=FEATURE_NODE_COUNT, dtype=tf.int16
+        )
+        self.f_problem_type = tf.feature_column.indicator_column(
+            tf.feature_column.categorical_column_with_identity(
+                key=FEATURE_PROBLEM_TYPE, num_buckets=32
+            )
+        )
+        self.feature_columns = [
+            self.f_problem_type,
+            self.f_node_count,
+            self.f_move_count,
+            self.f_moves_remaining,
+        ]
+
+        #
+        # Sequence features
+        #
+        self.f_token_types_sequence = tf.feature_column.embedding_column(
+            tf.feature_column.sequence_categorical_column_with_hash_bucket(
+                key=FEATURE_TOKEN_TYPES, hash_bucket_size=24, dtype=tf.int8
+            ),
+            dimension=32,
+        )
+        self.f_token_values_sequence = tf.feature_column.embedding_column(
+            tf.feature_column.sequence_categorical_column_with_hash_bucket(
+                key=FEATURE_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
+            ),
+            dimension=32,
+        )
+        self.sequence_columns = [
+            self.f_token_types_sequence,
+            self.f_token_values_sequence,
+        ]
+
+        #
+        # Estimator
+        #
+        self.network = tf.estimator.Estimator(
+            config=estimator_config,
+            model_fn=embeddings_estimator,
+            model_dir=model_dir,
+            params={
+                "feature_columns": self.feature_columns,
+                "sequence_columns": self.sequence_columns,
+                "action_size": self.action_size,
+                "embedding_dimensions": self.embedding_dimensions,
+                "batch_size": self.args.batch_size,
+            },
+        )
         self._worker = MathPredictor(self.network, self.args)
 
     def predict(self, env_state: MathEnvironmentState):
@@ -52,7 +115,6 @@ class MathEmbeddings:
         prediction = self._worker.predict(input_features)
         result = prediction["embedding"]
         # print("predict : {0:03f}".format(time.time() - start))
-        # print("focus is : {0:03f}".format(prediction["out_focus"][0]))
         return result
 
     def start(self):

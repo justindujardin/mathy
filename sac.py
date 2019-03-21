@@ -105,10 +105,10 @@ def train_eval(
     actor_fc_layers=(256, 256),
     critic_obs_fc_layers=None,
     critic_action_fc_layers=None,
-    critic_joint_fc_layers=(256, 256),
+    critic_joint_fc_layers=(128, 128),
     # Params for collect
-    initial_collect_steps=1000,
-    collect_steps_per_iteration=10,
+    initial_collect_steps=100000,
+    collect_steps_per_iteration=1,
     replay_buffer_capacity=100000,
     # Params for target update
     target_update_tau=0.005,
@@ -121,16 +121,16 @@ def train_eval(
     alpha_learning_rate=3e-4,
     td_errors_loss_fn=tf.compat.v1.losses.mean_squared_error,
     gamma=0.99,
-    reward_scale_factor=10.0,
+    reward_scale_factor=50.0,
     gradient_clipping=None,
     use_tf_functions=True,
     # Params for eval
     num_eval_episodes=100,
     eval_interval=5000,
     # Params for summaries and logging
-    train_checkpoint_interval=1000,
-    policy_checkpoint_interval=500,
-    rb_checkpoint_interval=1000,
+    train_checkpoint_interval=5000,
+    policy_checkpoint_interval=5000,
+    rb_checkpoint_interval=5000,
     log_interval=1000,
     summary_interval=1000,
     summaries_flush_secs=10,
@@ -138,7 +138,7 @@ def train_eval(
     summarize_grads_and_vars=False,
     eval_metrics_callback=None,
 ):
-    """A simple train and eval for SAC."""
+    """A sample train and eval for SAC."""
     root_dir = os.path.expanduser(root_dir)
     train_dir = os.path.join(root_dir, "train")
     eval_dir = os.path.join(root_dir, "eval")
@@ -160,7 +160,7 @@ def train_eval(
     with tf.compat.v2.summary.record_if(
         lambda: tf.math.equal(global_step % summary_interval, 0)
     ):
-        math_env = MathEnvironment(agent="sac", root_dir=root_dir, verbose=True)
+        math_env = MathEnvironment(agent="sac", root_dir=root_dir)
         tf_env = tf_py_environment.TFPyEnvironment(math_env)
         eval_tf_env = tf_py_environment.TFPyEnvironment(
             MathEnvironment(agent="sac", root_dir=root_dir)
@@ -245,18 +245,9 @@ def train_eval(
             max_to_keep=1,
             replay_buffer=replay_buffer,
         )
-        embeddings_checkpointer = common.Checkpointer(
-            ckpt_dir=os.path.join(train_dir, "embeddings"),
-            max_to_keep=1,
-            embeddings_network=math_env.encoder,
-        )
 
         train_checkpointer.initialize_or_restore()
         rb_checkpointer.initialize_or_restore()
-        embeddings_checkpointer.initialize_or_restore()
-        if embeddings_checkpointer._manager.latest_checkpoint is None:
-            print("writing initial embeddings network")
-            embeddings_checkpointer.save(0)
 
         initial_collect_driver = dynamic_step_driver.DynamicStepDriver(
             tf_env,

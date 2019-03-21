@@ -29,7 +29,7 @@ from ..util import (
     REWARD_TIMESTEP,
     REWARD_NEW_LOCATION,
     REWARD_WIN,
-    is_terminal_reward,
+    is_terminal_transition,
 )
 from ..model.features import (
     FEATURE_TOKEN_VALUES,
@@ -79,10 +79,12 @@ class MathEnvironment(py_environment.PyEnvironment):
         # the action space by selecting from actions*max_supported_length actions.
         self._action_count = len(self.available_rules) * self._focus_buckets
         self.embedding_dimensions = 32
-        self.encoder = math_embeddings_network(
-            self.action_size, self.embedding_dimensions
+        # self.encoder = math_embeddings_network(
+        #     self.action_size, self.embedding_dimensions
+        # )
+        self.embedding_model = MathEmbeddings(
+            self.action_size, self.model_dir, self.embedding_dimensions
         )
-        self.embedding_model = MathEmbeddings(self.encoder)
         self.embedding_model.start()
         self._state = None
         self._episode_ended = False
@@ -113,16 +115,8 @@ class MathEnvironment(py_environment.PyEnvironment):
         return self._observation_spec
 
     def observation_from_state(self, env_state: MathEnvironmentState):
-        features = env_state.to_input_features(return_batch=True)
-        observation = features
-        import time
-        if self.encoder is not None:
-            start = time.time()
-            observation = self.encoder(observation)
-            print("predict : {0:03f}".format(time.time() - start))
-            return tf.squeeze(observation)
-        # observation = self.embedding_model.predict(env_state)
-        # return tf.squeeze(observation)
+        observation = self.embedding_model.predict(env_state)
+        return tf.squeeze(observation)
 
     def _reset(self):
         self._state = self.get_initial_state()
@@ -151,7 +145,9 @@ class MathEnvironment(py_environment.PyEnvironment):
                 agent.problem, agent.moves_remaining - 1
             )
             out_features = self.observation_from_state(self._state)
-            if self._state.agent.moves_remaining <= 0:
+            # When true, picking any invalid action is an immediate loss
+            harsh_wrong_move = False
+            if harsh_wrong_move or self._state.agent.moves_remaining <= 0:
                 self._episode_ended = True
                 return time_step.termination(out_features, REWARD_LOSE)
             return time_step.transition(
@@ -232,23 +228,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         """Return number of all possible actions"""
         return len(self.available_rules)
 
-    def get_focus_example_from_token_index(
-        self, expression: MathExpression, focus_index
-    ):
-        """Given an index into an expression, get 0-1 focus value
-        that points back to that token, for model input data.
-        """
-        count = 0
-        result = None
-
-        def visit_fn(node, depth, data):
-            nonlocal count
-            count = count + 1
-
-        expression.visitPreorder(visit_fn)
-        return focus / count
-
-    def get_token_index_from_focus(self, expression: MathExpression, focus_value):
+    def get_index_at_focus(self, expression: MathExpression, focus_value):
         """Given a 0-1 focus value, return the index of the node it nearest 
         points to in the expression when visited left-to-right."""
         count = 0
@@ -280,7 +260,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             raise ValueError("given action does not correspond to a BaseRule")
 
         # Select an actionable node around the agent focus
-        focus = self.get_token_index_from_focus(expression, env_state.agent.focus)
+        focus = self.get_index_at_focus(expression, env_state.agent.focus)
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
@@ -307,7 +287,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             raise ValueError("given action does not correspond to a BaseRule")
 
         # Select an actionable node around the agent focus
-        focus = self.get_token_index_from_focus(expression, bucket_focus)
+        focus = self.get_index_at_focus(expression, bucket_focus)
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
@@ -348,7 +328,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
         out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
         reward = self.get_state_value(out_env, searching)
-        is_done = is_terminal_reward(reward) or agent.moves_remaining <= 0
+        is_done = is_terminal_transition(reward) or agent.moves_remaining <= 0
         return out_env, reward, is_done
 
     def get_token_at_index(
@@ -392,14 +372,15 @@ class MathEnvironment(py_environment.PyEnvironment):
         return actions
 
     def get_actions_for_expression(self, expression: MathExpression):
-        actions = [0] * self.get_agent_actions_count()
+        actions = [0] * self.action_size
 
         # Properties of numbers and common simplifications
         for rule_index, rule in enumerate(self.available_rules):
             nodes = rule.findNodes(expression)
             for node in nodes:
                 token_index = node.r_index
-                actions[rule_index] = 1
+                for focus_bucket in range(self._focus_buckets):
+                    actions[rule_index * (focus_bucket + 1)] = 1
                 # print(
                 #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
                 #         action_index, rule.name, node.r_index, str(node)

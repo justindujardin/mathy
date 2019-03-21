@@ -1,6 +1,6 @@
 from ..math_game import MathGame
 from ..environment_state import MathEnvironmentState, MathAgentState
-from ..util import is_terminal_reward
+from ..util import is_terminal_transition
 
 
 def test_math_game_init():
@@ -43,4 +43,4 @@ def test_math_game_win_conditions():
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathEnvironmentState(problem=text)
         reward = game.get_state_reward(env_state)
-        assert text == text and is_terminal_reward(reward) == int(is_win)
+        assert text == text and is_terminal_transition(reward) == int(is_win)

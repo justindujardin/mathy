@@ -1,14 +1,13 @@
-from .features import (
+from ..model.features import (
     FEATURE_NODE_COUNT,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
     TRAIN_LABELS_TARGET_PI,
-    TRAIN_LABELS_TARGET_REWARD,
-    TRAIN_LABELS_TARGET_FOCUS,
+    TRAIN_LABELS_TARGET_VALUE,
     TRAIN_LABELS_AS_MATRIX,
 )
 from ..environment_state import to_sparse_tensor
-from .math_attention import attention
+from ..model.math_attention import attention
 
 
 def BiDirectionalLSTM(units, name="bi_lstm_stack"):
@@ -62,6 +61,7 @@ def math_estimator(features, labels, mode, params):
             return activate(normalize(dense(input)))
 
     action_size = params["action_size"]
+    embedding_dimensions = params["embedding_dimensions"]
     learning_rate = params.get("learning_rate", 0.01)
     training = mode == tf.estimator.ModeKeys.TRAIN
 
@@ -86,14 +86,18 @@ def math_estimator(features, labels, mode, params):
     context_inputs = dense_with_activation(context_inputs, 8, "context_embed")
 
     # Concatenated context and sequence vectors
-    network = Concatenate(name="math_vectors")([context_inputs, sequence_vectors])
-
+    network = Concatenate(name="math_concatenate")([context_inputs, sequence_vectors])
+    # Concatenated context and sequence vectors
+    embedding_logits = Dense(embedding_dimensions, name="math_vectors")(network)
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
     policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
         network
     )
-    focus_logits = Dense(1, activation="sigmoid", name="focus_logits")(network)
-    logits = {"policy": policy_logits, "value": value_logits, "focus": focus_logits}
+    logits = {
+        "policy": policy_logits,
+        "value": value_logits,
+        "embedding": embedding_logits,
+    }
 
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
@@ -105,50 +109,25 @@ def math_estimator(features, labels, mode, params):
         tf.compat.v1.summary.scalar(
             "value/variance", tf.math.reduce_variance(value_logits)
         )
-        tf.compat.v1.summary.scalar("focus/mean", tf.reduce_mean(focus_logits))
-        tf.compat.v1.summary.scalar(
-            "focus/variance", tf.math.reduce_variance(focus_logits)
-        )
         tf.compat.v1.summary.histogram("policy/logits", policy_logits)
+        tf.compat.v1.summary.histogram("embeddings/logits", embedding_logits)
 
         # Training targets
         if labels is not None:
             tf.compat.v1.summary.scalar(
-                "focus/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_FOCUS])
-            )
-            tf.compat.v1.summary.scalar(
-                "focus/target_variance",
-                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_FOCUS]),
-            )
-            tf.compat.v1.summary.scalar(
-                "value/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_REWARD])
+                "value/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_VALUE])
             )
             tf.compat.v1.summary.scalar(
                 "value/target_variance",
-                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_REWARD]),
+                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_VALUE]),
             )
             tf.compat.v1.summary.histogram(
                 "policy/target", labels[TRAIN_LABELS_TARGET_PI]
-            )
-            tf.compat.v1.summary.histogram(
-                "focus/target", labels[TRAIN_LABELS_TARGET_FOCUS]
             )
     # Multi-task prediction heads
     policy_head = estimator.head.regression_head(
         name="policy", label_dimension=action_size
     )
-    value_head = estimator.head.regression_head(name="value", label_dimension=1)
-    multi_head = estimator.multi_head.multi_head([policy_head, value_head])
-    return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
-
-
-from tensorflow_estimator.contrib.estimator.python import estimator
-
-
-def multi_task_model_fn(features, labels, mode, params):
-    # ...
-    logits = {"policy": policy_logits, "value": value_logits}
-    policy_head = estimator.head.regression_head(name="policy", label_dimension=actions)
     value_head = estimator.head.regression_head(name="value", label_dimension=1)
     multi_head = estimator.multi_head.multi_head([policy_head, value_head])
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)

@@ -17,8 +17,7 @@ FEATURE_COLUMNS = [
 
 
 TRAIN_LABELS_TARGET_PI = "policy"
-TRAIN_LABELS_TARGET_REWARD = "value"
-TRAIN_LABELS_TARGET_FOCUS = "focus"
+TRAIN_LABELS_TARGET_VALUE = "value"
 TRAIN_LABELS_AS_MATRIX = "matrix"
 
 
@@ -40,8 +39,7 @@ def parse_example_for_training(example, max_sequence=None):
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_TOKEN_TYPES])
     outputs = {
         TRAIN_LABELS_TARGET_PI: example["policy"],
-        TRAIN_LABELS_TARGET_REWARD: [example["reward"]],
-        TRAIN_LABELS_TARGET_FOCUS: [example["focus"]],
+        TRAIN_LABELS_TARGET_VALUE: [example["reward"]],
     }
     return inputs, outputs
 

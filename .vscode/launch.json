@@ -23,6 +23,12 @@
       "module": "dev"
     },
     {
+      "name": "MathZero (embeddings)",
+      "type": "python",
+      "request": "launch",
+      "module": "embeddings"
+    },
+    {
       "name": "math_agent (sac)",
       "type": "python",
       "request": "launch",

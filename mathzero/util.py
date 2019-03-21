@@ -1,4 +1,5 @@
 import numpy
+from tf_agents.environments import time_step
 
 # From TZ: "my rule of thumb is win/loss = +/-1, and everything else is determined in orders of magnitude of importance
 # so for instance, my timestep penalty might be -0.01, picking up a gem or something might be +0.1"
@@ -10,8 +11,8 @@ REWARD_PREVIOUS_LOCATION = -0.02
 REWARD_INVALID_ACTION = -0.02
 
 
-def is_terminal_reward(reward):
-    return reward == REWARD_WIN or reward == REWARD_LOSE
+def is_terminal_transition(transition: time_step.TimeStep):
+    return bool(transition.step_type == time_step.StepType.LAST)
 
 
 def is_win_reward(reward):

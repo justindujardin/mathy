@@ -1,7 +1,7 @@
 from pathlib import Path
 import ujson
 from ..environment_state import INPUT_EXAMPLES_FILE_NAME
-from .features import (
+from ..model.features import (
     FEATURE_NODE_COUNT,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
@@ -9,9 +9,8 @@ from .features import (
     FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
     TRAIN_LABELS_TARGET_PI,
-    TRAIN_LABELS_TARGET_REWARD,
+    TRAIN_LABELS_TARGET_VALUE,
     TRAIN_LABELS_AS_MATRIX,
-    TRAIN_LABELS_TARGET_FOCUS,
     parse_example_for_training,
 )
 
@@ -33,8 +32,7 @@ def make_training_input_fn(examples, batch_size):
         },
         {
             TRAIN_LABELS_TARGET_PI: tf.float32,
-            TRAIN_LABELS_TARGET_REWARD: tf.float32,
-            TRAIN_LABELS_TARGET_FOCUS: tf.float32,
+            TRAIN_LABELS_TARGET_VALUE: tf.float32,
         },
     )
 
@@ -53,8 +51,8 @@ def make_training_input_fn(examples, batch_size):
         dataset = tf.data.Dataset.from_generator(
             _lazy_examples, output_types=output_types
         )
-
-        dataset = dataset.shuffle(50000)
+        # Shuffled from long-term memory  
+        # dataset = dataset.shuffle(50000)
         dataset = dataset.repeat()
         dataset = dataset.batch(batch_size=batch_size)
         return dataset

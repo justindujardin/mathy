@@ -33,14 +33,12 @@ class MathAgentState(object):
         problem: str,
         problem_type: int,
         reward=0.0,
-        focus=None,
         history=None,
     ):
         self.moves_remaining = moves_remaining
         self.problem = problem
         self.reward = reward
         self.problem_type = problem_type
-        self.focus = random.uniform(0, 1) if focus is None else focus
         self.history = history[:] if history is not None else []
 
     @classmethod
@@ -50,7 +48,6 @@ class MathAgentState(object):
             from_state.problem,
             from_state.reward,
             from_state.problem_type,
-            from_state.focus,
             from_state.history,
         )
 

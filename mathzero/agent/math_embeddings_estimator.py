@@ -20,9 +20,8 @@ from ..model.features import (
     FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
     TRAIN_LABELS_AS_MATRIX,
-    TRAIN_LABELS_TARGET_FOCUS,
     TRAIN_LABELS_TARGET_PI,
-    TRAIN_LABELS_TARGET_REWARD,
+    TRAIN_LABELS_TARGET_VALUE,
 )
 from ..model.math_attention import attention
 from tensorflow.keras.layers import Layer

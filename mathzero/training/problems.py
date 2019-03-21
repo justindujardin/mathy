@@ -84,11 +84,11 @@ class ProblemGenerator:
             # complexity = 3
 
             # Three terms with optional variables
-            # problem = self.simplify_multiple_terms(terms=3)
-            # complexity = 3
+            problem = self.simplify_multiple_terms(terms=3)
+            complexity = 3
 
             # Expert:
-            problem = self.simplify_multiple_terms(terms=complexity)
+            # problem = self.simplify_multiple_terms(terms=complexity)
 
         elif type == MODE_SOLVE_FOR_VARIABLE:
             problem = self.solve_for_variable(terms=complexity)

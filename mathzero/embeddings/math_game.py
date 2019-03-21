@@ -1,9 +1,9 @@
 import math
 from itertools import groupby
 from multiprocessing import cpu_count
-from .core.expressions import STOP, MathExpression
-from .core.parser import ExpressionParser
-from .core.rules import (
+from ..core.expressions import STOP, MathExpression
+from ..core.parser import ExpressionParser
+from ..core.rules import (
     AssociativeSwapRule,
     BaseRule,
     CommutativeSwapRule,
@@ -12,16 +12,19 @@ from .core.rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from .core.util import getTerms, has_like_terms, isPreferredTermForm
-from .environment_state import MathEnvironmentState
-from .training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
-from .util import (
+from ..core.util import getTerms, has_like_terms, isPreferredTermForm
+from ..environment_state import MathEnvironmentState
+from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
+from ..util import (
     REWARD_LOSE,
     REWARD_PREVIOUS_LOCATION,
+    REWARD_INVALID_ACTION,
     REWARD_TIMESTEP,
+    REWARD_NEW_LOCATION,
     REWARD_WIN,
-    is_terminal_reward,
+    is_terminal_transition,
 )
+from tf_agents.environments import time_step
 
 
 class MathGame:
@@ -39,6 +42,7 @@ class MathGame:
     def __init__(
         self, verbose=False, max_moves=None, lesson=None, training_wheels=False
     ):
+        self.discount = 1.0
         self.verbose = verbose
         self.training_wheels = training_wheels
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
@@ -53,7 +57,19 @@ class MathGame:
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]
+        # Focus buckets
+        self._focus_buckets = 3
+
+        # We have number of actions * focus_buckets to support picking actions near
+        # certain parts of an expression, without limiting sequence length or exploding
+        # the action space by selecting from actions*max_supported_length actions.
+        self._action_count = len(self.available_rules) * self._focus_buckets
         self.expression_str = "unset"
+
+    @property
+    def action_size(self):
+        """Return the number of available actions"""
+        return self._action_count
 
     def get_gpu_fraction(self):
         """
@@ -94,25 +110,9 @@ class MathGame:
 
     def get_agent_actions_count(self):
         """Return number of all possible actions"""
-        return len(self.available_rules)
+        return self.action_size
 
-    def get_focus_example_from_token_index(
-        self, expression: MathExpression, focus_index
-    ):
-        """Given an index into an expression, get 0-1 focus value
-        that points back to that token, for model input data.
-        """
-        count = 0
-        result = None
-
-        def visit_fn(node, depth, data):
-            nonlocal count
-            count = count + 1
-
-        expression.visitPreorder(visit_fn)
-        return focus / count
-
-    def get_token_index_from_focus(self, expression: MathExpression, focus_value):
+    def get_index_at_focus(self, expression: MathExpression, focus_value):
         """Given a 0-1 focus value, return the index of the node it nearest 
         points to in the expression when visited left-to-right."""
         count = 0
@@ -123,6 +123,22 @@ class MathGame:
 
         expression.visitPreorder(visit_fn)
         return int(count * focus_value)
+
+    def get_focus_from_action(self, action: int):
+        """To support arbitrary length inputs while also letting the model select
+        which node to apply which action to, we create (n) buckets of actions, and 
+        then repeat the actions vector that many times. To derive a node to focus on
+        we then take the selected action and determine which focus bucket it is in.
+        
+        Return a tuple of (focus_value, rule_index) for a given observed action"""
+        bucket_action = action % len(self.available_rules)
+        bucket_focus = (action - bucket_action) / self._focus_buckets
+        # If we're not in bucket 0, divide by number of buckets to get
+        # a value in the range 0-1 which points left-to-right in the expression
+        # for where to apply the action
+        if bucket_focus > 0.0:
+            bucket_focus = (bucket_focus - 1) * (1 / self._focus_buckets)
+        return bucket_focus, bucket_action
 
     def get_focus_at_index(
         self,
@@ -139,12 +155,17 @@ class MathGame:
 
         if expression is None:
             expression = self.parser.parse(env_state.agent.problem)
+        # mod out the focus bucket
+        action = action % len(self.available_rules)
+        if action >= len(self.available_rules):
+            pass
+            f = 2
         rule = self.available_rules[action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
 
         # Select an actionable node around the agent focus
-        focus = self.get_token_index_from_focus(expression, env_state.agent.focus)
+        focus = self.get_index_at_focus(expression, env_state.agent.focus)
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
@@ -156,10 +177,33 @@ class MathGame:
         return nearest_possible_index, rule
 
     def get_action_rule(
-        self, env_state: MathEnvironmentState, expression: MathExpression, action: int
+        self, env: MathEnvironmentState, expression: MathExpression, action: int
     ):
-        node_index, node_rule = self.get_focus_at_index(env_state, action, expression)
-        return node_rule, self.get_token_at_index(expression, node_index)
+
+        if expression is None:
+            expression = self.parser.parse(env_state.agent.problem)
+        bucket_action = action % len(self.available_rules)
+        bucket_focus = (action - bucket_action) / self._focus_buckets
+        # If we're not in bucket 0, divide by number of buckets to get
+        # a value in the range 0-1 which points left-to-right in the expression
+        # for where to apply the action
+        if bucket_focus > 0.0:
+            bucket_focus = (bucket_focus - 1) * (1 / self._focus_buckets)
+        rule = self.available_rules[bucket_action]
+        if not isinstance(rule, BaseRule):
+            raise ValueError("given action does not correspond to a BaseRule")
+
+        # Select an actionable node around the agent focus
+        focus = self.get_index_at_focus(expression, bucket_focus)
+
+        # Find the nearest node that can apply the given action
+        possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
+        if len(possible_node_indices) == 0:
+            return -1, None
+        nearest_possible_index = min(
+            possible_node_indices, key=lambda x: abs(x - focus)
+        )
+        return rule, self.get_token_at_index(expression, nearest_possible_index)
 
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """
@@ -178,8 +222,9 @@ class MathGame:
         operation, token = self.get_action_rule(env_state, expression, action)
 
         if not isinstance(operation, BaseRule) or not operation.canApplyTo(token):
-            msg = "Invalid move selected ({}) for expression({}) with focus({}). Rule({}) does not apply."
-            raise Exception(msg.format(action, expression, token, type(operation)))
+            # operation, token = self.get_action_rule(env_state, expression, action)
+            msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
+            raise Exception(msg.format(action, expression, type(operation)))
 
         change = operation.applyTo(token.rootClone())
         root = change.result.getRoot()
@@ -190,9 +235,8 @@ class MathGame:
             )
             print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
         out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
-        reward = self.get_state_value(out_env, searching)
-        is_done = is_terminal_reward(reward) or agent.moves_remaining <= 0
-        return out_env, reward, is_done
+        transition = self.get_state_value(out_env, searching)
+        return out_env, transition
 
     def get_token_at_index(
         self, expression: MathExpression, focus_index: int
@@ -235,14 +279,17 @@ class MathGame:
         return actions
 
     def get_actions_for_expression(self, expression: MathExpression):
-        actions = [0] * self.get_agent_actions_count()
+        actions = [0] * self.action_size
 
         # Properties of numbers and common simplifications
+        rule_count = len(self.available_rules)
         for rule_index, rule in enumerate(self.available_rules):
             nodes = rule.findNodes(expression)
+            if len(nodes) > 0:
+                for focus_bucket in range(self._focus_buckets):
+                    actions[rule_count * focus_bucket + rule_index] = 1
             for node in nodes:
                 token_index = node.r_index
-                actions[rule_index] = 1
                 # print(
                 #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
                 #         action_index, rule.name, node.r_index, str(node)
@@ -259,59 +306,87 @@ class MathGame:
             searching: boolean that is True when called by MCTS simulation
 
         Returns:
-            r: the scalar reward value for the given environment state
-               
+            transition: the transition value for the current state
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-
-        # The agent is penalized for returning to a previous state.
-        for key, group in groupby(sorted(agent.history)):
-            list_group = list(group)
-            list_count = len(list_group)
-            if list_count <= 1:
-                continue
-            if not searching and self.verbose:
-                print("\n[Penalty] re-entered previous state: {}".format(list_group[0]))
-            return REWARD_PREVIOUS_LOCATION
-
-        # Check for problem_type specific win conditions
+        features = env_state.to_input_features()
         root = expression.getRoot()
-        if agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL and not has_like_terms(root):
+        if (
+            env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
+            and not has_like_terms(root)
+        ):
             term_nodes = getTerms(root)
             is_win = True
             for term in term_nodes:
                 if not isPreferredTermForm(term):
                     is_win = False
             if is_win:
-                if not searching and self.verbose:
-                    print(
-                        "\n[Solved] {} => {}\n".format(self.expression_str, expression)
-                    )
-                return REWARD_WIN
+                return time_step.termination(features, REWARD_WIN)
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
-        if agent.moves_remaining <= 0:
-            if not searching:
-                self.write_draw(
-                    "[Failed] exhausted moves:\n\t input: {}\n\t 1: {}\n".format(
-                        self.expression_str, expression
-                    )
-                )
-            return REWARD_LOSE
+        if env_state.agent.moves_remaining <= 0:
+            return time_step.termination(features, REWARD_LOSE)
 
-        # The game continues at a reward cost of one per step
-        return REWARD_TIMESTEP
+        # The agent is penalized for returning to a previous state.
+        for key, group in groupby(sorted(env_state.agent.history)):
+            list_group = list(group)
+            list_count = len(list_group)
+            if list_count <= 1:
+                continue
+
+            return time_step.transition(
+                features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
+            )
+
+        # We're in a new state, have a little reward!
+        return time_step.transition(
+            features, reward=REWARD_NEW_LOCATION, discount=self.discount
+        )
+
+        # # The agent is penalized for returning to a previous state.
+        # for key, group in groupby(sorted(agent.history)):
+        #     list_group = list(group)
+        #     list_count = len(list_group)
+        #     if list_count <= 1:
+        #         continue
+        #     # if not searching and self.verbose:
+        #     #     print("\n[Penalty] re-entered previous state: {}".format(list_group[0]))
+        #     return REWARD_PREVIOUS_LOCATION
+
+        # # Check for problem_type specific win conditions
+        # root = expression.getRoot()
+        # if agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL and not has_like_terms(root):
+        #     term_nodes = getTerms(root)
+        #     is_win = True
+        #     for term in term_nodes:
+        #         if not isPreferredTermForm(term):
+        #             is_win = False
+        #     if is_win:
+        #         if not searching and self.verbose:
+        #             print(
+        #                 "\n[Solved] {} => {}\n".format(self.expression_str, expression)
+        #             )
+        #         return REWARD_WIN
+
+        # # Check the turn count last because if the previous move that incremented
+        # # the turn over the count resulted in a win-condition, we want it to be honored.
+        # if agent.moves_remaining <= 0:
+        #     if not searching:
+        #         self.write_draw(
+        #             "[Failed] exhausted moves:\n\t input: {}\n\t 1: {}\n".format(
+        #                 self.expression_str, expression
+        #             )
+        #         )
+        #     return REWARD_LOSE
+
+        # # The game continues at a reward cost of one per step
+        # return REWARD_TIMESTEP
 
     def to_hash_key(self, env_state: MathEnvironmentState):
         """conversion of env_state to a string format, required by MCTS for hashing."""
-        # return str(env_state.agent.problem)
-        return "[{}|{}|{}]".format(
-            env_state.agent.moves_remaining,
-            int(env_state.agent.focus * 10),
-            env_state.agent.problem,
-        )
+        return str(env_state.agent.problem)
 
 
 _parser = None
