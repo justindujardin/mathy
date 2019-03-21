@@ -4,7 +4,8 @@ import json
 import os
 import tempfile
 from pathlib import Path
-
+import random
+from colr import color
 import numpy
 import plac
 
@@ -45,6 +46,19 @@ from mathzero.embeddings.actor_mcts import ActorMCTS
 
 
 def main():
+    def breather():
+        """Do some easy stuff inbetween really difficult things"""
+        complexity = random.randint(2, 4)
+        return LessonExercise(
+            lesson_name="{} terms (breather)".format(complexity),
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(complexity),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=10,
+            mcts_sims=150,
+            num_exploration_moves=2,
+        )
+
     model_dir = "./embeddings/"
     init_model_dir = "./embeddings_1/"
     lesson_plan = build_lesson_plan(
@@ -58,6 +72,15 @@ def main():
                 max_turns=10,
                 mcts_sims=150,
                 num_exploration_moves=2,
+            ),
+            LessonExercise(
+                lesson_name="eight terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(8),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=35,
+                mcts_sims=500,
+                num_exploration_moves=15,
             ),
             LessonExercise(
                 lesson_name="three terms",
@@ -78,6 +101,15 @@ def main():
                 num_exploration_moves=6,
             ),
             LessonExercise(
+                lesson_name="seven terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(7),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=35,
+                mcts_sims=500,
+                num_exploration_moves=15,
+            ),
+            LessonExercise(
                 lesson_name="five terms",
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(5),
@@ -93,7 +125,7 @@ def main():
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=35,
                 mcts_sims=500,
-                num_exploration_moves=15,
+                num_exploration_moves=5,
             ),
         ],
     )
@@ -115,15 +147,30 @@ def main():
             controller.max_moves = lesson.max_turns
             print("\n{} - {}...".format(lesson_plan.name.upper(), lesson.name.upper()))
             env_state, complexity = controller.get_initial_state()
-            episode_history = []
             mcts = MCTS(controller, mathy, 1.0, lesson.mcts_sims)
             actor = ActorMCTS(mcts, lesson.num_exploration_moves)
             final_result = None
+            time_steps = []
             while final_result is None:
                 env_state, final_result = actor.step(
-                    controller, env_state, mathy, episode_history
+                    controller, env_state, mathy, time_steps
                 )
-            experience.add_batch(final_result[0])
+
+            episode_examples, episode_reward, is_win = final_result
+            if is_win:
+                outcome = "solved"
+                fore = "green"
+            else:
+                outcome = "failed"
+                fore = "red"
+            print(
+                color(
+                    " -- reward({}) outcome({})".format(episode_reward, outcome),
+                    fore=fore,
+                    style="bright",
+                )
+            )
+            experience.add_batch(episode_examples)
             mathy.train(experience.short_term, experience.long_term)
     print("Complete. Bye!")
     mathy.stop()

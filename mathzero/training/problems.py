@@ -39,16 +39,18 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms, optional_var=False):
+def simplify_multiple_terms(num_terms, optional_var=False, op="+"):
     variable = rand_var()
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
     # between the two matching variable terms.)
     result = "{}{}".format(rand_int(), variable)
-    suffix = " {} {}{}".format(rand_op(), rand_int(), variable)
+    suffix = " {} {}{}".format(rand_op() if op is None else op, rand_int(), variable)
     for i in range(num_terms - 2):
         result = result + " {} {}{}".format(
-            rand_op(), rand_int(), maybe_var() if optional_var else rand_var()
+            rand_op() if op is None else op,
+            rand_int(),
+            maybe_var() if optional_var else rand_var(),
         )
     return result + suffix, num_terms
 

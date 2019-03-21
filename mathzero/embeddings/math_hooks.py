@@ -43,8 +43,12 @@ class EpochTrainerHook(SessionRunHook):
 
         steps_per_epoch = max(int(self.examples_count / self.batch_size), 1)
         total_steps = self.epochs * steps_per_epoch
-        if self._step % steps_per_epoch != 0:
+        if self._step % steps_per_epoch != 0 and self._step < total_steps:
             return
+
+        if self._step >= total_steps:
+            return run_context.request_stop()
+
         current_epoch = int(self._step / steps_per_epoch) + 1
         current_time = time.time()
         duration = current_time - self._start_time
@@ -65,19 +69,11 @@ class EpochTrainerHook(SessionRunHook):
         )
         print(template % args)
         sys.stdout.flush()
-        # Stop after the last epoch
-        if self._step >= total_steps:
-            print("-- STOPPING AFTER LAST EPOCH")
-            return run_context.request_stop()
 
 
 class TrainingEarlyStopHook(SessionRunHook):
     def __init__(
-        self,
-        watch_pi=True,
-        watch_value=False,
-        stop_after_n=50,
-        min_steps=500,
+        self, watch_pi=True, watch_value=False, stop_after_n=50, min_steps=500
     ):
         self.num_steps = stop_after_n
         self.min_steps = min_steps

@@ -7,17 +7,23 @@ import os
 
 
 class MathExperience:
-    def __init__(self, model_dir):
+    def __init__(self, model_dir, short_term_size=256):
         self.model_dir = model_dir
         self.long_term = []
         self.short_term = []
+        self.short_term_size = short_term_size
         if self._load_experience() is not False:
             pass
 
     def add_batch(self, new_examples):
         """Add a batch of experience from observations and save short/long-term memory to disk"""
-        self.long_term.extend(self.short_term)
-        self.short_term = new_examples
+        new_size = len(self.short_term) + len(new_examples)
+        # When the short-term buffer fills up, dump the oldest items to long-term
+        if new_size >= self.short_term_size:
+            to_remove = new_size - self.short_term_size
+            self.long_term.extend(self.short_term[:to_remove])
+            self.short_term = self.short_term[to_remove:]
+        self.short_term.extend(new_examples)
         self._save_experience()
 
     def _load_experience(self):

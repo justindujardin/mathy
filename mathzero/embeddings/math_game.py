@@ -229,12 +229,20 @@ class MathGame:
         change = operation.applyTo(token.rootClone())
         root = change.result.getRoot()
         out_problem = str(root)
+        out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
         if not searching and self.verbose:
             output = """{:<25}: {}""".format(
                 change.rule.name[:25], change.result.getRoot()
             )
-            print("[{}] {}".format(str(agent.moves_remaining).zfill(2), output))
-        out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
+            moves = [
+                str(m)
+                for m in self.get_valid_moves(out_env)[: len(self.available_rules)]
+            ]
+            print(
+                "[{}][{}] {}".format(
+                    "".join(moves), str(agent.moves_remaining).zfill(2), output
+                )
+            )
         transition = self.get_state_value(out_env, searching)
         return out_env, transition
 
