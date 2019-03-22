@@ -8,13 +8,8 @@
       "name": "MathZero (Train)",
       "type": "python",
       "request": "launch",
-      "module": "main"
-    },
-    {
-      "name": "MathZero (Arena)",
-      "type": "python",
-      "request": "launch",
-      "module": "pit"
+      "module": "main",
+      "args": ["/mnt/gcs/mzc/debug/"]
     },
     {
       "name": "MathZero (Dev Train)",
@@ -23,18 +18,15 @@
       "module": "dev"
     },
     {
-      "name": "MathZero (embeddings)",
-      "type": "python",
-      "request": "launch",
-      "module": "embeddings"
-    },
-    {
       "name": "math_agent (sac)",
       "type": "python",
       "request": "launch",
       "pythonPath": "${workspaceFolder}/.env/bin/python",
       "module": "sac",
-      "args": ["--root_dir=.training/debug/"]
+      "args": [
+        "--root_dir=.training/debug/",
+        "--model_dir=/mnt/gcs/mzc/mathy_4/"
+      ]
     },
     {
       "name": "math_agent (dqn)",
@@ -55,7 +47,7 @@
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--pyargs", "mathzero", "-k", "'test_distributive_factor_out'"]
+      "args": ["--pyargs", "mathzero", "-k", "'test_math_game_focus'"]
     },
     {
       "name": "Python: Current File",
@@ -72,73 +64,6 @@
       "port": 3000,
       "secret": "my_secret",
       "host": "localhost"
-    },
-    {
-      "name": "Python: Terminal (integrated)",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Python: Terminal (external)",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "externalTerminal"
-    },
-    {
-      "name": "Python: Django",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/manage.py",
-      "args": ["runserver", "--noreload", "--nothreading"],
-      "debugOptions": ["RedirectOutput", "Django"]
-    },
-    {
-      "name": "Python: Flask (0.11.x or later)",
-      "type": "python",
-      "request": "launch",
-      "module": "flask",
-      "env": {
-        "FLASK_APP": "app.py"
-      },
-      "args": ["run", "--no-debugger", "--no-reload"]
-    },
-    {
-      "name": "Python: Module",
-      "type": "python",
-      "request": "launch",
-      "module": "module.name"
-    },
-    {
-      "name": "Python: Pyramid",
-      "type": "python",
-      "request": "launch",
-      "args": ["${workspaceFolder}/development.ini"],
-      "debugOptions": ["RedirectOutput", "Pyramid"]
-    },
-    {
-      "name": "Python: Watson",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/console.py",
-      "args": ["dev", "runserver", "--noreload=True"]
-    },
-    {
-      "name": "Python: All debug Options",
-      "type": "python",
-      "request": "launch",
-      "pythonPath": "${config:python.pythonPath}",
-      "program": "${file}",
-      "module": "module.name",
-      "env": {
-        "VAR1": "1",
-        "VAR2": "2"
-      },
-      "envFile": "${workspaceFolder}/.env",
-      "args": ["arg1", "arg2"],
-      "debugOptions": ["RedirectOutput"]
     }
   ]
 }

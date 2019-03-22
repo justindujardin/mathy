@@ -39,7 +39,7 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms, optional_var=False, op=None):
+def simplify_multiple_terms(num_terms, optional_var=False, op="+"):
     variable = rand_var()
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
@@ -86,11 +86,11 @@ class ProblemGenerator:
             # complexity = 3
 
             # Three terms with optional variables
-            problem = self.simplify_multiple_terms(terms=3)
-            complexity = 3
+            # problem = self.simplify_multiple_terms(terms=3)
+            # complexity = 3
 
             # Expert:
-            # problem = self.simplify_multiple_terms(terms=complexity)
+            problem = self.simplify_multiple_terms(terms=complexity)
 
         elif type == MODE_SOLVE_FOR_VARIABLE:
             problem = self.solve_for_variable(terms=complexity)

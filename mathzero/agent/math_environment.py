@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy
 import tensorflow as tf
 import os
@@ -20,7 +21,7 @@ from ..core.rules import (
 from ..core.util import getTerms, has_like_terms, isPreferredTermForm
 from ..environment_state import MathEnvironmentState
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
-from .math_embeddings import MathEmbeddings
+from ..model.math_model import MathModel
 from .math_embeddings_estimator import math_embeddings_network
 from ..util import (
     REWARD_LOSE,
@@ -51,14 +52,16 @@ class MathEnvironment(py_environment.PyEnvironment):
     """
 
     def __init__(
-        self, agent, root_dir, encoder=None, lesson=None, max_moves=None, verbose=False
+        self, agent, model_dir, encoder=None, lesson=None, max_moves=None, verbose=False
     ):
         if agent not in ["dqn", "sac", "td3"]:
             raise ValueError(f"unsupported agent type: {agent}")
         self.agent = agent
-        self.model_dir = os.path.join(root_dir, "embeddings")
+        self.model_dir = model_dir
+        if not Path(self.model_dir).is_dir():
+            raise ValueError("can't use an empty model to encode meaningful vectors.")
         self.verbose = verbose
-        self.discount = 1.0
+        self.discount = 1
         self.max_moves = max_moves if max_moves is not None else 50
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
@@ -82,7 +85,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         # self.encoder = math_embeddings_network(
         #     self.action_size, self.embedding_dimensions
         # )
-        self.embedding_model = MathEmbeddings(
+        self.embedding_model = MathModel(
             self.action_size, self.model_dir, self.embedding_dimensions
         )
         self.embedding_model.start()
@@ -97,9 +100,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         )
         self._observation_spec = (
             tensor_spec.TensorSpec(
-                shape=(self.embedding_dimensions),
-                dtype=numpy.float32,
-                name="encoded_input",
+                shape=(self._action_count), dtype=numpy.float32, name="encoded_input"
             ),
         )
 
@@ -115,7 +116,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         return self._observation_spec
 
     def observation_from_state(self, env_state: MathEnvironmentState):
-        observation = self.embedding_model.predict(env_state)
+        observation = self.embedding_model.encode(env_state)
         return tf.squeeze(observation)
 
     def _reset(self):
@@ -146,7 +147,7 @@ class MathEnvironment(py_environment.PyEnvironment):
             )
             out_features = self.observation_from_state(self._state)
             # When true, picking any invalid action is an immediate loss
-            harsh_wrong_move = False
+            harsh_wrong_move = True
             if harsh_wrong_move or self._state.agent.moves_remaining <= 0:
                 self._episode_ended = True
                 return time_step.termination(out_features, REWARD_LOSE)
@@ -201,9 +202,9 @@ class MathEnvironment(py_environment.PyEnvironment):
                 out_features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
             )
 
-        # We're in a new state, have a little reward!
+        # We're in a new state
         return time_step.transition(
-            out_features, reward=REWARD_NEW_LOCATION, discount=self.discount
+            out_features, reward=REWARD_TIMESTEP, discount=self.discount
         )
 
     def get_initial_state(self):

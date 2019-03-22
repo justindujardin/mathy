@@ -51,6 +51,7 @@ flags.DEFINE_string(
     os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"),
     "Root directory for writing logs/summaries/checkpoints.",
 )
+flags.DEFINE_string("model_dir", None, "Directory to load math encoding model from.")
 
 FLAGS = flags.FLAGS
 
@@ -101,6 +102,7 @@ def normal_projection_net(
 
 def train_eval(
     root_dir,
+    encoding_model_dir,
     num_iterations=1000000,
     actor_fc_layers=(256, 256),
     critic_obs_fc_layers=None,
@@ -160,10 +162,10 @@ def train_eval(
     with tf.compat.v2.summary.record_if(
         lambda: tf.math.equal(global_step % summary_interval, 0)
     ):
-        math_env = MathEnvironment(agent="sac", root_dir=root_dir)
+        math_env = MathEnvironment(agent="sac", model_dir=encoding_model_dir)
         tf_env = tf_py_environment.TFPyEnvironment(math_env)
         eval_tf_env = tf_py_environment.TFPyEnvironment(
-            MathEnvironment(agent="sac", root_dir=root_dir)
+            MathEnvironment(agent="sac", model_dir=encoding_model_dir)
         )
 
         time_step_spec = tf_env.time_step_spec()
@@ -357,10 +359,11 @@ def train_eval(
 def main(_):
     tf.compat.v1.enable_v2_behavior()
     logging.set_verbosity(logging.INFO)
-    train_eval(FLAGS.root_dir)
+    train_eval(FLAGS.root_dir, FLAGS.model_dir)
 
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("root_dir")
+    flags.mark_flag_as_required("model_dir")
     app.run(main)
 

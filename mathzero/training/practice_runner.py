@@ -9,7 +9,7 @@ from ..embeddings.actor_mcts import ActorMCTS
 from ..core.expressions import MathExpression
 from ..environment_state import MathEnvironmentState
 from ..embeddings.math_game import MathGame
-from ..embeddings.math_model import MathModel
+from ..model.math_model import MathModel
 from ..util import REWARD_LOSE, REWARD_WIN, is_terminal_transition, normalize_rewards
 from .mcts import MCTS
 

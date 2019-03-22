@@ -46,24 +46,24 @@ class MathModel:
         all_memory=False,
         dev_mode=False,
         init_model_dir=None,
+        embeddings_dimension=256,
     ):
         import tensorflow as tf
 
         self.model_dir = model_dir
         self.init_model_dir = init_model_dir
-        if Path(self.model_dir).is_dir():
+        if self.init_model_dir is not None and Path(self.model_dir).is_dir():
             print(
-                "Skipping initialization from model because destination folder exists"
+                "-- skipping trainable variables transfer from model (checkpoint exists)"
             )
             self.init_model_dir = None
         if self.init_model_dir is not None:
             print(
-                "initializing model with trainable variables from: {}".format(
+                "-- transferring trainable variables to blank model from: {}".format(
                     self.init_model_dir
                 )
             )
         self.embedding_dimensions = 64
-
         session_config = tf.compat.v1.ConfigProto()
         session_config.gpu_options.allow_growth = True
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
@@ -181,6 +181,18 @@ class MathModel:
             prediction[("policy", "predictions")],
             prediction[("value", "predictions")][0],
         )
+
+    def encode(self, env_state: MathEnvironmentState):
+        """Encode the environment state into an embedding tensor that can be consumed by RL
+        algorithms that demand a single tensor input"""
+        input_features = env_state.to_input_features(return_batch=True)
+        # start = time.time()
+        prediction = self._worker.predict(input_features)
+        # print("predict : {0:03f}".format(time.time() - start))
+        # print("distribution is : {}".format(prediction[("policy", "predictions")]))
+        # TODO: want to return the embeddings here. Try policy since we don't have time to fix the
+        # export of the embeddings tensor in our pretrained model.
+        return prediction[("policy", "predictions")]
 
     def start(self):
         self._worker.start()

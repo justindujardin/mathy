@@ -1,3 +1,4 @@
+import math
 import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
@@ -14,7 +15,7 @@ from ..util import (
 from ..training.mcts import MCTS
 from .math_game import MathGame
 from ..core.expressions import MathExpression
-from .math_model import MathModel
+from ..model.math_model import MathModel
 from tf_agents.environments import time_step
 
 
@@ -53,8 +54,11 @@ class ActorMCTS:
         # Keep going if the reward signal is not terminal
         if not is_term:
             return next_state, None
-        initial_rewards = [x[2] for x in history]
-        rewards = list(discount(initial_rewards, game.discount))
+        rewards = [x[2] for x in history]
+        # flip all timestep rewards to positive (hurray, we won!)
+        if is_win:
+            rewards = [abs(r) for r in rewards]
+        # rewards = list(discount(rewards, game.discount))
         examples = []
         for i, x in enumerate(history):
             examples.append(

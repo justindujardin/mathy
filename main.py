@@ -8,11 +8,11 @@ import random
 from colr import color
 import numpy
 import plac
-
+import time
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
 from mathzero.embeddings.math_game import MathGame
-from mathzero.embeddings.math_model import MathModel
+from mathzero.model.math_model import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from mathzero.training.practice_runner import (
     ParallelPracticeRunner,
@@ -24,6 +24,7 @@ from mathzero.training.problems import MODE_SIMPLIFY_POLYNOMIAL, simplify_multip
 from mathzero.embeddings.math_experience import MathExperience
 from mathzero.training.mcts import MCTS
 from mathzero.embeddings.actor_mcts import ActorMCTS
+from datetime import timedelta
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -53,7 +54,7 @@ def main(model_dir, transfer_from=None):
                 problem_fn=lambda: simplify_multiple_terms(2),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=10,
-                mcts_sims=150,
+                mcts_sims=250,
                 num_exploration_moves=2,
             ),
             LessonExercise(
@@ -62,7 +63,7 @@ def main(model_dir, transfer_from=None):
                 problem_fn=lambda: simplify_multiple_terms(3),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=35,
-                mcts_sims=150,
+                mcts_sims=250,
                 num_exploration_moves=6,
             ),
             LessonExercise(
@@ -71,7 +72,7 @@ def main(model_dir, transfer_from=None):
                 problem_fn=lambda: simplify_multiple_terms(4),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=35,
-                mcts_sims=150,
+                mcts_sims=250,
                 num_exploration_moves=6,
             ),
             LessonExercise(
@@ -98,8 +99,8 @@ def main(model_dir, transfer_from=None):
                 problem_fn=lambda: simplify_multiple_terms(7),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=35,
-                mcts_sims=100,
-                num_exploration_moves=15,
+                mcts_sims=1000,
+                num_exploration_moves=25,
             ),
             LessonExercise(
                 lesson_name="eight terms",
@@ -107,14 +108,23 @@ def main(model_dir, transfer_from=None):
                 problem_fn=lambda: simplify_multiple_terms(8),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=35,
-                mcts_sims=100,
-                num_exploration_moves=15,
+                mcts_sims=1000,
+                num_exploration_moves=25,
+            ),
+            LessonExercise(
+                lesson_name="nine terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(9),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=40,
+                mcts_sims=1000,
+                num_exploration_moves=30,
             ),
         ],
     )
     counter = 0
     dev_mode = True
-    controller = MathGame(verbose=dev_mode)
+    controller = MathGame(verbose=dev_mode, focus_buckets=6)
     experience = MathExperience(model_dir)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
     mathy.start()
@@ -132,11 +142,13 @@ def main(model_dir, transfer_from=None):
             actor = ActorMCTS(mcts, lesson.num_exploration_moves)
             final_result = None
             time_steps = []
+            start = time.time()
             while final_result is None:
                 env_state, final_result = actor.step(
                     controller, env_state, mathy, time_steps
                 )
 
+            elapsed = time.time() - start
             episode_examples, episode_reward, is_win = final_result
             if is_win:
                 outcome = "solved"
@@ -146,7 +158,9 @@ def main(model_dir, transfer_from=None):
                 fore = "red"
             print(
                 color(
-                    " -- reward({}) outcome({})".format(episode_reward, outcome),
+                    " -- duration({}) outcome({})".format(
+                        str(timedelta(seconds=elapsed)), outcome
+                    ),
                     fore=fore,
                     style="bright",
                 )
