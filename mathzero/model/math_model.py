@@ -150,7 +150,8 @@ class MathModel:
             random.shuffle(long_term_examples)
             ltm_sample = long_term_examples[:remaining_capacity]
             examples = examples + ltm_sample
-
+        # Shuffle all training examples
+        random.shuffle(examples)
         print(
             "Mediating on {} observations from recent experience and {} past observations".format(
                 len(stm_sample), len(ltm_sample)
