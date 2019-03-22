@@ -65,7 +65,8 @@ def run_rule_tests(name, rule_class, callback=None):
         expression = parser.parse(ex["input"])
         print(ex)
         node = rule.findNode(expression)
-        assert node is not None
+        if node is None:
+            assert "expected to find node but did not for" == str(expression)
         change = rule.applyTo(node)
         assert str(change.result.getRoot()).strip() == ex["output"]
     for ex in tests["invalid"]:
