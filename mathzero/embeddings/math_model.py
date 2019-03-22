@@ -6,6 +6,7 @@ import random
 import numpy
 import math
 import sys
+from pathlib import Path
 from multiprocessing import cpu_count
 from itertools import zip_longest
 from lib.progress.bar import Bar
@@ -39,12 +40,28 @@ class NetConfig:
 
 class MathModel:
     def __init__(
-        self, action_size, model_dir, all_memory=False, dev_mode=False, init_model_dir=None
+        self,
+        action_size,
+        model_dir,
+        all_memory=False,
+        dev_mode=False,
+        init_model_dir=None,
     ):
         import tensorflow as tf
 
         self.model_dir = model_dir
         self.init_model_dir = init_model_dir
+        if Path(self.model_dir).is_dir():
+            print(
+                "Skipping initialization from model because destination folder exists"
+            )
+            self.init_model_dir = None
+        if self.init_model_dir is not None:
+            print(
+                "initializing model with trainable variables from: {}".format(
+                    self.init_model_dir
+                )
+            )
         self.embedding_dimensions = 64
 
         session_config = tf.compat.v1.ConfigProto()

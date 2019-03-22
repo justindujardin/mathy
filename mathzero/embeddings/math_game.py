@@ -19,6 +19,7 @@ from ..util import (
     REWARD_LOSE,
     REWARD_PREVIOUS_LOCATION,
     REWARD_INVALID_ACTION,
+    REWARD_NOT_HELPFUL_MOVE,
     REWARD_TIMESTEP,
     REWARD_NEW_LOCATION,
     REWARD_WIN,
@@ -39,12 +40,11 @@ class MathGame:
     max_moves_hard = 35
     max_moves_expert = 20
 
-    def __init__(
-        self, verbose=False, max_moves=None, lesson=None, training_wheels=False
-    ):
-        self.discount = 1.0
+    def __init__(self, verbose=False, max_moves=None, lesson=None, focus_buckets=3):
+        # To support arbitrary length inputs we bucket where to apply actions.
+        self.focus_buckets = focus_buckets
+        self.discount = 0.99
         self.verbose = verbose
-        self.training_wheels = training_wheels
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
@@ -57,13 +57,11 @@ class MathGame:
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]
-        # Focus buckets
-        self._focus_buckets = 3
 
         # We have number of actions * focus_buckets to support picking actions near
         # certain parts of an expression, without limiting sequence length or exploding
         # the action space by selecting from actions*max_supported_length actions.
-        self._action_count = len(self.available_rules) * self._focus_buckets
+        self._action_count = len(self.available_rules) * self.focus_buckets
         self.expression_str = "unset"
 
     @property
@@ -130,14 +128,13 @@ class MathGame:
         then repeat the actions vector that many times. To derive a node to focus on
         we then take the selected action and determine which focus bucket it is in.
         
-        Return a tuple of (focus_value, rule_index) for a given observed action"""
+        Return a tuple of(focus_value, rule_index) for a given observed action """
+        # Simple case in the first bucket
+        if action < len(self.available_rules):
+            return 0.0, action
         bucket_action = action % len(self.available_rules)
-        bucket_focus = (action - bucket_action) / self._focus_buckets
-        # If we're not in bucket 0, divide by number of buckets to get
-        # a value in the range 0-1 which points left-to-right in the expression
-        # for where to apply the action
-        if bucket_focus > 0.0:
-            bucket_focus = (bucket_focus - 1) * (1 / self._focus_buckets)
+        bucket_number = (action - bucket_action) / len(self.available_rules)
+        bucket_focus = bucket_number / (self.focus_buckets - 1)
         return bucket_focus, bucket_action
 
     def get_focus_at_index(
@@ -182,13 +179,7 @@ class MathGame:
 
         if expression is None:
             expression = self.parser.parse(env_state.agent.problem)
-        bucket_action = action % len(self.available_rules)
-        bucket_focus = (action - bucket_action) / self._focus_buckets
-        # If we're not in bucket 0, divide by number of buckets to get
-        # a value in the range 0-1 which points left-to-right in the expression
-        # for where to apply the action
-        if bucket_focus > 0.0:
-            bucket_focus = (bucket_focus - 1) * (1 / self._focus_buckets)
+        bucket_focus, bucket_action = self.get_focus_from_action(action)
         rule = self.available_rules[bucket_action]
         if not isinstance(rule, BaseRule):
             raise ValueError("given action does not correspond to a BaseRule")
@@ -231,18 +222,24 @@ class MathGame:
         out_problem = str(root)
         out_env = env_state.encode_player(out_problem, agent.moves_remaining - 1)
         if not searching and self.verbose:
-            output = """{:<25}: {}""".format(
-                change.rule.name[:25], change.result.getRoot()
+            output = """{:<25} | {}""".format(
+                change.rule.name[:25].lower(), change.result.getRoot()
             )
-            moves = [
-                str(m)
-                for m in self.get_valid_moves(out_env)[: len(self.available_rules)]
-            ]
-            print(
-                "[{}][{}] {}".format(
-                    "".join(moves), str(agent.moves_remaining).zfill(2), output
-                )
-            )
+
+            def get_move_shortname(index, move):
+                if move == 0:
+                    return "--"
+                if move >= len(self.available_rules):
+                    return "xx"
+                return self.available_rules[index].code.lower()
+
+            bucket, _ = self.get_focus_from_action(action)
+            bucket = "{0:.1f}".format(bucket).zfill(3)
+            moves_left = str(agent.moves_remaining).zfill(2)
+            valid_moves = self.get_valid_moves(out_env)[: len(self.available_rules)]
+            move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
+            moves = " ".join(move_codes)
+            print("{} | {} | {} | {}".format(moves, moves_left, bucket, output))
         transition = self.get_state_value(out_env, searching)
         return out_env, transition
 
@@ -294,7 +291,7 @@ class MathGame:
         for rule_index, rule in enumerate(self.available_rules):
             nodes = rule.findNodes(expression)
             if len(nodes) > 0:
-                for focus_bucket in range(self._focus_buckets):
+                for focus_bucket in range(self.focus_buckets):
                     actions[rule_count * focus_bucket + rule_index] = 1
             for node in nodes:
                 token_index = node.r_index
@@ -348,9 +345,9 @@ class MathGame:
                 features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
             )
 
-        # We're in a new state, have a little reward!
+        # We're in a new state, and the agent is a little older. Minus reward!
         return time_step.transition(
-            features, reward=REWARD_NEW_LOCATION, discount=self.discount
+            features, reward=REWARD_TIMESTEP, discount=self.discount
         )
 
         # # The agent is penalized for returning to a previous state.

@@ -6,14 +6,7 @@ from ..expressions import (
     PowerExpression,
     SubtractExpression,
 )
-from ..util import (
-    isAddSubtract,
-    isConstTerm,
-    getTerm,
-    termsAreLike,
-    unlink,
-    makeTerm,
-)
+from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike, unlink, makeTerm
 from ..rule import BaseRule
 
 # ### Distributive Property
@@ -43,6 +36,10 @@ class DistributiveMultiplyRule(BaseRule):
     @property
     def name(self):
         return "Distributive Multiply"
+
+    @property
+    def code(self):
+        return "DM"
 
     def canApplyTo(self, expression):
         if isinstance(expression, MultiplyExpression):

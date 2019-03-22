@@ -32,6 +32,10 @@ class CommutativeSwapRule(BaseRule):
     def name(self):
         return "Commutative Swap"
 
+    @property
+    def code(self):
+        return "CS"
+
     def canApplyTo(self, node):
         # Must be an add/multiply
         return isinstance(node, AddExpression) or isinstance(node, MultiplyExpression)

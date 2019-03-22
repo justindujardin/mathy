@@ -40,8 +40,16 @@ class DistributiveFactorOutRule(BaseRule):
     def name(self):
         return "Distributive Factoring"
 
+    @property
+    def code(self):
+        return "DF"
+
     def canApplyTo(self, node):
-        if not isAddSubtract(node) or isAddSubtract(node.left) or isAddSubtract(node.right):
+        if (
+            not isAddSubtract(node)
+            or isAddSubtract(node.left)
+            or isAddSubtract(node.right)
+        ):
             return False
 
         leftTerm = getTerm(node.left)
@@ -82,9 +90,9 @@ class DistributiveFactorOutRule(BaseRule):
             if isinstance(node, AddExpression)
             else SubtractExpression(b, c)
         )
-        # NOTE: we swap the output order of the extracted 
+        # NOTE: we swap the output order of the extracted
         #       common factor and what remains to prefer
-        #       ordering that can be expressed without an 
+        #       ordering that can be expressed without an
         #       explicit multiplication symbol.
         result = MultiplyExpression(inside, a)
 

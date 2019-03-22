@@ -8,7 +8,7 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 
 operators = list("+*")
 variables = list("xyz")
-max_const = 12
+max_const = 24
 
 
 def rand_var():
@@ -39,7 +39,7 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms, optional_var=False, op="+"):
+def simplify_multiple_terms(num_terms, optional_var=False, op=None):
     variable = rand_var()
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict

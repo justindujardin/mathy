@@ -11,6 +11,10 @@ class ConstantsSimplifyRule(BaseRule):
     def name(self):
         return "Constant Arithmetic"
 
+    @property
+    def code(self):
+        return "CA"
+
     def canApplyTo(self, node):
         # Check simple case of left/right child binary op with constants
         return (
@@ -18,6 +22,7 @@ class ConstantsSimplifyRule(BaseRule):
             and isinstance(node.left, ConstantExpression)
             and isinstance(node.right, ConstantExpression)
         )
+
     def applyTo(self, node):
         change = super().applyTo(node)
         change.saveParent()

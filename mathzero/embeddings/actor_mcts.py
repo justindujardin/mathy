@@ -54,7 +54,7 @@ class ActorMCTS:
         if not is_term:
             return next_state, None
         initial_rewards = [x[2] for x in history]
-        rewards = list(discount(initial_rewards))
+        rewards = list(discount(initial_rewards, game.discount))
         examples = []
         for i, x in enumerate(history):
             examples.append(

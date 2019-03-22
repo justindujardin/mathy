@@ -7,6 +7,7 @@ REWARD_LOSE = -1
 REWARD_WIN = 1
 REWARD_TIMESTEP = -0.01
 REWARD_NEW_LOCATION = 0.001
+REWARD_NOT_HELPFUL_MOVE = -0.01
 REWARD_PREVIOUS_LOCATION = -0.02
 REWARD_INVALID_ACTION = -0.02
 
@@ -24,7 +25,9 @@ def is_lose_reward(reward):
 
 
 def discount(r, gamma=0.99):
-    """Discount a list of float rewards to encourage rapid convergance"""
+    """Discount a list of float rewards to encourage rapid convergance.
+    r: input array of floats
+    gamma: a float value between 0 and 0.99"""
     discounted_r = numpy.zeros_like(r, dtype=numpy.float32)
     running_add = 0
     for t in reversed(range(len(r))):
