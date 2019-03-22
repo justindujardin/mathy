@@ -282,7 +282,15 @@ def factorAddTerms(node):
     common = [k for k in rCoefficients if k in lCoefficients]
     if len(common) == 0:
         return False
-    best = numpy.max(common)
+    hasLeft = len(lTerm.variables) > 0
+    hasRight = len(rTerm.variables) > 0
+
+    # If there are variables, we want to extract them, so 
+    # the smallest number to factor out. TODO: is this okay?
+    if hasLeft or hasRight:
+        best = numpy.min(common)
+    else:
+        best = numpy.max(common) 
     result = FactorResult()
     result.best = best
     result.left = lCoefficients[best]
@@ -293,8 +301,6 @@ def factorAddTerms(node):
     # Common variables and powers
     commonExp = lTerm.exponent and rTerm.exponent and lTerm.exponent == rTerm.exponent
     expMatch = False if (lTerm.exponent or rTerm.exponent) and not commonExp else True
-    hasLeft = len(lTerm.variables) > 0
-    hasRight = len(rTerm.variables) > 0
     if hasLeft and hasRight and lTerm.variables[0] == rTerm.variables[0] and expMatch:
         result.variable = lTerm.variables[0]
         result.exponent = lTerm.exponent
