@@ -7,7 +7,7 @@ import os
 
 
 class MathExperience:
-    def __init__(self, model_dir, short_term_size=64):
+    def __init__(self, model_dir, short_term_size=256):
         self.model_dir = model_dir
         self.long_term = []
         self.short_term = []

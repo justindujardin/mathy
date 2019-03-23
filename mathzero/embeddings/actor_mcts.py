@@ -55,10 +55,12 @@ class ActorMCTS:
         if not is_term:
             return next_state, None
         rewards = [x[2] for x in history]
+        print("initial rewards: {}".format(numpy.asarray(rewards)))
         # # flip all timestep rewards to positive (hurray, we won!)
         # if is_win:
         #     rewards = [abs(r) for r in rewards]
         rewards = list(discount(rewards, game.discount))
+        print("discounted rewards: {}".format(numpy.asarray(rewards)))
         examples = []
         for i, x in enumerate(history):
             examples.append(

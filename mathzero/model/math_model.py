@@ -29,7 +29,7 @@ from ..model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.001, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
+        self, lr=0.01, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -136,7 +136,7 @@ class MathModel:
         from .math_dataset import make_training_input_fn
 
         # Reflection capacity (how many observations should we train on in this meditation?)
-        max_examples = 2048
+        max_examples = 512
 
         # Always sample all of the current episodes observations first
         stm_sample = short_term_examples[:max_examples]

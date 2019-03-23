@@ -43,7 +43,25 @@ class MathGame:
     def __init__(self, verbose=False, max_moves=None, lesson=None, focus_buckets=3):
         # To support arbitrary length inputs we bucket where to apply actions.
         self.focus_buckets = focus_buckets
-        self.discount = 0.99
+        # Tuned this by comparing a bunch of discounts. This allows for decaying of 
+        # the reward rapidly so we don't end up giving a bunch of value to a string
+        # of stupid moves that finally gets to a good move (e.g. commutativ swap 10x
+        # then finally constant arithmetic would lead to CA getting 1.0 and 10x commutative
+        # swaps getting near 1.0) This kind of skew will only encourage the model to prefer
+        # those more commonly used actions (even if they're not often the most valuable)
+        # 
+        # This value works well for at least some postitive and negative outcomes:
+        # 
+        # >>> discount([-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,
+        #               -0.01,-0.01,-0.06,-0.06,-1.0],0.7)
+        # array([-0.041066  , -0.04438   , -0.04911428, -0.05587755, -0.06553935,
+        #        -0.07934193, -0.09905991, -0.12722844, -0.1674692 , -0.224956  ,
+        #        -0.30708   , -0.4244    , -0.592     , -0.76      , -1.        ],
+        #       dtype=float32)
+        # >>> discount([-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, 1.0],0.7)
+        # array([0.0882373, 0.140339 , 0.21477  , 0.3211   , 0.473    , 0.69     ,
+        #        1.       ], dtype=float32)        
+        self.discount = 0.7
         self.verbose = verbose
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
@@ -51,9 +69,9 @@ class MathGame:
         self.lesson = lesson
         self.available_rules = [
             ConstantsSimplifyRule(),
-            DistributiveFactorOutRule(),
-            DistributiveMultiplyRule(),
             CommutativeSwapRule(),
+            DistributiveMultiplyRule(),
+            DistributiveFactorOutRule(),
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]

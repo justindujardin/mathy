@@ -45,44 +45,45 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
     ),
 )
 def main(model_dir, transfer_from=None):
+    max_moves = 15
     lesson_plan = build_lesson_plan(
         "Embeddings training",
         [
+            LessonExercise(
+                lesson_name="five terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(5),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=max_moves,
+                mcts_sims=500,
+                num_exploration_moves=5,
+            ),
             LessonExercise(
                 lesson_name="two terms",
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(2),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=10,
+                max_turns=max_moves,
                 mcts_sims=150,
-                num_exploration_moves=3,
+                num_exploration_moves=5,
             ),
             LessonExercise(
                 lesson_name="three terms",
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(3),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
+                max_turns=max_moves,
                 mcts_sims=250,
-                num_exploration_moves=25,
+                num_exploration_moves=5,
             ),
             LessonExercise(
                 lesson_name="four terms",
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(4),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
+                max_turns=max_moves,
                 mcts_sims=250,
-                num_exploration_moves=25,
-            ),
-            LessonExercise(
-                lesson_name="five terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(5),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
-                mcts_sims=500,
-                num_exploration_moves=25,
+                num_exploration_moves=5,
             ),
             # LessonExercise(
             #     lesson_name="six terms",
@@ -108,7 +109,7 @@ def main(model_dir, transfer_from=None):
             #     problem_fn=lambda: simplify_multiple_terms(8),
             #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             #     max_turns=35,
-            #     mcts_sims=1000,
+            #     mcts_sims=500,
             #     num_exploration_moves=25,
             # ),
             LessonExercise(
@@ -116,9 +117,9 @@ def main(model_dir, transfer_from=None):
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(9),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=40,
-                mcts_sims=100,
-                num_exploration_moves=30,
+                max_turns=max_moves,
+                mcts_sims=500,
+                num_exploration_moves=5,
             ),
         ],
     )

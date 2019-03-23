@@ -10,6 +10,26 @@ from ..environment_state import to_sparse_tensor
 from ..model.math_attention import attention
 
 
+def ResidualDenseLayer(units, name="residual_block"):
+    """Dense layer with residual input concatenation for help with backpropagation"""
+    import tensorflow as tf
+    from tensorflow.keras.layers import (
+        Activation,
+        Dense,
+        Concatenate,
+        BatchNormalization,
+    )
+
+    def func(input_layer):
+        activate = Activation("relu")
+        normalize = BatchNormalization()
+        dense = Dense(units, use_bias=False)
+        output = activate(normalize(dense(input_layer)))
+        return Concatenate(name=name)([output, input_layer])
+
+    return func
+
+
 def BiDirectionalLSTM(units, name="bi_lstm_stack"):
     """Bi-directional stacked LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
@@ -37,58 +57,50 @@ def math_estimator(features, labels, mode, params):
     import tensorflow as tf
     from tensorflow.python.ops import init_ops
     from tensorflow.feature_column import make_parse_example_spec
-    from tensorflow.keras.layers import (
-        DenseFeatures,
-        Activation,
-        Dense,
-        Input,
-        Embedding,
-        LSTM,
-        Concatenate,
-        Flatten,
-        BatchNormalization,
-    )
+    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate
     from tensorflow.keras.experimental import SequenceFeatures
     from tensorflow_estimator.contrib.estimator.python import estimator
     from tensorflow.python.training import adam
-    from tensorflow.keras.models import Model
 
-    def dense_with_activation(input, units, name):
-        with tf.compat.v1.variable_scope(name):
-            activate = Activation("relu")
-            normalize = BatchNormalization()
-            dense = Dense(units, use_bias=False)
-            return activate(normalize(dense(input)))
-
+    sequence_columns = params["sequence_columns"]
+    feature_columns = params["feature_columns"]
     action_size = params["action_size"]
     embedding_dimensions = params["embedding_dimensions"]
     learning_rate = params.get("learning_rate", 0.01)
     training = mode == tf.estimator.ModeKeys.TRAIN
 
-    sequence_columns = params["sequence_columns"]
+    #
+    # Sequential feature layers
+    #
     sequence_features = {
         FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
         FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
     }
     sequence_inputs, sequence_length = SequenceFeatures(
-        sequence_columns, name="sequence_features"
+        sequence_columns, name="seq_features"
     )(sequence_features)
-
-    lstm = BiDirectionalLSTM(128)(sequence_inputs)
-    sequence_vectors = attention(lstm, 16)
+    sequence_inputs = BiDirectionalLSTM(128)(sequence_inputs)
+    with tf.compat.v1.variable_scope("seq_residual_tower"):
+        for i in range(12):
+            sequence_inputs = ResidualDenseLayer(4)(sequence_inputs)
+    # Use an attention layer to focus on parts
+    sequence_inputs = attention(sequence_inputs, 64, name="tower_attn")
 
     #
-    # Non-sequence input layers
+    # Context input layers
     #
-    feature_columns = params["feature_columns"]
-    features_layer = DenseFeatures(feature_columns, name="input_features")
+    features_layer = DenseFeatures(feature_columns, name="ctx_features")
     context_inputs = features_layer(features)
-    context_inputs = dense_with_activation(context_inputs, 8, "context_embed")
+    # context residual tower
+    with tf.compat.v1.variable_scope("ctx_residual_tower"):
+        for i in range(8):
+            context_inputs = ResidualDenseLayer(4)(context_inputs)
 
     # Concatenated context and sequence vectors
-    network = Concatenate(name="math_concatenate")([context_inputs, sequence_vectors])
+    network = Concatenate(name="towers_concat")([context_inputs, sequence_inputs])
+
     # Concatenated context and sequence vectors
-    embedding_logits = Dense(embedding_dimensions, name="math_vectors")(network)
+    embedding_logits = Dense(embedding_dimensions, name="embedding_logits")(network)
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
     policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
         network
