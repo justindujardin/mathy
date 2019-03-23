@@ -38,7 +38,6 @@ from ..model.features import (
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
-    FEATURE_TOKEN_TYPES,
 )
 
 
