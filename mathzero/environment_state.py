@@ -10,13 +10,15 @@ from .training.problems import (
 )
 
 from .model.features import (
-    FEATURE_COLUMNS,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_TOKEN_TYPES,
     FEATURE_TOKEN_VALUES,
+    FEATURE_LAST_TOKEN_TYPES,
+    FEATURE_LAST_TOKEN_VALUES,
+    pad_array,
 )
 
 PLAYER_ID_OFFSET = 0
@@ -129,6 +131,27 @@ class MathEnvironmentState(object):
             types.append(t.type)
             values.append(t.value)
 
+        # Generate previous state token features because we pass observations
+        # out of order as single entries, rather than as a sequence for the episode.
+        last_types = []
+        last_values = []
+        max_len = len(types)
+        if len(self.agent.history) > 0:
+            last_problem = self.agent.history[0]
+            expression = self.parser.parse(last_problem)
+            tokens = self.parser.tokenize(last_problem)
+            for t in tokens:
+                last_types.append(t.type)
+                last_values.append(t.value)
+            if len(last_types) > max_len:
+                max_len = len(last_types)
+
+        # Pad all the sequence inputs to the same length
+        types = pad_array(types, max_len, TokenEOF)
+        values = pad_array(values, max_len, " ")
+        last_types = pad_array(last_types, max_len, TokenEOF)
+        last_values = pad_array(last_values, max_len, " ")
+
         def maybe_wrap(value):
             nonlocal return_batch
             return [value] if return_batch else value
@@ -136,6 +159,8 @@ class MathEnvironmentState(object):
         return {
             FEATURE_TOKEN_TYPES: maybe_wrap(types),
             FEATURE_TOKEN_VALUES: maybe_wrap(values),
+            FEATURE_LAST_TOKEN_TYPES: maybe_wrap(last_types),
+            FEATURE_LAST_TOKEN_VALUES: maybe_wrap(last_values),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
             FEATURE_MOVE_COUNTER: maybe_wrap(
                 int(self.max_moves - self.agent.moves_remaining)

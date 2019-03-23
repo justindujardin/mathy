@@ -2,6 +2,8 @@ from ..model.features import (
     FEATURE_NODE_COUNT,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
+    FEATURE_LAST_TOKEN_VALUES,
+    FEATURE_LAST_TOKEN_TYPES,
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
     TRAIN_LABELS_AS_MATRIX,
@@ -75,6 +77,8 @@ def math_estimator(features, labels, mode, params):
     sequence_features = {
         FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
         FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
+        FEATURE_LAST_TOKEN_TYPES: features[FEATURE_LAST_TOKEN_TYPES],
+        FEATURE_LAST_TOKEN_VALUES: features[FEATURE_LAST_TOKEN_VALUES],
     }
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="seq_features"
@@ -118,6 +122,7 @@ def math_estimator(features, labels, mode, params):
 
         # Output values
         tf.compat.v1.summary.scalar("value/mean", tf.reduce_mean(value_logits))
+        tf.compat.v1.summary.scalar("value/mean", tf.(value_logits))
         tf.compat.v1.summary.scalar(
             "value/variance", tf.math.reduce_variance(value_logits)
         )

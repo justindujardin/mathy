@@ -19,11 +19,12 @@ from ..model.features import (
     pad_array,
     FEATURE_TOKEN_VALUES,
     FEATURE_TOKEN_TYPES,
+    FEATURE_LAST_TOKEN_VALUES,
+    FEATURE_LAST_TOKEN_TYPES,
     FEATURE_NODE_COUNT,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
-    FEATURE_COLUMNS,
 )
 
 
@@ -102,6 +103,18 @@ class MathModel:
         self.f_token_values_sequence = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
                 key=FEATURE_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
+            ),
+            dimension=32,
+        )
+        self.f_last_token_types_sequence = tf.feature_column.embedding_column(
+            tf.feature_column.sequence_categorical_column_with_hash_bucket(
+                key=FEATURE_LAST_TOKEN_TYPES, hash_bucket_size=24, dtype=tf.int8
+            ),
+            dimension=32,
+        )
+        self.f_last_token_values_sequence = tf.feature_column.embedding_column(
+            tf.feature_column.sequence_categorical_column_with_hash_bucket(
+                key=FEATURE_LAST_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
             ),
             dimension=32,
         )

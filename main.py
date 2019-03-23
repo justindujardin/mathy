@@ -50,21 +50,21 @@ def main(model_dir, transfer_from=None):
         "Embeddings training",
         [
             LessonExercise(
-                lesson_name="five terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(5),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=max_moves,
-                mcts_sims=500,
-                num_exploration_moves=5,
-            ),
-            LessonExercise(
                 lesson_name="two terms",
                 problem_count=1,
                 problem_fn=lambda: simplify_multiple_terms(2),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=max_moves,
                 mcts_sims=150,
+                num_exploration_moves=5,
+            ),
+            LessonExercise(
+                lesson_name="five terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(5),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=max_moves,
+                mcts_sims=500,
                 num_exploration_moves=5,
             ),
             LessonExercise(
@@ -94,15 +94,15 @@ def main(model_dir, transfer_from=None):
             #     mcts_sims=500,
             #     num_exploration_moves=5,
             # ),
-            # LessonExercise(
-            #     lesson_name="seven terms",
-            #     problem_count=1,
-            #     problem_fn=lambda: simplify_multiple_terms(7),
-            #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            #     max_turns=35,
-            #     mcts_sims=500,
-            #     num_exploration_moves=25,
-            # ),
+            LessonExercise(
+                lesson_name="seven terms",
+                problem_count=1,
+                problem_fn=lambda: simplify_multiple_terms(7),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                max_turns=28,
+                mcts_sims=500,
+                num_exploration_moves=7,
+            ),
             # LessonExercise(
             #     lesson_name="eight terms",
             #     problem_count=1,
@@ -112,15 +112,15 @@ def main(model_dir, transfer_from=None):
             #     mcts_sims=500,
             #     num_exploration_moves=25,
             # ),
-            LessonExercise(
-                lesson_name="nine terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(9),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=max_moves,
-                mcts_sims=500,
-                num_exploration_moves=5,
-            ),
+            # LessonExercise(
+            #     lesson_name="nine terms",
+            #     problem_count=1,
+            #     problem_fn=lambda: simplify_multiple_terms(9),
+            #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            #     max_turns=max_moves,
+            #     mcts_sims=500,
+            #     num_exploration_moves=5,
+            # ),
         ],
     )
     counter = 0
@@ -132,6 +132,10 @@ def main(model_dir, transfer_from=None):
     while True:
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
+
+        # if counter % eval_interval == 0:
+        #     print("Evaluating agent with greedy action tests")
+
         lessons = lesson_plan.lessons[:]
         while len(lessons) > 0:
             lesson = lessons.pop(0)
