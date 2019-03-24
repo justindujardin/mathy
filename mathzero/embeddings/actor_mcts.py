@@ -29,7 +29,7 @@ class ActorMCTS:
     ):
         """Pick an action, take it, and return the next state.
 
-        returns: A tuple of (new_env_state, terminal_results_or_none)
+        returns: A tuple of (new_env_state, train_example, terminal_results_or_none)
         """
 
         # Hold on to the episode example data for training the neural net
@@ -51,9 +51,16 @@ class ActorMCTS:
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
         history.append([example_data, pi, r, example_text])
+        # Output a single training example for per-step training
+        train_example = {
+            "reward": float(r),
+            "before": state.agent.problem,
+            "policy": pi,
+            "inputs": example_data,
+        }
         # Keep going if the reward signal is not terminal
         if not is_term:
-            return next_state, None
+            return next_state, train_example, None
         rewards = [x[2] for x in history]
         print("initial rewards: {}".format(numpy.asarray(rewards)))
         # # flip all timestep rewards to positive (hurray, we won!)
@@ -72,4 +79,4 @@ class ActorMCTS:
                 }
             )
         episode_reward = sum(rewards)
-        return next_state, (examples, episode_reward, is_win)
+        return next_state, train_example, (examples, episode_reward, is_win)

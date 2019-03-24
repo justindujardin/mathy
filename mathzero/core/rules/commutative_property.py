@@ -5,7 +5,13 @@ from ..expressions import (
     VariableExpression,
     PowerExpression,
 )
-from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
+from ..util import (
+    isAddSubtract,
+    isConstTerm,
+    getTerm,
+    termsAreLike,
+    isPreferredTermForm,
+)
 from ..rule import BaseRule
 
 # ### Commutative Property
@@ -28,6 +34,10 @@ from ..rule import BaseRule
 #         a       b          b       a
 #
 class CommutativeSwapRule(BaseRule):
+    def __init__(self, preferred=True):
+        # If false, terms that are in preferred order will not commute
+        self.preferred = preferred
+
     @property
     def name(self):
         return "Commutative Swap"
@@ -38,7 +48,17 @@ class CommutativeSwapRule(BaseRule):
 
     def canApplyTo(self, node):
         # Must be an add/multiply
-        return isinstance(node, AddExpression) or isinstance(node, MultiplyExpression)
+        if isinstance(node, AddExpression):
+            return True
+        if not isinstance(node, MultiplyExpression):
+            return False
+        if self.preferred is False:
+            # 4x won't commute to x * 4 if preferred is false because 4x is the preferred term order
+            left_const = isinstance(node.left, ConstantExpression)
+            right_var = isinstance(node.right, VariableExpression)
+            if left_const and right_var:
+                return False
+        return True
 
     def applyTo(self, node):
         change = super().applyTo(node)

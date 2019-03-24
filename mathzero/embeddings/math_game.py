@@ -43,15 +43,15 @@ class MathGame:
     def __init__(self, verbose=False, max_moves=None, lesson=None, focus_buckets=3):
         # To support arbitrary length inputs we bucket where to apply actions.
         self.focus_buckets = focus_buckets
-        # Tuned this by comparing a bunch of discounts. This allows for decaying of 
+        # Tuned this by comparing a bunch of discounts. This allows for decaying of
         # the reward rapidly so we don't end up giving a bunch of value to a string
         # of stupid moves that finally gets to a good move (e.g. commutativ swap 10x
         # then finally constant arithmetic would lead to CA getting 1.0 and 10x commutative
         # swaps getting near 1.0) This kind of skew will only encourage the model to prefer
         # those more commonly used actions (even if they're not often the most valuable)
-        # 
+        #
         # This value works well for at least some postitive and negative outcomes:
-        # 
+        #
         # >>> discount([-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,-0.01,
         #               -0.01,-0.01,-0.06,-0.06,-1.0],0.7)
         # array([-0.041066  , -0.04438   , -0.04911428, -0.05587755, -0.06553935,
@@ -60,22 +60,22 @@ class MathGame:
         #       dtype=float32)
         # >>> discount([-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, 1.0],0.7)
         # array([0.0882373, 0.140339 , 0.21477  , 0.3211   , 0.473    , 0.69     ,
-        #        1.       ], dtype=float32)        
-        self.discount = 0.7
+        #        1.       ], dtype=float32)
+        self.discount = 0.85
         self.verbose = verbose
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.lesson = lesson
+        self.backup_commute = CommutativeSwapRule(preferred=True)
         self.available_rules = [
             ConstantsSimplifyRule(),
-            CommutativeSwapRule(),
+            CommutativeSwapRule(preferred=False),
             DistributiveMultiplyRule(),
             DistributiveFactorOutRule(),
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]
-
         # We have number of actions * focus_buckets to support picking actions near
         # certain parts of an expression, without limiting sequence length or exploding
         # the action space by selecting from actions*max_supported_length actions.
@@ -207,6 +207,11 @@ class MathGame:
 
         # Find the nearest node that can apply the given action
         possible_node_indices = [n.r_index for n in rule.findNodes(expression)]
+        # TODO: HACKSSSS
+        if len(possible_node_indices) == 0 and isinstance(rule, CommutativeSwapRule):
+            possible_node_indices = [
+                n.r_index for n in self.backup_commute.findNodes(expression)
+            ]
         if len(possible_node_indices) == 0:
             return -1, None
         nearest_possible_index = min(
@@ -231,9 +236,16 @@ class MathGame:
         operation, token = self.get_action_rule(env_state, expression, action)
 
         if not isinstance(operation, BaseRule) or not operation.canApplyTo(token):
-            # operation, token = self.get_action_rule(env_state, expression, action)
-            msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
-            raise Exception(msg.format(action, expression, type(operation)))
+            if isinstance(
+                operation, CommutativeSwapRule
+            ) and self.backup_commute.canApplyTo(expression):
+                # TODO: HACKSSSSSSS. Look at get valid moves fn. This is a workaround for not
+                # commuting preferred terms.
+                pass
+            else:
+                # operation, token = self.get_action_rule(env_state, expression, action)
+                msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
+                raise Exception(msg.format(action, expression, type(operation)))
 
         change = operation.applyTo(token.rootClone())
         root = change.result.getRoot()
@@ -304,20 +316,25 @@ class MathGame:
     def get_actions_for_expression(self, expression: MathExpression):
         actions = [0] * self.action_size
 
+        def mark_from_rule(exp, r, index):
+            nodes = r.findNodes(exp)
+            if len(nodes) > 0:
+                for focus_bucket in range(self.focus_buckets):
+                    actions[rule_count * focus_bucket + index] = 1
+            for node in nodes:
+                token_index = node.r_index
+
         # Properties of numbers and common simplifications
         rule_count = len(self.available_rules)
         for rule_index, rule in enumerate(self.available_rules):
-            nodes = rule.findNodes(expression)
-            if len(nodes) > 0:
-                for focus_bucket in range(self.focus_buckets):
-                    actions[rule_count * focus_bucket + rule_index] = 1
-            for node in nodes:
-                token_index = node.r_index
-                # print(
-                #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
-                #         action_index, rule.name, node.r_index, str(node)
-                #     )
-                # )
+            mark_from_rule(expression, rule, rule_index)
+        if sum(actions) == 0:
+            # TODO: this is gross and hardcodes knowledge of the rule_index of commutative swap.
+            # NOTE: it's here because we want to discourage commuting simple terms so that the
+            #       focus buckets distribute across large problems without accidentally making
+            #       choices that commute preferred terms instead of the + operators that connect them.
+            mark_from_rule(expression, self.backup_commute, 1)
+
         return actions
 
     def get_state_value(self, env_state: MathEnvironmentState, searching=False):

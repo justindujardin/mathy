@@ -11,7 +11,6 @@ from multiprocessing import cpu_count
 from itertools import zip_longest
 from lib.progress.bar import Bar
 from lib.average_meter import AverageMeter
-
 from .math_estimator import math_estimator
 from ..environment_state import MathEnvironmentState
 from ..model.math_predictor import MathPredictor
@@ -30,7 +29,7 @@ from ..model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.01, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
+        self, lr=0.001, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -47,7 +46,7 @@ class MathModel:
         all_memory=False,
         dev_mode=False,
         init_model_dir=None,
-        embeddings_dimension=256,
+        embeddings_dimensions=256,
     ):
         import tensorflow as tf
 
@@ -64,7 +63,7 @@ class MathModel:
                     self.init_model_dir
                 )
             )
-        self.embedding_dimensions = 64
+        self.embedding_dimensions = embeddings_dimensions
         session_config = tf.compat.v1.ConfigProto()
         session_config.gpu_options.allow_growth = True
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
@@ -149,7 +148,7 @@ class MathModel:
         from .math_dataset import make_training_input_fn
 
         # Reflection capacity (how many observations should we train on in this meditation?)
-        max_examples = 512
+        max_examples = 4096
 
         # Always sample all of the current episodes observations first
         stm_sample = short_term_examples[:max_examples]
@@ -183,6 +182,14 @@ class MathModel:
             steps=max_steps,
             input_fn=make_training_input_fn(examples, self.args.batch_size),
         )
+        return True
+
+    def train_one(self, example):
+        import tensorflow as tf
+        from .math_dataset import make_training_input_fn
+        start = time.time()
+        self.network.train(steps=1, input_fn=make_training_input_fn([example], 1))
+        print("train_one : {0:03f}".format(time.time() - start))
         return True
 
     def predict(self, env_state: MathEnvironmentState):

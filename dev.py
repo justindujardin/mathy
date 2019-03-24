@@ -108,9 +108,10 @@ def main(model_dir, transfer_from=None):
             time_steps = []
             start = time.time()
             while final_result is None:
-                env_state, final_result = actor.step(
+                env_state, train_example, final_result = actor.step(
                     controller, env_state, mathy, time_steps
                 )
+                mathy.train_one(train_example)
 
             elapsed = time.time() - start
             episode_examples, episode_reward, is_win = final_result

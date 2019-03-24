@@ -135,7 +135,7 @@ class MathEnvironmentState(object):
         # out of order as single entries, rather than as a sequence for the episode.
         last_types = []
         last_values = []
-        max_len = len(types)
+        max_len = len(values)
         if len(self.agent.history) > 0:
             last_problem = self.agent.history[0]
             expression = self.parser.parse(last_problem)
@@ -148,9 +148,9 @@ class MathEnvironmentState(object):
 
         # Pad all the sequence inputs to the same length
         types = pad_array(types, max_len, TokenEOF)
-        values = pad_array(values, max_len, " ")
+        values = pad_array(values, max_len, "")
         last_types = pad_array(last_types, max_len, TokenEOF)
-        last_values = pad_array(last_values, max_len, " ")
+        last_values = pad_array(last_values, max_len, "")
 
         def maybe_wrap(value):
             nonlocal return_batch
