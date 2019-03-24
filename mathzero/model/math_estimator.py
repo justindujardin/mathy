@@ -122,10 +122,10 @@ def math_estimator(features, labels, mode, params):
 
         # Output values
         tf.compat.v1.summary.scalar("value/mean", tf.reduce_mean(value_logits))
-        tf.compat.v1.summary.scalar("value/mean", tf.(value_logits))
         tf.compat.v1.summary.scalar(
             "value/variance", tf.math.reduce_variance(value_logits)
         )
+        tf.compat.v1.summary.histogram("value/logits", value_logits)
         tf.compat.v1.summary.histogram("policy/logits", policy_logits)
         tf.compat.v1.summary.histogram("embeddings/logits", embedding_logits)
 

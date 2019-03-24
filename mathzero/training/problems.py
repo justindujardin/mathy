@@ -7,16 +7,29 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 MODE_SIMPLIFY_POLYNOMIAL = 2
 
 operators = list("+*")
-variables = list("xyz")
+common_variables = list("xyz")
+variables = list("abcdefghijklmnopqrstuvwxyz")
 max_const = 24
 
 
-def rand_var():
+def rand_bool(percent_chance=None):
+    if percent_chance is None:
+        percent_chance = 50
+    return bool(random.randrange(100) < percent_chance)
+
+
+def rand_var(common=False):
+    if common is True:
+        return common_variables[random.randint(0, len(common_variables) - 1)]
     return variables[random.randint(0, len(variables) - 1)]
 
 
-def maybe_var():
-    return rand_var() if random.getrandbits(1) == 0 else ""
+def maybe_var(percent_chance=80, common_var=False):
+    return rand_var(common_var) if rand_bool(percent_chance) else ""
+
+
+def maybe_int(percent_chance=80):
+    return rand_int() if rand_bool(percent_chance) else ""
 
 
 def rand_int():
@@ -39,8 +52,12 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms, optional_var=False, op="+"):
-    variable = rand_var()
+def simplify_multiple_terms(
+    num_terms, optional_var=False, op="+", common_variables=True
+):
+    # Generate from common varible names to have more chance of
+    # sets of like terms.
+    variable = rand_var(common_variables)
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
     # between the two matching variable terms.)
@@ -50,7 +67,9 @@ def simplify_multiple_terms(num_terms, optional_var=False, op="+"):
         result = result + " {} {}{}".format(
             rand_op() if op is None else op,
             rand_int(),
-            maybe_var() if optional_var else rand_var(),
+            maybe_var(common_var=common_variables)
+            if optional_var
+            else rand_var(common_variables),
         )
     return result + suffix, num_terms
 

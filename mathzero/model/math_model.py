@@ -29,7 +29,7 @@ from ..model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.001, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
+        self, lr=0.01, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -47,9 +47,11 @@ class MathModel:
         dev_mode=False,
         init_model_dir=None,
         embeddings_dimensions=256,
+        long_term_size=640,
     ):
         import tensorflow as tf
 
+        self.long_term_size = long_term_size
         self.model_dir = model_dir
         self.init_model_dir = init_model_dir
         if self.init_model_dir is not None and Path(self.model_dir).is_dir():
@@ -148,7 +150,7 @@ class MathModel:
         from .math_dataset import make_training_input_fn
 
         # Reflection capacity (how many observations should we train on in this meditation?)
-        max_examples = 4096
+        max_examples = self.long_term_size
 
         # Always sample all of the current episodes observations first
         stm_sample = short_term_examples[:max_examples]
@@ -187,6 +189,7 @@ class MathModel:
     def train_one(self, example):
         import tensorflow as tf
         from .math_dataset import make_training_input_fn
+
         start = time.time()
         self.network.train(steps=1, input_fn=make_training_input_fn([example], 1))
         print("train_one : {0:03f}".format(time.time() - start))

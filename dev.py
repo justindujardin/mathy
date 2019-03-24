@@ -46,44 +46,17 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 )
 def main(model_dir, transfer_from=None):
     lesson_plan = build_lesson_plan(
-        "Embeddings training",
+        "Dev training",
         [
             LessonExercise(
-                lesson_name="two terms",
+                lesson_name="godlike",
                 problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(2),
+                problem_fn=lambda: simplify_multiple_terms(14),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=10,
-                mcts_sims=150,
-                num_exploration_moves=10,
-            ),
-            LessonExercise(
-                lesson_name="three terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(3),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
-                mcts_sims=250,
-                num_exploration_moves=35,
-            ),
-            LessonExercise(
-                lesson_name="four terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(4),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
-                mcts_sims=250,
-                num_exploration_moves=35,
-            ),
-            LessonExercise(
-                lesson_name="five terms",
-                problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(5),
-                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-                max_turns=35,
-                mcts_sims=500,
-                num_exploration_moves=35,
-            ),
+                max_turns=14 * 4,
+                mcts_sims=50,
+                num_exploration_moves=-1,
+            )
         ],
     )
     counter = 0
@@ -111,7 +84,7 @@ def main(model_dir, transfer_from=None):
                 env_state, train_example, final_result = actor.step(
                     controller, env_state, mathy, time_steps
                 )
-                mathy.train_one(train_example)
+                # mathy.train_one(train_example)
 
             elapsed = time.time() - start
             episode_examples, episode_reward, is_win = final_result

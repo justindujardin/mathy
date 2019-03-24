@@ -43,6 +43,7 @@ def build_lesson_plan(group_name, lessons):
             raise ValueError("array should contain only LessonExercise class instances")
         for i in range(lesson.problem_count):
             try:
+                problem = None
                 problem, complexity = lesson.problem_fn()
                 parser.parse(problem)
             except (ParserException, TypeError) as e:
