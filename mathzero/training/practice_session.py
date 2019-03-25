@@ -161,14 +161,15 @@ class PracticeSession:
             model_dir.mkdir(parents=True, exist_ok=True)
 
         # Write to local file then copy over (don't thrash virtual file systems like GCS)
-        _, tmp_file = tempfile.mkstemp()
+        fd, tmp_file = tempfile.mkstemp()
         with Path(tmp_file).open("w", encoding="utf-8") as f:
-            for line in (self.all_examples + self.latest_examples):
+            for line in self.all_examples + self.latest_examples:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
+        os.close(fd)
         return str(out_file)
 
     def save_training_examples_tfrecord(self):
@@ -177,7 +178,7 @@ class PracticeSession:
             model_dir.mkdir(parents=True, exist_ok=True)
 
         # Write to local file then copy over (don't thrash virtual file systems like GCS)
-        _, tmp_file = tempfile.mkstemp()
+        fd, tmp_file = tempfile.mkstemp()
 
         writer = tf.io.TFRecordWriter(tmp_file)
         for example in self.all_examples:
@@ -199,5 +200,6 @@ class PracticeSession:
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
+        os.close(fd)
         return str(out_file)
 

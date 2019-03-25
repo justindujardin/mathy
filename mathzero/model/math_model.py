@@ -1,6 +1,7 @@
 import sys
 import collections
 import os
+from colr import color
 import time
 import random
 import numpy
@@ -42,21 +43,34 @@ class MathModel:
     def __init__(
         self,
         action_size,
-        model_dir,
+        root_dir,
         all_memory=False,
         dev_mode=False,
         init_model_dir=None,
+        init_model_overwrite=False,
         embeddings_dimensions=256,
         long_term_size=640,
+        is_eval_model=False,
     ):
         import tensorflow as tf
 
+        self.is_eval_model = is_eval_model
+        self.init_model_overwrite = init_model_overwrite
         self.long_term_size = long_term_size
-        self.model_dir = model_dir
+        self.root_dir = root_dir
+        if not is_eval_model:
+            self.model_dir = os.path.join(self.root_dir, "train")
+        else:
+            self.model_dir = os.path.join(self.root_dir, "eval")
         self.init_model_dir = init_model_dir
-        if self.init_model_dir is not None and Path(self.model_dir).is_dir():
+        if (
+            self.init_model_dir is not None
+            and Path(self.model_dir).is_dir()
+            and self.init_model_overwrite is not True
+        ):
             print(
-                "-- skipping trainable variables transfer from model (checkpoint exists)"
+                "-- skipping trainable variables transfer from model: "
+                "(checkpoint exists and overwrite is false)"
             )
             self.init_model_dir = None
         if self.init_model_dir is not None:
@@ -127,11 +141,20 @@ class MathModel:
         #
         # Estimator
         #
+        print(
+            color(
+                "-- init math model in: {}\ninit model dir: {}".format(
+                    self.model_dir, self.init_model_dir
+                ),
+                fore="blue",
+                style="bright",
+            )
+        )
         self.network = tf.estimator.Estimator(
             warm_start_from=self.init_model_dir,
             config=estimator_config,
             model_fn=math_estimator,
-            model_dir=model_dir,
+            model_dir=self.model_dir,
             params={
                 "feature_columns": self.feature_columns,
                 "sequence_columns": self.sequence_columns,
@@ -143,14 +166,17 @@ class MathModel:
         )
         self._worker = MathPredictor(self.network, self.args)
 
-    def train(self, short_term_examples, long_term_examples):
+    def train(self, short_term_examples, long_term_examples, train_all=False):
         """examples: list of examples in JSON format"""
         from .math_hooks import EpochTrainerHook
         import tensorflow as tf
         from .math_dataset import make_training_input_fn
 
         # Reflection capacity (how many observations should we train on in this meditation?)
-        max_examples = self.long_term_size
+        if train_all is True:
+            max_examples = self.long_term_size
+        else:
+            max_examples = len(short_term_examples) + len(long_term_examples)
 
         # Always sample all of the current episodes observations first
         stm_sample = short_term_examples[:max_examples]

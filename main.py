@@ -72,7 +72,7 @@ eval_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=20,
-            num_exploration_moves=50,
+            num_exploration_moves=0,
             mcts_sims=50,
         ),
         LessonExercise(
@@ -400,53 +400,66 @@ lesson_two = build_lesson_plan(
     ),
 )
 def main(model_dir, transfer_from=None):
-    eval_interval = 5
+    eval_interval = 3
     counter = 0
-    dev_mode = True
-    controller = MathGame(verbose=dev_mode, focus_buckets=3)
-    experience = MathExperience(model_dir)
+    controller = MathGame(verbose=True, focus_buckets=3)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
+    experience = MathExperience(mathy.model_dir)
     mathy.start()
     while True:
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
         eval_run = bool(counter % eval_interval == 0)
-        eval_solve = 0
-        eval_fail = 0
+        num_solved = 0
+        num_failed = 0
 
         if eval_run:
-            print("\n\n=== Evaluating model ===")
+            print("\n\n=== Evaluating model with exploitation strategy ===")
             plan = eval_plan
+            mathy.stop()
+            mathy_eval = MathModel(
+                controller.action_size,
+                model_dir,
+                init_model_dir=os.path.abspath(mathy.model_dir),
+                # We want to initialize from the training model for each evaluation. (?)
+                init_model_overwrite=True,
+                is_eval_model=True,
+            )
+            eval_experience = MathExperience(mathy_eval.model_dir)
+            mathy_eval.start()
+
         else:
+            eval_experience = None
             # plan = lesson_plan if counter % 2 == 0 else commutative_lessons
             plan = lesson_two if counter % 2 != 0 else commutative_lessons
+
         lessons = plan.lessons[:]
         while len(lessons) > 0:
             lesson = lessons.pop(0)
             controller.lesson = lesson
             controller.max_moves = lesson.max_turns
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
-
             for i in range(lesson.problem_count):
                 env_state, complexity = controller.get_initial_state()
-                mcts = MCTS(controller, mathy, 1.0, lesson.mcts_sims)
+                model = mathy_eval if eval_run else mathy
+                mcts = MCTS(controller, model, 1.0, lesson.mcts_sims)
                 actor = ActorMCTS(mcts, lesson.num_exploration_moves)
                 final_result = None
                 time_steps = []
                 start = time.time()
                 while final_result is None:
                     env_state, train_example, final_result = actor.step(
-                        controller, env_state, mathy, time_steps
+                        controller, env_state, model, time_steps
                     )
 
                 elapsed = time.time() - start
                 episode_examples, episode_reward, is_win = final_result
                 if is_win:
-                    eval_solve = eval_solve + 1
+                    num_solved = num_solved + 1
                     outcome = "solved"
                     fore = "green"
                 else:
-                    eval_fail = eval_fail + 1
+                    num_failed = num_failed + 1
                     outcome = "failed"
                     fore = "red"
                 print(
@@ -459,21 +472,28 @@ def main(model_dir, transfer_from=None):
                     )
                 )
                 experience.add_batch(episode_examples)
+                if eval_experience is not None:
+                    eval_experience.add_batch(episode_examples)
             # Eval runs only train after all problems are done
             if not eval_run:
                 mathy.train(experience.short_term, experience.long_term)
+            else:
+                mathy_eval.train(eval_experience.short_term, eval_experience.long_term)
 
         if eval_run:
             print(
                 color(
                     "\n\n=== Evaluation complete solve({}) fail({}) ===\n\n".format(
-                        eval_solve, eval_fail
+                        num_solved, num_failed
                     ),
                     fore="blue",
                     style="bright",
                 )
             )
-            mathy.train(experience.short_term, experience.long_term)
+            print("training on evaluation data...")
+            mathy_eval.stop()
+            mathy_eval = None
+            mathy.start()
 
     print("Complete. Bye!")
     mathy.stop()
