@@ -89,38 +89,38 @@ def move_around_interleaved_like_terms(number_terms, number_pairs):
 
 
 commutative_lessons = build_lesson_plan(
-    "Mathy training (combine after reordering)",
+    "moving_terms_around_1",
     [
         LessonExercise(
-            lesson_name="inner blockers",
+            lesson_name="inner_blockers",
             problem_count=2,
             problem_fn=lambda: move_around_blockers_one(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="inner blockers (difficult)",
+            lesson_name="inner_blockers_difficult",
             problem_count=2,
             problem_fn=lambda: move_around_blockers_one(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="outer blockers with innner blockers",
+            lesson_name="outer_inner_blockers",
             problem_count=2,
             problem_fn=lambda: move_around_blockers_two(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="outer blockers with innner blockers (difficult)",
+            lesson_name="outer_inner_blockers_difficult",
             problem_count=2,
             problem_fn=lambda: move_around_blockers_two(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="sets of 2 like terms interleaved",
+            lesson_name="interleaved_like_terms",
             problem_count=2,
             problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -131,38 +131,38 @@ commutative_lessons = build_lesson_plan(
 
 
 commutative_lessons_two = build_lesson_plan(
-    "Mathy training (combine after reordering)",
+    "moving_terms_around_2",
     [
         LessonExercise(
-            lesson_name="inner blockers",
+            lesson_name="inner_blockers",
             problem_count=1,
             problem_fn=lambda: move_around_blockers_one(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="inner blockers (difficult)",
+            lesson_name="inner_blockers_difficult",
             problem_count=1,
             problem_fn=lambda: move_around_blockers_one(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="outer blockers with innner blockers",
+            lesson_name="outer_inner_blockers",
             problem_count=1,
             problem_fn=lambda: move_around_blockers_two(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="outer blockers with innner blockers (difficult)",
+            lesson_name="outer_inner_blockers_difficult",
             problem_count=1,
             problem_fn=lambda: move_around_blockers_two(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
         LessonExercise(
-            lesson_name="3 sets of 2 like terms interleaved",
+            lesson_name="interleaved_like_terms",
             problem_count=1,
             problem_fn=lambda: move_around_interleaved_like_terms(3, 2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -172,10 +172,10 @@ commutative_lessons_two = build_lesson_plan(
 )
 
 lesson_plan = build_lesson_plan(
-    "Mathy training (combine like terms)",
+    "combine_like_terms_1",
     [
         LessonExercise(
-            lesson_name="two terms",
+            lesson_name="two_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -184,7 +184,7 @@ lesson_plan = build_lesson_plan(
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="three terms",
+            lesson_name="three_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -193,7 +193,7 @@ lesson_plan = build_lesson_plan(
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="four terms",
+            lesson_name="four_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -202,7 +202,7 @@ lesson_plan = build_lesson_plan(
             mcts_sims=250,
         ),
         LessonExercise(
-            lesson_name="five terms",
+            lesson_name="five_terms",
             problem_count=2,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -211,7 +211,7 @@ lesson_plan = build_lesson_plan(
             mcts_sims=500,
         ),
         LessonExercise(
-            lesson_name="six terms",
+            lesson_name="six_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(6),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
@@ -222,35 +222,28 @@ lesson_plan = build_lesson_plan(
     ],
 )
 lesson_two = build_lesson_plan(
-    "Mathy training (combine like terms)",
+    "combine_like_terms_2",
     [
         LessonExercise(
-            lesson_name="five terms",
+            lesson_name="five_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
         LessonExercise(
-            lesson_name="six terms",
+            lesson_name="six_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(6),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
         LessonExercise(
-            lesson_name="eight terms",
+            lesson_name="eight_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(8),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="fifteen terms",
-            problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(15),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
         ),
     ],
 )
@@ -306,8 +299,6 @@ def main(model_dir, transfer_from=None):
 
         else:
             eval_experience = None
-            # plan = lesson_plan if counter % 2 == 0 else commutative_lessons
-            plan = lesson_plan if counter % 2 != 0 else commutative_lessons
 
         lessons = plan.lessons[:]
         # we fill this with episode rewards and when it's a fixed size we
@@ -377,18 +368,20 @@ def main(model_dir, transfer_from=None):
             else:
                 mathy_eval.train(eval_experience.short_term, eval_experience.long_term)
 
-            print("writing avg reward")
             train_summary_writer = tf.summary.create_file_writer(model.model_dir)
             with train_summary_writer.as_default():
+                global_step = tf.compat.v1.train.get_or_create_global_step()
                 episode_counter = episode_counter + 1
-                tf.summary.experimental.set_step(episode_counter)
                 tf.compat.v2.summary.scalar(
-                    name="rewards/average_lesson_{}".format(
-                        lesson.name.replace(" ", "_").lower()
+                    name="rewards/avg_{}_{}{}".format(
+                        plan.name.replace(" ", "_").lower(),
+                        lesson.name.replace(" ", "_").lower(),
+                        "" if not eval_run else "_eval",
                     ),
                     data=numpy.mean(reward_sample_buffer),
-                    step=tf.summary.experimental.get_step(),
+                    step=global_step,
                 )
+            train_summary_writer.close()
             reward_sample_buffer = []
 
         if eval_run:
