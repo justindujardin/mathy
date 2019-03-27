@@ -171,6 +171,26 @@ commutative_lessons_two = build_lesson_plan(
     ],
 )
 
+quick_test_plan = build_lesson_plan(
+    "dev_test",
+    [
+        LessonExercise(
+            lesson_name="two_terms",
+            problem_count=2,
+            problem_fn=lambda: simplify_multiple_terms(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=50,
+        ),
+        LessonExercise(
+            lesson_name="three_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=50,
+        ),
+    ],
+)
+
 lesson_plan = build_lesson_plan(
     "combine_like_terms_1",
     [
@@ -266,7 +286,7 @@ lesson_two = build_lesson_plan(
 def main(model_dir, transfer_from=None):
     import tensorflow as tf
 
-    eval_interval = 3
+    eval_interval = 5
     eval_ltm_sample_size = 2048
     episode_counter = 0
     counter = 0
@@ -282,7 +302,8 @@ def main(model_dir, transfer_from=None):
         num_failed = 0
 
         # plan = lesson_plan if counter % 2 == 0 else commutative_lessons
-        plan = lesson_plan if counter % 2 == 0 else commutative_lessons
+        plan = lesson_plan if counter % 2 != 0 else commutative_lessons
+        # plan = quick_test_plan
         if eval_run:
             print("\n\n=== Evaluating model with exploitation strategy ===")
             mathy.stop()
@@ -299,11 +320,12 @@ def main(model_dir, transfer_from=None):
 
         else:
             eval_experience = None
+        model = mathy_eval if eval_run else mathy
 
         lessons = plan.lessons[:]
         # we fill this with episode rewards and when it's a fixed size we
         # dump the average value to tensorboard
-        reward_sample_buffer = []
+        ep_reward_buffer = []
         while len(lessons) > 0:
             lesson = lessons.pop(0)
             controller.lesson = lesson
@@ -334,8 +356,10 @@ def main(model_dir, transfer_from=None):
                 actor = ActorMCTS(mcts, num_exploration_moves)
                 final_result = None
                 time_steps = []
+                episode_steps = 0
                 start = time.time()
                 while final_result is None:
+                    episode_steps = episode_steps + 1
                     env_state, train_example, final_result = actor.step(
                         controller, env_state, model, time_steps
                     )
@@ -360,29 +384,40 @@ def main(model_dir, transfer_from=None):
                     )
                 )
                 experience.add_batch(episode_examples)
-                reward_sample_buffer.append(episode_reward)
+                ep_reward_buffer.append(episode_reward / episode_steps)
                 if eval_experience is not None:
                     eval_experience.add_batch(episode_examples)
             if not eval_run:
-                mathy.train(experience.short_term, experience.long_term)
+                model.train(experience.short_term, experience.long_term)
             else:
-                mathy_eval.train(eval_experience.short_term, eval_experience.long_term)
+                model.train(eval_experience.short_term, experience.long_term)
 
-            train_summary_writer = tf.summary.create_file_writer(model.model_dir)
-            with train_summary_writer.as_default():
-                global_step = tf.compat.v1.train.get_or_create_global_step()
-                episode_counter = episode_counter + 1
-                tf.compat.v2.summary.scalar(
-                    name="rewards/avg_{}_{}{}".format(
-                        plan.name.replace(" ", "_").lower(),
-                        lesson.name.replace(" ", "_").lower(),
-                        "" if not eval_run else "_eval",
-                    ),
-                    data=numpy.mean(reward_sample_buffer),
-                    step=global_step,
+            summary_writer = tf.summary.create_file_writer(model.model_dir)
+            with summary_writer.as_default():
+                global_step = model.network.get_variable_value("global_step")
+                var_name = "{}/step_avg_reward_{}".format(
+                    plan.name.replace(" ", "_").lower(),
+                    lesson.name.replace(" ", "_").lower(),
                 )
-            train_summary_writer.close()
-            reward_sample_buffer = []
+                var_data = (
+                    numpy.mean(ep_reward_buffer) if len(ep_reward_buffer) > 0 else 0.0
+                )
+                print(
+                    color(
+                        "{} [{} = {}]".format(global_step, var_name, var_data),
+                        fore="magenta",
+                    )
+                )
+                if (
+                    tf.summary.scalar(name=var_name, data=var_data, step=global_step)
+                    is False
+                ):
+                    print("WTF :/")
+                else:
+                    print("yay :]")
+
+            summary_writer.close()
+            ep_reward_buffer = []
 
         if eval_run:
             print(
