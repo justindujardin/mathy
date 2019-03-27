@@ -118,6 +118,10 @@ def math_estimator(features, labels, mode, params):
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
 
+    # output histograms for all trainable variables.
+    for var in tf.compat.v1.trainable_variables():
+        tf.compat.v1.summary.histogram(var.name, var)
+
     with tf.compat.v1.variable_scope("stats"):
 
         # Output values
@@ -125,10 +129,6 @@ def math_estimator(features, labels, mode, params):
         tf.compat.v1.summary.scalar(
             "value/variance", tf.math.reduce_variance(value_logits)
         )
-        tf.compat.v1.summary.histogram("value/logits", value_logits)
-        tf.compat.v1.summary.histogram("policy/logits", policy_logits)
-        tf.compat.v1.summary.histogram("embeddings/logits", embedding_logits)
-
         # Training targets
         if labels is not None:
             tf.compat.v1.summary.scalar(

@@ -12,10 +12,10 @@ class LessonExercise:
         lesson_name,
         problem_fn,
         problem_type,
-        max_turns,
         problem_count,
-        mcts_sims,
-        num_exploration_moves,
+        max_turns=None,
+        mcts_sims=None,
+        num_exploration_moves=None,
         training_wheels=False,
     ):
         self.name = lesson_name

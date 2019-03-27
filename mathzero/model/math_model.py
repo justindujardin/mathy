@@ -49,7 +49,7 @@ class MathModel:
         init_model_dir=None,
         init_model_overwrite=False,
         embeddings_dimensions=256,
-        long_term_size=640,
+        long_term_size=2048,
         is_eval_model=False,
     ):
         import tensorflow as tf
@@ -65,7 +65,7 @@ class MathModel:
         self.init_model_dir = init_model_dir
         if (
             self.init_model_dir is not None
-            and Path(self.model_dir).is_dir()
+            and tf.train.latest_checkpoint(self.model_dir) is not None
             and self.init_model_overwrite is not True
         ):
             print(
@@ -172,8 +172,8 @@ class MathModel:
         import tensorflow as tf
         from .math_dataset import make_training_input_fn
 
-        # Reflection capacity (how many observations should we train on in this meditation?)
-        if train_all is True:
+        # Select some observations for training
+        if train_all is not True:
             max_examples = self.long_term_size
         else:
             max_examples = len(short_term_examples) + len(long_term_examples)

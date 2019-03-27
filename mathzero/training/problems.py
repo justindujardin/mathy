@@ -40,6 +40,21 @@ def rand_op():
     return operators[random.randint(0, len(operators) - 1)]
 
 
+def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
+    """Get a list of random variables, excluding the given list of hold-out variables"""
+    var = rand_var()
+    if num_vars > 25:
+        raise ValueError("out of range: there are only twenty-six variables")
+    rand_vars = set()
+    while len(rand_vars) < num_vars:
+        _rand = rand_var(common_variables)
+        if _rand not in exclude_vars:
+            rand_vars.add(_rand)
+    out = list(rand_vars)
+    random.shuffle(out)
+    return out
+
+
 def combine_multiple_like_add_terms(num_terms, optional_var=False):
     variable = rand_var()
     # Guarantee at least one set of like terms

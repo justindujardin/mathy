@@ -49,9 +49,9 @@ def main(model_dir, transfer_from=None):
         "Dev training",
         [
             LessonExercise(
-                lesson_name="godlike",
+                lesson_name="short",
                 problem_count=1,
-                problem_fn=lambda: simplify_multiple_terms(14),
+                problem_fn=lambda: simplify_multiple_terms(3),
                 problem_type=MODE_SIMPLIFY_POLYNOMIAL,
                 max_turns=14 * 4,
                 mcts_sims=50,
