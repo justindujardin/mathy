@@ -223,7 +223,7 @@ lesson_plan = build_lesson_plan(
         ),
         LessonExercise(
             lesson_name="five_terms",
-            problem_count=2,
+            problem_count=3,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=20,
@@ -232,7 +232,7 @@ lesson_plan = build_lesson_plan(
         ),
         LessonExercise(
             lesson_name="six_terms",
-            problem_count=1,
+            problem_count=3,
             problem_fn=lambda: simplify_multiple_terms(6),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=24,
@@ -282,18 +282,40 @@ lesson_two = build_lesson_plan(
         None,
         str,
     ),
+    initial_train=(
+        "When true, train the network on everything in `examples.json` in the checkpoint directory",
+        "flag",
+        "t",
+    ),
 )
-def main(model_dir, transfer_from=None):
+def main(model_dir, transfer_from=None, initial_train=False):
     import tensorflow as tf
 
-    eval_interval = 5
+    eval_interval = 2
+    initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0
     counter = 0
-    controller = MathGame(verbose=True, focus_buckets=3)
+    controller = MathGame(verbose=True, focus_buckets=4)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
     experience = MathExperience(mathy.model_dir)
     mathy.start()
+
+    if initial_train is True:
+        print(
+            color(
+                "Training for {} iterations on existing knowledge before beginning class".format(
+                    initial_train_iterations
+                ),
+                fore="blue",
+            )
+        )
+        old = mathy.args.epochs
+        mathy.args.epochs = 10
+        mathy.train(experience.short_term, experience.long_term, train_all=True)
+        mathy.args.epochs = old
+        print(color("Okay, let's do this!", fore="green"))
+
     while True:
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
@@ -408,13 +430,7 @@ def main(model_dir, transfer_from=None):
                         fore="magenta",
                     )
                 )
-                if (
-                    tf.summary.scalar(name=var_name, data=var_data, step=global_step)
-                    is False
-                ):
-                    print("WTF :/")
-                else:
-                    print("yay :]")
+                tf.summary.scalar(name=var_name, data=var_data, step=global_step)
 
             summary_writer.close()
             ep_reward_buffer = []
