@@ -12,6 +12,10 @@ OOO_INVALID = -1
 class MathExpression(BinaryTreeNode):
     """A Basic MathExpression node"""
 
+    @property
+    def raw(self):
+        return str(self)
+
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
         self.classes = [self.id]
@@ -47,8 +51,7 @@ class MathExpression(BinaryTreeNode):
         self.visitInorder(visit_fn)
         return count
 
-
-    def toList(self):
+    def toList(self, visit="inorder"):
         """
         Convert this node hierarchy into a list.
         @returns {Array} Array of {@link MathExpression} visited in order
@@ -58,7 +61,14 @@ class MathExpression(BinaryTreeNode):
         def visit_fn(node, depth, data):
             return results.append(node)
 
-        self.visitInorder(visit_fn)
+        if visit == "inorder":
+            self.visitInorder(visit_fn)
+        elif visit == "preorder":
+            self.visitPreorder(visit_fn)
+        elif visit == "preorder":
+            self.visitPreorder(visit_fn)
+        else:
+            raise ValueError(f"invalid visit order: {visit}")
         return results
 
     def findByType(self, instanceType):

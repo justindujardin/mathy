@@ -1,5 +1,6 @@
 import random
 import numpy
+from collections import namedtuple
 from .core.tree import STOP
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
@@ -28,6 +29,11 @@ GAME_MODE_OFFSET = 2
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 
+# Capture summarized environment state for a previous timestep so the agent can use
+# context from its history when making new predictions.
+AgentTimeStep = namedtuple("AgentTimeStep", ["raw", "focus", "action"])
+
+
 class MathAgentState(object):
     def __init__(
         self,
@@ -36,9 +42,13 @@ class MathAgentState(object):
         problem_type: int,
         reward=0.0,
         history=None,
+        focus_index=0,
+        last_action=None,
     ):
         self.moves_remaining = moves_remaining
+        self.focus_index = focus_index
         self.problem = problem
+        self.last_action = last_action
         self.reward = reward
         self.problem_type = problem_type
         self.history = history[:] if history is not None else []
@@ -46,11 +56,13 @@ class MathAgentState(object):
     @classmethod
     def copy(cls, from_state):
         return MathAgentState(
-            from_state.moves_remaining,
-            from_state.problem,
-            from_state.reward,
-            from_state.problem_type,
-            from_state.history,
+            moves_remaining=from_state.moves_remaining,
+            problem=from_state.problem,
+            reward=from_state.reward,
+            problem_type=from_state.problem_type,
+            history=from_state.history,
+            focus_index=from_state.focus_index,
+            last_action=from_state.last_action,
         )
 
 
@@ -89,13 +101,17 @@ class MathEnvironmentState(object):
     def clone(self):
         return MathEnvironmentState(state=self)
 
-    def encode_player(self, problem: str, moves_remaining: int):
+    def encode_player(
+        self, problem: str, action: int, focus_index: int, moves_remaining: int
+    ):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
         agent = out_state.agent
-        agent.history.append(problem)
+        agent.history.append(AgentTimeStep(problem, focus_index, action))
         agent.problem = problem
+        agent.action = action
         agent.moves_remaining = moves_remaining
+        agent.focus_index = focus_index
         return out_state
 
     def make_features(self, tokens_or_text):
@@ -138,8 +154,8 @@ class MathEnvironmentState(object):
         max_len = len(values)
         if len(self.agent.history) > 0:
             last_problem = self.agent.history[0]
-            expression = self.parser.parse(last_problem)
-            tokens = self.parser.tokenize(last_problem)
+            expression = self.parser.parse(last_problem.raw)
+            tokens = self.parser.tokenize(last_problem.raw)
             for t in tokens:
                 last_types.append(t.type)
                 last_values.append(t.value)

@@ -361,7 +361,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
 
-        actions = self.get_actions_for_expression(expression)
+        actions = self.get_actions_for_node(expression)
         # NOTE: Below is verbose output showing which actions are valid.
         # out_string = "{} :".format(agent.problem)
         # for i, action in enumerate(actions):
@@ -371,7 +371,7 @@ class MathEnvironment(py_environment.PyEnvironment):
         # print(out_string)
         return actions
 
-    def get_actions_for_expression(self, expression: MathExpression):
+    def get_actions_for_node(self, expression: MathExpression):
         actions = [0] * self.action_size
 
         # Properties of numbers and common simplifications

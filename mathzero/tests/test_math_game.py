@@ -13,7 +13,6 @@ def test_math_game_init():
     assert state is not None
     # Assert about the structure a bit
     assert state.agent is not None
-    assert state.width > 0
 
 
 def test_math_game_jd():
@@ -25,17 +24,6 @@ def test_math_game_jd():
     f = valid_moves
 
 
-def test_math_game_focus():
-    """Ensure that the agent derives focus from actions in a way that distributes
-    across all the focus buckets"""
-    problem = "5 + 9 + 8"
-    env_state = MathEnvironmentState(problem=problem)
-
-    game = MathGame(focus_buckets=3)
-    assertions = [(0, 0.0), (7, 0.5), (13, 1.0)]
-    for action, focus in assertions:
-        focus_bucket, _ = game.get_focus_from_action(action)
-        assert isclose(focus_bucket, focus)
 
 
 def test_math_game_win_conditions():
@@ -65,5 +53,5 @@ def test_math_game_win_conditions():
     game = MathGame()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathEnvironmentState(problem=text)
-        reward = game.get_state_reward(env_state)
+        reward = game.get_state_value(env_state)
         assert text == text and is_terminal_transition(reward) == int(is_win)

@@ -17,6 +17,7 @@ from .math_game import MathGame
 from ..core.expressions import MathExpression
 from ..model.math_model import MathModel
 from tf_agents.environments import time_step
+import copy
 
 
 class ActorMCTS:
@@ -41,6 +42,7 @@ class ActorMCTS:
         temp = int(move_count < self.explore_for_n_moves)
         pi = self.mcts.getActionProb(state, temp=temp)
         action = numpy.random.choice(len(pi), p=pi)
+        # print("step - {} - {}".format(pi, action))
 
         # Calculate the next state based on the selected action
         next_state, transition = game.get_next_state(state, action)
@@ -56,7 +58,7 @@ class ActorMCTS:
             "reward": float(r),
             "before": state.agent.problem,
             "policy": pi,
-            "inputs": example_data,
+            "inputs": copy.deepcopy(example_data),
         }
         # Keep going if the reward signal is not terminal
         if not is_term:
