@@ -35,7 +35,7 @@ from datetime import timedelta
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
 
-moves_per_complexity = 4
+moves_per_complexity = 10
 
 
 def get_blocker(num_blockers=1, exclude_vars=[]):
@@ -93,35 +93,35 @@ commutative_lessons = build_lesson_plan(
     [
         LessonExercise(
             lesson_name="inner_blockers",
-            problem_count=2,
+            problem_count=1,
             problem_fn=lambda: move_around_blockers_one(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="inner_blockers_difficult",
-            problem_count=2,
+            problem_count=1,
             problem_fn=lambda: move_around_blockers_one(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="outer_inner_blockers",
-            problem_count=2,
+            problem_count=1,
             problem_fn=lambda: move_around_blockers_two(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="outer_inner_blockers_difficult",
-            problem_count=2,
+            problem_count=1,
             problem_fn=lambda: move_around_blockers_two(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="interleaved_like_terms",
-            problem_count=2,
+            problem_count=1,
             problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
@@ -199,8 +199,6 @@ lesson_plan = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=8,
-            num_exploration_moves=8,
             mcts_sims=250,
         ),
         LessonExercise(
@@ -208,8 +206,6 @@ lesson_plan = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=12,
-            num_exploration_moves=12,
             mcts_sims=250,
         ),
         LessonExercise(
@@ -217,26 +213,20 @@ lesson_plan = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=16,
-            num_exploration_moves=16,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="five_terms",
-            problem_count=3,
+            problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=20,
-            num_exploration_moves=20,
             mcts_sims=500,
         ),
         LessonExercise(
             lesson_name="six_terms",
-            problem_count=3,
+            problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(6),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=24,
-            num_exploration_moves=24,
             mcts_sims=500,
         ),
     ],
@@ -291,14 +281,14 @@ lesson_two = build_lesson_plan(
 def main(model_dir, transfer_from=None, initial_train=False):
     import tensorflow as tf
 
-    eval_interval = 2
+    eval_interval = 5
     initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0
     counter = 0
-    controller = MathGame(verbose=True, focus_buckets=4)
+    controller = MathGame(verbose=True)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
-    experience = MathExperience(mathy.model_dir)
+    experience = MathExperience(mathy.model_dir, 256)
     mathy.start()
 
     if initial_train is True:
@@ -323,7 +313,7 @@ def main(model_dir, transfer_from=None, initial_train=False):
         num_solved = 0
         num_failed = 0
 
-        # plan = lesson_plan if counter % 2 == 0 else commutative_lessons
+        plan = lesson_plan
         plan = lesson_plan if counter % 2 != 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:
