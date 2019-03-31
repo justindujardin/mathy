@@ -97,7 +97,7 @@ class MathGame:
         #       only as needed.
         return 1 / (cpu_count() * 1.5)
 
-    def get_initial_state(self):
+    def get_initial_state(self, print_problem=True):
 
         if self.lesson is None:
             (problem, type, complexity) = self.problems.random_problem(
@@ -107,7 +107,7 @@ class MathGame:
             (problem, complexity) = self.lesson.problem_fn()
             type = self.lesson.problem_type
         self.expression_str = problem
-        if self.verbose:
+        if print_problem and self.verbose:
             print("\n\n[Problem] {}\n".format(problem))
         env_state = MathEnvironmentState(
             problem=problem, problem_type=type, max_moves=self.max_moves
@@ -158,7 +158,10 @@ class MathGame:
 
             # NOTE: using rule.findNodes to mark the index of this node for use as new focus
             change.rule.findNodes(root)
-            out_focus = change.result.r_index
+            out_focus_node = change.result
+            if change.focus_node is not None:
+                out_focus_node = change.focus_node
+            out_focus = out_focus_node.r_index
 
         out_env = env_state.encode_player(
             problem=out_problem,

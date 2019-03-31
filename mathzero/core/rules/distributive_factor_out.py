@@ -101,5 +101,6 @@ class DistributiveFactorOutRule(BaseRule):
             leftLink.setRight(result)
             result = leftLink
 
+        change.set_focus(inside)
         change.done(result)
         return change
