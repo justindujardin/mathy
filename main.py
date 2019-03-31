@@ -35,7 +35,7 @@ from datetime import timedelta
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
 
-moves_per_complexity = 10
+moves_per_complexity = 4
 
 
 def get_blocker(num_blockers=1, exclude_vars=[]):
@@ -313,7 +313,7 @@ def main(model_dir, transfer_from=None, initial_train=False):
         num_solved = 0
         num_failed = 0
 
-        plan = lesson_two
+        plan = commutative_lessons
         # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:
@@ -343,9 +343,9 @@ def main(model_dir, transfer_from=None, initial_train=False):
             controller.lesson = lesson
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             for i in range(lesson.problem_count):
-                env_state, complexity = controller.get_initial_state()
+                env_state, complexity = controller.get_initial_state(print_problem=False)
                 complexity_value = complexity * moves_per_complexity
-                controller.verbose = eval_run
+                controller.verbose = True #eval_run
                 if eval_run:
                     num_rollouts = 150
                     num_exploration_moves = 0

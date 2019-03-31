@@ -136,11 +136,11 @@ hard_plan = build_lesson_plan(
 def main(model_dir, examples_file, transfer_from=None, no_train=False):
     import tensorflow as tf
 
-    plan = hard_plan
+    plan = lesson_plan
     lessons = plan.lessons[:]
     num_solved = 0
     num_failed = 0
-    num_rollouts = 50
+    num_rollouts = 10
     num_exploration_moves = 0
     epsilon = 0
     eval_ltm_sample_size = 2048
@@ -163,7 +163,6 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
         model_dir,
         init_model_dir=transfer_from,
         init_model_overwrite=True,
-        is_eval_model=True,
     )
     experience = MathExperience(mathy.model_dir)
     mathy.start()

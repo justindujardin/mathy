@@ -33,7 +33,7 @@ def ResidualDenseLayer(units, name="residual_block"):
 
 
 def BiDirectionalLSTM(units, name="bi_lstm_stack"):
-    """Bi-directional LSTMs using Tensorflow's keras implementation"""
+    """Bi-directional stacked LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
     from tensorflow.keras.layers import LSTM, Concatenate
 
@@ -74,8 +74,8 @@ def math_estimator(features, labels, mode, params):
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="inputs/sequence"
     )(sequence_features)
-    sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
-    sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
+    sequence_inputs = BiDirectionalLSTM(128)(sequence_inputs)
+    sequence_inputs = attention(sequence_inputs, 2048, name="inputs/sequence_attention")
 
     #
     # Context input layers
@@ -86,7 +86,7 @@ def math_estimator(features, labels, mode, params):
     network = Concatenate(name="inputs/concat")([context_inputs, sequence_inputs])
 
     with tf.compat.v1.variable_scope("residual_tower"):
-        for i in range(6):
+        for i in range(40):
             network = ResidualDenseLayer(4)(network)
 
     # Concatenated context and sequence vectors
