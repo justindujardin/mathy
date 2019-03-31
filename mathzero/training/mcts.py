@@ -95,7 +95,7 @@ class MCTS:
         s = self.game.to_hash_key(env_state)
 
         # if s not in self.Es:
-            # print('calculating ending state for: {}'.format(s))
+        # print('calculating ending state for: {}'.format(s))
         self.Es[s] = self.game.get_state_value(env_state, searching=True)
         if is_terminal_transition(self.Es[s]):
             # terminal node
@@ -109,6 +109,7 @@ class MCTS:
             # print("action_v = {}".format(action_v))
             # print("Ps = {}".format(self.Ps[s].shape))
             valids = self.game.get_valid_moves(env_state)
+            save_ps = self.Ps[s]
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = numpy.sum(self.Ps[s])
             # print("sum Ps = {}".format(sum_Ps_s))
@@ -120,6 +121,11 @@ class MCTS:
                 # NOTE: This can happen if your model is under/over fitting.
                 # See more: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
                 print("All valid moves were masked, do workaround.")
+                print("problem: {}".format(env_state.agent.problem))
+                print("history: {}".format(env_state.agent.history))
+                print("save: {}".format(save_ps))
+                print("mask: {}".format(self.Ps[s]))
+                print("valids: {}".format(valids))
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= numpy.sum(self.Ps[s])
 

@@ -93,7 +93,7 @@ commutative_lessons = build_lesson_plan(
     [
         LessonExercise(
             lesson_name="inner_blockers",
-            problem_count=1,
+            problem_count=6,
             problem_fn=lambda: move_around_blockers_one(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
@@ -281,7 +281,7 @@ lesson_two = build_lesson_plan(
 def main(model_dir, transfer_from=None, initial_train=False):
     import tensorflow as tf
 
-    eval_interval = 5
+    eval_interval = 2
     initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0
@@ -313,8 +313,8 @@ def main(model_dir, transfer_from=None, initial_train=False):
         num_solved = 0
         num_failed = 0
 
-        plan = lesson_plan
-        plan = lesson_plan if counter % 2 != 0 else commutative_lessons
+        plan = lesson_two
+        # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:
             print("\n\n=== Evaluating model with exploitation strategy ===")
@@ -345,9 +345,9 @@ def main(model_dir, transfer_from=None, initial_train=False):
             for i in range(lesson.problem_count):
                 env_state, complexity = controller.get_initial_state()
                 complexity_value = complexity * moves_per_complexity
-                controller.verbose = not eval_run
+                controller.verbose = eval_run
                 if eval_run:
-                    num_rollouts = 50
+                    num_rollouts = 150
                     num_exploration_moves = 0
                     epsilon = 0
                 else:
@@ -363,6 +363,8 @@ def main(model_dir, transfer_from=None, initial_train=False):
                     if lesson.max_turns is not None
                     else complexity_value
                 )
+                # generate a new problem now that we've set the max_turns
+                env_state, complexity = controller.get_initial_state()
                 model = mathy_eval if eval_run else mathy
                 mcts = MCTS(controller, model, epsilon, num_rollouts)
                 actor = ActorMCTS(mcts, num_exploration_moves)

@@ -60,7 +60,9 @@ class MathGame:
         # >>> discount([-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, 1.0],0.7)
         # array([0.0882373, 0.140339 , 0.21477  , 0.3211   , 0.473    , 0.69     ,
         #        1.       ], dtype=float32)
-        self.discount = 0.85
+        # UPDATE: setting back to 0.99 because the eps are longer when manipulating
+        #         focus token explicitly
+        self.discount = 0.99
         self.verbose = verbose
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
@@ -235,7 +237,7 @@ class MathGame:
             searching: boolean that is True when called by MCTS simulation
 
         Returns:
-            transition: the transition value for the current state
+            transition: the current state value transition
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -259,7 +261,9 @@ class MathGame:
             return time_step.termination(features, REWARD_LOSE)
 
         # The agent is penalized for returning to a previous state.
-        for key, group in groupby(sorted([h.raw for h in env_state.agent.history])):
+        for key, group in groupby(
+            sorted([f"{h.raw}{h.focus}" for h in env_state.agent.history])
+        ):
             list_group = list(group)
             list_count = len(list_group)
             if list_count <= 1:
