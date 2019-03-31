@@ -31,9 +31,13 @@ class MathExperience:
         self._save_experience()
 
     def _load_experience(self):
-        file_path = Path(self.model_dir) / INPUT_EXAMPLES_FILE_NAME
+        # Try to match a specified file first
+        file_path = Path(self.model_dir)
         if not file_path.is_file():
-            return False
+            # Check for a folder with the inputs file inside of it
+            file_path = file_path / INPUT_EXAMPLES_FILE_NAME
+            if not file_path.is_file():
+                return False
         examples = []
         with file_path.open("r", encoding="utf8") as f:
             for line in f:
