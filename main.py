@@ -345,7 +345,7 @@ def main(model_dir, transfer_from=None, initial_train=False):
             for i in range(lesson.problem_count):
                 env_state, complexity = controller.get_initial_state(print_problem=False)
                 complexity_value = complexity * moves_per_complexity
-                controller.verbose = True #eval_run
+                controller.verbose = eval_run
                 if eval_run:
                     num_rollouts = 150
                     num_exploration_moves = 0
