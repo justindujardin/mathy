@@ -26,9 +26,9 @@ def make_training_input_fn(examples, batch_size):
     output_types = (
         {
             FEATURE_FWD_VECTORS: tf.string,
-            # FEATURE_BWD_VECTORS: tf.int8,
-            # FEATURE_LAST_FWD_VECTORS: tf.string,
-            # FEATURE_LAST_BWD_VECTORS: tf.int8,
+            FEATURE_BWD_VECTORS: tf.string,
+            FEATURE_LAST_FWD_VECTORS: tf.string,
+            FEATURE_LAST_BWD_VECTORS: tf.string,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,
