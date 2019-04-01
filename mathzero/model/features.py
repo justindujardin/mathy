@@ -1,10 +1,10 @@
 import numpy
 from mathzero.core.tokenizer import TokenEOF
 
-FEATURE_TOKEN_VALUES = "token_values"
-FEATURE_TOKEN_TYPES = "token_types"
-FEATURE_LAST_TOKEN_VALUES = "last_token_values"
-FEATURE_LAST_TOKEN_TYPES = "last_token_types"
+FEATURE_FWD_VECTORS = "fwd_vectors"
+FEATURE_BWD_VECTORS = "bwd_vectors"
+FEATURE_LAST_FWD_VECTORS = "fwd_last_vectors"
+FEATURE_LAST_BWD_VECTORS = "bwd_last_vectors"
 FEATURE_NODE_COUNT = "node_count"
 FEATURE_MOVES_REMAINING = "moves_remaining"
 FEATURE_MOVE_COUNTER = "move_counter"
@@ -22,20 +22,21 @@ def parse_example_for_training(example, max_sequence=None):
     Returns: a tuple of(features, labels) """
     inputs = {}
     ex_input = example["inputs"]
+    pad_string = ""
     if max_sequence is not None:
-        # inputs[FEATURE_TOKEN_TYPES] = pad_array(
-        #     ex_input[FEATURE_TOKEN_TYPES], max_sequence, TokenEOF
-        # )
-        inputs[FEATURE_TOKEN_VALUES] = pad_array(
-            ex_input[FEATURE_TOKEN_VALUES], max_sequence, ""
+        inputs[FEATURE_FWD_VECTORS] = pad_array(
+            ex_input[FEATURE_FWD_VECTORS], max_sequence, pad_string
         )
-        # inputs[FEATURE_LAST_TOKEN_TYPES] = pad_array(
-        #     ex_input[FEATURE_LAST_TOKEN_TYPES], max_sequence, TokenEOF
-        # )
-        # inputs[FEATURE_LAST_TOKEN_VALUES] = pad_array(
-        #     ex_input[FEATURE_LAST_TOKEN_VALUES], max_sequence, ""
-        # )
-    inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_TOKEN_TYPES])
+        inputs[FEATURE_BWD_VECTORS] = pad_array(
+            ex_input[FEATURE_BWD_VECTORS], max_sequence, pad_string, backwards=True
+        )
+        inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
+            ex_input[FEATURE_LAST_FWD_VECTORS], max_sequence, pad_string
+        )
+        inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
+            ex_input[FEATURE_LAST_BWD_VECTORS], max_sequence, pad_string, backwards=True
+        )
+    inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
@@ -46,8 +47,17 @@ def parse_example_for_training(example, max_sequence=None):
     return inputs, outputs
 
 
-def pad_array(A, max_length, value=0):
-    """Pad a numpy array to the given size with the given padding value"""
+def pad_array(A, max_length, value=0, backwards=False):
+    """Pad a list to the given size with the given padding value
+    
+    If backwards=True the input will be reversed after padding, and 
+    the output will be reversed after padding, to correctly pad for 
+    LSTMs, e.g. "4x+2----" padded backwards would be "----2+x4"
+    """
+    if backwards:
+        A.reverse()
     while len(A) < max_length:
         A.append(value)
+    if backwards:
+        A.reverse()
     return A

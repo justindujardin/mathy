@@ -16,10 +16,10 @@ from .model.features import (
     FEATURE_PROBLEM_TYPE,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_TOKEN_VALUES,
-    FEATURE_LAST_TOKEN_TYPES,
-    FEATURE_LAST_TOKEN_VALUES,
+    FEATURE_BWD_VECTORS,
+    FEATURE_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
     pad_array,
 )
 import json
@@ -165,19 +165,12 @@ class MathEnvironmentState(object):
                 "features can only be created from a token list or str input expression"
             )
 
-    def to_input_features(self, return_batch=False):
-        """Output a one element array of features that can be fed to the 
-        neural network for prediction.
-
-        When return_batch is true, the outputs will have an array of features for each
-        so the result can be directly passed to the predictor.
-        """
-        import tensorflow as tf
+    def get_node_vectors(self, expression: MathExpression):
+        """Get a set of context-sensitive vectors for a given expression"""
 
         def node_type(input: MathExpression):
             return input.__class__.__name__.lower().replace("expression", "")
 
-        expression = self.parser.parse(self.agent.problem)
         # pre-order is important to match up with how the Meta focus actions visit the tree
         # NOTE: see agent_actions or MetaAction
         nodes = expression.toList("preorder")
@@ -188,18 +181,41 @@ class MathEnvironmentState(object):
             last = "" if i == 0 else node_type(nodes[i - 1])
             next = "" if i > nodes_len - 2 else node_type(nodes[i + 1])
             vectors.append((last, node_type(t), next))
+        return vectors
 
-        # Pad all the sequence inputs to the same length
+    def to_input_features(self, return_batch=False):
+        """Output a one element array of features that can be fed to the 
+        neural network for prediction.
+
+        When return_batch is true, the outputs will have an array of features for each
+        so the result can be directly passed to the predictor.
+        """
+        import tensorflow as tf
+
+        expression = self.parser.parse(self.agent.problem)
+
+        # Generate context vectors for the current state's expression tree
+        vectors = self.get_node_vectors(expression)
+        vectors_reversed = vectors[:]
+        vectors_reversed.reverse()
+
+        # Provide context vectors for the previous state if there is one
+        last_vectors = [("", "", "")] * len(vectors)
+        if len(self.agent.history) > 1:
+            last_expression = self.parser.parse(self.agent.history[-1].raw)
+            last_vectors = self.get_node_vectors(last_expression)
+        last_vectors_reversed = last_vectors[:]
+        last_vectors_reversed.reverse()
 
         def maybe_wrap(value):
             nonlocal return_batch
             return [value] if return_batch else value
 
         return {
-            # FEATURE_TOKEN_TYPES: maybe_wrap([]),
-            FEATURE_TOKEN_VALUES: maybe_wrap(vectors),
-            # FEATURE_LAST_TOKEN_TYPES: maybe_wrap(last_types),
-            # FEATURE_LAST_TOKEN_VALUES: maybe_wrap(last_values),
+            FEATURE_FWD_VECTORS: maybe_wrap(vectors),
+            FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
+            FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
+            FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
             FEATURE_MOVE_COUNTER: maybe_wrap(
                 int(self.max_moves - self.agent.moves_remaining)

@@ -8,14 +8,19 @@
       "name": "MathZero (Train)",
       "type": "python",
       "request": "launch",
-      "module": "main",
-      "args": ["/mnt/gcs/mzc/debug/"]
+      "module": "train",
+      "args": [
+        "/mnt/gcs/mzc/train_mathy_focus_one_tower_small/",
+        "/mnt/gcs/mzc/fixed/focus_actions/examples.jsonl",
+        "-n"
+      ]
     },
     {
       "name": "MathZero (Dev Train)",
       "type": "python",
       "request": "launch",
-      "module": "dev"
+      "module": "main",
+      "args": ["/mnt/gcs/mzc/dev/", "-v"]
     },
     {
       "name": "math_agent (sac)",
@@ -47,7 +52,7 @@
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--pyargs", "mathzero", "-k", "'test_math_game_focus'"]
+      "args": ["--pyargs", "mathzero", "-k", "test_math_game_jd"]
     },
     {
       "name": "Python: Current File",

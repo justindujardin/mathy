@@ -1,9 +1,9 @@
 from ..model.features import (
     FEATURE_NODE_COUNT,
-    FEATURE_TOKEN_VALUES,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_LAST_TOKEN_VALUES,
-    FEATURE_LAST_TOKEN_TYPES,
+    FEATURE_FWD_VECTORS,
+    FEATURE_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
     TRAIN_LABELS_AS_MATRIX,
@@ -75,10 +75,10 @@ def math_estimator(features, labels, mode, params):
     # Sequential feature layers
     #
     sequence_features = {
-        FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
-        FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
-        FEATURE_LAST_TOKEN_TYPES: features[FEATURE_LAST_TOKEN_TYPES],
-        FEATURE_LAST_TOKEN_VALUES: features[FEATURE_LAST_TOKEN_VALUES],
+        FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
+        FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
+        FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
+        FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
     }
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="seq_features"

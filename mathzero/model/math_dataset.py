@@ -3,10 +3,10 @@ import ujson
 from ..environment_state import INPUT_EXAMPLES_FILE_NAME
 from ..model.features import (
     FEATURE_NODE_COUNT,
-    FEATURE_TOKEN_VALUES,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_LAST_TOKEN_VALUES,
-    FEATURE_LAST_TOKEN_TYPES,
+    FEATURE_FWD_VECTORS,
+    FEATURE_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_PROBLEM_TYPE,
@@ -25,10 +25,10 @@ def make_training_input_fn(examples, batch_size):
 
     output_types = (
         {
-            FEATURE_TOKEN_VALUES: tf.string,
-            # FEATURE_TOKEN_TYPES: tf.int8,
-            # FEATURE_LAST_TOKEN_VALUES: tf.string,
-            # FEATURE_LAST_TOKEN_TYPES: tf.int8,
+            FEATURE_FWD_VECTORS: tf.string,
+            # FEATURE_BWD_VECTORS: tf.int8,
+            # FEATURE_LAST_FWD_VECTORS: tf.string,
+            # FEATURE_LAST_BWD_VECTORS: tf.int8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,
@@ -40,7 +40,7 @@ def make_training_input_fn(examples, batch_size):
         },
     )
 
-    lengths = [len(l["inputs"][FEATURE_TOKEN_TYPES]) for l in examples]
+    lengths = [len(l["inputs"][FEATURE_BWD_VECTORS]) for l in examples]
 
     max_sequence = max(lengths)
 

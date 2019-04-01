@@ -2,10 +2,10 @@ from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 from mathzero.model.features import (
-    FEATURE_TOKEN_VALUES,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_LAST_TOKEN_VALUES,
-    FEATURE_LAST_TOKEN_TYPES,
+    FEATURE_FWD_VECTORS,
+    FEATURE_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
     FEATURE_NODE_COUNT,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
@@ -75,10 +75,10 @@ class MathPredictor(object):
         import tensorflow as tf
 
         output_types = {
-            FEATURE_TOKEN_VALUES: tf.string,
-            # FEATURE_TOKEN_TYPES: tf.int8,
-            # FEATURE_LAST_TOKEN_VALUES: tf.string,
-            # FEATURE_LAST_TOKEN_TYPES: tf.int8,
+            FEATURE_FWD_VECTORS: tf.string,
+            FEATURE_BWD_VECTORS: tf.string,
+            FEATURE_LAST_FWD_VECTORS: tf.string,
+            FEATURE_LAST_BWD_VECTORS: tf.string,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

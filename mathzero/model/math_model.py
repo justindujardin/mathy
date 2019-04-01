@@ -17,10 +17,10 @@ from ..environment_state import MathEnvironmentState
 from ..model.math_predictor import MathPredictor
 from ..model.features import (
     pad_array,
-    FEATURE_TOKEN_VALUES,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_LAST_TOKEN_VALUES,
-    FEATURE_LAST_TOKEN_TYPES,
+    FEATURE_FWD_VECTORS,
+    FEATURE_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
     FEATURE_NODE_COUNT,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
@@ -109,33 +109,35 @@ class MathModel:
         #
         # Sequence features
         #
-        self.f_token_types_sequence = tf.feature_column.embedding_column(
+        self.feat_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_TOKEN_TYPES, hash_bucket_size=24, dtype=tf.int8
+                key=FEATURE_BWD_VECTORS, hash_bucket_size=128, dtype=tf.string
             ),
             dimension=32,
         )
-        self.f_token_values_sequence = tf.feature_column.embedding_column(
+        self.feat_fwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_FWD_VECTORS, hash_bucket_size=128, dtype=tf.string
             ),
             dimension=32,
         )
-        self.f_last_token_types_sequence = tf.feature_column.embedding_column(
+        self.feat_last_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_TOKEN_TYPES, hash_bucket_size=24, dtype=tf.int8
+                key=FEATURE_LAST_BWD_VECTORS, hash_bucket_size=128, dtype=tf.string
             ),
             dimension=32,
         )
-        self.f_last_token_values_sequence = tf.feature_column.embedding_column(
+        self.feat_last_fwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_TOKEN_VALUES, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_LAST_FWD_VECTORS, hash_bucket_size=128, dtype=tf.string
             ),
             dimension=32,
         )
         self.sequence_columns = [
-            # self.f_token_types_sequence,
-            self.f_token_values_sequence,
+            self.feat_fwd_vectors,
+            self.feat_bwd_vectors,
+            self.feat_last_fwd_vectors,
+            self.feat_last_bwd_vectors,
         ]
 
         #

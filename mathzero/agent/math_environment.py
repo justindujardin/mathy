@@ -33,7 +33,6 @@ from ..util import (
     is_terminal_transition,
 )
 from ..model.features import (
-    FEATURE_TOKEN_VALUES,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
