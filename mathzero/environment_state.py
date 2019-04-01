@@ -2,6 +2,7 @@ import random
 import numpy
 from collections import namedtuple
 from .core.tree import STOP
+from .core.expressions import MathExpression
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
 from .training.problems import (
@@ -21,6 +22,7 @@ from .model.features import (
     FEATURE_LAST_TOKEN_VALUES,
     pad_array,
 )
+import json
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
@@ -32,6 +34,39 @@ INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 # Capture summarized environment state for a previous timestep so the agent can use
 # context from its history when making new predictions.
 AgentTimeStep = namedtuple("AgentTimeStep", ["raw", "focus", "action"])
+
+# Build a context sensitive vector for each token
+class ContextualToken(namedtuple("ContextualToken", ["previous", "current", "next"])):
+    def __str__(self):
+        return f"prev:{previous}, current:{current}, next:{next}"
+
+
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE: Need to switch from token input features to node input features
+# NOTE: so they have a 1:1 relationship with focus index
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
+# NOTE:
 
 
 class MathAgentState(object):
@@ -139,44 +174,32 @@ class MathEnvironmentState(object):
         """
         import tensorflow as tf
 
-        expression = self.parser.parse(self.agent.problem)
-        tokens = self.parser.tokenize(self.agent.problem)
-        types = []
-        values = []
-        for t in tokens:
-            types.append(t.type)
-            values.append(t.value)
+        def node_type(input: MathExpression):
+            return input.__class__.__name__.lower().replace("expression", "")
 
-        # Generate previous state token features because we pass observations
-        # out of order as single entries, rather than as a sequence for the episode.
-        last_types = []
-        last_values = []
-        max_len = len(values)
-        if len(self.agent.history) > 0:
-            last_problem = self.agent.history[0]
-            expression = self.parser.parse(last_problem.raw)
-            tokens = self.parser.tokenize(last_problem.raw)
-            for t in tokens:
-                last_types.append(t.type)
-                last_values.append(t.value)
-            if len(last_types) > max_len:
-                max_len = len(last_types)
+        expression = self.parser.parse(self.agent.problem)
+        # pre-order is important to match up with how the Meta focus actions visit the tree
+        # NOTE: see agent_actions or MetaAction
+        nodes = expression.toList("preorder")
+        vectors = []
+        nodes_len = len(nodes)
+        node_masks = []
+        for i, t in enumerate(nodes):
+            last = "" if i == 0 else node_type(nodes[i - 1])
+            next = "" if i > nodes_len - 2 else node_type(nodes[i + 1])
+            vectors.append((last, node_type(t), next))
 
         # Pad all the sequence inputs to the same length
-        types = pad_array(types, max_len, TokenEOF)
-        values = pad_array(values, max_len, "")
-        last_types = pad_array(last_types, max_len, TokenEOF)
-        last_values = pad_array(last_values, max_len, "")
 
         def maybe_wrap(value):
             nonlocal return_batch
             return [value] if return_batch else value
 
         return {
-            FEATURE_TOKEN_TYPES: maybe_wrap(types),
-            FEATURE_TOKEN_VALUES: maybe_wrap(values),
-            FEATURE_LAST_TOKEN_TYPES: maybe_wrap(last_types),
-            FEATURE_LAST_TOKEN_VALUES: maybe_wrap(last_values),
+            # FEATURE_TOKEN_TYPES: maybe_wrap([]),
+            FEATURE_TOKEN_VALUES: maybe_wrap(vectors),
+            # FEATURE_LAST_TOKEN_TYPES: maybe_wrap(last_types),
+            # FEATURE_LAST_TOKEN_VALUES: maybe_wrap(last_values),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
             FEATURE_MOVE_COUNTER: maybe_wrap(
                 int(self.max_moves - self.agent.moves_remaining)

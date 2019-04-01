@@ -76,9 +76,9 @@ class MathPredictor(object):
 
         output_types = {
             FEATURE_TOKEN_VALUES: tf.string,
-            FEATURE_TOKEN_TYPES: tf.int8,
-            FEATURE_LAST_TOKEN_VALUES: tf.string,
-            FEATURE_LAST_TOKEN_TYPES: tf.int8,
+            # FEATURE_TOKEN_TYPES: tf.int8,
+            # FEATURE_LAST_TOKEN_VALUES: tf.string,
+            # FEATURE_LAST_TOKEN_TYPES: tf.int8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

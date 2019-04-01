@@ -134,7 +134,7 @@ class MathModel:
             dimension=32,
         )
         self.sequence_columns = [
-            self.f_token_types_sequence,
+            # self.f_token_types_sequence,
             self.f_token_values_sequence,
         ]
 

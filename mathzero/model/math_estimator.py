@@ -32,16 +32,18 @@ def ResidualDenseLayer(units, name="residual_block"):
     return func
 
 
-def BiDirectionalLSTM(units, name="bi_lstm_stack"):
+def BiDirectionalLSTM(units, name="bi_lstm_stack", return_sequences=True):
     """Bi-directional LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
     from tensorflow.keras.layers import LSTM, Concatenate
 
     def func(input_layer):
-        forward = LSTM(units, return_sequences=True, name="lstm/forward")(input_layer)
-        backward = LSTM(
+        forward_layer = LSTM(units, return_sequences=True, name="lstm/forward")
+        backward_layer = LSTM(
             units, return_sequences=True, go_backwards=True, name="lstm/backward"
-        )(input_layer)
+        )
+        forward = forward_layer(input_layer)
+        backward = backward_layer(input_layer)
         return Concatenate(name=name)([forward, backward, input_layer])
 
     return func
@@ -66,16 +68,55 @@ def math_estimator(features, labels, mode, params):
     # Sequential feature layers
     #
     sequence_features = {
-        FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
+        # FEATURE_TOKEN_TYPES: features[FEATURE_TOKEN_TYPES],
         FEATURE_TOKEN_VALUES: features[FEATURE_TOKEN_VALUES],
-        FEATURE_LAST_TOKEN_TYPES: features[FEATURE_LAST_TOKEN_TYPES],
-        FEATURE_LAST_TOKEN_VALUES: features[FEATURE_LAST_TOKEN_VALUES],
+        # FEATURE_LAST_TOKEN_TYPES: features[FEATURE_LAST_TOKEN_TYPES],
+        # FEATURE_LAST_TOKEN_VALUES: features[FEATURE_LAST_TOKEN_VALUES],
     }
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="inputs/sequence"
     )(sequence_features)
     sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
     sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
+    # sess = tf.compat.v1.Session()
+    # with sess.as_default():
+
+    # def process_nodes(nodes):
+    #     nodes = tf.expand_dims(nodes, 0)
+    #     return tf.squeeze(BiDirectionalLSTM(12)(nodes))
+
+    # sequence_inputs = tf.map_fn(process_nodes, sequence_inputs)
+    # seq_len = tf.cast(tf.squeeze(sequence_length), tf.int32)
+    # sequence_outputs = tf.TensorArray(dtype=tf.int32, size=seq_len)
+    # sequence_inputs = tf.unstack(sequence_inputs, axis=1)
+
+    # def body(i, inputs, outputs):
+    #     import tensorflow as tf
+    #     from tensorflow.keras.layers import LSTM, Concatenate
+
+    #     lstm_units = 12
+
+    #     local_input = inputs[:, i, :]
+    #     local_input = tf.expand_dims(local_input, 1)
+    #     forward_lstm = LSTM(lstm_units, return_sequences=False, name="lstm/forward")
+    #     backward_lstm = LSTM(
+    #         lstm_units, return_sequences=False, go_backwards=True, name="lstm/backward"
+    #     )
+    #     forward = forward_lstm(local_input)
+    #     backward = backward_lstm(local_input)
+    #     local_input = Concatenate()([forward, backward])
+    #     return i + 1, inputs, outputs.write(i, local_input)
+
+    # def condition(i, inputs, outputs):
+    #     return i < seq_len
+
+    # # Process sequences
+    # _, _, output_array = tf.while_loop(
+    #     condition, body, [0, sequence_inputs, sequence_outputs]
+    # )
+
+    # sequence_inputs = BiDirectionalLSTM(12)(output_array.stack())
+    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     #
     # Context input layers

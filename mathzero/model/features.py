@@ -23,18 +23,18 @@ def parse_example_for_training(example, max_sequence=None):
     inputs = {}
     ex_input = example["inputs"]
     if max_sequence is not None:
-        inputs[FEATURE_TOKEN_TYPES] = pad_array(
-            ex_input[FEATURE_TOKEN_TYPES], max_sequence, TokenEOF
-        )
+        # inputs[FEATURE_TOKEN_TYPES] = pad_array(
+        #     ex_input[FEATURE_TOKEN_TYPES], max_sequence, TokenEOF
+        # )
         inputs[FEATURE_TOKEN_VALUES] = pad_array(
-            ex_input[FEATURE_TOKEN_VALUES], max_sequence, " "
+            ex_input[FEATURE_TOKEN_VALUES], max_sequence, ""
         )
-        inputs[FEATURE_LAST_TOKEN_TYPES] = pad_array(
-            ex_input[FEATURE_LAST_TOKEN_TYPES], max_sequence, TokenEOF
-        )
-        inputs[FEATURE_LAST_TOKEN_VALUES] = pad_array(
-            ex_input[FEATURE_LAST_TOKEN_VALUES], max_sequence, " "
-        )
+        # inputs[FEATURE_LAST_TOKEN_TYPES] = pad_array(
+        #     ex_input[FEATURE_LAST_TOKEN_TYPES], max_sequence, TokenEOF
+        # )
+        # inputs[FEATURE_LAST_TOKEN_VALUES] = pad_array(
+        #     ex_input[FEATURE_LAST_TOKEN_VALUES], max_sequence, ""
+        # )
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_TOKEN_TYPES])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
