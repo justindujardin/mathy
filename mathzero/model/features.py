@@ -1,5 +1,6 @@
 import numpy
 from mathzero.core.tokenizer import TokenEOF
+from mathzero.core.expressions import MathTypeKeys
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
 FEATURE_BWD_VECTORS = "bwd_vectors"
@@ -22,7 +23,7 @@ def parse_example_for_training(example, max_sequence=None):
     Returns: a tuple of(features, labels) """
     inputs = {}
     ex_input = example["inputs"]
-    pad_string = ""
+    pad_string = (MathTypeKeys["empty"], MathTypeKeys["empty"], MathTypeKeys["empty"])
     if max_sequence is not None:
         inputs[FEATURE_FWD_VECTORS] = pad_array(
             ex_input[FEATURE_FWD_VECTORS], max_sequence, pad_string

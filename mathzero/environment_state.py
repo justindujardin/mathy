@@ -2,7 +2,7 @@ import random
 import numpy
 from collections import namedtuple
 from .core.tree import STOP
-from .core.expressions import MathExpression
+from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
 from .training.problems import (
@@ -167,20 +167,17 @@ class MathEnvironmentState(object):
 
     def get_node_vectors(self, expression: MathExpression):
         """Get a set of context-sensitive vectors for a given expression"""
-
-        def node_type(input: MathExpression):
-            return input.__class__.__name__.lower().replace("expression", "")
-
         # pre-order is important to match up with how the Meta focus actions visit the tree
         # NOTE: see agent_actions or MetaAction
         nodes = expression.toList("preorder")
         vectors = []
         nodes_len = len(nodes)
         node_masks = []
+        pad_value = MathTypeKeys["empty"]
         for i, t in enumerate(nodes):
-            last = "" if i == 0 else node_type(nodes[i - 1])
-            next = "" if i > nodes_len - 2 else node_type(nodes[i + 1])
-            vectors.append((last, node_type(t), next))
+            last = pad_value if i == 0 else nodes[i - 1].type_id
+            next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
+            vectors.append((last, t.type_id, next))
         return vectors
 
     def to_input_features(self, return_batch=False):
@@ -193,17 +190,32 @@ class MathEnvironmentState(object):
         import tensorflow as tf
 
         expression = self.parser.parse(self.agent.problem)
+        # Padding value is a result tuple with empty values for prev/current/next
+        pad_value = (
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+        )
 
         # Generate context vectors for the current state's expression tree
         vectors = self.get_node_vectors(expression)
+
+        # Provide context vectors for the previous state if there is one
+        last_vectors = [pad_value] * len(vectors)
+        if len(self.agent.history) > 1:
+            last_expression = self.parser.parse(self.agent.history[-2].raw)
+            last_vectors = self.get_node_vectors(last_expression)
+
+            # If the sequences differ in length, pad to the longest one
+            if len(last_vectors) != len(vectors):
+                max_len = max(len(last_vectors), len(vectors))
+                last_vectors = pad_array(last_vectors, max_len, pad_value)
+                vectors = pad_array(vectors, max_len, pad_value)
+
+        # After padding is done, generate reversed vectors for the bilstm
         vectors_reversed = vectors[:]
         vectors_reversed.reverse()
 
-        # Provide context vectors for the previous state if there is one
-        last_vectors = [("", "", "")] * len(vectors)
-        if len(self.agent.history) > 1:
-            last_expression = self.parser.parse(self.agent.history[-1].raw)
-            last_vectors = self.get_node_vectors(last_expression)
         last_vectors_reversed = last_vectors[:]
         last_vectors_reversed.reverse()
 

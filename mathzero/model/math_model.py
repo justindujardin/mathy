@@ -111,25 +111,25 @@ class MathModel:
         #
         self.feat_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_BWD_VECTORS, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_BWD_VECTORS, hash_bucket_size=128, dtype=tf.int8
             ),
             dimension=32,
         )
         self.feat_fwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_FWD_VECTORS, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_FWD_VECTORS, hash_bucket_size=128, dtype=tf.int8
             ),
             dimension=32,
         )
         self.feat_last_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_BWD_VECTORS, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_LAST_BWD_VECTORS, hash_bucket_size=128, dtype=tf.int8
             ),
             dimension=32,
         )
         self.feat_last_fwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_FWD_VECTORS, hash_bucket_size=128, dtype=tf.string
+                key=FEATURE_LAST_FWD_VECTORS, hash_bucket_size=128, dtype=tf.int8
             ),
             dimension=32,
         )

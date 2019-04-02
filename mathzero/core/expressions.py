@@ -9,12 +9,32 @@ OOO_ADDSUB = 0
 OOO_INVALID = -1
 
 
+MathTypeKeys = {
+    "empty": 0,
+    "negate": 1,
+    "equal": 2,
+    "add": 3,
+    "subtract": 4,
+    "multiply": 5,
+    "divide": 6,
+    "power": 7,
+    "constant": 8,
+    "variable": 9,
+    "abs": 10,
+    "sgn": 11,
+}
+
+
 class MathExpression(BinaryTreeNode):
     """A Basic MathExpression node"""
 
     @property
     def raw(self):
         return str(self)
+
+    @property
+    def type_id(self):
+        raise NotImplementedError("must be implemented in subclass")
 
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
@@ -283,6 +303,10 @@ class NegateExpression(UnaryExpression):
     """Negate an expression, e.g. `4` becomes `-4`"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["negate"]
+
+    @property
     def name(self):
         return "-"
 
@@ -440,6 +464,10 @@ class EqualExpression(BinaryExpression):
     """Evaluate equality of two expressions"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["equal"]
+
+    @property
     def name(self):
         return "="
 
@@ -453,6 +481,10 @@ class EqualExpression(BinaryExpression):
 
 class AddExpression(BinaryExpression):
     """Add one and two"""
+
+    @property
+    def type_id(self):
+        return MathTypeKeys["add"]
 
     @property
     def name(self):
@@ -474,6 +506,10 @@ class SubtractExpression(BinaryExpression):
     """Subtract one from two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["subtract"]
+
+    @property
     def name(self):
         return "-"
 
@@ -491,6 +527,10 @@ class SubtractExpression(BinaryExpression):
 
 class MultiplyExpression(BinaryExpression):
     """Multiply one and two"""
+
+    @property
+    def type_id(self):
+        return MathTypeKeys["multiply"]
 
     @property
     def name(self):
@@ -537,6 +577,10 @@ class DivideExpression(BinaryExpression):
     """Divide one by two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["divide"]
+
+    @property
     def name(self):
         return "/"
 
@@ -563,6 +607,10 @@ class PowerExpression(BinaryExpression):
     """Raise one to the power of two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["power"]
+
+    @property
     def name(self):
         return "^"
 
@@ -586,6 +634,10 @@ class PowerExpression(BinaryExpression):
 
 
 class ConstantExpression(MathExpression):
+    @property
+    def type_id(self):
+        return MathTypeKeys["constant"]
+
     def __init__(self, value=None):
         super().__init__()
         self.value = value
@@ -608,6 +660,10 @@ class ConstantExpression(MathExpression):
 
 
 class VariableExpression(MathExpression):
+    @property
+    def type_id(self):
+        return MathTypeKeys["variable"]
+
     def __init__(self, identifier=None):
         super().__init__()
         self.identifier = identifier
@@ -665,6 +721,10 @@ class AbsExpression(FunctionExpression):
     """Evaluates the absolute value of an expression."""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["abs"]
+
+    @property
     def name(self):
         return "abs"
 
@@ -680,6 +740,10 @@ class AbsExpression(FunctionExpression):
 
 
 class SgnExpression(FunctionExpression):
+    @property
+    def type_id(self):
+        return MathTypeKeys["sgn"]
+
     @property
     def name(self):
         return "sgn"
