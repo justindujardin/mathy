@@ -140,7 +140,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
     lessons = plan.lessons[:]
     num_solved = 0
     num_failed = 0
-    num_rollouts = 10
+    num_rollouts = 100
     num_exploration_moves = 0
     epsilon = 0
     eval_ltm_sample_size = 2048
@@ -182,7 +182,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
                 fore="blue",
             )
         )
-        mathy.args.epochs = 10
+        mathy.args.epochs = 25
         mathy.train(experience.short_term, experience.long_term, train_all=True)
 
     print(color("Evaluting model performance on exam questions!", fore="green"))

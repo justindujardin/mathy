@@ -78,45 +78,6 @@ def math_estimator(features, labels, mode, params):
     )(sequence_features)
     sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
     sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
-    # sess = tf.compat.v1.Session()
-    # with sess.as_default():
-
-    # def process_nodes(nodes):
-    #     nodes = tf.expand_dims(nodes, 0)
-    #     return tf.squeeze(BiDirectionalLSTM(12)(nodes))
-
-    # sequence_inputs = tf.map_fn(process_nodes, sequence_inputs)
-    # seq_len = tf.cast(tf.squeeze(sequence_length), tf.int32)
-    # sequence_outputs = tf.TensorArray(dtype=tf.int32, size=seq_len)
-    # sequence_inputs = tf.unstack(sequence_inputs, axis=1)
-
-    # def body(i, inputs, outputs):
-    #     import tensorflow as tf
-    #     from tensorflow.keras.layers import LSTM, Concatenate
-
-    #     lstm_units = 12
-
-    #     local_input = inputs[:, i, :]
-    #     local_input = tf.expand_dims(local_input, 1)
-    #     forward_lstm = LSTM(lstm_units, return_sequences=False, name="lstm/forward")
-    #     backward_lstm = LSTM(
-    #         lstm_units, return_sequences=False, go_backwards=True, name="lstm/backward"
-    #     )
-    #     forward = forward_lstm(local_input)
-    #     backward = backward_lstm(local_input)
-    #     local_input = Concatenate()([forward, backward])
-    #     return i + 1, inputs, outputs.write(i, local_input)
-
-    # def condition(i, inputs, outputs):
-    #     return i < seq_len
-
-    # # Process sequences
-    # _, _, output_array = tf.while_loop(
-    #     condition, body, [0, sequence_inputs, sequence_outputs]
-    # )
-
-    # sequence_inputs = BiDirectionalLSTM(12)(output_array.stack())
-    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     #
     # Context input layers
