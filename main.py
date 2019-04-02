@@ -1,5 +1,4 @@
 # coding: utf8
-"""Pre-train the math vectors to improve agent performance"""
 import json
 import os
 import tempfile
@@ -88,89 +87,6 @@ def move_around_interleaved_like_terms(number_terms, number_pairs):
     return " + ".join(terms), complexity
 
 
-commutative_lessons = build_lesson_plan(
-    "moving_terms_around_1",
-    [
-        LessonExercise(
-            lesson_name="inner_blockers",
-            problem_count=6,
-            problem_fn=lambda: move_around_blockers_one(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="inner_blockers_difficult",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_one(4),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="outer_inner_blockers",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_two(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="outer_inner_blockers_difficult",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_two(4),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="interleaved_like_terms",
-            problem_count=1,
-            problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-    ],
-)
-
-
-commutative_lessons_two = build_lesson_plan(
-    "moving_terms_around_2",
-    [
-        LessonExercise(
-            lesson_name="inner_blockers",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_one(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="inner_blockers_difficult",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_one(4),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="outer_inner_blockers",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_two(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="outer_inner_blockers_difficult",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_two(4),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="interleaved_like_terms",
-            problem_count=1,
-            problem_fn=lambda: move_around_interleaved_like_terms(3, 2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-    ],
-)
-
 quick_test_plan = build_lesson_plan(
     "dev_test",
     [
@@ -229,29 +145,45 @@ lesson_plan = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
-    ],
-)
-lesson_two = build_lesson_plan(
-    "combine_like_terms_2",
-    [
-        LessonExercise(
-            lesson_name="five_terms",
-            problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(5),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="six_terms",
-            problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(6),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
         LessonExercise(
             lesson_name="eight_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(8),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="inner_blockers",
+            problem_count=6,
+            problem_fn=lambda: move_around_blockers_one(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="inner_blockers_difficult",
+            problem_count=1,
+            problem_fn=lambda: move_around_blockers_one(4),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="outer_inner_blockers",
+            problem_count=1,
+            problem_fn=lambda: move_around_blockers_two(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="outer_inner_blockers_difficult",
+            problem_count=1,
+            problem_fn=lambda: move_around_blockers_two(4),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="interleaved_like_terms",
+            problem_count=1,
+            problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
@@ -318,7 +250,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         num_solved = 0
         num_failed = 0
 
-        plan = commutative_lessons
+        plan = lesson_plan
         # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:
