@@ -18,10 +18,43 @@ MathTypeKeys = {
     "multiply": 5,
     "divide": 6,
     "power": 7,
-    "constant": 8,
-    "variable": 9,
-    "abs": 10,
-    "sgn": 11,
+    "constant_0": 1000,
+    "constant_1": 1001,
+    "constant_2": 1002,
+    "constant_3": 1003,
+    "constant_4": 1004,
+    "constant_5": 1005,
+    "constant_6": 1006,
+    "constant_7": 1007,
+    "constant_8": 1008,
+    "constant_9": 1009,
+    "variable": 2000,
+    "variable_a": 2001,
+    "variable_b": 2002,
+    "variable_c": 2003,
+    "variable_d": 2004,
+    "variable_e": 2005,
+    "variable_f": 2006,
+    "variable_g": 2007,
+    "variable_h": 2008,
+    "variable_i": 2009,
+    "variable_j": 2010,
+    "variable_k": 2011,
+    "variable_l": 2012,
+    "variable_m": 2013,
+    "variable_n": 2014,
+    "variable_o": 2015,
+    "variable_p": 2016,
+    "variable_q": 2017,
+    "variable_r": 2018,
+    "variable_s": 2019,
+    "variable_t": 2020,
+    "variable_u": 2021,
+    "variable_v": 2022,
+    "variable_w": 2023,
+    "variable_x": 2024,
+    "variable_y": 2025,
+    "variable_z": 2026,
 }
 
 
@@ -636,7 +669,8 @@ class PowerExpression(BinaryExpression):
 class ConstantExpression(MathExpression):
     @property
     def type_id(self):
-        return MathTypeKeys["constant"]
+        id = f"_{int(self.value % 10)}" if self.value is not None else ""
+        return MathTypeKeys[f"constant{id}"]
 
     def __init__(self, value=None):
         super().__init__()
@@ -662,7 +696,8 @@ class ConstantExpression(MathExpression):
 class VariableExpression(MathExpression):
     @property
     def type_id(self):
-        return MathTypeKeys["variable"]
+        id = f"_{self.identifier.lower()[0]}" if self.identifier is not None else ""
+        return MathTypeKeys[f"variable{id}"]
 
     def __init__(self, identifier=None):
         super().__init__()
