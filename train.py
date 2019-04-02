@@ -144,7 +144,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
     num_exploration_moves = 0
     epsilon = 0
     eval_ltm_sample_size = 2048
-    initial_train_iterations = 10
+    initial_train_iterations = 12
     controller = MathGame(verbose=True)
     input_examples = Path(examples_file)
     model_dir = Path(model_dir)
@@ -182,7 +182,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
                 fore="blue",
             )
         )
-        mathy.args.epochs = 25
+        mathy.args.epochs = initial_train_iterations
         mathy.train(experience.short_term, experience.long_term, train_all=True)
 
     print(color("Evaluting model performance on exam questions!", fore="green"))

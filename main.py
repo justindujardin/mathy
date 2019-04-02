@@ -190,6 +190,47 @@ lesson_plan = build_lesson_plan(
     ],
 )
 
+lesson_quick = build_lesson_plan(
+    "combine_like_terms_1",
+    [
+        LessonExercise(
+            lesson_name="two_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+        ),
+        LessonExercise(
+            lesson_name="three_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+        ),
+        LessonExercise(
+            lesson_name="inner_blockers",
+            problem_count=6,
+            problem_fn=lambda: move_around_blockers_one(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="outer_inner_blockers",
+            problem_count=1,
+            problem_fn=lambda: move_around_blockers_two(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+        LessonExercise(
+            lesson_name="interleaved_like_terms",
+            problem_count=1,
+            problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+        ),
+    ],
+)
+
 
 @plac.annotations(
     model_dir=(
@@ -250,7 +291,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         num_solved = 0
         num_failed = 0
 
-        plan = lesson_plan
+        plan = lesson_quick
         # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:

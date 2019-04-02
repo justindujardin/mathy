@@ -226,11 +226,11 @@ class MathEnvironmentState(object):
 
         return {
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
-            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
+            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
             FEATURE_MOVE_COUNTER: maybe_wrap(
                 int(self.max_moves - self.agent.moves_remaining)
             ),
