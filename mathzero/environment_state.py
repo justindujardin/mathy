@@ -18,6 +18,7 @@ from .model.features import (
     FEATURE_MOVES_REMAINING,
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
+    FEATURE_FOCUS_INDEX,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     pad_array,
@@ -225,6 +226,7 @@ class MathEnvironmentState(object):
 
         return {
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
+            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),

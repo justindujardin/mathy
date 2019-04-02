@@ -3,6 +3,7 @@ from queue import Empty
 from threading import Thread
 from mathzero.model.features import (
     FEATURE_FWD_VECTORS,
+    FEATURE_FOCUS_INDEX,
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -79,6 +80,7 @@ class MathPredictor(object):
             FEATURE_BWD_VECTORS: tf.int8,
             FEATURE_LAST_FWD_VECTORS: tf.int8,
             FEATURE_LAST_BWD_VECTORS: tf.int8,
+            FEATURE_FOCUS_INDEX: tf.int8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

@@ -3,6 +3,7 @@ from mathzero.core.tokenizer import TokenEOF
 from mathzero.core.expressions import MathTypeKeys
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
+FEATURE_FOCUS_INDEX = "focus_index"
 FEATURE_BWD_VECTORS = "bwd_vectors"
 FEATURE_LAST_FWD_VECTORS = "fwd_last_vectors"
 FEATURE_LAST_BWD_VECTORS = "bwd_last_vectors"
@@ -39,6 +40,7 @@ def parse_example_for_training(example, max_sequence=None):
         )
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
+    inputs[FEATURE_FOCUS_INDEX] = ex_input[FEATURE_FOCUS_INDEX]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
     outputs = {

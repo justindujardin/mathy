@@ -4,6 +4,7 @@ from ..environment_state import INPUT_EXAMPLES_FILE_NAME
 from ..model.features import (
     FEATURE_NODE_COUNT,
     FEATURE_FWD_VECTORS,
+    FEATURE_FOCUS_INDEX,
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -29,6 +30,7 @@ def make_training_input_fn(examples, batch_size):
             FEATURE_BWD_VECTORS: tf.int8,
             FEATURE_LAST_FWD_VECTORS: tf.int8,
             FEATURE_LAST_BWD_VECTORS: tf.int8,
+            FEATURE_FOCUS_INDEX: tf.int8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

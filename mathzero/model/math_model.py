@@ -18,6 +18,7 @@ from ..model.math_predictor import MathPredictor
 from ..model.features import (
     pad_array,
     FEATURE_FWD_VECTORS,
+    FEATURE_FOCUS_INDEX,
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -91,6 +92,9 @@ class MathModel:
         self.f_moves_remaining = tf.feature_column.numeric_column(
             key=FEATURE_MOVES_REMAINING, dtype=tf.int16
         )
+        self.f_focus_index = tf.feature_column.numeric_column(
+            key=FEATURE_FOCUS_INDEX, dtype=tf.int8
+        )
         self.f_node_count = tf.feature_column.numeric_column(
             key=FEATURE_NODE_COUNT, dtype=tf.int16
         )
@@ -101,6 +105,7 @@ class MathModel:
         )
         self.feature_columns = [
             self.f_problem_type,
+            self.f_focus_index,
             self.f_node_count,
             self.f_move_count,
             self.f_moves_remaining,
