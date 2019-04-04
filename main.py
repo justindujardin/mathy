@@ -34,7 +34,7 @@ from datetime import timedelta
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
 
-moves_per_complexity = 4
+moves_per_complexity = 6
 
 
 def get_blocker(num_blockers=1, exclude_vars=[]):
@@ -260,13 +260,14 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     import tensorflow as tf
 
     eval_interval = 2
+    experience_per_lesson = 64
     initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0
     counter = 0
     controller = MathGame(verbose=True)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
-    experience = MathExperience(mathy.model_dir, 256)
+    experience = MathExperience(mathy.model_dir, experience_per_lesson)
     mathy.start()
 
     if initial_train is True:
@@ -320,7 +321,9 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
             lesson = lessons.pop(0)
             controller.lesson = lesson
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
-            for i in range(lesson.problem_count):
+            # Fill up a certain amount of experience per problem type
+            lesson_experience_count = 0
+            while lesson_experience_count < experience_per_lesson:
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False
                 )
@@ -360,6 +363,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
 
                 elapsed = time.time() - start
                 episode_examples, episode_reward, is_win = final_result
+                lesson_experience_count += len(episode_examples)
                 if is_win:
                     num_solved = num_solved + 1
                     outcome = "solved"

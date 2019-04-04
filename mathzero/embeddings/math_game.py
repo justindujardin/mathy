@@ -15,16 +15,7 @@ from ..core.rules import (
 from ..core.util import getTerms, has_like_terms, isPreferredTermForm
 from ..environment_state import MathEnvironmentState
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
-from ..util import (
-    REWARD_LOSE,
-    REWARD_PREVIOUS_LOCATION,
-    REWARD_INVALID_ACTION,
-    REWARD_NOT_HELPFUL_MOVE,
-    REWARD_TIMESTEP,
-    REWARD_NEW_LOCATION,
-    REWARD_WIN,
-    is_terminal_transition,
-)
+from ..util import GameRewards, is_terminal_transition
 from tf_agents.environments import time_step
 from ..agent_actions import VisitBeforeAction, VisitAfterAction, MetaAction
 
@@ -60,9 +51,9 @@ class MathGame:
         # >>> discount([-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, 1.0],0.7)
         # array([0.0882373, 0.140339 , 0.21477  , 0.3211   , 0.473    , 0.69     ,
         #        1.       ], dtype=float32)
-        # UPDATE: setting back to 0.99 because the eps are longer when manipulating
+        # UPDATE: setting back to 0.90 because the eps are longer when manipulating
         #         focus token explicitly
-        self.discount = 0.99
+        self.discount = 0.90
         self.verbose = verbose
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
@@ -256,12 +247,12 @@ class MathGame:
                 if not isPreferredTermForm(term):
                     is_win = False
             if is_win:
-                return time_step.termination(features, REWARD_WIN)
+                return time_step.termination(features, GameRewards.WIN)
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
         if env_state.agent.moves_remaining <= 0:
-            return time_step.termination(features, REWARD_LOSE)
+            return time_step.termination(features, GameRewards.LOSE)
 
         # The agent is penalized for returning to a previous state.
         for key, group in groupby(
@@ -273,12 +264,28 @@ class MathGame:
                 continue
 
             return time_step.transition(
-                features, reward=REWARD_PREVIOUS_LOCATION, discount=self.discount
+                features, reward=GameRewards.PREVIOUS_LOCATION, discount=self.discount
             )
+
+        # NOTE: perhaps right here is a good point for an abstraction around custom rules
+        #       that generate different agent reward values based on game types.
+        if len(agent.history) > 0:
+            last_timestep = agent.history[-1]
+            rule = self.available_rules[last_timestep.action]
+            if isinstance(rule, MetaAction):
+                return time_step.transition(
+                    features,
+                    reward=GameRewards.NOT_HELPFUL_MOVE,
+                    discount=self.discount,
+                )
+            elif isinstance(rule, ConstantsSimplifyRule):
+                return time_step.transition(
+                    features, reward=GameRewards.HELPFUL_MOVE, discount=self.discount
+                )
 
         # We're in a new state, and the agent is a little older. Minus reward!
         return time_step.transition(
-            features, reward=REWARD_TIMESTEP, discount=self.discount
+            features, reward=GameRewards.TIMESTEP, discount=self.discount
         )
 
     def to_hash_key(self, env_state: MathEnvironmentState):

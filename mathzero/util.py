@@ -3,13 +3,18 @@ from tf_agents.environments import time_step
 
 # From TZ: "my rule of thumb is win/loss = +/-1, and everything else is determined in orders of magnitude of importance
 # so for instance, my timestep penalty might be -0.01, picking up a gem or something might be +0.1"
-REWARD_LOSE = -1
-REWARD_WIN = 1
-REWARD_TIMESTEP = -0.01
-REWARD_NEW_LOCATION = 0.001
-REWARD_NOT_HELPFUL_MOVE = -0.01
-REWARD_PREVIOUS_LOCATION = -0.02
-REWARD_INVALID_ACTION = -0.02
+
+
+class GameRewards:
+    """Game reward constant values"""
+
+    LOSE = -1
+    WIN = 1
+    TIMESTEP = -0.01
+    NEW_LOCATION = 0.001
+    NOT_HELPFUL_MOVE = -0.01
+    PREVIOUS_LOCATION = -0.02
+    INVALID_ACTION = -0.02
 
 
 def is_terminal_transition(transition: time_step.TimeStep):
@@ -17,11 +22,11 @@ def is_terminal_transition(transition: time_step.TimeStep):
 
 
 def is_win_reward(reward):
-    return reward == REWARD_WIN
+    return reward == GameRewards.WIN
 
 
 def is_lose_reward(reward):
-    return reward == REWARD_LOSE
+    return reward == GameRewards.LOSE
 
 
 def discount(r, gamma=0.99):

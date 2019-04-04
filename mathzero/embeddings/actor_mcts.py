@@ -5,13 +5,7 @@ from random import shuffle
 from sys import stdin
 import numpy
 from ..environment_state import MathEnvironmentState
-from ..util import (
-    REWARD_LOSE,
-    REWARD_WIN,
-    discount,
-    is_terminal_transition,
-    normalize_rewards,
-)
+from ..util import discount, is_terminal_transition, normalize_rewards
 from ..training.mcts import MCTS
 from .math_game import MathGame
 from ..core.expressions import MathExpression

@@ -31,7 +31,7 @@ from ..model.features import (
 
 class NetConfig:
     def __init__(
-        self, lr=0.01, dropout=0.2, epochs=1, batch_size=256, log_frequency=250
+        self, lr=0.003, dropout=0.2, epochs=4, batch_size=512, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -50,7 +50,7 @@ class MathModel:
         init_model_dir=None,
         init_model_overwrite=False,
         embeddings_dimensions=256,
-        long_term_size=2048,
+        long_term_size=4096,
         is_eval_model=False,
     ):
         import tensorflow as tf
