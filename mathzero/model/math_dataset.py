@@ -26,20 +26,17 @@ def make_training_input_fn(examples, batch_size):
 
     output_types = (
         {
-            FEATURE_FWD_VECTORS: tf.int8,
-            FEATURE_BWD_VECTORS: tf.int8,
-            FEATURE_LAST_FWD_VECTORS: tf.int8,
-            FEATURE_LAST_BWD_VECTORS: tf.int8,
-            FEATURE_FOCUS_INDEX: tf.int8,
+            FEATURE_FWD_VECTORS: tf.int16,
+            FEATURE_BWD_VECTORS: tf.int16,
+            FEATURE_LAST_FWD_VECTORS: tf.int16,
+            FEATURE_LAST_BWD_VECTORS: tf.int16,
+            FEATURE_FOCUS_INDEX: tf.int16,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,
             FEATURE_PROBLEM_TYPE: tf.int32,
         },
-        {
-            TRAIN_LABELS_TARGET_PI: tf.float32,
-            TRAIN_LABELS_TARGET_VALUE: tf.float32,
-        },
+        {TRAIN_LABELS_TARGET_PI: tf.float32, TRAIN_LABELS_TARGET_VALUE: tf.float32},
     )
 
     lengths = [len(l["inputs"][FEATURE_BWD_VECTORS]) for l in examples]
@@ -57,7 +54,7 @@ def make_training_input_fn(examples, batch_size):
         dataset = tf.data.Dataset.from_generator(
             _lazy_examples, output_types=output_types
         )
-        # Shuffled from long-term memory  
+        # Shuffled from long-term memory
         # dataset = dataset.shuffle(50000)
         dataset = dataset.repeat()
         dataset = dataset.batch(batch_size=batch_size)

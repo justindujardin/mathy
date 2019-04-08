@@ -11,6 +11,38 @@ from ..model.features import (
 from ..environment_state import to_sparse_tensor
 from ..model.math_attention import attention
 
+import tensorflow as tf
+
+
+class BahdanauAttention(tf.keras.Model):
+    """Attention from: https://www.tensorflow.org/alpha/tutorials/sequences/image_captioning#model"""
+
+    def __init__(self, units):
+        super(BahdanauAttention, self).__init__()
+        self.W1 = tf.keras.layers.Dense(units)
+        self.W2 = tf.keras.layers.Dense(units)
+        self.V = tf.keras.layers.Dense(1)
+
+    def call(self, features, hidden):
+        # features(CNN_encoder output) shape == (batch_size, 64, embedding_dim)
+
+        # hidden shape == (batch_size, hidden_size)
+        # hidden_with_time_axis shape == (batch_size, 1, hidden_size)
+        hidden_with_time_axis = tf.expand_dims(hidden, 1)
+
+        # score shape == (batch_size, 64, hidden_size)
+        score = tf.nn.tanh(self.W1(features) + self.W2(hidden_with_time_axis))
+
+        # attention_weights shape == (batch_size, 64, 1)
+        # we get 1 at the last axis because we are applying score to self.V
+        attention_weights = tf.nn.softmax(self.V(score), axis=1)
+
+        # context_vector shape after sum == (batch_size, hidden_size)
+        context_vector = attention_weights * features
+        context_vector = tf.reduce_sum(context_vector, axis=1)
+
+        return context_vector, attention_weights
+
 
 def ResidualDenseLayer(units, name="residual_block"):
     """Dense layer with residual input concatenation for help with backpropagation"""
@@ -32,19 +64,29 @@ def ResidualDenseLayer(units, name="residual_block"):
     return func
 
 
-def BiDirectionalLSTM(units, name="bi_lstm_stack", return_sequences=True):
+def BiDirectionalLSTM(units, name="bi_lstm_stack", state=True):
     """Bi-directional LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
-    from tensorflow.keras.layers import LSTM, Concatenate
+    from tensorflow.keras.layers import LSTM, Concatenate, Add
 
     def func(input_layer):
-        forward_layer = LSTM(units, return_sequences=True, name="lstm/forward")
-        backward_layer = LSTM(
-            units, return_sequences=True, go_backwards=True, name="lstm/backward"
+        forward_layer = LSTM(
+            units, return_sequences=True, return_state=True, name="lstm/forward"
         )
-        forward = forward_layer(input_layer)
-        backward = backward_layer(input_layer)
-        return Concatenate(name=name)([forward, backward, input_layer])
+        backward_layer = LSTM(
+            units,
+            return_sequences=True,
+            go_backwards=True,
+            return_state=True,
+            name="lstm/backward",
+        )
+        lstm_fwd, state_h_fwd, state_c_fwd = forward_layer(input_layer)
+        lstm_bwd, state_h_bwd, state_c_bwd = backward_layer(input_layer)
+
+        return (
+            Add(name=f"{name}_states")([state_h_fwd, state_h_bwd]),
+            Concatenate(name=name)([lstm_fwd, lstm_bwd, input_layer]),
+        )
 
     return func
 
@@ -53,7 +95,7 @@ def math_estimator(features, labels, mode, params):
     import tensorflow as tf
     from tensorflow.python.ops import init_ops
     from tensorflow.feature_column import make_parse_example_spec
-    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate
+    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate, Input
     from tensorflow.keras.experimental import SequenceFeatures
     from tensorflow_estimator.contrib.estimator.python import estimator
     from tensorflow.python.training import adam
@@ -63,7 +105,6 @@ def math_estimator(features, labels, mode, params):
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
     training = mode == tf.estimator.ModeKeys.TRAIN
-
     #
     # Sequential feature layers
     #
@@ -76,26 +117,77 @@ def math_estimator(features, labels, mode, params):
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="inputs/sequence"
     )(sequence_features)
-    sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
-    sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
+    hidden_states, sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
+    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     #
     # Context input layers
     #
-    features_layer = DenseFeatures(feature_columns, name="inputs/context")
-    context_inputs = features_layer(features)
-    # Concatenated context and sequence vectors
-    network = Concatenate(name="inputs/concat")([context_inputs, sequence_inputs])
+    # features_layer = DenseFeatures(feature_columns, name="inputs/context")
+    # context_inputs = features_layer(features)
+    # # Concatenated context and sequence vectors
+    # network = Concatenate(name="inputs/concat")([context_inputs, sequence_inputs])
 
-    with tf.compat.v1.variable_scope("residual_tower"):
-        for i in range(6):
-            network = ResidualDenseLayer(4)(network)
+    # with tf.compat.v1.variable_scope("residual_tower"):
+    #     for i in range(6):
+    #         network = ResidualDenseLayer(4)(network)
+
+    # sess = tf.compat.v1.Session()
+    # with sess.as_default():
+
+    count = 0
+
+    def process_nodes(input_layer):
+        from tensorflow.keras.layers import (
+            Activation,
+            Dense,
+            Concatenate,
+            BatchNormalization,
+        )
+
+        nonlocal count
+        count += 1
+        # attention_output, attention_weights = BahdanauAttention(256)(
+        #     input_layer, hidden_states
+        # )
+        dense_activation = Dense(action_size, activation="softmax")
+        return dense_activation(input_layer)
+
+    sequence_outputs = tf.map_fn(process_nodes, sequence_inputs)
+    # seq_len = tf.cast(tf.squeeze(sequence_length), tf.int32)
+    # action_predictions = tf.TensorArray(dtype=tf.float32, size=seq_len)
+    network = sequence_outputs
+
+    # def predict_actions(i, outputs):
+    #     import tensorflow as tf
+    #     from tensorflow.keras.layers import (
+    #         Activation,
+    #         Dense,
+    #         Concatenate,
+    #         BatchNormalization,
+    #     )
+
+    #     dense_activation = Dense(action_size, activation="softmax")
+    #     return i + 1, outputs.write(i, dense_activation(network))
+
+    # def condition(i, outputs):
+    #     return i < seq_len
+
+    # # Process sequences
+    # count, output_array = tf.while_loop(
+    #     condition, predict_actions, [0, action_predictions]
+    # )
+
+    # sequence_inputs = BiDirectionalLSTM(12)(output_array.stack())
+    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     # Concatenated context and sequence vectors
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
-    policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
-        network
-    )
+    policy_logits = sequence_outputs
+    # policy_logits = output_array.stack(name="policy_logits")
+    # policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
+    #     network
+    # )
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)
