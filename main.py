@@ -64,7 +64,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     import tensorflow as tf
 
     eval_interval = 2
-    experience_per_lesson = 10
+    experience_per_lesson = 64
     initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0
@@ -96,7 +96,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         num_solved = 0
         num_failed = 0
 
-        plan = lesson_quick
+        plan = lesson_plan
         # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
         if eval_run:
@@ -118,6 +118,11 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         model = mathy_eval if eval_run else mathy
 
         lessons = plan.lessons[:]
+
+        shuffle_lessons = True
+        if shuffle_lessons:
+            random.shuffle(lessons)
+        print("lesson order: {}".format([l.name for l in lessons]))
         # we fill this with episode rewards and when it's a fixed size we
         # dump the average value to tensorboard
         ep_reward_buffer = []
@@ -127,7 +132,8 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
-            while lesson_experience_count < experience_per_lesson:
+            iter_experience = experience_per_lesson if not eval_run else 1
+            while lesson_experience_count < iter_experience:
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False
                 )
@@ -178,8 +184,12 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
                     fore = "red"
                 print(
                     color(
-                        " -- duration({}) outcome({})".format(
-                            str(timedelta(seconds=elapsed)), outcome
+                        "{} [{}/{}] -- duration({}) outcome({})".format(
+                            lesson.name.upper(),
+                            lesson_experience_count,
+                            iter_experience,
+                            str(timedelta(seconds=elapsed)),
+                            outcome,
                         ),
                         fore=fore,
                         style="bright",
