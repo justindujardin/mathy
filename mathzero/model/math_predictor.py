@@ -76,11 +76,11 @@ class MathPredictor(object):
         import tensorflow as tf
 
         output_types = {
-            FEATURE_FWD_VECTORS: tf.int16,
-            FEATURE_BWD_VECTORS: tf.int16,
-            FEATURE_LAST_FWD_VECTORS: tf.int16,
-            FEATURE_LAST_BWD_VECTORS: tf.int16,
-            FEATURE_FOCUS_INDEX: tf.int16,
+            FEATURE_FWD_VECTORS: tf.uint8,
+            FEATURE_BWD_VECTORS: tf.uint8,
+            FEATURE_LAST_FWD_VECTORS: tf.uint8,
+            FEATURE_LAST_BWD_VECTORS: tf.uint8,
+            FEATURE_FOCUS_INDEX: tf.uint8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,

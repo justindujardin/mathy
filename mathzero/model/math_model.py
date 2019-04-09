@@ -13,6 +13,7 @@ from itertools import zip_longest
 from lib.progress.bar import Bar
 from lib.average_meter import AverageMeter
 from .math_estimator import math_estimator
+from ..core.expressions import MathTypeKeysMax
 from ..environment_state import MathEnvironmentState
 from ..model.math_predictor import MathPredictor
 from ..model.features import (
@@ -86,16 +87,16 @@ class MathModel:
         self.action_size = action_size
         self.args = NetConfig()
         self.f_move_count = tf.feature_column.numeric_column(
-            key=FEATURE_MOVE_COUNTER, dtype=tf.int16
+            key=FEATURE_MOVE_COUNTER, dtype=tf.uint8
         )
         self.f_moves_remaining = tf.feature_column.numeric_column(
-            key=FEATURE_MOVES_REMAINING, dtype=tf.int16
+            key=FEATURE_MOVES_REMAINING, dtype=tf.uint8
         )
         self.f_focus_index = tf.feature_column.numeric_column(
             key=FEATURE_FOCUS_INDEX, dtype=tf.int8
         )
         self.f_node_count = tf.feature_column.numeric_column(
-            key=FEATURE_NODE_COUNT, dtype=tf.int16
+            key=FEATURE_NODE_COUNT, dtype=tf.uint8
         )
         self.f_problem_type = tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_identity(
@@ -110,30 +111,32 @@ class MathModel:
             self.f_moves_remaining,
         ]
 
+        vocab_buckets = MathTypeKeysMax + 1
+
         #
         # Sequence features
         #
         self.feat_bwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_BWD_VECTORS, hash_bucket_size=128, dtype=tf.int16
+            tf.feature_column.sequence_categorical_column_with_identity(
+                key=FEATURE_BWD_VECTORS, num_buckets=vocab_buckets
             ),
             dimension=32,
         )
         self.feat_fwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_FWD_VECTORS, hash_bucket_size=128, dtype=tf.int16
+            tf.feature_column.sequence_categorical_column_with_identity(
+                key=FEATURE_FWD_VECTORS, num_buckets=vocab_buckets
             ),
             dimension=32,
         )
         self.feat_last_bwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_BWD_VECTORS, hash_bucket_size=128, dtype=tf.int16
+            tf.feature_column.sequence_categorical_column_with_identity(
+                key=FEATURE_LAST_BWD_VECTORS, num_buckets=vocab_buckets
             ),
             dimension=32,
         )
         self.feat_last_fwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_hash_bucket(
-                key=FEATURE_LAST_FWD_VECTORS, hash_bucket_size=128, dtype=tf.int16
+            tf.feature_column.sequence_categorical_column_with_identity(
+                key=FEATURE_LAST_FWD_VECTORS, num_buckets=vocab_buckets
             ),
             dimension=32,
         )
@@ -163,6 +166,7 @@ class MathModel:
             model_dir=self.model_dir,
             params={
                 "feature_columns": self.feature_columns,
+                "vocab_one_hot_depth": MathTypeKeysMax,
                 "sequence_columns": self.sequence_columns,
                 "embedding_dimensions": self.embedding_dimensions,
                 "action_size": self.action_size,

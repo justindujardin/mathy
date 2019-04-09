@@ -17,7 +17,6 @@ from ..environment_state import MathEnvironmentState, AgentTimeStep
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
 from ..util import GameRewards, is_terminal_transition
 from tf_agents.environments import time_step
-from ..agent_actions import VisitBeforeAction, VisitAfterAction, MetaAction
 
 
 class MathGame:
@@ -308,13 +307,7 @@ class MathGame:
         if len(agent.history) > 0:
             last_timestep = agent.history[-1]
             rule = self.get_rule_from_timestep(last_timestep)
-            if isinstance(rule, MetaAction):
-                return time_step.transition(
-                    features,
-                    reward=GameRewards.NOT_HELPFUL_MOVE,
-                    discount=self.discount,
-                )
-            elif isinstance(rule, ConstantsSimplifyRule):
+            if isinstance(rule, ConstantsSimplifyRule):
                 return time_step.transition(
                     features, reward=GameRewards.HELPFUL_MOVE, discount=self.discount
                 )

@@ -133,6 +133,8 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
             iter_experience = experience_per_lesson if not eval_run else 1
+            if lesson.num_observations is not None:
+                iter_experience = lesson.num_observations
             while lesson_experience_count < iter_experience:
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False

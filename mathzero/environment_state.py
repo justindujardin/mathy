@@ -42,34 +42,6 @@ class ContextualToken(namedtuple("ContextualToken", ["previous", "current", "nex
         return f"prev:{previous}, current:{current}, next:{next}"
 
 
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE: Need to switch from token input features to node input features
-# NOTE: so they have a 1:1 relationship with focus index
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-# NOTE:
-
-
 class MathAgentState(object):
     def __init__(
         self,

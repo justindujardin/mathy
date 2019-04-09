@@ -118,7 +118,6 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="inputs/sequence"
     )(sequence_features)
     hidden_states, sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
-    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     #
     # Context input layers
@@ -137,7 +136,6 @@ def math_estimator(features, labels, mode, params):
             Concatenate,
             BatchNormalization,
         )
-
         dense_activation = Dense(action_size, activation="softmax")
         return dense_activation(input_layer)
 
