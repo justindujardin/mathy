@@ -91,7 +91,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=1024,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="three_terms",
@@ -99,7 +99,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=1024,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="inner_blockers",
@@ -107,7 +107,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_one(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=64,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="four_terms",
@@ -115,7 +115,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=64,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="five_terms",
@@ -123,7 +123,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=512,
         ),
     ],
 )
