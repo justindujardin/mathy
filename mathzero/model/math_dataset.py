@@ -40,13 +40,15 @@ def make_training_input_fn(examples, batch_size):
     )
 
     lengths = [len(l["inputs"][FEATURE_BWD_VECTORS]) for l in examples]
+    pi_lengths = [len(l["policy"]) for l in examples]
 
     max_sequence = max(lengths)
+    max_pi_sequence = max(pi_lengths)
 
     def _lazy_examples():
         nonlocal max_sequence
         for ex in examples:
-            yield parse_example_for_training(ex, max_sequence, max_sequence)
+            yield parse_example_for_training(ex, max_sequence, max_pi_sequence)
 
     def _input_fn():
         nonlocal output_types

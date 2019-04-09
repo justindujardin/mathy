@@ -8,19 +8,25 @@
       "name": "MathZero (Train)",
       "type": "python",
       "request": "launch",
+      "debugStdLib": true,
+      "pythonPath": "${config:python.pythonPath}",
       "module": "train",
       "args": [
-        "/mnt/gcs/mzc/train_mathy_focus_one_tower_small/",
-        "/mnt/gcs/mzc/fixed/focus_actions/examples.jsonl",
-        "-n"
+        "/mnt/gcs/mzc/mathy_alpha_resnet_fix/",
+        "/mnt/gcs/mzc/mathy_alpha/train/examples.jsonl"
       ]
     },
     {
       "name": "MathZero (Dev Train)",
       "type": "python",
       "request": "launch",
+      "debugStdLib": true,
+      "pythonPath": "${config:python.pythonPath}",
       "module": "main",
-      "args": ["/mnt/gcs/mzc/dev/", "-v"]
+      "args": [
+        "/mnt/gcs/mzc/seq_predictions/",
+        "-v"
+      ]
     },
     {
       "name": "math_agent (sac)",
@@ -38,21 +44,32 @@
       "type": "python",
       "request": "launch",
       "module": "dqn",
-      "args": ["--root_dir=.training/dqn/"]
+      "args": [
+        "--root_dir=.training/dqn/"
+      ]
     },
     {
       "name": "Math Model Tests",
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--cov=mathzero", "--pyargs", "mathzero"]
+      "args": [
+        "--cov=mathzero",
+        "--pyargs",
+        "mathzero"
+      ]
     },
     {
       "name": "Math Tests (Focused)",
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--pyargs", "mathzero", "-k", "test_math_game_jd"]
+      "args": [
+        "--pyargs",
+        "mathzero",
+        "-k",
+        "test_math_game_jd"
+      ]
     },
     {
       "name": "Python: Current File",

@@ -64,7 +64,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     import tensorflow as tf
 
     eval_interval = 2
-    experience_per_lesson = 256
+    experience_per_lesson = 10
     initial_train_iterations = 10
     eval_ltm_sample_size = 2048
     episode_counter = 0

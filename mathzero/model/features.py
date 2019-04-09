@@ -42,8 +42,9 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
             pad_string,
             backwards=True,
         )
-        num_rules = len(policy_out[0])
-        policy_out = pad_array(policy_out, max_sequence, [0] * num_rules)
+    if max_policy_sequence is not None:
+        policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
+        policy_out = [[p] for p in policy_out]
 
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
