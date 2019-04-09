@@ -9,11 +9,10 @@
       "type": "python",
       "request": "launch",
       "debugStdLib": true,
-      "pythonPath": "${config:python.pythonPath}",
       "module": "train",
       "args": [
-        "/mnt/gcs/mzc/mathy_alpha_resnet_fix/",
-        "/mnt/gcs/mzc/mathy_alpha/train/examples.jsonl"
+        "/mnt/gcs/mzc/train_seq_predictions_one_hot/",
+        "/mnt/gcs/mzc/seq_predictions_one_hot/train/examples.jsonl"
       ]
     },
     {
@@ -21,10 +20,9 @@
       "type": "python",
       "request": "launch",
       "debugStdLib": true,
-      "pythonPath": "${config:python.pythonPath}",
       "module": "main",
       "args": [
-        "/mnt/gcs/mzc/seq_predictions/",
+        "/mnt/gcs/mzc/dev/",
         "-v"
       ]
     },

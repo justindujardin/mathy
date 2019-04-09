@@ -140,14 +140,16 @@ def math_estimator(features, labels, mode, params):
         return dense_activation(input_layer)
 
     sequence_outputs = tf.map_fn(process_nodes, sequence_inputs)
-    network = sequence_outputs
+    network = Concatenate(name="mixed_features")(
+        [attention(sequence_outputs, 4096), context_inputs]
+    )
 
     # Gather the last sequence output for value prediction
-    value_logits = Dense(1, activation="tanh", name="value_logits")(network[:, -1])
+    value_logits = Dense(1, activation="tanh", name="value_logits")(network)
     # Flatten policy logits to 1d arrays
-    policy_logits = network
+    policy_logits = sequence_outputs
     policy_shape = tf.shape(policy_logits)
-    policy_logits = tf.reshape(network, [policy_shape[0], -1, 1])
+    policy_logits = tf.reshape(policy_logits, [policy_shape[0], -1, 1])
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)
@@ -180,12 +182,12 @@ def math_estimator(features, labels, mode, params):
                 "policy/target", labels[TRAIN_LABELS_TARGET_PI]
             )
     # if labels is not None:
-        # sess = tf.compat.v1.Session()
-        # with sess.as_default():
-        # print("POLICY LOGITS", policy_logits.eval())
-        # print("POLICY LABELS", labels["policy"].eval())
-        # print("VALUE LOGITS", value_logits.eval())
-        # print("VALUE LABELS", labels["policy"].eval())
+    # sess = tf.compat.v1.Session()
+    # with sess.as_default():
+    # print("POLICY LOGITS", policy_logits.eval())
+    # print("POLICY LABELS", labels["policy"].eval())
+    # print("VALUE LOGITS", value_logits.eval())
+    # print("VALUE LABELS", labels["policy"].eval())
     # Multi-task prediction heads
     policy_head = estimator.head.regression_head(name="policy", label_dimension=1)
     value_head = estimator.head.regression_head(name="value", label_dimension=1)

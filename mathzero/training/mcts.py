@@ -126,12 +126,12 @@ class MCTS:
                 # If all valid moves were masked make all valid moves equally probable
                 # NOTE: This can happen if your model is under/over fitting.
                 # See more: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
-                print("All valid moves were masked, do workaround.")
-                print("problem: {}".format(env_state.agent.problem))
-                print("history: {}".format(env_state.agent.history))
-                print("save: {}".format(save_ps))
-                print("mask: {}".format(self.Ps[s]))
-                print("valids: {}".format(valids))
+                # print("All valid moves were masked, do workaround.")
+                # print("problem: {}".format(env_state.agent.problem))
+                # print("history: {}".format(env_state.agent.history))
+                # print("save: {}".format(save_ps))
+                # print("mask: {}".format(self.Ps[s]))
+                # print("valids: {}".format(valids))
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= numpy.sum(self.Ps[s])
 
