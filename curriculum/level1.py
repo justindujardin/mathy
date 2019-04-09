@@ -133,24 +133,17 @@ lesson_quick = build_lesson_plan(
     [
         LessonExercise(
             lesson_name="two_terms",
-            problem_count=4,
+            problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
         ),
         LessonExercise(
             lesson_name="three_terms",
-            problem_count=4,
+            problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="interleaved_like_terms",
-            problem_count=1,
-            problem_fn=lambda: move_around_interleaved_like_terms(2, 2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=200,
         ),
     ],
 )

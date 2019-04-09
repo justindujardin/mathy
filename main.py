@@ -142,7 +142,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
                 complexity_value = complexity * moves_per_complexity
                 controller.verbose = eval_run or verbose
                 if eval_run:
-                    num_rollouts = 150
+                    num_rollouts = 250
                     num_exploration_moves = 0
                     epsilon = 0
                 else:
