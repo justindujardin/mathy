@@ -46,7 +46,7 @@ class MCTS:
 
         s = self.game.to_hash_key(env_state)
         counts = []
-        for a in range(self.game.get_agent_actions_count()):
+        for a in range(self.game.get_agent_actions_count(env_state)):
             if (s, a) in self.Nsa:
                 counts.append(self.Nsa[(s, a)])
             else:

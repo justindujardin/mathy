@@ -109,9 +109,10 @@ class MathGame:
         if self.verbose:
             print(state)
 
-    def get_agent_actions_count(self):
+    def get_agent_actions_count(self, env_state: MathEnvironmentState):
         """Return number of all possible actions"""
-        return self.action_size
+        node_count = len(self.parser.parse(env_state.agent.problem).toList())
+        return self.action_size * node_count
 
     def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
         """
