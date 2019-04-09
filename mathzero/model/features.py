@@ -18,33 +18,40 @@ TRAIN_LABELS_TARGET_VALUE = "value"
 TRAIN_LABELS_AS_MATRIX = "matrix"
 
 
-def parse_example_for_training(example, max_sequence=None):
+def parse_example_for_training(example, max_sequence=None, max_policy_sequence=None):
     """Wrapper that accepts a single example to parse for feeding to the network.
     
     Returns: a tuple of(features, labels) """
     inputs = {}
     ex_input = example["inputs"]
     pad_string = (MathTypeKeys["empty"], MathTypeKeys["empty"], MathTypeKeys["empty"])
+    policy_out = example["policy"]
     if max_sequence is not None:
         inputs[FEATURE_FWD_VECTORS] = pad_array(
-            ex_input[FEATURE_FWD_VECTORS], max_sequence, pad_string
+            ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_string
         )
         inputs[FEATURE_BWD_VECTORS] = pad_array(
-            ex_input[FEATURE_BWD_VECTORS], max_sequence, pad_string, backwards=True
+            ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_string, backwards=True
         )
         inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
-            ex_input[FEATURE_LAST_FWD_VECTORS], max_sequence, pad_string
+            ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_string
         )
         inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
-            ex_input[FEATURE_LAST_BWD_VECTORS], max_sequence, pad_string, backwards=True
+            ex_input[FEATURE_LAST_BWD_VECTORS][:],
+            max_sequence,
+            pad_string,
+            backwards=True,
         )
+        num_rules = len(policy_out[0])
+        policy_out = pad_array(policy_out, max_sequence, [0] * num_rules)
+
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
     inputs[FEATURE_FOCUS_INDEX] = ex_input[FEATURE_FOCUS_INDEX]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
     outputs = {
-        TRAIN_LABELS_TARGET_PI: example["policy"],
+        TRAIN_LABELS_TARGET_PI: policy_out,
         TRAIN_LABELS_TARGET_VALUE: [example["reward"]],
     }
     return inputs, outputs

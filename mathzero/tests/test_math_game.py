@@ -2,6 +2,7 @@ from ..embeddings.math_game import MathGame
 from ..environment_state import MathEnvironmentState, MathAgentState
 from ..util import is_terminal_transition
 from math import isclose
+import random
 
 
 def test_math_game_init():
@@ -20,8 +21,13 @@ def test_math_game_jd():
     assert game is not None
     problem = "5y * 9x + 8z + 8x + 3z * 10y * 11x + 10y"
     env_state = MathEnvironmentState(problem=problem, max_moves=35)
-    valid_moves = game.get_valid_moves(env_state)
-    f = valid_moves
+    for i in range(3):
+        actions = game.get_valid_moves(env_state)
+        indices = [i for i, value in enumerate(actions) if value == 1]
+        random.shuffle(indices)
+        env_state, value = game.get_next_state(env_state, indices[0])
+    features = env_state.to_input_features()
+    f = features
 
 
 

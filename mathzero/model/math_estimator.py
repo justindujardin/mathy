@@ -10,7 +10,7 @@ from ..model.features import (
 )
 from ..environment_state import to_sparse_tensor
 from ..model.math_attention import attention
-
+import numpy
 import tensorflow as tf
 
 
@@ -123,19 +123,12 @@ def math_estimator(features, labels, mode, params):
     #
     # Context input layers
     #
-    # features_layer = DenseFeatures(feature_columns, name="inputs/context")
-    # context_inputs = features_layer(features)
-    # # Concatenated context and sequence vectors
-    # network = Concatenate(name="inputs/concat")([context_inputs, sequence_inputs])
-
-    # with tf.compat.v1.variable_scope("residual_tower"):
-    #     for i in range(6):
-    #         network = ResidualDenseLayer(4)(network)
-
-    # sess = tf.compat.v1.Session()
-    # with sess.as_default():
-
-    count = 0
+    features_layer = DenseFeatures(feature_columns, name="inputs/context")
+    context_inputs = features_layer(features)
+    # Concatenated context and sequence vectors
+    with tf.compat.v1.variable_scope("residual_tower"):
+        for i in range(6):
+            context_inputs = ResidualDenseLayer(4)(context_inputs)
 
     def process_nodes(input_layer):
         from tensorflow.keras.layers import (
@@ -145,49 +138,15 @@ def math_estimator(features, labels, mode, params):
             BatchNormalization,
         )
 
-        nonlocal count
-        count += 1
-        # attention_output, attention_weights = BahdanauAttention(256)(
-        #     input_layer, hidden_states
-        # )
         dense_activation = Dense(action_size, activation="softmax")
         return dense_activation(input_layer)
 
     sequence_outputs = tf.map_fn(process_nodes, sequence_inputs)
-    # seq_len = tf.cast(tf.squeeze(sequence_length), tf.int32)
-    # action_predictions = tf.TensorArray(dtype=tf.float32, size=seq_len)
     network = sequence_outputs
-
-    # def predict_actions(i, outputs):
-    #     import tensorflow as tf
-    #     from tensorflow.keras.layers import (
-    #         Activation,
-    #         Dense,
-    #         Concatenate,
-    #         BatchNormalization,
-    #     )
-
-    #     dense_activation = Dense(action_size, activation="softmax")
-    #     return i + 1, outputs.write(i, dense_activation(network))
-
-    # def condition(i, outputs):
-    #     return i < seq_len
-
-    # # Process sequences
-    # count, output_array = tf.while_loop(
-    #     condition, predict_actions, [0, action_predictions]
-    # )
-
-    # sequence_inputs = BiDirectionalLSTM(12)(output_array.stack())
-    # sequence_inputs = attention(sequence_inputs, 256, name="inputs/sequence_attention")
 
     # Concatenated context and sequence vectors
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
-    policy_logits = sequence_outputs
-    # policy_logits = output_array.stack(name="policy_logits")
-    # policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
-    #     network
-    # )
+    policy_logits = network
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)
@@ -219,6 +178,9 @@ def math_estimator(features, labels, mode, params):
             tf.compat.v1.summary.histogram(
                 "policy/target", labels[TRAIN_LABELS_TARGET_PI]
             )
+    if labels is not None:
+        print("POLICY LOGITS", policy_logits)
+        print("POLICY LABELS", labels["policy"])
     # Multi-task prediction heads
     policy_head = estimator.head.regression_head(
         name="policy", label_dimension=action_size

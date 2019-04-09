@@ -104,11 +104,17 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], action_v = self.predictor.predict(env_state)
+            valids = self.game.get_valid_moves(env_state)
+            num_valids = len(valids)
+            out_policy, action_v = self.predictor.predict(env_state)
+            out_policy = out_policy.flatten()
+            # Clip any predictions over batch-size padding tokens
+            if len(out_policy) > num_valids:
+                out_policy = out_policy[:num_valids]
+            self.Ps[s] = out_policy
             # print("calculating valid moves for: {}".format(s))
             # print("action_v = {}".format(action_v))
             # print("Ps = {}".format(self.Ps[s].shape))
-            valids = self.game.get_valid_moves(env_state)
             save_ps = self.Ps[s]
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = numpy.sum(self.Ps[s])
@@ -145,7 +151,7 @@ class MCTS:
 
         # pick the action with the highest upper confidence bound
         i = -1
-        for a in range(self.game.get_agent_actions_count()):
+        for a in range(len(valids)):
             if valids[a]:
                 i += 1
                 if (s, a) in self.Qsa:

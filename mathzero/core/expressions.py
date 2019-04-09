@@ -118,8 +118,8 @@ class MathExpression(BinaryTreeNode):
             self.visitInorder(visit_fn)
         elif visit == "preorder":
             self.visitPreorder(visit_fn)
-        elif visit == "preorder":
-            self.visitPreorder(visit_fn)
+        elif visit == "postorder":
+            self.visitPostorder(visit_fn)
         else:
             raise ValueError(f"invalid visit order: {visit}")
         return results

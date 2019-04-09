@@ -16,7 +16,6 @@ from .math_estimator import math_estimator
 from ..environment_state import MathEnvironmentState
 from ..model.math_predictor import MathPredictor
 from ..model.features import (
-    pad_array,
     FEATURE_FWD_VECTORS,
     FEATURE_FOCUS_INDEX,
     FEATURE_BWD_VECTORS,

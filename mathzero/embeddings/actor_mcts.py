@@ -46,12 +46,14 @@ class ActorMCTS:
         example_text = next_state.agent.problem
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
-        history.append([example_data, pi, r, example_text])
+        out_policy = numpy.reshape(pi, (-1, len(game.available_rules)))
+        # out_policy = pi
+        history.append([example_data, out_policy, r, example_text])
         # Output a single training example for per-step training
         train_example = {
             "reward": float(r),
             "before": state.agent.problem,
-            "policy": pi,
+            "policy": out_policy,
             "inputs": copy.deepcopy(example_data),
         }
         # Keep going if the reward signal is not terminal

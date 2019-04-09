@@ -180,20 +180,6 @@ lesson_quick = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="inner_blockers",
-            problem_count=6,
-            problem_fn=lambda: move_around_blockers_one(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="outer_inner_blockers",
-            problem_count=1,
-            problem_fn=lambda: move_around_blockers_two(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
         ),
         LessonExercise(

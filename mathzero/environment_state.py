@@ -168,9 +168,7 @@ class MathEnvironmentState(object):
 
     def get_node_vectors(self, expression: MathExpression):
         """Get a set of context-sensitive vectors for a given expression"""
-        # pre-order is important to match up with how the Meta focus actions visit the tree
-        # NOTE: see agent_actions or MetaAction
-        nodes = expression.toList("preorder")
+        nodes = expression.toList()
         vectors = []
         nodes_len = len(nodes)
         node_masks = []

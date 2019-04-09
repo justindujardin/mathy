@@ -13,7 +13,7 @@ from ..core.rules import (
     VariableMultiplyRule,
 )
 from ..core.util import getTerms, has_like_terms, isPreferredTermForm
-from ..environment_state import MathEnvironmentState
+from ..environment_state import MathEnvironmentState, AgentTimeStep
 from ..training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
 from ..util import GameRewards, is_terminal_transition
 from tf_agents.environments import time_step
@@ -60,8 +60,6 @@ class MathGame:
         self.problems = ProblemGenerator()
         self.lesson = lesson
         self.available_rules = [
-            VisitBeforeAction(),
-            VisitAfterAction(),
             ConstantsSimplifyRule(),
             CommutativeSwapRule(preferred=False),
             DistributiveMultiplyRule(),
@@ -130,33 +128,25 @@ class MathGame:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        operation = self.available_rules[action]
+        rule_count = len(self.available_rules)
+        total_actions = len(expression.toList()) * rule_count
+        action_index, token_index = self.get_action_indices(expression, action)
+        token = self.get_token_at_index(expression, token_index)
+        if action_index > rule_count - 1:
+            operation = "dangit!"
+        operation = self.available_rules[action_index]
 
-        if isinstance(operation, MetaAction):
-            # Move the agent focus around in the expression
-            out_focus = operation.visit(self, expression, agent.focus_index)
-            out_problem = str(expression)
-            change_name = operation.__class__.__name__
-        elif isinstance(operation, BaseRule):
-            token = self.get_token_at_index(expression, agent.focus_index)
-            if operation.canApplyTo(token) is False:
-                msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
-                raise Exception(msg.format(action, expression, type(operation)))
-            change = operation.applyTo(token.rootClone())
-            root = change.result.getRoot()
-            change_name = operation.name
-            out_problem = str(root)
+        if not isinstance(operation, BaseRule) or operation.canApplyTo(token) is False:
+            msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
+            raise Exception(msg.format(action, expression, type(operation)))
 
-            # NOTE: using rule.findNodes to mark the index of this node for use as new focus
-            change.rule.findNodes(root)
-            out_focus_node = change.result
-            if change.focus_node is not None:
-                out_focus_node = change.focus_node
-            out_focus = out_focus_node.r_index
-
+        change = operation.applyTo(token.rootClone())
+        root = change.result.getRoot()
+        change_name = operation.name
+        out_problem = str(root)
         out_env = env_state.encode_player(
             problem=out_problem,
-            focus_index=out_focus,
+            focus_index=0,
             action=action,
             moves_remaining=agent.moves_remaining - 1,
         )
@@ -171,12 +161,12 @@ class MathGame:
                     return "xx"
                 return self.available_rules[index].code.lower()
 
-            bucket = "{}".format(agent.focus_index).zfill(3)
+            token_idx = "{}".format(token_index).zfill(3)
             moves_left = str(agent.moves_remaining).zfill(2)
-            valid_moves = self.get_valid_moves(out_env)[: len(self.available_rules)]
+            valid_moves = self.get_valid_rules(out_env)
             move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
             moves = " ".join(move_codes)
-            print("{} | {} | {} | {}".format(moves, moves_left, bucket, output))
+            print("{} | {} | {} | {}".format(moves, moves_left, token_idx, output))
         transition = self.get_state_value(out_env, searching)
         return out_env, transition
 
@@ -194,7 +184,7 @@ class MathGame:
                 return STOP
             count = count + 1
 
-        expression.visitPreorder(visit_fn)
+        expression.visitInorder(visit_fn)
         return result
 
     def get_valid_moves(self, env_state: MathEnvironmentState):
@@ -209,17 +199,63 @@ class MathGame:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        focus_node = self.get_token_at_index(expression, agent.focus_index)
-        actions = self.get_actions_for_node(focus_node)
+        actions = self.get_actions_for_node(expression)
         return actions
 
+    def get_valid_rules(self, env_state: MathEnvironmentState):
+        """
+        Input:
+            env_state: current env_state
+
+        Returns:
+            validRules: a binary vector of length len(self.available_rules) for rules that can
+                        be validly applied to at least one node in the current state.
+        """
+        expression = self.parser.parse(env_state.agent.problem)
+        actions = [0] * len(self.available_rules)
+        for rule_index, rule in enumerate(self.available_rules):
+            nodes = rule.findNodes(expression)
+            actions[rule_index] = 0 if len(nodes) == 0 else 1
+        return actions
+
+    def get_action_indices_from_timestep(self, time_step: AgentTimeStep):
+        """Parse a timestep and return the unpacked action_index/token_index from the source action"""
+        expression = self.parser.parse(time_step.raw)
+        return self.get_action_indices(expression, time_step.action)
+
+    def get_action_indices(self, expression: MathExpression, action: int):
+        rule_count = len(self.available_rules)
+        nodes = expression.toList()
+        node_count = len(nodes)
+        total_actions = node_count * rule_count
+        # Rule index = val % rule_count
+        action_index = action % rule_count
+        # And the action at that token
+        token_index = int((action - action_index) / rule_count)
+        return action_index, token_index
+
+    def get_rule_from_timestep(self, time_step: AgentTimeStep):
+        action_index, token_index = self.get_action_indices_from_timestep(time_step)
+        return self.available_rules[action_index]
+
     def get_actions_for_node(self, expression: MathExpression):
-        actions = [0] * self.action_size
-        for index, action in enumerate(self.available_rules):
-            if isinstance(action, MetaAction):
-                actions[index] = 1
-            elif isinstance(action, BaseRule) and action.canApplyTo(expression):
-                actions[index] = 1
+        node_count = len(expression.toList())
+        rule_count = len(self.available_rules)
+        actions = [0] * rule_count * node_count
+
+        # Properties of numbers and common simplifications
+        for rule_index, rule in enumerate(self.available_rules):
+            nodes = rule.findNodes(expression)
+            for node in nodes:
+                action_index = (node.r_index * rule_count) + rule_index
+                actions[action_index] = 1
+
+                # print(
+                #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
+                #         action_index, rule.name, node.r_index, str(node)
+                #     )
+                # )
+
         return actions
 
     def get_state_value(self, env_state: MathEnvironmentState, searching=False):
@@ -271,7 +307,7 @@ class MathGame:
         #       that generate different agent reward values based on game types.
         if len(agent.history) > 0:
             last_timestep = agent.history[-1]
-            rule = self.available_rules[last_timestep.action]
+            rule = self.get_rule_from_timestep(last_timestep)
             if isinstance(rule, MetaAction):
                 return time_step.transition(
                     features,

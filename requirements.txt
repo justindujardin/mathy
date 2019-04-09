@@ -6,7 +6,7 @@ pytest-cov
 plac
 ujson
 tensorflow_estimator
-tensorflow>=2.0.0-alpha0
+tensorflow>=2.0.0a
 tf-agents-nightly
 tensorboard
 colr

@@ -18,7 +18,7 @@ class BaseRule:
             if result != None:
                 return STOP
 
-        expression.visitPreorder(visit_fn)
+        expression.visitInorder(visit_fn)
         return result
 
     def findNodes(self, expression, includeAll=True):
@@ -41,7 +41,7 @@ class BaseRule:
             if add:
                 return nodes.append(add)
 
-        expression.visitPreorder(visit_fn)
+        expression.visitInorder(visit_fn)
         return nodes
 
     def canApplyTo(self, node):
