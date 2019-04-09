@@ -50,7 +50,7 @@ class MathModel:
         init_model_dir=None,
         init_model_overwrite=False,
         embeddings_dimensions=256,
-        long_term_size=4096,
+        long_term_size=32768,
         is_eval_model=False,
     ):
         import tensorflow as tf
