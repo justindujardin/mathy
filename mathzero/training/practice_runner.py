@@ -5,12 +5,12 @@ from sys import stdin
 
 import numpy
 
-from .actor_mcts import ActorMCTS
+from ..embeddings.actor_mcts import ActorMCTS
 from ..core.expressions import MathExpression
 from ..environment_state import MathEnvironmentState
-from ..math_game import MathGame
+from ..embeddings.math_game import MathGame
 from ..model.math_model import MathModel
-from ..util import REWARD_LOSE, REWARD_WIN, is_terminal_reward, normalize_rewards
+from ..util import is_terminal_transition, normalize_rewards
 from .mcts import MCTS
 
 
@@ -47,6 +47,8 @@ class PracticeRunner:
         if config is None or not isinstance(config, RunnerConfig):
             raise ValueError("configuration must be an instance of RunnerConfig")
         self.config = config
+        self.game = None
+        self.predictor = None
 
     def get_game(self):
         raise NotImplementedError("game implementation must be provided by subclass")
@@ -64,13 +66,16 @@ class PracticeRunner:
         examples = []
         results = []
 
-        game = self.get_game()
-        predictor = self.get_predictor(game)
-        predictor.start()
+        if self.game is None:
+            self.game = self.get_game()
+        if self.predictor is not None:
+            self.predictor.stop()
+        self.predictor = self.get_predictor(self.game)
+        self.predictor.start()
         for i, args in enumerate(episode_args_list):
             start = time.time()
             episode_examples, episode_reward, is_win, episode_complexity = self.execute_episode(
-                i, game, predictor, **args
+                i, self.game, self.predictor, **args
             )
             duration = time.time() - start
             examples.extend(episode_examples)
@@ -82,7 +87,6 @@ class PracticeRunner:
             )
             results.append(episode_summary)
             self.episode_complete(i, episode_summary)
-        predictor.stop()
         return examples, results
 
     def execute_episode(self, episode, game, predictor, model):
@@ -122,28 +126,29 @@ class PracticeRunner:
         # updated_model.save_checkpoint(model_path)
         return True
 
-    def train(self, iteration, train_examples, model_path=None):
+    def train(
+        self, iteration, short_term_examples, long_term_examples, model_path=None
+    ):
         """
         Train the model at the given checkpoint path with the training examples and return
         the updated model or None if there was an error.
         """
-        return self.process_trained_model(
-            self.train_with_examples(iteration, train_examples, model_path),
-            iteration,
-            train_examples,
-            model_path,
+        return self.train_with_examples(
+            iteration, short_term_examples, long_term_examples, model_path
         )
 
-    def train_with_examples(self, iteration, train_examples, model_path=None):
-        game = self.get_game()
-        new_net = self.get_predictor(game, True)
+    def train_with_examples(
+        self, iteration, short_term_examples, long_term_examples, model_path=None
+    ):
+        if self.predictor is None:
+            raise ValueError("predictor must be initialized before training")
         # Train the model with the examples
-        if new_net.train(train_examples) == False:
+        if self.predictor.train(short_term_examples, long_term_examples) == False:
             print(
                 "There are not at least batch-size examples for training, more self-play is required..."
             )
             return None
-        return new_net
+        return self.predictor
 
 
 class ParallelPracticeRunner(PracticeRunner):
@@ -212,15 +217,25 @@ class ParallelPracticeRunner(PracticeRunner):
 
         return examples, results
 
-    def train(self, iteration, train_examples, model_path=None):
-        def train_and_save(output, i, examples, out_path):
-            update_model = self.train_with_examples(i, examples, out_path)
+    def train(
+        self, iteration, short_term_examples, long_term_examples, model_path=None
+    ):
+        def train_and_save(output, i, st_examples, lt_examples, out_path):
+            update_model = self.train_with_examples(
+                i, st_examples, lt_examples, out_path
+            )
             output.put(self.process_trained_model(update_model, i, examples, out_path))
 
         result_queue = Queue()
         proc = Process(
             target=train_and_save,
-            args=(result_queue, iteration, train_examples, model_path),
+            args=(
+                result_queue,
+                iteration,
+                short_term_examples,
+                long_term_examples,
+                model_path,
+            ),
         )
         proc.start()
         result = result_queue.get()

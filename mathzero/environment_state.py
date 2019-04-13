@@ -1,6 +1,8 @@
 import random
 import numpy
+from collections import namedtuple
 from .core.tree import STOP
+from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
 from .training.problems import (
@@ -10,20 +12,34 @@ from .training.problems import (
 )
 
 from .model.features import (
-    FEATURE_COLUMNS,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_TOKEN_VALUES,
+    FEATURE_BWD_VECTORS,
+    FEATURE_FWD_VECTORS,
+    FEATURE_FOCUS_INDEX,
+    FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    pad_array,
 )
+import json
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
+
+
+# Capture summarized environment state for a previous timestep so the agent can use
+# context from its history when making new predictions.
+AgentTimeStep = namedtuple("AgentTimeStep", ["raw", "focus", "action"])
+
+# Build a context sensitive vector for each token
+class ContextualToken(namedtuple("ContextualToken", ["previous", "current", "next"])):
+    def __str__(self):
+        return f"prev:{previous}, current:{current}, next:{next}"
 
 
 class MathAgentState(object):
@@ -33,25 +49,28 @@ class MathAgentState(object):
         problem: str,
         problem_type: int,
         reward=0.0,
-        focus=None,
         history=None,
+        focus_index=0,
+        last_action=None,
     ):
         self.moves_remaining = moves_remaining
+        self.focus_index = focus_index
         self.problem = problem
+        self.last_action = last_action
         self.reward = reward
         self.problem_type = problem_type
-        self.focus = random.uniform(0, 1) if focus is None else focus
         self.history = history[:] if history is not None else []
 
     @classmethod
     def copy(cls, from_state):
         return MathAgentState(
-            from_state.moves_remaining,
-            from_state.problem,
-            from_state.reward,
-            from_state.problem_type,
-            from_state.focus,
-            from_state.history,
+            moves_remaining=from_state.moves_remaining,
+            problem=from_state.problem,
+            reward=from_state.reward,
+            problem_type=from_state.problem_type,
+            history=from_state.history,
+            focus_index=from_state.focus_index,
+            last_action=from_state.last_action,
         )
 
 
@@ -90,13 +109,17 @@ class MathEnvironmentState(object):
     def clone(self):
         return MathEnvironmentState(state=self)
 
-    def encode_player(self, problem: str, moves_remaining: int):
+    def encode_player(
+        self, problem: str, action: int, focus_index: int, moves_remaining: int
+    ):
         """Encode a player's state into the env_state, and return the env_state"""
         out_state = MathEnvironmentState.copy(self)
         agent = out_state.agent
-        agent.history.append(problem)
+        agent.history.append(AgentTimeStep(problem, focus_index, action))
         agent.problem = problem
+        agent.action = action
         agent.moves_remaining = moves_remaining
+        agent.focus_index = focus_index
         return out_state
 
     def make_features(self, tokens_or_text):
@@ -115,6 +138,19 @@ class MathEnvironmentState(object):
                 "features can only be created from a token list or str input expression"
             )
 
+    def get_node_vectors(self, expression: MathExpression):
+        """Get a set of context-sensitive vectors for a given expression"""
+        nodes = expression.toList()
+        vectors = []
+        nodes_len = len(nodes)
+        node_masks = []
+        pad_value = MathTypeKeys["empty"]
+        for i, t in enumerate(nodes):
+            last = pad_value if i == 0 else nodes[i - 1].type_id
+            next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
+            vectors.append((last, t.type_id, next))
+        return vectors
+
     def to_input_features(self, return_batch=False):
         """Output a one element array of features that can be fed to the 
         neural network for prediction.
@@ -125,26 +161,51 @@ class MathEnvironmentState(object):
         import tensorflow as tf
 
         expression = self.parser.parse(self.agent.problem)
-        tokens = self.parser.tokenize(self.agent.problem)
-        types = []
-        values = []
-        for t in tokens:
-            types.append(t.type)
-            values.append(t.value)
+        # Padding value is a result tuple with empty values for prev/current/next
+        pad_value = (
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+        )
+
+        # Generate context vectors for the current state's expression tree
+        vectors = self.get_node_vectors(expression)
+
+        # Provide context vectors for the previous state if there is one
+        last_vectors = [pad_value] * len(vectors)
+        if len(self.agent.history) > 1:
+            last_expression = self.parser.parse(self.agent.history[-2].raw)
+            last_vectors = self.get_node_vectors(last_expression)
+
+            # If the sequences differ in length, pad to the longest one
+            if len(last_vectors) != len(vectors):
+                max_len = max(len(last_vectors), len(vectors))
+                last_vectors = pad_array(last_vectors, max_len, pad_value)
+                vectors = pad_array(vectors, max_len, pad_value)
+
+        # After padding is done, generate reversed vectors for the bilstm
+        vectors_reversed = vectors[:]
+        vectors_reversed.reverse()
+
+        last_vectors_reversed = last_vectors[:]
+        last_vectors_reversed.reverse()
 
         def maybe_wrap(value):
             nonlocal return_batch
             return [value] if return_batch else value
 
         return {
-            FEATURE_TOKEN_TYPES: maybe_wrap(types),
-            FEATURE_TOKEN_VALUES: maybe_wrap(values),
+            FEATURE_FWD_VECTORS: maybe_wrap(vectors),
+            FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
+            FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
+            FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
+            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
             FEATURE_MOVE_COUNTER: maybe_wrap(
-                self.max_moves - self.agent.moves_remaining
+                int(self.max_moves - self.agent.moves_remaining)
             ),
             FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
         }
 
 

@@ -12,127 +12,82 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Train and Eval SAC."""
-
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import os
 import time
 
-from absl import app
-from absl import flags
-from absl import logging
-
 import gin
+import gin.tf
 import tensorflow as tf
-
-from tf_agents.agents.ddpg import critic_network
-from tf_agents.agents.sac import sac_agent
+import tensorflow_probability as tfp
+from absl import app, flags, logging
+from tf_agents.agents.dqn import q_network, dqn_agent
 from tf_agents.drivers import dynamic_step_driver
-from tf_agents.environments import tf_py_environment
-from tf_agents.metrics import metric_utils
-from tf_agents.metrics import py_metrics
-from tf_agents.metrics import tf_metrics
-from tf_agents.metrics import tf_py_metric
-from tf_agents.policies.actor_policy import ActorPolicy
-from tf_agents.networks import normal_projection_network
+from tf_agents.distributions.masked import MaskedCategorical
+from tf_agents.environments import suite_gym, tf_py_environment
+from tf_agents.metrics import metric_utils, tf_metrics
+from tf_agents.networks import q_rnn_network
+from tf_agents.policies.q_policy import QPolicy
+from tf_agents.policies import policy_step, random_tf_policy, tf_policy
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
 
+from mathzero.agent.q.dqn_agent import DqnAgent
+from mathzero.agent.q.math_q_policy import MathQPolicy
 from mathzero.agent.math_environment import MathEnvironment
-from tf_agents.networks import actor_distribution_network
+from mathzero.agent.math_embeddings_estimator import math_embeddings_network
 
 flags.DEFINE_string(
     "root_dir",
     os.getenv("TEST_UNDECLARED_OUTPUTS_DIR"),
     "Root directory for writing logs/summaries/checkpoints.",
 )
-flags.DEFINE_string("model_dir", None, "Directory to load math encoding model from.")
+flags.DEFINE_integer(
+    "num_iterations", 100000, "Total number train/eval iterations to perform."
+)
+flags.DEFINE_multi_string("gin_file", None, "Paths to the gin-config files.")
+flags.DEFINE_multi_string("gin_param", None, "Gin binding parameters.")
 
 FLAGS = flags.FLAGS
 
 
-class MathObservationNormalizer(object):
-    def normalize(self, obervation):
-        print("normalize obs: ", obervation)
-        print("normalize obs: ", obervation.numpy())
-        return obervation
-
-
-class MathActorPolicy(ActorPolicy):
-    """Actor Policy with pre-processing to embed inputs into fixed-size vector observations."""
-
-    def __init__(
-        self,
-        time_step_spec=None,
-        action_spec=None,
-        actor_network=None,
-        info_spec=(),
-        clip=True,
-        name=None,
-    ):
-        super(MathActorPolicy, self).__init__(
-            time_step_spec=time_step_spec,
-            action_spec=action_spec,
-            actor_network=actor_network,
-            info_spec=info_spec,
-            observation_normalizer=MathObservationNormalizer(),
-            clip=clip,
-            name=name,
-        )
-
-
 @gin.configurable
-def normal_projection_net(
-    action_spec, init_action_stddev=0.35, init_means_output_factor=0.1
-):
-    del init_action_stddev
-    return normal_projection_network.NormalProjectionNetwork(
-        action_spec,
-        mean_transform=None,
-        state_dependent_std=True,
-        init_means_output_factor=init_means_output_factor,
-        std_transform=sac_agent.std_clip_transform,
-    )
-
-
 def train_eval(
     root_dir,
-    encoding_model_dir,
-    num_iterations=1000000,
-    actor_fc_layers=(256, 256),
-    critic_obs_fc_layers=None,
-    critic_action_fc_layers=None,
-    critic_joint_fc_layers=(128, 128),
+    env_name="CartPole-v0",
+    num_iterations=100000,
+    train_sequence_length=10,
+    # Params for QNetwork
+    fc_layer_params=(100,),
+    # Params for QRnnNetwork
+    input_fc_layer_params=(50,),
+    lstm_size=(20,),
+    output_fc_layer_params=(20,),
     # Params for collect
-    initial_collect_steps=100000,
+    initial_collect_steps=5000,
     collect_steps_per_iteration=1,
+    epsilon_greedy=0.1,
     replay_buffer_capacity=100000,
     # Params for target update
-    target_update_tau=0.005,
-    target_update_period=1,
+    target_update_tau=0.05,
+    target_update_period=5,
     # Params for train
     train_steps_per_iteration=1,
-    batch_size=256,
-    actor_learning_rate=3e-4,
-    critic_learning_rate=3e-4,
-    alpha_learning_rate=3e-4,
-    td_errors_loss_fn=tf.compat.v1.losses.mean_squared_error,
+    batch_size=64,
+    learning_rate=1e-3,
     gamma=0.99,
-    reward_scale_factor=50.0,
+    reward_scale_factor=1.0,
     gradient_clipping=None,
     use_tf_functions=True,
     # Params for eval
-    num_eval_episodes=100,
-    eval_interval=5000,
-    # Params for summaries and logging
-    train_checkpoint_interval=5000,
+    num_eval_episodes=10,
+    eval_interval=1000,
+    # Params for checkpoints
+    train_checkpoint_interval=10000,
     policy_checkpoint_interval=5000,
-    rb_checkpoint_interval=5000,
+    rb_checkpoint_interval=20000,
+    # Params for summaries and logging
     log_interval=1000,
     summary_interval=1000,
     summaries_flush_secs=10,
@@ -140,7 +95,7 @@ def train_eval(
     summarize_grads_and_vars=False,
     eval_metrics_callback=None,
 ):
-    """A sample train and eval for SAC."""
+    """A simple train and eval for DQN."""
     root_dir = os.path.expanduser(root_dir)
     train_dir = os.path.join(root_dir, "train")
     eval_dir = os.path.join(root_dir, "eval")
@@ -162,74 +117,70 @@ def train_eval(
     with tf.compat.v2.summary.record_if(
         lambda: tf.math.equal(global_step % summary_interval, 0)
     ):
-        math_env = MathEnvironment(agent="sac", model_dir=encoding_model_dir)
+        agent_type = "dqn"
+        math_env = MathEnvironment(agent_type)
         tf_env = tf_py_environment.TFPyEnvironment(math_env)
-        eval_tf_env = tf_py_environment.TFPyEnvironment(
-            MathEnvironment(agent="sac", model_dir=encoding_model_dir)
-        )
+        eval_tf_env = tf_py_environment.TFPyEnvironment(MathEnvironment(agent_type))
 
-        time_step_spec = tf_env.time_step_spec()
-        observation_spec = time_step_spec.observation
-        action_spec = tf_env.action_spec()
+        if train_sequence_length > 1:
+            q_net = q_rnn_network.QRnnNetwork(
+                tf_env.observation_spec(),
+                tf_env.action_spec(),
+                input_fc_layer_params=input_fc_layer_params,
+                lstm_size=lstm_size,
+                output_fc_layer_params=output_fc_layer_params,
+                preprocessing_layers=math_embeddings_network(math_env.action_size),
+            )
+        else:
+            q_net = q_network.QNetwork(
+                tf_env.observation_spec(),
+                tf_env.action_spec(),
+                fc_layer_params=fc_layer_params,
+                preprocessing_layers=math_embeddings_network(math_env.action_size),
+            )
 
-        actor_net = actor_distribution_network.ActorDistributionNetwork(
-            observation_spec,
-            action_spec,
-            fc_layer_params=actor_fc_layers,
-            continuous_projection_net=normal_projection_net,
-        )
-        critic_net = critic_network.CriticNetwork(
-            (observation_spec, action_spec),
-            observation_fc_layer_params=critic_obs_fc_layers,
-            action_fc_layer_params=critic_action_fc_layers,
-            joint_fc_layer_params=critic_joint_fc_layers,
-        )
-
-        tf_agent = sac_agent.SacAgent(
-            time_step_spec,
-            action_spec,
-            actor_network=actor_net,
-            critic_network=critic_net,
-            actor_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=actor_learning_rate
-            ),
-            critic_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=critic_learning_rate
-            ),
-            alpha_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=alpha_learning_rate
-            ),
-            # actor_policy_ctor=MathActorPolicy,
+        # TODO(b/127301657): Decay epsilon based on global step, cf. cl/188907839
+        tf_agent = DqnAgent(
+            tf_env.time_step_spec(),
+            tf_env.action_spec(),
+            q_policy_ctor=MathQPolicy,
+            q_network=q_net,
+            epsilon_greedy=epsilon_greedy,
             target_update_tau=target_update_tau,
             target_update_period=target_update_period,
-            td_errors_loss_fn=td_errors_loss_fn,
+            optimizer=tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate),
+            td_errors_loss_fn=dqn_agent.element_wise_squared_loss,
             gamma=gamma,
             reward_scale_factor=reward_scale_factor,
             gradient_clipping=gradient_clipping,
             debug_summaries=debug_summaries,
             summarize_grads_and_vars=summarize_grads_and_vars,
-            squash_actions=False,
             train_step_counter=global_step,
         )
         tf_agent.initialize()
 
-        # Make the replay buffer.
-        replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-            data_spec=tf_agent.collect_data_spec,
-            batch_size=1,
-            max_length=replay_buffer_capacity,
-        )
-        replay_observer = [replay_buffer.add_batch]
-
         train_metrics = [
             tf_metrics.NumberOfEpisodes(),
             tf_metrics.EnvironmentSteps(),
-            tf_py_metric.TFPyMetric(py_metrics.AverageReturnMetric()),
-            tf_py_metric.TFPyMetric(py_metrics.AverageEpisodeLengthMetric()),
+            tf_metrics.AverageReturnMetric(),
+            tf_metrics.AverageEpisodeLengthMetric(),
         ]
 
         eval_policy = tf_agent.policy
         collect_policy = tf_agent.collect_policy
+
+        replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
+            data_spec=tf_agent.collect_data_spec,
+            batch_size=tf_env.batch_size,
+            max_length=replay_buffer_capacity,
+        )
+
+        collect_driver = dynamic_step_driver.DynamicStepDriver(
+            tf_env,
+            collect_policy,
+            observers=[replay_buffer.add_batch] + train_metrics,
+            num_steps=collect_steps_per_iteration,
+        )
 
         train_checkpointer = common.Checkpointer(
             ckpt_dir=train_dir,
@@ -251,24 +202,15 @@ def train_eval(
         train_checkpointer.initialize_or_restore()
         rb_checkpointer.initialize_or_restore()
 
-        initial_collect_driver = dynamic_step_driver.DynamicStepDriver(
-            tf_env,
-            collect_policy,
-            observers=replay_observer,
-            num_steps=initial_collect_steps,
-        )
-
-        collect_driver = dynamic_step_driver.DynamicStepDriver(
-            tf_env,
-            collect_policy,
-            observers=replay_observer + train_metrics,
-            num_steps=collect_steps_per_iteration,
-        )
-
         if use_tf_functions:
-            initial_collect_driver.run = common.function(initial_collect_driver.run)
+            # To speed up collect use common.function.
             collect_driver.run = common.function(collect_driver.run)
             tf_agent.train = common.function(tf_agent.train)
+
+        # initial_collect_policy = random_tf_policy.RandomTFPolicy(
+        #     tf_env.time_step_spec(), tf_env.action_spec()
+        # )
+        initial_collect_policy = collect_policy
 
         # Collect initial replay data.
         logging.info(
@@ -276,7 +218,12 @@ def train_eval(
             "a random policy.",
             initial_collect_steps,
         )
-        initial_collect_driver.run()
+        dynamic_step_driver.DynamicStepDriver(
+            tf_env,
+            initial_collect_policy,
+            observers=[replay_buffer.add_batch] + train_metrics,
+            num_steps=initial_collect_steps,
+        ).run()
 
         results = metric_utils.eager_compute(
             eval_metrics,
@@ -299,7 +246,9 @@ def train_eval(
 
         # Dataset generates trajectories with shape [Bx2x...]
         dataset = replay_buffer.as_dataset(
-            num_parallel_calls=3, sample_batch_size=batch_size, num_steps=2
+            num_parallel_calls=3,
+            sample_batch_size=batch_size,
+            num_steps=train_sequence_length + 1,
         ).prefetch(3)
         iterator = iter(dataset)
 
@@ -330,6 +279,15 @@ def train_eval(
                     train_step=global_step, step_metrics=train_metrics[:2]
                 )
 
+            if global_step.numpy() % train_checkpoint_interval == 0:
+                train_checkpointer.save(global_step=global_step.numpy())
+
+            if global_step.numpy() % policy_checkpoint_interval == 0:
+                policy_checkpointer.save(global_step=global_step.numpy())
+
+            if global_step.numpy() % rb_checkpoint_interval == 0:
+                rb_checkpointer.save(global_step=global_step.numpy())
+
             if global_step.numpy() % eval_interval == 0:
                 results = metric_utils.eager_compute(
                     eval_metrics,
@@ -343,27 +301,16 @@ def train_eval(
                 if eval_metrics_callback is not None:
                     eval_metrics_callback(results, global_step.numpy())
                 metric_utils.log_metrics(eval_metrics)
-
-            global_step_val = global_step.numpy()
-            if global_step_val % train_checkpoint_interval == 0:
-                train_checkpointer.save(global_step=global_step_val)
-
-            if global_step_val % policy_checkpoint_interval == 0:
-                policy_checkpointer.save(global_step=global_step_val)
-
-            if global_step_val % rb_checkpoint_interval == 0:
-                rb_checkpointer.save(global_step=global_step_val)
         return train_loss
 
 
 def main(_):
-    tf.compat.v1.enable_v2_behavior()
     logging.set_verbosity(logging.INFO)
-    train_eval(FLAGS.root_dir, FLAGS.model_dir)
+    tf.compat.v1.enable_v2_behavior()
+    gin.parse_config_files_and_bindings(FLAGS.gin_file, FLAGS.gin_param)
+    train_eval(FLAGS.root_dir, num_iterations=FLAGS.num_iterations)
 
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("root_dir")
-    flags.mark_flag_as_required("model_dir")
     app.run(main)
-

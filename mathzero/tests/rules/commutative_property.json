@@ -1,6 +1,7 @@
 {
   "valid": [
     { "input": "4 + 17", "output": "17 + 4" },
+    { "input": "4x", "output": "x * 4" },
     { "input": "12x + 10y", "output": "10y + 12x" },
     {
       "input": "(7 + x) + 2",
@@ -8,5 +9,9 @@
       "why": "regression case for dropping node"
     }
   ],
-  "invalid": [{ "input": "4 / 3" }, { "input": "7 / x" }]
+  "invalid": [
+    { "input": "4x", "args": { "preferred": false } },
+    { "input": "4 / 3" },
+    { "input": "7 / x" }
+  ]
 }

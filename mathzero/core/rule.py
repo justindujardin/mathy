@@ -18,7 +18,7 @@ class BaseRule:
             if result != None:
                 return STOP
 
-        expression.visitPreorder(visit_fn)
+        expression.visitInorder(visit_fn)
         return result
 
     def findNodes(self, expression, includeAll=True):
@@ -41,7 +41,7 @@ class BaseRule:
             if add:
                 return nodes.append(add)
 
-        expression.visitPreorder(visit_fn)
+        expression.visitInorder(visit_fn)
         return nodes
 
     def canApplyTo(self, node):
@@ -63,6 +63,12 @@ class ExpressionChangeRule:
         self.rule = rule
         self.node = node
         self._saveParent = None
+        self.focus_node = None
+
+    def set_focus(self, node):
+        """Specify the node that is desirable to focus on based on the 
+        change that a specific rule has made to a complex tree."""
+        self.focus_node = node
 
     def saveParent(self, parent=None, side=None):
         if self.node and parent is None:
@@ -77,5 +83,5 @@ class ExpressionChangeRule:
     def done(self, node):
         if self._saveParent:
             self._saveParent.setSide(node, self._saveSide)
-        self.result = node.rootClone()
+        self.result = node
         return self

@@ -25,21 +25,17 @@ INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 
 class PracticeSession:
-    """
-    This class executes the self-play + learning. It uses the functions defined
-    in Game and NeuralNet. args are specified in main.py.
-    """
-
     def has_examples(self) -> bool:
         return bool(len(self.all_examples) > 0)
 
     def __init__(self, runner, lesson: LessonExercise = None, lesson_plan_name=None):
         self.runner = runner
         self.lesson = lesson
-        if lesson is None:
-            raise ValueError("cannot train without LessonExercise")
         self.training_iterations = 50
+        # Holds the long-term examples
         self.all_examples = []
+        # Holds the most recent batch of experience from self-play
+        self.latest_examples = []
         self.skip_first_self_play = False
         loaded = self.load_training_examples()
         if loaded is not False:
@@ -62,6 +58,8 @@ class PracticeSession:
                     return
 
     def run_self_play(self, iteration, num_episodes):
+        if self.lesson is None:
+            raise ValueError("cannot train without LessonExercise")
         bar = Bar(self.lesson.name.upper(), max=num_episodes)
         bar.suffix = "working on first problem..."
         bar.next()
@@ -116,16 +114,19 @@ class PracticeSession:
             value = summary["reward"]
             complexity = str(summary["complexity"])
             add_stat(complexity, value)
-        print(
-            "\n\nPractice results:\n --- Solved ({}) --- Failed ({})".format(
-                solve, fail
-            )
-        )
-        print("By complexity:\n{}\n\n".format(json.dumps(complexity_stats, indent=2)))
+        # print(
+        #     "\n\nPractice results:\n --- Solved ({}) --- Failed ({})".format(
+        #         solve, fail
+        #     )
+        # )
+        # print("By complexity:\n{}\n\n".format(json.dumps(complexity_stats, indent=2)))
         self.runner.episode_complete = old_update
         bar.finish()
-        self.all_examples.extend(new_examples)
-        self.save_training_examples()
+
+        # Swap the latest examples, and append the old latest to all examples
+        self.all_examples.extend(self.latest_examples)
+        self.latest_examples = new_examples
+        self.save_training_examples_jsonl()
         return solve, fail, summary, new_examples
 
     def run_network_training(self, iteration):
@@ -135,7 +136,10 @@ class PracticeSession:
         one) and new is the model that was just trained.
         """
         return self.runner.train(
-            iteration, self.all_examples, self.runner.config.model_dir
+            iteration,
+            self.latest_examples,
+            self.all_examples,
+            self.runner.config.model_dir,
         )
 
     def load_training_examples(self):
@@ -157,14 +161,15 @@ class PracticeSession:
             model_dir.mkdir(parents=True, exist_ok=True)
 
         # Write to local file then copy over (don't thrash virtual file systems like GCS)
-        _, tmp_file = tempfile.mkstemp()
+        fd, tmp_file = tempfile.mkstemp()
         with Path(tmp_file).open("w", encoding="utf-8") as f:
-            for line in self.all_examples:
+            for line in self.all_examples + self.latest_examples:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
+        os.close(fd)
         return str(out_file)
 
     def save_training_examples_tfrecord(self):
@@ -173,7 +178,7 @@ class PracticeSession:
             model_dir.mkdir(parents=True, exist_ok=True)
 
         # Write to local file then copy over (don't thrash virtual file systems like GCS)
-        _, tmp_file = tempfile.mkstemp()
+        fd, tmp_file = tempfile.mkstemp()
 
         writer = tf.io.TFRecordWriter(tmp_file)
         for example in self.all_examples:
@@ -195,6 +200,6 @@ class PracticeSession:
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
+        os.close(fd)
         return str(out_file)
-
 

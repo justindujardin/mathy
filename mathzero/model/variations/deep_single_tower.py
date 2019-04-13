@@ -10,38 +10,6 @@ from ..model.features import (
 )
 from ..environment_state import to_sparse_tensor
 from ..model.math_attention import attention
-import numpy
-import tensorflow as tf
-
-
-class BahdanauAttention(tf.keras.Model):
-    """Attention from: https://www.tensorflow.org/alpha/tutorials/sequences/image_captioning#model"""
-
-    def __init__(self, units):
-        super(BahdanauAttention, self).__init__()
-        self.W1 = tf.keras.layers.Dense(units)
-        self.W2 = tf.keras.layers.Dense(units)
-        self.V = tf.keras.layers.Dense(1)
-
-    def call(self, features, hidden):
-        # features(CNN_encoder output) shape == (batch_size, 64, embedding_dim)
-
-        # hidden shape == (batch_size, hidden_size)
-        # hidden_with_time_axis shape == (batch_size, 1, hidden_size)
-        hidden_with_time_axis = tf.expand_dims(hidden, 1)
-
-        # score shape == (batch_size, 64, hidden_size)
-        score = tf.nn.tanh(self.W1(features) + self.W2(hidden_with_time_axis))
-
-        # attention_weights shape == (batch_size, 64, 1)
-        # we get 1 at the last axis because we are applying score to self.V
-        attention_weights = tf.nn.softmax(self.V(score), axis=1)
-
-        # context_vector shape after sum == (batch_size, hidden_size)
-        context_vector = attention_weights * features
-        context_vector = tf.reduce_sum(context_vector, axis=1)
-
-        return context_vector, attention_weights
 
 
 def ResidualDenseLayer(units, name="residual_block"):
@@ -64,29 +32,17 @@ def ResidualDenseLayer(units, name="residual_block"):
     return func
 
 
-def BiDirectionalLSTM(units, name="bi_lstm_stack", state=True):
-    """Bi-directional LSTMs using Tensorflow's keras implementation"""
+def BiDirectionalLSTM(units, name="bi_lstm_stack"):
+    """Bi-directional stacked LSTMs using Tensorflow's keras implementation"""
     import tensorflow as tf
-    from tensorflow.keras.layers import LSTM, Concatenate, Add
+    from tensorflow.keras.layers import LSTM, Concatenate
 
     def func(input_layer):
-        forward_layer = LSTM(
-            units, return_sequences=True, return_state=True, name="lstm/forward"
-        )
-        backward_layer = LSTM(
-            units,
-            return_sequences=True,
-            go_backwards=True,
-            return_state=True,
-            name="lstm/backward",
-        )
-        lstm_fwd, state_h_fwd, state_c_fwd = forward_layer(input_layer)
-        lstm_bwd, state_h_bwd, state_c_bwd = backward_layer(input_layer)
-
-        return (
-            Add(name=f"{name}_states")([state_h_fwd, state_h_bwd]),
-            Concatenate(name=name)([lstm_fwd, lstm_bwd, input_layer]),
-        )
+        forward = LSTM(units, return_sequences=True, name="lstm/forward")(input_layer)
+        backward = LSTM(
+            units, return_sequences=True, go_backwards=True, name="lstm/backward"
+        )(input_layer)
+        return Concatenate(name=name)([forward, backward, input_layer])
 
     return func
 
@@ -95,7 +51,7 @@ def math_estimator(features, labels, mode, params):
     import tensorflow as tf
     from tensorflow.python.ops import init_ops
     from tensorflow.feature_column import make_parse_example_spec
-    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate, Input
+    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate
     from tensorflow.keras.experimental import SequenceFeatures
     from tensorflow_estimator.contrib.estimator.python import estimator
     from tensorflow.python.training import adam
@@ -105,6 +61,7 @@ def math_estimator(features, labels, mode, params):
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
     training = mode == tf.estimator.ModeKeys.TRAIN
+
     #
     # Sequential feature layers
     #
@@ -117,7 +74,8 @@ def math_estimator(features, labels, mode, params):
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="inputs/sequence"
     )(sequence_features)
-    hidden_states, sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
+    sequence_inputs = BiDirectionalLSTM(128)(sequence_inputs)
+    sequence_inputs = attention(sequence_inputs, 2048, name="inputs/sequence_attention")
 
     #
     # Context input layers
@@ -125,31 +83,17 @@ def math_estimator(features, labels, mode, params):
     features_layer = DenseFeatures(feature_columns, name="inputs/context")
     context_inputs = features_layer(features)
     # Concatenated context and sequence vectors
+    network = Concatenate(name="inputs/concat")([context_inputs, sequence_inputs])
+
     with tf.compat.v1.variable_scope("residual_tower"):
-        for i in range(6):
-            context_inputs = ResidualDenseLayer(4)(context_inputs)
+        for i in range(40):
+            network = ResidualDenseLayer(4)(network)
 
-    def process_nodes(input_layer):
-        from tensorflow.keras.layers import (
-            Activation,
-            Dense,
-            Concatenate,
-            BatchNormalization,
-        )
-        dense_activation = Dense(action_size, activation="softmax")
-        return dense_activation(input_layer)
-
-    sequence_outputs = tf.map_fn(process_nodes, sequence_inputs)
-    network = Concatenate(name="mixed_features")(
-        [attention(sequence_outputs, 4096), context_inputs]
-    )
-
-    # Gather the last sequence output for value prediction
+    # Concatenated context and sequence vectors
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
-    # Flatten policy logits to 1d arrays
-    policy_logits = sequence_outputs
-    policy_shape = tf.shape(policy_logits)
-    policy_logits = tf.reshape(policy_logits, [policy_shape[0], -1, 1])
+    policy_logits = Dense(action_size, activation="softmax", name="policy_logits")(
+        network
+    )
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)
@@ -181,15 +125,10 @@ def math_estimator(features, labels, mode, params):
             tf.compat.v1.summary.histogram(
                 "policy/target", labels[TRAIN_LABELS_TARGET_PI]
             )
-    # if labels is not None:
-    # sess = tf.compat.v1.Session()
-    # with sess.as_default():
-    # print("POLICY LOGITS", policy_logits.eval())
-    # print("POLICY LABELS", labels["policy"].eval())
-    # print("VALUE LOGITS", value_logits.eval())
-    # print("VALUE LABELS", labels["policy"].eval())
     # Multi-task prediction heads
-    policy_head = estimator.head.regression_head(name="policy", label_dimension=1)
+    policy_head = estimator.head.regression_head(
+        name="policy", label_dimension=action_size
+    )
     value_head = estimator.head.regression_head(name="value", label_dimension=1)
     multi_head = estimator.multi_head.multi_head([policy_head, value_head])
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)

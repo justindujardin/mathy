@@ -8,6 +8,7 @@ doom/
 .env
 .pytest_cache
 .training/
+.training-old/
 .vscode
 program.prof
 .terraform
@@ -15,3 +16,7 @@ program.prof
 models/
 draws.txt
 visualization
+events*
+model.ckpt*
+checkpoint
+graph.pbtxt

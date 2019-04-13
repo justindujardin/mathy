@@ -63,6 +63,10 @@ class VariableMultiplyRule(BaseRule):
     def name(self):
         return "Variable Multiplication"
 
+    @property
+    def code(self):
+        return "VM"
+
     def get_child_components(self, child):
         """
         Return a tuple of (variable, exponent) for the given child node, or (None, None) if 

@@ -1,55 +1,75 @@
 import numpy
+from mathzero.core.tokenizer import TokenEOF
+from mathzero.core.expressions import MathTypeKeys
 
-FEATURE_TOKEN_VALUES = "token_values"
-FEATURE_TOKEN_TYPES = "token_types"
+FEATURE_FWD_VECTORS = "fwd_vectors"
+FEATURE_FOCUS_INDEX = "focus_index"
+FEATURE_BWD_VECTORS = "bwd_vectors"
+FEATURE_LAST_FWD_VECTORS = "fwd_last_vectors"
+FEATURE_LAST_BWD_VECTORS = "bwd_last_vectors"
 FEATURE_NODE_COUNT = "node_count"
 FEATURE_MOVES_REMAINING = "moves_remaining"
 FEATURE_MOVE_COUNTER = "move_counter"
 FEATURE_PROBLEM_TYPE = "problem_type"
-FEATURE_COLUMNS = [
-    FEATURE_TOKEN_VALUES,
-    FEATURE_TOKEN_TYPES,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-    FEATURE_MOVES_REMAINING,
-    FEATURE_MOVE_COUNTER,
-]
 
 
 TRAIN_LABELS_TARGET_PI = "policy"
-TRAIN_LABELS_TARGET_REWARD = "value"
-TRAIN_LABELS_TARGET_FOCUS = "focus"
+TRAIN_LABELS_TARGET_VALUE = "value"
 TRAIN_LABELS_AS_MATRIX = "matrix"
 
 
-def parse_example_for_training(example, max_sequence=None):
+def parse_example_for_training(example, max_sequence=None, max_policy_sequence=None):
     """Wrapper that accepts a single example to parse for feeding to the network.
     
     Returns: a tuple of(features, labels) """
     inputs = {}
     ex_input = example["inputs"]
-    for feature_key in FEATURE_COLUMNS:
-        inputs[feature_key] = ex_input[feature_key]
+    pad_string = (MathTypeKeys["empty"], MathTypeKeys["empty"], MathTypeKeys["empty"])
+    policy_out = example["policy"][:]
+    # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
     if max_sequence is not None:
-        inputs[FEATURE_TOKEN_TYPES] = pad_array(
-            inputs[FEATURE_TOKEN_TYPES], max_sequence
+        inputs[FEATURE_FWD_VECTORS] = pad_array(
+            ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_string
         )
-        inputs[FEATURE_TOKEN_VALUES] = pad_array(
-            inputs[FEATURE_TOKEN_VALUES], max_sequence
+        inputs[FEATURE_BWD_VECTORS] = pad_array(
+            ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_string, backwards=True
         )
-    inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_TOKEN_TYPES])
+        inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
+            ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_string
+        )
+        inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
+            ex_input[FEATURE_LAST_BWD_VECTORS][:],
+            max_sequence,
+            pad_string,
+            backwards=True,
+        )
+    if max_policy_sequence is not None:
+        policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
+        policy_out = [[p] for p in policy_out]
+
+    inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
+    inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
+    inputs[FEATURE_FOCUS_INDEX] = ex_input[FEATURE_FOCUS_INDEX]
+    inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
+    inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
     outputs = {
-        TRAIN_LABELS_TARGET_PI: example["policy"],
-        TRAIN_LABELS_TARGET_REWARD: [example["reward"]],
-        TRAIN_LABELS_TARGET_FOCUS: [example["focus"]],
+        TRAIN_LABELS_TARGET_PI: policy_out,
+        TRAIN_LABELS_TARGET_VALUE: [example["reward"]],
     }
     return inputs, outputs
 
 
-def pad_array(A, max_length, value=0):
-    """Pad a numpy array to the given size with the given padding value"""
-    a_len = len(A)
-    if a_len >= max_length:
-        return A
-    t = max_length - len(A)
-    return numpy.pad(A, pad_width=(0, t), mode="constant", constant_values=value)
+def pad_array(A, max_length, value=0, backwards=False):
+    """Pad a list to the given size with the given padding value
+    
+    If backwards=True the input will be reversed after padding, and 
+    the output will be reversed after padding, to correctly pad for 
+    LSTMs, e.g. "4x+2----" padded backwards would be "----2+x4"
+    """
+    if backwards:
+        A.reverse()
+    while len(A) < max_length:
+        A.append(value)
+    if backwards:
+        A.reverse()
+    return A

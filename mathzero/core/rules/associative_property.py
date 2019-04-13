@@ -30,6 +30,10 @@ class AssociativeSwapRule(BaseRule):
     def name(self):
         return "Associative Group"
 
+    @property
+    def code(self):
+        return "AG"
+
     def canApplyTo(self, node):
         if isinstance(node.parent, AddExpression) and isinstance(node, AddExpression):
             return True

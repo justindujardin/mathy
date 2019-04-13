@@ -1,6 +1,8 @@
-from ..math_game import MathGame
+from ..embeddings.math_game import MathGame
 from ..environment_state import MathEnvironmentState, MathAgentState
-from ..util import is_terminal_reward
+from ..util import is_terminal_transition
+from math import isclose
+import random
 
 
 def test_math_game_init():
@@ -12,7 +14,22 @@ def test_math_game_init():
     assert state is not None
     # Assert about the structure a bit
     assert state.agent is not None
-    assert state.width > 0
+
+
+def test_math_game_jd():
+    game = MathGame()
+    assert game is not None
+    problem = "5y * 9x + 8z + 8x + 3z * 10y * 11x + 10y"
+    env_state = MathEnvironmentState(problem=problem, max_moves=35)
+    for i in range(3):
+        actions = game.get_valid_moves(env_state)
+        indices = [i for i, value in enumerate(actions) if value == 1]
+        random.shuffle(indices)
+        env_state, value = game.get_next_state(env_state, indices[0])
+    features = env_state.to_input_features()
+    f = features
+
+
 
 
 def test_math_game_win_conditions():
@@ -42,5 +59,5 @@ def test_math_game_win_conditions():
     game = MathGame()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathEnvironmentState(problem=text)
-        reward = game.get_state_reward(env_state)
-        assert text == text and is_terminal_reward(reward) == int(is_win)
+        reward = game.get_state_value(env_state)
+        assert text == text and is_terminal_transition(reward) == int(is_win)

@@ -40,6 +40,14 @@ exam_simplify_complex_terms = [
 ]
 
 
+def init_rule_for_test(example, rule_class):
+    if "args" not in example:
+        rule = rule_class()
+    else:
+        rule = rule_class(**example["args"])
+    return rule
+
+
 def run_rule_tests(name, rule_class, callback=None):
     """Load and assert about the transformations and validity of rules
     based on given input examples.
@@ -51,7 +59,6 @@ def run_rule_tests(name, rule_class, callback=None):
     """
     tests = load_rule_tests(name)
     parser = ExpressionParser()
-    rule = rule_class()
     has_valid_debug = sum([1 if "debug" in e else 0 for e in tests["valid"]]) > 0
     has_invalid_debug = sum([1 if "debug" in e else 0 for e in tests["invalid"]]) > 0
     has_debug = has_invalid_debug or has_valid_debug
@@ -62,10 +69,12 @@ def run_rule_tests(name, rule_class, callback=None):
         # Trigger the debug callback so the user can step over into the useful stuff
         if callback is not None:
             callback(ex)
-        expression = parser.parse(ex["input"])
+        rule = init_rule_for_test(ex, rule_class)
+        expression = parser.parse(ex["input"]).clone()
         print(ex)
         node = rule.findNode(expression)
-        assert node is not None
+        if node is None:
+            assert "expected to find node but did not for" == str(expression)
         change = rule.applyTo(node)
         assert str(change.result.getRoot()).strip() == ex["output"]
     for ex in tests["invalid"]:
@@ -75,9 +84,13 @@ def run_rule_tests(name, rule_class, callback=None):
         # Trigger the debug callback so the user can step over into the useful stuff
         if callback is not None:
             callback(ex)
-        expression = parser.parse(ex["input"])
+        rule = init_rule_for_test(ex, rule_class)
+        expression = parser.parse(ex["input"]).clone()
         node = rule.findNode(expression)
-        assert node is None
+        if node is not None:
+            raise ValueError(
+                "expected not to find a node, but found: {}".format(str(node))
+            )
 
 
 def test_associative_property():

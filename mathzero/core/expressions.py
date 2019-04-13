@@ -9,8 +9,69 @@ OOO_ADDSUB = 0
 OOO_INVALID = -1
 
 
+MathTypeKeys = {
+    "empty": 0,
+    "negate": 1,
+    "equal": 2,
+    "add": 3,
+    "subtract": 4,
+    "multiply": 5,
+    "divide": 6,
+    "power": 7,
+    # NOTE: reserved 8-15 for future expression types (such as functions)
+    "constant_0": 16,
+    "constant_1": 17,
+    "constant_2": 18,
+    "constant_3": 19,
+    "constant_4": 20,
+    "constant_5": 21,
+    "constant_6": 22,
+    "constant_7": 23,
+    "constant_8": 24,
+    "constant_9": 25,
+    "variable": 26,
+    "variable_a": 27,
+    "variable_b": 28,
+    "variable_c": 29,
+    "variable_d": 30,
+    "variable_e": 31,
+    "variable_f": 32,
+    "variable_g": 33,
+    "variable_h": 34,
+    "variable_i": 35,
+    "variable_j": 36,
+    "variable_k": 37,
+    "variable_l": 38,
+    "variable_m": 39,
+    "variable_n": 40,
+    "variable_o": 41,
+    "variable_p": 42,
+    "variable_q": 43,
+    "variable_r": 44,
+    "variable_s": 45,
+    "variable_t": 46,
+    "variable_u": 47,
+    "variable_v": 48,
+    "variable_w": 49,
+    "variable_x": 50,
+    "variable_y": 51,
+    "variable_z": 52,
+}
+
+# The maximum value in type keys (for one-hot encoding)
+MathTypeKeysMax = max(MathTypeKeys.values())
+
+
 class MathExpression(BinaryTreeNode):
     """A Basic MathExpression node"""
+
+    @property
+    def raw(self):
+        return str(self)
+
+    @property
+    def type_id(self):
+        raise NotImplementedError("must be implemented in subclass")
 
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
@@ -47,8 +108,7 @@ class MathExpression(BinaryTreeNode):
         self.visitInorder(visit_fn)
         return count
 
-
-    def toList(self):
+    def toList(self, visit="inorder"):
         """
         Convert this node hierarchy into a list.
         @returns {Array} Array of {@link MathExpression} visited in order
@@ -58,7 +118,14 @@ class MathExpression(BinaryTreeNode):
         def visit_fn(node, depth, data):
             return results.append(node)
 
-        self.visitInorder(visit_fn)
+        if visit == "inorder":
+            self.visitInorder(visit_fn)
+        elif visit == "preorder":
+            self.visitPreorder(visit_fn)
+        elif visit == "postorder":
+            self.visitPostorder(visit_fn)
+        else:
+            raise ValueError(f"invalid visit order: {visit}")
         return results
 
     def findByType(self, instanceType):
@@ -273,6 +340,10 @@ class NegateExpression(UnaryExpression):
     """Negate an expression, e.g. `4` becomes `-4`"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["negate"]
+
+    @property
     def name(self):
         return "-"
 
@@ -430,6 +501,10 @@ class EqualExpression(BinaryExpression):
     """Evaluate equality of two expressions"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["equal"]
+
+    @property
     def name(self):
         return "="
 
@@ -443,6 +518,10 @@ class EqualExpression(BinaryExpression):
 
 class AddExpression(BinaryExpression):
     """Add one and two"""
+
+    @property
+    def type_id(self):
+        return MathTypeKeys["add"]
 
     @property
     def name(self):
@@ -464,6 +543,10 @@ class SubtractExpression(BinaryExpression):
     """Subtract one from two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["subtract"]
+
+    @property
     def name(self):
         return "-"
 
@@ -481,6 +564,10 @@ class SubtractExpression(BinaryExpression):
 
 class MultiplyExpression(BinaryExpression):
     """Multiply one and two"""
+
+    @property
+    def type_id(self):
+        return MathTypeKeys["multiply"]
 
     @property
     def name(self):
@@ -527,6 +614,10 @@ class DivideExpression(BinaryExpression):
     """Divide one by two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["divide"]
+
+    @property
     def name(self):
         return "/"
 
@@ -553,6 +644,10 @@ class PowerExpression(BinaryExpression):
     """Raise one to the power of two"""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["power"]
+
+    @property
     def name(self):
         return "^"
 
@@ -576,6 +671,11 @@ class PowerExpression(BinaryExpression):
 
 
 class ConstantExpression(MathExpression):
+    @property
+    def type_id(self):
+        id = f"_{int(self.value % 10)}" if self.value is not None else ""
+        return MathTypeKeys[f"constant{id}"]
+
     def __init__(self, value=None):
         super().__init__()
         self.value = value
@@ -598,6 +698,11 @@ class ConstantExpression(MathExpression):
 
 
 class VariableExpression(MathExpression):
+    @property
+    def type_id(self):
+        id = f"_{self.identifier.lower()[0]}" if self.identifier is not None else ""
+        return MathTypeKeys[f"variable{id}"]
+
     def __init__(self, identifier=None):
         super().__init__()
         self.identifier = identifier
@@ -655,6 +760,10 @@ class AbsExpression(FunctionExpression):
     """Evaluates the absolute value of an expression."""
 
     @property
+    def type_id(self):
+        return MathTypeKeys["abs"]
+
+    @property
     def name(self):
         return "abs"
 
@@ -670,6 +779,10 @@ class AbsExpression(FunctionExpression):
 
 
 class SgnExpression(FunctionExpression):
+    @property
+    def type_id(self):
+        return MathTypeKeys["sgn"]
+
     @property
     def name(self):
         return "sgn"

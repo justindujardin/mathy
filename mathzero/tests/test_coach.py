@@ -1,4 +1,4 @@
-from mathzero.math_game import MathGame
+from mathzero.embeddings.math_game import MathGame
 from mathzero.model.math_model import MathModel
 from mathzero.training.practice_runner import PracticeRunner, RunnerConfig
 from mathzero.training.practice_session import PracticeSession

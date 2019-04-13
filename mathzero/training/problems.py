@@ -7,16 +7,29 @@ MODE_SIMPLIFY_POLYNOMIAL = 2
 MODE_SIMPLIFY_POLYNOMIAL = 2
 
 operators = list("+*")
-variables = list("xyz")
-max_const = 12
+common_variables = list("xyz")
+variables = list("abcdefghijklmnopqrstuvwxyz")
+max_const = 24
 
 
-def rand_var():
+def rand_bool(percent_chance=None):
+    if percent_chance is None:
+        percent_chance = 50
+    return bool(random.randrange(100) < percent_chance)
+
+
+def rand_var(common=False):
+    if common is True:
+        return common_variables[random.randint(0, len(common_variables) - 1)]
     return variables[random.randint(0, len(variables) - 1)]
 
 
-def maybe_var():
-    return rand_var() if random.getrandbits(1) == 0 else ""
+def maybe_var(percent_chance=80, common_var=False):
+    return rand_var(common_var) if rand_bool(percent_chance) else ""
+
+
+def maybe_int(percent_chance=80):
+    return rand_int() if rand_bool(percent_chance) else ""
 
 
 def rand_int():
@@ -25,6 +38,21 @@ def rand_int():
 
 def rand_op():
     return operators[random.randint(0, len(operators) - 1)]
+
+
+def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
+    """Get a list of random variables, excluding the given list of hold-out variables"""
+    var = rand_var()
+    if num_vars > 25:
+        raise ValueError("out of range: there are only twenty-six variables")
+    rand_vars = set()
+    while len(rand_vars) < num_vars:
+        _rand = rand_var(common_variables)
+        if _rand not in exclude_vars:
+            rand_vars.add(_rand)
+    out = list(rand_vars)
+    random.shuffle(out)
+    return out
 
 
 def combine_multiple_like_add_terms(num_terms, optional_var=False):
@@ -39,22 +67,30 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
     return result + suffix, num_terms
 
 
-def simplify_multiple_terms(num_terms, optional_var=False):
-    variable = rand_var()
+def simplify_multiple_terms(
+    num_terms, optional_var=False, op="+", common_variables=True
+):
+    # Generate from common varible names to have more chance of
+    # sets of like terms.
+    variable = rand_var(common_variables)
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
     # between the two matching variable terms.)
     result = "{}{}".format(rand_int(), variable)
-    suffix = " {} {}{}".format(rand_op(), rand_int(), variable)
+    suffix = " {} {}{}".format(rand_op() if op is None else op, rand_int(), variable)
     for i in range(num_terms - 2):
         result = result + " {} {}{}".format(
-            rand_op(), rand_int(), maybe_var() if optional_var else rand_var()
+            rand_op() if op is None else op,
+            rand_int(),
+            maybe_var(common_var=common_variables)
+            if optional_var
+            else rand_var(common_variables),
         )
     return result + suffix, num_terms
 
 
 class ProblemGenerator:
-    def __init__(self, min_complexity=3, max_complexity=5, max_const=24):
+    def __init__(self, min_complexity=3, max_complexity=4, max_const=256):
         self.min_complexity = min_complexity
         self.max_complexity = max_complexity
         self.max_const = max_const
@@ -84,11 +120,11 @@ class ProblemGenerator:
             # complexity = 3
 
             # Three terms with optional variables
-            problem = self.simplify_multiple_terms(terms=3)
-            complexity = 3
+            # problem = self.simplify_multiple_terms(terms=3)
+            # complexity = 3
 
             # Expert:
-            # problem = self.simplify_multiple_terms(terms=complexity)
+            problem = self.simplify_multiple_terms(terms=complexity)
 
         elif type == MODE_SOLVE_FOR_VARIABLE:
             problem = self.solve_for_variable(terms=complexity)
