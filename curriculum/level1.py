@@ -21,7 +21,8 @@ def split_in_two_random(max_items: int):
         left = int(factor * max_items)
         right = max_items - left
         if left + right == max_items:
-            return left, right
+            # always return lower/higher
+            return min(left, right), max(left, right)
         if count > 100:
             break
     raise ValueError(
@@ -49,7 +50,11 @@ def combine_like_terms_complexity_challenge(easy=True):
 
     out_terms = []
 
-    left_num, right_num = split_in_two_random(num_noise_terms)
+    # We take the larger value for the left side to push the terms
+    # that have to be matched to the right side of expression. This is
+    # so that the model cannot use its existing knowledge about distributive
+    # factoring on smaller problems to solve this problem.
+    right_num, left_num = split_in_two_random(num_noise_terms)
     for i in range(left_num):
         current = noise_vars.pop()
         out_terms.append(f"{maybe_int()}{current}")
