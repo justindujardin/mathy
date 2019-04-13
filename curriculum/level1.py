@@ -39,7 +39,7 @@ def combine_like_terms_complexity_challenge(easy=True):
     #  "4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x)  + 43n + 17j"
     #  max_turns = 2 = Distributive factor + Constant Arithmetic
 
-    total_terms = random.randint(8, 26)
+    total_terms = random.randint(16, 26)
     var = rand_var()
     focus_chunk = f"{maybe_int()}{var} + {maybe_int()}{var}"
     if easy:
