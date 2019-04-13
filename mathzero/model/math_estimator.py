@@ -9,7 +9,6 @@ from ..model.features import (
     TRAIN_LABELS_AS_MATRIX,
 )
 from ..environment_state import to_sparse_tensor
-from ..model.math_attention import attention
 import numpy
 import tensorflow as tf
 
@@ -201,44 +200,70 @@ def math_estimator(features, labels, mode, params):
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
     training = mode == tf.estimator.ModeKeys.TRAIN
-    #
-    # Sequential feature layers
-    #
-    sequence_features = {
-        FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
-        FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
-        FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
-        FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
-    }
-    sequence_inputs, sequence_length = SequenceFeatures(
-        sequence_columns, name="inputs/sequence"
-    )(sequence_features)
-    hidden_states, sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
 
     #
-    # Context input layers
+    # Sequential/Context feature layers.
     #
-    features_layer = DenseFeatures(feature_columns, name="inputs/context")
-    context_inputs = features_layer(features)
-    # Concatenated context and sequence vectors
-    with tf.compat.v1.variable_scope("residual_tower"):
+    # NOTE: the idea here is that these layers are the least important. I'm not sure
+    #  this will work but I'd like to keep the weights from the core of the model while
+    #  swapping out the input/output layers based on user customization.
+    #
+    with tf.compat.v1.variable_scope("inputs"):
+        sequence_features = {
+            FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
+            FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
+            FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
+            FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
+        }
+        sequence_inputs, sequence_length = SequenceFeatures(
+            sequence_columns, name="sequence"
+        )(sequence_features)
+        features_layer = DenseFeatures(feature_columns, name="context")
+        context_inputs = features_layer(features)
+
+    # The core of the model is our feature extraction/processing pipeline.
+    # These are the weights we transfer when there are incompatible input/output
+    # architectures.
+    with tf.compat.v1.variable_scope("love"):
+        # Context feature residual tower
         for i in range(6):
             context_inputs = ResidualDenseLayer(4)(context_inputs)
 
-    predict_policy = TimeDistributed(PredictSequences(action_size))
-    sequence_outputs = predict_policy(sequence_inputs)
-    # sequence_outputs = tf.map_fn(predict_over_nodes, sequence_inputs)
-    network = Concatenate(name="mixed_features")(
-        [attention(sequence_outputs, 4096), context_inputs]
-    )
-    # Gather the last sequence output for value prediction
-    value_logits = Dense(1, activation="tanh", name="value_logits")(network)
-    # Flatten policy logits to 1d arrays
-    policy_logits = sequence_outputs
-    policy_shape = tf.shape(policy_logits)
-    policy_logits = tf.reshape(
-        policy_logits, [policy_shape[0], -1, 1], name="policy_reshape"
-    )
+        # Bi-directional LSTM over context vectors
+        hidden_states, sequence_inputs = BiDirectionalLSTM(12)(sequence_inputs)
+
+        # Push each sequence through a residual tower and activate it to predict
+        # a policy for each input. This is a many-to-many prediction where we want
+        # to know what the probability of each action is for each node in the expression
+        # tree. This is key to allow the model to select which node to apply which action
+        # to.
+        predict_policy = TimeDistributed(PredictSequences(action_size))
+        sequence_outputs = predict_policy(sequence_inputs)
+
+        # TODO: I can't get the reshape working to mix the context-features with the sequence
+        #  features before doing the softmax prediction above. Without these features I think
+        #  the policy output will struggle to improve beyond a certain point. The reasoning is
+        #  that the observations are not processed as episode sequences via an RNN of some sort
+        #  but are input as distinct observations of the environment state. The sequential features
+        #  are accessed by encoding the previous observation into the input features (via the
+        #  FEATURE_LAST_FWD_VECTORS and FEATURE_LAST_BWD_VECTORS features). Because of this input
+        #  format the context features that describe lifetime and urgency (i.e. current_move,
+        #  moves_remaining) cannot be connected to the sequential policy output predictions.
+        # TODO: Someone help! ☝️ Thanks! 🙇‍
+
+        attention_context, _ = BahdanauAttention(4096)(sequence_outputs, hidden_states)
+        network = Concatenate(name="mixed_features")(
+            [attention_context, context_inputs]
+        )
+        value_logits = Dense(1, activation="tanh", name="value_logits")(network)
+
+        # Flatten policy logits
+        policy_logits = sequence_outputs
+        policy_shape = tf.shape(policy_logits)
+        policy_logits = tf.reshape(
+            policy_logits, [policy_shape[0], -1, 1], name="policy_reshape"
+        )
+
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)
@@ -278,7 +303,8 @@ def math_estimator(features, labels, mode, params):
     # print("VALUE LOGITS", value_logits.eval())
     # print("VALUE LABELS", labels["policy"].eval())
     # Multi-task prediction heads
-    policy_head = estimator.head.regression_head(name="policy", label_dimension=1)
-    value_head = estimator.head.regression_head(name="value", label_dimension=1)
-    multi_head = estimator.multi_head.multi_head([policy_head, value_head])
+    with tf.compat.v1.variable_scope("outputs"):
+        policy_head = estimator.head.regression_head(name="policy", label_dimension=1)
+        value_head = estimator.head.regression_head(name="value", label_dimension=1)
+        multi_head = estimator.multi_head.multi_head([policy_head, value_head])
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
