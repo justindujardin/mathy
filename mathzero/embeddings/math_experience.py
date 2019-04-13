@@ -15,6 +15,11 @@ class MathExperience:
         if self._load_experience() is not False:
             pass
 
+    @property
+    def count(self):
+        """Returns the count of all experience"""
+        return len(self.short_term) + len(self.long_term)
+
     def all(self):
         """Returns a concatenation of short-term and long-term memory arrays"""
         return self.short_term + self.long_term

@@ -25,7 +25,8 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
     inputs = {}
     ex_input = example["inputs"]
     pad_string = (MathTypeKeys["empty"], MathTypeKeys["empty"], MathTypeKeys["empty"])
-    policy_out = example["policy"]
+    policy_out = example["policy"][:]
+    # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
     if max_sequence is not None:
         inputs[FEATURE_FWD_VECTORS] = pad_array(
             ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_string

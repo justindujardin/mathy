@@ -8,8 +8,59 @@ from mathzero.training.problems import (
     maybe_int,
     get_rand_vars,
 )
+import random
 
 moves_per_complexity = 6
+
+
+def split_in_two_random(max_items: int):
+    count = 0
+    while True:
+        count += 1
+        factor = random.uniform(0, 1)
+        left = int(factor * max_items)
+        right = max_items - left
+        if left + right == max_items:
+            return left, right
+        if count > 100:
+            break
+    raise ValueError(
+        "something is wrong. failed to generate two numbers with a sum 100 times"
+    )
+
+
+def combine_like_terms_complexity_challenge(easy=True):
+    # two max move problems with large complexity (i.e. 45 terms) with two terms side-by-side.
+    # the idea is that if you do a bunch of these, the model will learn that DF/CA is a good
+    # combination regardless of the position.
+    # NOTE: This could also be an AWESOME way to do really large problems without them taking forever.
+    #
+    # Example:
+    #  "4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x)  + 43n + 17j"
+    #  max_turns = 2 = Distributive factor + Constant Arithmetic
+
+    total_terms = random.randint(8, 26)
+    var = rand_var()
+    focus_chunk = f"{maybe_int()}{var} + {maybe_int()}{var}"
+    if easy:
+        focus_chunk = f"({focus_chunk})"
+    num_noise_terms = total_terms - 2
+    noise_vars = get_rand_vars(num_noise_terms, [var])
+
+    out_terms = []
+
+    left_num, right_num = split_in_two_random(num_noise_terms)
+    for i in range(left_num):
+        current = noise_vars.pop()
+        out_terms.append(f"{maybe_int()}{current}")
+    out_terms.append(focus_chunk)
+    for i in range(right_num):
+        current = noise_vars.pop()
+        out_terms.append(f"{maybe_int()}{current}")
+
+    complexity = total_terms
+    problem = " + ".join(out_terms)
+    return problem, complexity
 
 
 def get_blocker(num_blockers=1, exclude_vars=[]):
@@ -82,16 +133,89 @@ quick_test_plan = build_lesson_plan(
     ],
 )
 
-lesson_plan = build_lesson_plan(
-    "combine_like_terms_1",
+
+yellow_belt = build_lesson_plan(
+    "yellow_belt",
     [
         LessonExercise(
             lesson_name="two_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="three_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="commute_blockers_1",
+            problem_fn=lambda: move_around_blockers_one(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="four_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(4),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="five_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(5),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+    ],
+)
+
+
+combine_forced = build_lesson_plan(
+    "combine_terms_forced",
+    [
+        LessonExercise(
+            lesson_name="needle_in_haystack",
+            problem_count=4,
+            problem_fn=lambda: combine_like_terms_complexity_challenge(),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=512,
+            max_turns=2,
+            num_observations=128,
+        )
+    ],
+)
+
+
+lesson_plan = build_lesson_plan(
+    "combine_like_terms_1",
+    [
+        LessonExercise(
+            lesson_name="needle_in_haystack",
+            problem_count=4,
+            problem_fn=lambda: combine_like_terms_complexity_challenge(),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+            max_turns=3,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="two_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="three_terms",
@@ -99,15 +223,15 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=512,
+            num_observations=64,
         ),
         LessonExercise(
-            lesson_name="inner_blockers",
-            problem_count=6,
-            problem_fn=lambda: move_around_blockers_one(2),
+            lesson_name="inner_blockers_difficult",
+            problem_fn=lambda: move_around_blockers_one(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=200,
-            num_observations=512,
+            problem_count=4,
+            mcts_sims=250,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="four_terms",
@@ -115,7 +239,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=512,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="five_terms",
@@ -123,8 +247,48 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=512,
+            num_observations=64,
         ),
+        # LessonExercise(
+        #     lesson_name="six_terms",
+        #     problem_count=1,
+        #     problem_fn=lambda: simplify_multiple_terms(6),
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     mcts_sims=250,
+        #     num_observations=256,
+        # ),
+        LessonExercise(
+            lesson_name="seven_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(7),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+            num_observations=64,
+        ),
+        # LessonExercise(
+        #     lesson_name="fourteen_terms",
+        #     problem_count=1,
+        #     problem_fn=lambda: simplify_multiple_terms(14),
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     mcts_sims=250,
+        #     num_observations=256,
+        # ),
+        # LessonExercise(
+        #     lesson_name="twelve_terms",
+        #     problem_count=1,
+        #     problem_fn=lambda: simplify_multiple_terms(12),
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     mcts_sims=500,
+        #     num_observations=256,
+        # ),
+        # LessonExercise(
+        #     lesson_name="ten_terms",
+        #     problem_count=1,
+        #     problem_fn=lambda: simplify_multiple_terms(10),
+        #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+        #     mcts_sims=250,
+        #     num_observations=256,
+        # ),
     ],
 )
 

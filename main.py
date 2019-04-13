@@ -30,7 +30,13 @@ from mathzero.embeddings.math_experience import MathExperience
 from mathzero.training.mcts import MCTS
 from mathzero.embeddings.actor_mcts import ActorMCTS
 from datetime import timedelta
-from curriculum.level1 import lesson_plan, lesson_quick, moves_per_complexity
+from curriculum.level1 import (
+    lesson_plan,
+    lesson_quick,
+    moves_per_complexity,
+    yellow_belt,
+    combine_forced,
+)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -63,15 +69,15 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     import tensorflow as tf
 
+    min_train_experience = 1024
     eval_interval = 2
-    experience_per_lesson = 64
+    short_term_size = 128
     initial_train_iterations = 10
-    eval_ltm_sample_size = 2048
     episode_counter = 0
     counter = 0
     controller = MathGame(verbose=True)
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
-    experience = MathExperience(mathy.model_dir, experience_per_lesson)
+    experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
 
     if initial_train is True:
@@ -96,6 +102,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         num_solved = 0
         num_failed = 0
 
+        # plan = combine_forced
         plan = lesson_plan
         # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
         # plan = quick_test_plan
@@ -119,7 +126,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
 
         lessons = plan.lessons[:]
 
-        shuffle_lessons = True
+        shuffle_lessons = False
         if shuffle_lessons:
             random.shuffle(lessons)
         print("lesson order: {}".format([l.name for l in lessons]))
@@ -132,9 +139,10 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
-            iter_experience = experience_per_lesson if not eval_run else 1
             if lesson.num_observations is not None:
                 iter_experience = lesson.num_observations
+            else:
+                iter_experience = short_term_size
             while lesson_experience_count < iter_experience:
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False
@@ -201,10 +209,21 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
                 ep_reward_buffer.append(episode_reward / episode_steps)
                 if eval_experience is not None:
                     eval_experience.add_batch(episode_examples)
-            if not eval_run:
-                model.train(experience.short_term, experience.long_term)
+
+            # Train if we have enough data
+            if experience.count > min_train_experience:
+                if not eval_run:
+                    model.train(experience.short_term, experience.long_term)
+                else:
+                    model.train(eval_experience.short_term, experience.long_term)
             else:
-                model.train(eval_experience.short_term, experience.long_term)
+                print(
+                    color(
+                        f"[skip training] only have {experience.count} observations, but need at least {min_train_experience} before training",
+                        fore="yellow",
+                        style="bright",
+                    )
+                )
 
             summary_writer = tf.summary.create_file_writer(model.model_dir)
             with summary_writer.as_default():

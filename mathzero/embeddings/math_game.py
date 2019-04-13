@@ -52,7 +52,7 @@ class MathGame:
         #        1.       ], dtype=float32)
         # UPDATE: setting back to 0.90 because the eps are longer when manipulating
         #         focus token explicitly
-        self.discount = 0.90
+        self.discount = 0.99
         self.verbose = verbose
         self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
         self.parser = ExpressionParser()
@@ -85,6 +85,25 @@ class MathGame:
         #       only as needed.
         return 1 / (cpu_count() * 1.5)
 
+    def print_state(
+        self, env_state: MathEnvironmentState, action_name: str, token_index=-1
+    ):
+        output = """{:<25} | {}""".format(action_name.lower(), env_state.agent.problem)
+
+        def get_move_shortname(index, move):
+            if move == 0:
+                return "--"
+            if move >= len(self.available_rules):
+                return "xx"
+            return self.available_rules[index].code.lower()
+
+        token_idx = "{}".format(token_index).zfill(3)
+        moves_left = str(env_state.agent.moves_remaining).zfill(2)
+        valid_moves = self.get_valid_rules(env_state)
+        move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
+        moves = " ".join(move_codes)
+        print("{} | {} | {} | {}".format(moves, moves_left, token_idx, output))
+
     def get_initial_state(self, print_problem=True):
 
         if self.lesson is None:
@@ -95,11 +114,11 @@ class MathGame:
             (problem, complexity) = self.lesson.problem_fn()
             type = self.lesson.problem_type
         self.expression_str = problem
-        if print_problem and self.verbose:
-            print("\n\n[Problem] {}\n".format(problem))
         env_state = MathEnvironmentState(
             problem=problem, problem_type=type, max_moves=self.max_moves
         )
+        if print_problem and self.verbose:
+            self.print_state(env_state, "initial-state")
         return env_state, complexity
 
     def write_draw(self, state):
