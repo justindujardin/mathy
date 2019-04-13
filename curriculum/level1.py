@@ -201,20 +201,20 @@ lesson_plan = build_lesson_plan(
     "combine_like_terms_1",
     [
         LessonExercise(
+            lesson_name="two_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(2),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+            num_observations=64,
+        ),
+        LessonExercise(
             lesson_name="needle_in_haystack",
             problem_count=4,
             problem_fn=lambda: combine_like_terms_complexity_challenge(),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
             max_turns=3,
-            num_observations=64,
-        ),
-        LessonExercise(
-            lesson_name="two_terms",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
             num_observations=64,
         ),
         LessonExercise(

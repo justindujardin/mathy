@@ -98,7 +98,10 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     while True:
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
-        eval_run = bool(counter % eval_interval == 0)
+        eval_run = (
+            bool(counter % eval_interval == 0)
+            and experience.count > min_train_experience
+        )
         num_solved = 0
         num_failed = 0
 
@@ -224,6 +227,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
                         style="bright",
                     )
                 )
+                continue
 
             summary_writer = tf.summary.create_file_writer(model.model_dir)
             with summary_writer.as_default():

@@ -56,7 +56,7 @@ def make_training_input_fn(examples, batch_size):
         dataset = tf.data.Dataset.from_generator(
             _lazy_examples, output_types=output_types
         )
-        # Shuffled from long-term memory
+        # Shuffled during long-term memory extraction
         # dataset = dataset.shuffle(50000)
         dataset = dataset.repeat()
         dataset = dataset.batch(batch_size=batch_size)

@@ -91,11 +91,107 @@ def BiDirectionalLSTM(units, name="bi_lstm_stack", state=True):
     return func
 
 
+from tensorflow.keras.layers import Layer, Flatten, Dense
+
+
+class PredictSequences(Layer):
+    def __init__(self, num_predictions=2, **kwargs):
+        self.num_predictions = num_predictions
+        self.activate = Dense(num_predictions, activation="softmax")
+        self.cell_units = 4
+        self.stack_height = 12
+        self.dense_stack = [ResidualDenseLayer(self.cell_units)]
+        for i in range(self.stack_height - 1):
+            self.dense_stack.append(ResidualDenseLayer(self.cell_units))
+        super(PredictSequences, self).__init__(**kwargs)
+
+    def compute_output_shape(self, input_shape):
+        return tf.TensorShape([input_shape[0], self.num_predictions])
+
+    def call(self, input_tensor):
+        for layer in self.dense_stack:
+            input_tensor = layer(input_tensor)
+        return self.activate(input_tensor)
+
+
+class SequenceContext(Layer):
+    def __init__(self, input_context, batch_size, **kwargs):
+        self.batch_size = batch_size
+        self.input_context = input_context
+        self.output_dim = 32
+        super(SequenceContext, self).__init__(**kwargs)
+
+    def compute_output_shape(self, input_shape):
+        return tf.TensorShape([input_shape[0], self.output_dim])
+
+    def build(self, input_shape):
+        # we resize the context_features on axis 1 (0 is batch) to match
+        # the input layer so they can be concatenated.
+        self.input_dense = Dense(self.output_dim, input_shape=(input_shape[0], None))
+        self.context_dense = Dense(
+            self.output_dim, input_shape=(self.input_context.get_shape()[0], None)
+        )
+
+    def call(self, input_tensor):
+        from tensorflow.keras.layers import LSTM, Concatenate, Add, ZeroPadding1D
+
+        # TODO: try this:
+        #  - flatten input/context to 1d
+        #  - pad to the longest of the input/context
+        #  - combine, and enjoy!
+
+        input_tensor = self.input_dense(input_tensor)
+        input_tensor = tf.transpose(input_tensor)
+        return input_tensor
+        # context_tensor = self.context_dense(self.input_context)
+        # context_tensor = tf.transpose(context_tensor)
+        # npad is a tuple of (n_before, n_after) for each dimension
+        # npad = ((None, self.batch_size), (self.batch_size, None))
+        # b = np.pad(a, pad_width=npad, mode='constant', constant_values=0)
+        # size = tf.size(context_tensor)
+        # batch = tf.constant(self.batch_size, dtype=tf.int32)
+        # remainder = tf.reduce_max(tf.floormod(size, batch))
+        # row_length = tf.cast(
+        #     tf.math.ceil(tf.divide(tf.subtract(size, remainder), batch)), tf.int32
+        # )
+        # paddings = [[0, 0], [0, row_length]]
+        # tf.pad is weird, it seems to do a t/b/l/r padding kind of like CSS?
+        # this padding below extends all the context rows to the
+        # context_tensor = tf.pad(context_tensor, paddings, "CONSTANT")
+        # # after padding we can reshape it
+        # context_tensor = tf.reshape(
+        #     context_tensor, [self.batch_size, -1], name="context_reshape"
+        # )
+
+        # x1 = input_tensor  # Input(shape=(10, 100))
+        # x2 = context_tensor  # Input(shape=(20, 30))
+        # x2_unpadded = (
+        #     ZeroPadding1D((0, x1.shape[2] - x2.shape[2]))(
+        #         tf.reshape(x2, (-1, x2.shape[2], x2.shape[1]))
+        #     ),
+        # )
+
+        # x2_padded = tf.reshape(x2_unpadded, (-1, x2.shape[1], x1.shape[2]))
+        # x2_padded = tf.reshape(
+        #     ZeroPadding1D((0, x1.shape[2] - x2.shape[2]))(
+        #         K.reshape(x2, (-1, x2.shape[2], x2.shape[1]))
+        #     ),
+        #     (-1, x2.shape[1], x1.shape[2])
+        # )
+        # return Concatenate(name="sequence_context")([input_tensor, context_tensor])
+
+
 def math_estimator(features, labels, mode, params):
     import tensorflow as tf
     from tensorflow.python.ops import init_ops
     from tensorflow.feature_column import make_parse_example_spec
-    from tensorflow.keras.layers import DenseFeatures, Dense, Concatenate, Input
+    from tensorflow.keras.layers import (
+        DenseFeatures,
+        Dense,
+        Concatenate,
+        Input,
+        TimeDistributed,
+    )
     from tensorflow.keras.experimental import SequenceFeatures
     from tensorflow_estimator.contrib.estimator.python import estimator
     from tensorflow.python.training import adam
@@ -129,27 +225,20 @@ def math_estimator(features, labels, mode, params):
         for i in range(6):
             context_inputs = ResidualDenseLayer(4)(context_inputs)
 
-    def process_nodes(input_layer):
-        from tensorflow.keras.layers import (
-            Activation,
-            Dense,
-            Concatenate,
-            BatchNormalization,
-        )
-        dense_activation = Dense(action_size, activation="softmax")
-        return dense_activation(input_layer)
-
-    sequence_outputs = tf.map_fn(process_nodes, sequence_inputs)
+    predict_policy = TimeDistributed(PredictSequences(action_size))
+    sequence_outputs = predict_policy(sequence_inputs)
+    # sequence_outputs = tf.map_fn(predict_over_nodes, sequence_inputs)
     network = Concatenate(name="mixed_features")(
         [attention(sequence_outputs, 4096), context_inputs]
     )
-
     # Gather the last sequence output for value prediction
     value_logits = Dense(1, activation="tanh", name="value_logits")(network)
     # Flatten policy logits to 1d arrays
     policy_logits = sequence_outputs
     policy_shape = tf.shape(policy_logits)
-    policy_logits = tf.reshape(policy_logits, [policy_shape[0], -1, 1])
+    policy_logits = tf.reshape(
+        policy_logits, [policy_shape[0], -1, 1], name="policy_reshape"
+    )
     logits = {"policy": policy_logits, "value": value_logits}
 
     # Optimizer (for all tasks)

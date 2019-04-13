@@ -145,11 +145,23 @@ class MathEnvironmentState(object):
         nodes_len = len(nodes)
         node_masks = []
         pad_value = MathTypeKeys["empty"]
+        context_pad_value = (pad_value, pad_value, pad_value)
+        # Add context before/current/after node values
         for i, t in enumerate(nodes):
             last = pad_value if i == 0 else nodes[i - 1].type_id
             next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
             vectors.append((last, t.type_id, next))
-        return vectors
+
+        vectors_len = len(vectors)
+
+        # Expand the context by doing a window of the window (thanks @honnibal for this trick)
+        context_vectors = []
+        for i, v in enumerate(vectors):
+            last = context_pad_value if i == 0 else vectors[i - 1]
+            next = context_pad_value if i > vectors_len - 2 else vectors[i + 1]
+            context_vectors.append(last + v + next)
+
+        return context_vectors
 
     def to_input_features(self, return_batch=False):
         """Output a one element array of features that can be fed to the 
@@ -163,6 +175,12 @@ class MathEnvironmentState(object):
         expression = self.parser.parse(self.agent.problem)
         # Padding value is a result tuple with empty values for prev/current/next
         pad_value = (
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
+            MathTypeKeys["empty"],
             MathTypeKeys["empty"],
             MathTypeKeys["empty"],
             MathTypeKeys["empty"],
