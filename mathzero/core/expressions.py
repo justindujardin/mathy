@@ -449,16 +449,11 @@ class BinaryExpression(MathExpression):
             rightChildBinary
             and self.right
             and not self.right.selfParenthesis()
-            and self.right.getPriority() < self.getPriority()
+            and self.right.getPriority() <= self.getPriority()
         )
 
     def selfParenthesis(self):
-        selfParentBinary = self.parent and isinstance(self.parent, BinaryExpression)
-        return (
-            selfParentBinary
-            # ambiguous priority
-            and self.parent.getPriority() >= self.getPriority()
-        )
+        return False
 
     def __str__(self):
         if self.left is None or self.right is None:

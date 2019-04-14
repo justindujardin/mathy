@@ -5,12 +5,14 @@
   "valid": [
     {
       "input": "22d + 13p + 1m + 15v + 20j + 9j",
-      "output": "(((22d + 13p) + 1m) + 15v) + (20 + 9) * j",
-      "why": "the parens are out of control, todo: fix them"
+      "output": "22d + 13p + 1m + 15v + (20 + 9) * j",
+      "why": "the parens are out of control, todo: fix them",
+      "debug": true
     },
     {
       "input": "22d + 13p + 1m + 15v + 20j + 9j + 14b",
-      "output": "((((22d + 13p) + 1m) + 15v) + (20 + 9) * j) + 14b"
+      "output": "22d + 13p + 1m + 15v + (20 + 9) * j + 14b",
+      "debug": true
     },
     {
       "input": "9y + 9y",

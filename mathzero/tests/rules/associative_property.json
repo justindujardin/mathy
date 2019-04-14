@@ -1,7 +1,25 @@
 {
   "valid": [
-    { "input": "2 + (1 + 6)", "output": "(2 + 1) + 6" },
-    { "input": "(2 + x) + 9", "output": "2 + (x + 9)" }
+    {
+      "input": "2 + 1 + 6",
+      "output": "2 + (1 + 6)",
+      "debug": true
+    },
+    {
+      "input": "2 + (1 + 6)",
+      "output": "2 + 1 + 6"
+    },
+    {
+      "input": "(2 + x) + 9",
+      "output": "2 + (x + 9)"
+    }
   ],
-  "invalid": [{ "input": "2x" }, { "input": "2" }]
+  "invalid": [
+    {
+      "input": "2x"
+    },
+    {
+      "input": "2"
+    }
+  ]
 }

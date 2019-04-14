@@ -206,7 +206,7 @@ def math_estimator(features, labels, mode, params):
     #
     # NOTE: the idea here is that these layers are the least important. I'm not sure
     #  this will work but I'd like to keep the weights from the core of the model while
-    #  swapping out the input/output layers based on user customization.
+    #  swapping out the input (and maybe output) layers based on user mods.
     #
     with tf.compat.v1.variable_scope("inputs"):
         sequence_features = {
