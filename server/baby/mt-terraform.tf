@@ -11,7 +11,7 @@ provider "google" {
 resource "google_compute_instance" "mathtastic-worker" {
   count                     = "1"
   name                      = "mt-baby-worker"
-  machine_type              = "n1-standard-8"
+  machine_type              = "n1-standard-1"
   zone                      = "us-east1-c"
   tags                      = ["gpu-compute"]
 

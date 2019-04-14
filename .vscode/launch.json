@@ -11,8 +11,8 @@
       "debugStdLib": true,
       "module": "train",
       "args": [
-        "/mnt/gcs/mzc/train_seq_predictions_one_hot/",
-        "/mnt/gcs/mzc/seq_predictions_one_hot/train/examples.jsonl"
+        "/mnt/gcs/mzc/dev/",
+        "/mnt/gcs/mzc/fixed/seq_examples_tiny.jsonl"
       ]
     },
     {
@@ -22,7 +22,7 @@
       "debugStdLib": true,
       "module": "main",
       "args": [
-        "/mnt/gcs/mzc/dev/",
+        "/mnt/gcs/mzc/deep_context/",
         "-v"
       ]
     },
@@ -66,7 +66,7 @@
         "--pyargs",
         "mathzero",
         "-k",
-        "test_math_game_jd"
+        "test_associative_property"
       ]
     },
     {

@@ -99,7 +99,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
         eval_run = (
-            bool(counter % eval_interval == 0)
+            bool(counter % eval_interval != 0)
             and experience.count > min_train_experience
         )
         num_solved = 0
@@ -129,7 +129,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
 
         lessons = plan.lessons[:]
 
-        shuffle_lessons = False
+        shuffle_lessons = True
         if shuffle_lessons:
             random.shuffle(lessons)
         print("lesson order: {}".format([l.name for l in lessons]))
@@ -153,7 +153,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
                 complexity_value = complexity * moves_per_complexity
                 controller.verbose = eval_run or verbose
                 if eval_run:
-                    num_rollouts = 250
+                    num_rollouts = 125
                     num_exploration_moves = 0
                     epsilon = 0
                 else:

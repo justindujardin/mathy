@@ -260,7 +260,7 @@ lesson_plan = build_lesson_plan(
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=200,
+            mcts_sims=250,
             num_observations=64,
         ),
         # LessonExercise(
@@ -284,7 +284,7 @@ lesson_plan = build_lesson_plan(
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(14),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
+            mcts_sims=500,
             num_observations=128,
         ),
         LessonExercise(

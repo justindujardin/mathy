@@ -26,7 +26,7 @@ echo 'export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 source ~/.bashrc
 
 echo "Installing Tensorflow GPU"
-pip3 --no-cache-dir install https://github.com/mind/wheels/releases/download/tf1.12-gpu-cuda10-tensorrt/tensorflow-1.12.0-cp36-cp36m-linux_x86_64.whl
+pip3 --no-cache-dir install tf-nightly-gpu
 echo "Done."
 
 echo "Installing SSH keys from bucket..."
@@ -49,3 +49,23 @@ echo "Done."
 EOF
 ) | tee /home/insecurity/dev-init
 chmod +x /home/insecurity/dev-init
+
+# 
+# Write out a spacy pretraining startup script
+# 
+sudo touch /usr/local/bin/spacy-init
+(sudo -u insecurity cat <<-'EOF'
+#!/bin/bash
+set -e
+echo "Create python3.6 virtualenv and activate it..."
+echo "Setting up \$PATH..."
+echo 'export CUDA_HOME=/usr/local/cuda' >> ~/.bashrc
+echo 'export PATH=$PATH:$CUDA_HOME/bin' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+source ~/.bashrc
+python3.6 -m spacy download en_core_web_lg
+echo "Pretrain command: nohup python3.6 -m spacy pretrain /mnt/gcs/mzc/spacy_pretraining/toxic_pretraining_2735618_tweets.jsonl en_core_web_lg /mnt/gcs/mzc/spacy_pretraining/toxic_n2735618/ &"
+
+EOF
+) | tee /home/insecurity/spacy-init
+chmod +x /home/insecurity/spacy-init

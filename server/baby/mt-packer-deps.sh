@@ -24,3 +24,10 @@ echo "Downloading and installing CUDA Neural Net library..."
 gsutil cp gs://shm-builds/libcudnn7_7.4.2.24-1+cuda10.0_amd64.deb /tmp/
 sudo dpkg -i /tmp/libcudnn7_7.4.2.24-1+cuda10.0_amd64.deb
 
+export CUDA_HOME=/usr/local/cuda
+export PATH=$PATH:$CUDA_HOME/bin
+export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+echo "Installing spaCy and cupy"
+pip3 install spacy>=2.1.0 cupy thinc_gpu_ops
+echo "Done."
+
