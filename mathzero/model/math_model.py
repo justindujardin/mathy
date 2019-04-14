@@ -29,9 +29,11 @@ from ..model.features import (
 )
 
 
+use_gpu = True
+
 class NetConfig:
     def __init__(
-        self, lr=0.001, dropout=0.2, epochs=4, batch_size=512, log_frequency=250
+        self, lr=0.00003, dropout=0.2, epochs=4, batch_size=512, log_frequency=250
     ):
         self.lr = lr
         self.dropout = dropout
@@ -50,7 +52,7 @@ class MathModel:
         init_model_dir=None,
         init_model_overwrite=False,
         embeddings_dimensions=256,
-        long_term_size=32768,
+        long_term_size=4096,
         is_eval_model=False,
     ):
         import tensorflow as tf
@@ -81,7 +83,12 @@ class MathModel:
                 )
             )
         self.embedding_dimensions = embeddings_dimensions
-        session_config = tf.compat.v1.ConfigProto()
+        # https://stackoverflow.com/questions/52447908/how-to-explicitly-run-tensor-flow-estimator-on-gpu
+        session_config = tf.ConfigProto(
+            device_count={"GPU": 1 if use_gpu else 0},
+            inter_op_parallelism_threads=10,
+            intra_op_parallelism_threads=10,
+        )
         session_config.gpu_options.allow_growth = True
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
         self.action_size = action_size
