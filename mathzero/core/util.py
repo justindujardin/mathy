@@ -260,14 +260,9 @@ class FactorResult:
         self.rightVariable = None
 
 
-def factorAddTerms(node):
-    if not isAddSubtract(node):
-        raise Exception("Cannot factor non add/subtract node")
-
-    lTerm = getTerm(node.left)
-    rTerm = getTerm(node.right)
+def factorAddTerms(lTerm, rTerm):
     if not lTerm or not rTerm:
-        raise Exception("Complex or unidentifiable term/s in {}".format(node))
+        raise ValueError("invalid terms for factoring")
 
     # TODO: Skipping complex terms with multiple coefficients for now.
     if lTerm.coefficients and len(lTerm.coefficients) > 1:

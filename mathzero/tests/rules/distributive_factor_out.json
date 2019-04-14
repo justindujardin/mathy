@@ -3,13 +3,36 @@
     "valid": "two nodes connected by a plus can have common units extracted out"
   },
   "valid": [
-    { "input": "9y + 9y", "output": "(9 + 9) * y" },
-    { "input": "6 + 4", "output": "(3.0 + 2) * 2" },
-    { "input": "7 + 7", "output": "(1 + 1) * 7" },
-    { "input": "14x + 7x", "output": "(14 + 7) * x" }
+    {
+      "input": "22d + 13p + 1m + 15v + 20j + 9j",
+      "output": "(((22d + 13p) + 1m) + 15v) + (20 + 9) * j",
+      "why": "the parens are out of control, todo: fix them"
+    },
+    {
+      "input": "22d + 13p + 1m + 15v + 20j + 9j + 14b",
+      "output": "((((22d + 13p) + 1m) + 15v) + (20 + 9) * j) + 14b"
+    },
+    {
+      "input": "9y + 9y",
+      "output": "(9 + 9) * y"
+    },
+    {
+      "input": "6 + 4",
+      "output": "(3.0 + 2) * 2"
+    },
+    {
+      "input": "7 + 7",
+      "output": "(1 + 1) * 7"
+    },
+    {
+      "input": "14x + 7x",
+      "output": "(14 + 7) * x"
+    }
   ],
   "invalid": [
-    { "input": "4 + (z + 4)" },
+    {
+      "input": "4 + (z + 4)"
+    },
     {
       "input": "(z * 4 + z * 84x) + 1",
       "why": "can't extract from terms with multiple variables"

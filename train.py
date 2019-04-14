@@ -16,6 +16,7 @@ from mathzero.core.parser import ExpressionParser, ParserException
 from mathzero.embeddings.math_game import MathGame
 from mathzero.model.math_model import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
+from curriculum.level1 import combine_like_terms_complexity_challenge
 from mathzero.training.practice_runner import (
     ParallelPracticeRunner,
     PracticeRunner,
@@ -37,53 +38,46 @@ from datetime import timedelta
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
 
-moves_per_complexity = 10
-
+moves_per_complexity = 3
 
 lesson_plan = build_lesson_plan(
     "combine_like_terms_1",
     [
         LessonExercise(
-            lesson_name="two_terms",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(2),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
             lesson_name="three_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
+            mcts_sims=100,
+        ),
+        LessonExercise(
+            lesson_name="needle_in_haystack",
+            problem_count=32,
+            problem_fn=lambda: combine_like_terms_complexity_challenge(),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=3,
+            mcts_sims=100,
         ),
         LessonExercise(
             lesson_name="four_terms",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-        ),
-        LessonExercise(
-            lesson_name="five_terms",
-            problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(5),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-        ),
-        LessonExercise(
-            lesson_name="six_terms",
-            problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(6),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=100,
         ),
         LessonExercise(
             lesson_name="seven_terms",
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(7),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=100,
+        ),
+        LessonExercise(
+            lesson_name="seven_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(7),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=100,
         ),
     ],
 )
@@ -144,7 +138,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
     num_exploration_moves = 0
     epsilon = 0
     eval_ltm_sample_size = 2048
-    initial_train_iterations = 12
+    initial_train_iterations = 32
     controller = MathGame(verbose=True)
     input_examples = Path(examples_file)
     model_dir = Path(model_dir)
@@ -183,7 +177,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
             )
         )
         mathy.args.epochs = initial_train_iterations
-        mathy.train(experience.short_term, experience.long_term, train_all=True)
+        mathy.train(experience.short_term, experience.long_term)
 
     print(color("Evaluting model performance on exam questions!", fore="green"))
     ep_reward_buffer = []
