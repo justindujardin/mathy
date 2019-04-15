@@ -29,7 +29,7 @@ from ..model.features import (
 )
 
 
-use_gpu = True
+use_gpu = False
 
 class NetConfig:
     def __init__(
@@ -84,7 +84,7 @@ class MathModel:
             )
         self.embedding_dimensions = embeddings_dimensions
         # https://stackoverflow.com/questions/52447908/how-to-explicitly-run-tensor-flow-estimator-on-gpu
-        session_config = tf.ConfigProto(
+        session_config = tf.compat.v1.ConfigProto(
             device_count={"GPU": 1 if use_gpu else 0},
             inter_op_parallelism_threads=10,
             intra_op_parallelism_threads=10,

@@ -218,18 +218,18 @@ lesson_plan = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: combine_like_terms_complexity_challenge(),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
+            mcts_sims=500,
             max_turns=3,
-            num_observations=64,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="needle_in_haystack_2",
             problem_count=4,
             problem_fn=lambda: combine_like_terms_complexity_challenge(False),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=250,
-            max_turns=5,
-            num_observations=64,
+            mcts_sims=500,
+            max_turns=3,
+            num_observations=512,
         ),
         # LessonExercise(
         #     lesson_name="three_terms",
@@ -245,7 +245,7 @@ lesson_plan = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
             mcts_sims=250,
-            num_observations=64,
+            num_observations=512,
         ),
         # LessonExercise(
         #     lesson_name="four_terms",
@@ -261,7 +261,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=64,
+            num_observations=512,
         ),
         # LessonExercise(
         #     lesson_name="six_terms",
@@ -277,7 +277,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(7),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=128,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="fourteen_terms",
@@ -285,7 +285,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(14),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=128,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="twelve_terms",
@@ -293,7 +293,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(12),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=128,
+            num_observations=512,
         ),
         LessonExercise(
             lesson_name="ten_terms",
@@ -301,7 +301,7 @@ lesson_plan = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(10),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
-            num_observations=128,
+            num_observations=512,
         ),
     ],
 )
