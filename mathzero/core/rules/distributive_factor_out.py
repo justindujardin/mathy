@@ -76,6 +76,10 @@ class DistributiveFactorOutRule(BaseRule):
         if len(leftTerm.variables) > 1 or len(rightTerm.variables) > 1:
             return False
 
+        # Don't try factoring out terms with no variables, e.g "4 + 84"
+        if len(leftTerm.variables) == 0 and len(rightTerm.variables) == 0:
+            return False
+
         f = factorAddTerms(leftTerm, rightTerm)
         if not f:
             return False
