@@ -453,6 +453,17 @@ class BinaryExpression(MathExpression):
         )
 
     def selfParenthesis(self):
+        my_pri = self.getPriority()
+        # (7 - (5 - 3)) * (32 - 7)
+        return (
+            self.right
+            and isinstance(self.right, BinaryExpression)
+            and self.right.getPriority() <= my_pri
+            and self.parent
+            and isinstance(self.parent, BinaryExpression)
+            and self.parent.getPriority() > my_pri
+        )
+
         return False
 
     def __str__(self):
@@ -462,13 +473,11 @@ class BinaryExpression(MathExpression):
                     self.__class__.__name__
                 )
             )
-        if self.rightParenthesis():
-            return "{} {} ({})".format(self.left, self.name, self.right)
-        elif self.leftParenthesis():
-            return "({}) {} {}".format(self.left, self.name, self.right)
-        elif self.selfParenthesis():
-            return "({} {} {})".format(self.left, self.name, self.right)
-        return "{} {} {}".format(self.left, self.name, self.right)
+
+        left = f"({self.left})" if self.leftParenthesis() else f"{self.left}"
+        right = f"({self.right})" if self.rightParenthesis() else f"{self.right}"
+        out = f"{left} {self.name} {right}"
+        return f"({out})" if self.selfParenthesis() else out
 
     def toMathML(self):
         rightML = self.right.toMathML()

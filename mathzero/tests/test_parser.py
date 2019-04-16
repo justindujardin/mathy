@@ -6,11 +6,17 @@ from ..core.parser import ExpressionParser
 
 def test_parser_to_string():
     parser = ExpressionParser()
-    # expression = parser.parse("7 + 4x - 2")
-    # assert str(expression) == "7 + 4x - 2"
-    # Test to make sure parens are preserved in output
-    expression = parser.parse("(7 - (5 - 3)) * (32 - 7)")
-    assert str(expression) == "(7 - (5 - 3)) * (32 - 7)"
+    expects = [
+        {"input": "(7 - (5 - 3)) * (32 - 7)", "output": "(7 - (5 - 3)) * (32 - 7)"},
+        {"input": "7 - (5 * 3) * (32 / 7)", "output": "7 - 5 * 3 * (32 / 7)"},
+        {"input": "7 - (5 * 3) * (2^7)", "output": "7 - 5 * 3 * 2^7"},
+        {"input": "(7 - (5 * 3)) * (32 - 7)", "output": "(7 - 5 * 3) * (32 - 7)"},
+    ]
+    # Test to make sure parens are preserved in output when they are meaningful
+    for expect in expects:
+        expression = parser.parse(expect["input"])
+        out_str = str(expression)
+        assert out_str == expect["output"]
 
 
 def test_tokenizer():

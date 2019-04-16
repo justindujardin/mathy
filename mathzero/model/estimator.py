@@ -1,35 +1,24 @@
+import tensorflow as tf
+from tensorflow.keras.experimental import SequenceFeatures
+from tensorflow.keras.layers import Concatenate, Dense, DenseFeatures, TimeDistributed
+from tensorflow.python.training import adam
+from tensorflow_estimator.contrib.estimator.python import estimator
+
 from ..model.features import (
-    FEATURE_NODE_COUNT,
-    FEATURE_FWD_VECTORS,
     FEATURE_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
-    TRAIN_LABELS_AS_MATRIX,
 )
-import tensorflow as tf
-from .layers.residual_dense import ResidualDense
 from .layers.bahdanau_attention import BahdanauAttention
-from .layers.math_policy import MathPolicy
 from .layers.bi_lstm import BiLSTM
+from .layers.math_policy import MathPolicy
+from .layers.residual_dense import ResidualDense
 
 
 def math_estimator(features, labels, mode, params):
-    import tensorflow as tf
-    from tensorflow.python.ops import init_ops
-    from tensorflow.feature_column import make_parse_example_spec
-    from tensorflow.keras.layers import (
-        DenseFeatures,
-        Dense,
-        Concatenate,
-        Input,
-        TimeDistributed,
-    )
-    from tensorflow.keras.experimental import SequenceFeatures
-    from tensorflow_estimator.contrib.estimator.python import estimator
-    from tensorflow.python.training import adam
-
     sequence_columns = params["sequence_columns"]
     feature_columns = params["feature_columns"]
     action_size = params["action_size"]

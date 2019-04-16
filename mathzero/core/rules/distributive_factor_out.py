@@ -93,6 +93,7 @@ class DistributiveFactorOutRule(BaseRule):
         tree_position = self.get_type(node)
         if tree_position is None:
             raise ValueError("invalid node for rule, call canApply first.")
+        change = super().applyTo(node).saveParent()
 
         left_interest = node.left
         if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
@@ -105,7 +106,6 @@ class DistributiveFactorOutRule(BaseRule):
         b = makeTerm(factors.left, factors.leftVariable, factors.leftExponent)
         c = makeTerm(factors.right, factors.rightVariable, factors.rightExponent)
         if tree_position == DistributiveFactorOutRule.POS_NATURAL:
-            change = super().applyTo(node).saveParent()
             inside = (
                 AddExpression(b, c)
                 if isinstance(node, AddExpression)
@@ -116,11 +116,7 @@ class DistributiveFactorOutRule(BaseRule):
             #       ordering that can be expressed without an
             #       explicit multiplication symbol.
             result = MultiplyExpression(inside, a)
-
-            change.set_focus(inside)
         elif tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
-            change = super().applyTo(node)
-
             # How to fix up tree
             left_link = node.left
             inside = (
@@ -135,9 +131,7 @@ class DistributiveFactorOutRule(BaseRule):
             #       explicit multiplication symbol.
             result = MultiplyExpression(inside, a)
             left_link.setRight(result)
-            left_link.parent = node.parent
-            if node.parent:
-                node.parent.setLeft(left_link)
+            result = left_link
         else:
             raise ValueError("invalid/unknown tree configuration")
         change.done(result)
