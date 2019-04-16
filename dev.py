@@ -12,7 +12,7 @@ import time
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
 from mathzero.embeddings.math_game import MathGame
-from mathzero.model.math_model import MathModel
+from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from mathzero.training.practice_runner import (
     ParallelPracticeRunner,

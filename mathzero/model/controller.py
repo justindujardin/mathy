@@ -12,10 +12,10 @@ from multiprocessing import cpu_count
 from itertools import zip_longest
 from lib.progress.bar import Bar
 from lib.average_meter import AverageMeter
-from .math_estimator import math_estimator
+from .estimator import math_estimator
 from ..core.expressions import MathTypeKeysMax
 from ..environment_state import MathEnvironmentState
-from ..model.math_predictor import MathPredictor
+from ..model.predictor import MathPredictor
 from ..model.features import (
     FEATURE_FWD_VECTORS,
     FEATURE_FOCUS_INDEX,
@@ -52,7 +52,7 @@ class MathModel:
         init_model_dir=None,
         init_model_overwrite=False,
         embeddings_dimensions=256,
-        long_term_size=4096,
+        long_term_size=32768,
         is_eval_model=False,
     ):
         import tensorflow as tf
@@ -185,9 +185,9 @@ class MathModel:
 
     def train(self, short_term_examples, long_term_examples, train_all=False):
         """examples: list of examples in JSON format"""
-        from .math_hooks import EpochTrainerHook
+        from .estimator_hooks import EpochTrainerHook
         import tensorflow as tf
-        from .math_dataset import make_training_input_fn
+        from .dataset import make_training_input_fn
 
         # Select some observations for training
         if train_all is not True:
@@ -231,7 +231,7 @@ class MathModel:
 
     def train_one(self, example):
         import tensorflow as tf
-        from .math_dataset import make_training_input_fn
+        from .dataset import make_training_input_fn
 
         start = time.time()
         self.network.train(steps=1, input_fn=make_training_input_fn([example], 1))

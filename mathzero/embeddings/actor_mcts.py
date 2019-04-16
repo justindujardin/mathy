@@ -9,7 +9,7 @@ from ..util import discount, is_terminal_transition, normalize_rewards
 from ..training.mcts import MCTS
 from .math_game import MathGame
 from ..core.expressions import MathExpression
-from ..model.math_model import MathModel
+from ..model.controller import MathModel
 from tf_agents.environments import time_step
 import copy
 

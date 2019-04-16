@@ -306,6 +306,38 @@ lesson_plan = build_lesson_plan(
     ],
 )
 
+
+lesson_plan_2 = build_lesson_plan(
+    "combine_like_terms_2",
+    [
+        LessonExercise(
+            lesson_name="twenty_four_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(24),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=512,
+        ),
+        LessonExercise(
+            lesson_name="needle_in_haystack_2",
+            problem_count=4,
+            problem_fn=lambda: combine_like_terms_complexity_challenge(False),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            max_turns=3,
+            num_observations=512,
+        ),
+        LessonExercise(
+            lesson_name="seven_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(7),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=250,
+            num_observations=512,
+        ),
+    ],
+)
+
 lesson_quick = build_lesson_plan(
     "combine_like_terms_1",
     [

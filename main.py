@@ -11,7 +11,7 @@ import time
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
 from mathzero.embeddings.math_game import MathGame
-from mathzero.model.math_model import MathModel
+from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from mathzero.training.practice_runner import (
     ParallelPracticeRunner,
@@ -32,6 +32,7 @@ from mathzero.embeddings.actor_mcts import ActorMCTS
 from datetime import timedelta
 from curriculum.level1 import (
     lesson_plan,
+    lesson_plan_2,
     lesson_quick,
     moves_per_complexity,
     yellow_belt,
@@ -69,6 +70,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     import tensorflow as tf
 
+    shuffle_lessons = False
     min_train_experience = 1024
     eval_interval = 2
     short_term_size = 128
@@ -79,6 +81,10 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
+    # plan = combine_forced
+    plan = lesson_plan_2
+    # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
+    # plan = quick_test_plan
 
     if initial_train is True:
         print(
@@ -105,10 +111,6 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
         num_solved = 0
         num_failed = 0
 
-        # plan = combine_forced
-        plan = lesson_plan
-        # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
-        # plan = quick_test_plan
         if eval_run:
             print("\n\n=== Evaluating model with exploitation strategy ===")
             mathy.stop()
@@ -129,7 +131,6 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
 
         lessons = plan.lessons[:]
 
-        shuffle_lessons = True
         if shuffle_lessons:
             random.shuffle(lessons)
         print("lesson order: {}".format([l.name for l in lessons]))

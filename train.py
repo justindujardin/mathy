@@ -14,7 +14,7 @@ from mathzero.environment_state import INPUT_EXAMPLES_FILE_NAME
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
 from mathzero.embeddings.math_game import MathGame
-from mathzero.model.math_model import MathModel
+from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from curriculum.level1 import combine_like_terms_complexity_challenge
 from mathzero.training.practice_runner import (
