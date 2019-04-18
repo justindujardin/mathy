@@ -5,10 +5,10 @@ from sys import stdin
 
 import numpy
 
-from ..embeddings.actor_mcts import ActorMCTS
+from ..training.actor_mcts import ActorMCTS
 from ..core.expressions import MathExpression
 from ..environment_state import MathEnvironmentState
-from ..embeddings.math_game import MathGame
+from ..math_game import MathGame
 from ..model.controller import MathModel
 from ..util import is_terminal_transition, normalize_rewards
 from .mcts import MCTS

@@ -11,7 +11,7 @@ import plac
 import time
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.embeddings.math_game import MathGame
+from mathzero.math_game import MathGame
 from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from mathzero.training.practice_runner import (
@@ -21,9 +21,9 @@ from mathzero.training.practice_runner import (
 )
 from mathzero.training.practice_session import PracticeSession
 from mathzero.training.problems import MODE_SIMPLIFY_POLYNOMIAL, simplify_multiple_terms
-from mathzero.embeddings.math_experience import MathExperience
+from mathzero.training.math_experience import MathExperience
 from mathzero.training.mcts import MCTS
-from mathzero.embeddings.actor_mcts import ActorMCTS
+from mathzero.training.actor_mcts import ActorMCTS
 from datetime import timedelta
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"

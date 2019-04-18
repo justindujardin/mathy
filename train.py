@@ -13,7 +13,7 @@ from shutil import copyfile
 from mathzero.environment_state import INPUT_EXAMPLES_FILE_NAME
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.embeddings.math_game import MathGame
+from mathzero.math_game import MathGame
 from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from curriculum.level1 import combine_like_terms_complexity_challenge
@@ -30,9 +30,9 @@ from mathzero.training.problems import (
     maybe_int,
     get_rand_vars,
 )
-from mathzero.embeddings.math_experience import MathExperience
+from mathzero.training.math_experience import MathExperience
 from mathzero.training.mcts import MCTS
-from mathzero.embeddings.actor_mcts import ActorMCTS
+from mathzero.training.actor_mcts import ActorMCTS
 from datetime import timedelta
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"

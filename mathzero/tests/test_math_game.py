@@ -1,4 +1,4 @@
-from ..embeddings.math_game import MathGame
+from ..math_game import MathGame
 from ..environment_state import MathEnvironmentState, MathAgentState
 from ..util import is_terminal_transition
 from math import isclose

@@ -146,7 +146,7 @@ class MathEnvironmentState(object):
         node_masks = []
         pad_value = MathTypeKeys["empty"]
         context_pad_value = (pad_value, pad_value, pad_value)
-        # Add context before/current/after node values
+        # Add context before/current/after node values  (thanks @honnibal for this trick)
         for i, t in enumerate(nodes):
             last = pad_value if i == 0 else nodes[i - 1].type_id
             next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
@@ -154,7 +154,7 @@ class MathEnvironmentState(object):
 
         vectors_len = len(vectors)
 
-        # Expand the context by doing a window of the window (thanks @honnibal for this trick)
+        # Do it again which expands the reach of the vectors.
         context_vectors = []
         for i, v in enumerate(vectors):
             last = context_pad_value if i == 0 else vectors[i - 1]
@@ -226,19 +226,3 @@ class MathEnvironmentState(object):
             FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
         }
 
-
-def to_sparse_tensor(sequence, dtype=None, fill_value=-1):
-    import tensorflow as tf
-
-    if dtype is None:
-        dtype = tf.int32
-
-    tensor = tf.convert_to_tensor(sequence, dtype=dtype)
-    idx = tf.where(tf.not_equal(tensor, fill_value))
-    # Make the sparse tensor
-    # Use tf.shape(a_t, out_type=tf.int64) instead of a_t.get_shape()
-    # if tensor shape is dynamic
-    sparse = tf.SparseTensor(
-        idx, tf.gather_nd(tensor, idx), tf.shape(tensor, out_type=dtype)
-    )
-    return sparse

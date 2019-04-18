@@ -94,7 +94,7 @@ def math_estimator(features, labels, mode, params):
     optimizer = adam.AdamOptimizer(learning_rate)
 
     # output histograms for all trainable variables.
-    summary_interval = 50
+    summary_interval = 500
     global_step = tf.compat.v1.train.get_or_create_global_step()
     with tf.summary.record_if(lambda: tf.math.equal(global_step % summary_interval, 0)):
         for var in tf.compat.v1.trainable_variables():

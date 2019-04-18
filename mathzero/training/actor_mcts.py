@@ -7,7 +7,7 @@ import numpy
 from ..environment_state import MathEnvironmentState
 from ..util import discount, is_terminal_transition, normalize_rewards
 from ..training.mcts import MCTS
-from .math_game import MathGame
+from ..math_game import MathGame
 from ..core.expressions import MathExpression
 from ..model.controller import MathModel
 from tf_agents.environments import time_step
@@ -59,17 +59,15 @@ class ActorMCTS:
         # Keep going if the reward signal is not terminal
         if not is_term:
             return next_state, train_example, None
-        rewards = [x[2] for x in history]
-        print("initial rewards: {}".format(numpy.asarray(rewards)))
-        # # flip all timestep rewards to positive (hurray, we won!)
-        # if is_win:
-        #     rewards = [abs(r) for r in rewards]
-        rewards = list(discount(rewards, game.discount))
-        print("discounted rewards: {}".format(numpy.asarray(rewards)))
+        normal_rewards = [x[2] for x in history]
+        # print("initial rewards: {}".format(numpy.asarray(rewards)))
+        rewards = list(discount(normal_rewards, game.discount))
+        # print("discounted rewards: {}".format(numpy.asarray(rewards)))
         examples = []
         for i, x in enumerate(history):
             examples.append(
                 {
+                    "original": float(normal_rewards[i]),
                     "reward": float(rewards[i]),
                     "before": x[3],
                     "policy": x[1],

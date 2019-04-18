@@ -32,6 +32,13 @@ def maybe_int(percent_chance=80):
     return rand_int() if rand_bool(percent_chance) else ""
 
 
+def maybe_power(percent_chance=80, max_power=4):
+    if rand_bool(percent_chance):
+        return "^{}".format(random.randint(2, max_power))
+    else:
+        return ""
+
+
 def rand_int():
     return random.randint(1, max_const)
 
@@ -68,7 +75,7 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
 
 
 def simplify_multiple_terms(
-    num_terms, optional_var=False, op="+", common_variables=True
+    num_terms, optional_var=False, op="+", common_variables=True, powers=False
 ):
     # Generate from common varible names to have more chance of
     # sets of like terms.
@@ -76,8 +83,13 @@ def simplify_multiple_terms(
     # Guarantee at least one set of terms with a common variable. This ensures
     # that the problem has at least one operation that must be done (resolve the conflict
     # between the two matching variable terms.)
-    result = "{}{}".format(rand_int(), variable)
-    suffix = " {} {}{}".format(rand_op() if op is None else op, rand_int(), variable)
+    power_percent_chance = 80 if powers == True else 0
+    pre_power = maybe_power(power_percent_chance)
+    result = "{}{}{}".format(rand_int(), variable, pre_power)
+    suffix = " {} {}{}{}".format(
+        rand_op() if op is None else op, rand_int(), variable, pre_power
+    )
+    var_powers = {}
     for i in range(num_terms - 2):
         result = result + " {} {}{}".format(
             rand_op() if op is None else op,

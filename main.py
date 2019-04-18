@@ -10,7 +10,7 @@ import plac
 import time
 from mathzero.training.lessons import LessonExercise, LessonPlan
 from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.embeddings.math_game import MathGame
+from mathzero.math_game import MathGame
 from mathzero.model.controller import MathModel
 from mathzero.training.lessons import LessonExercise, build_lesson_plan
 from mathzero.training.practice_runner import (
@@ -26,13 +26,14 @@ from mathzero.training.problems import (
     maybe_int,
     get_rand_vars,
 )
-from mathzero.embeddings.math_experience import MathExperience
+from mathzero.training.math_experience import MathExperience
 from mathzero.training.mcts import MCTS
-from mathzero.embeddings.actor_mcts import ActorMCTS
+from mathzero.training.actor_mcts import ActorMCTS
 from datetime import timedelta
 from curriculum.level1 import (
     lesson_plan,
     lesson_plan_2,
+    lesson_plan_3,
     lesson_quick,
     moves_per_complexity,
     yellow_belt,
@@ -82,7 +83,7 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     # plan = combine_forced
-    plan = lesson_plan_2
+    plan = lesson_plan_3
     # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
     # plan = quick_test_plan
 
