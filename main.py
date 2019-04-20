@@ -22,6 +22,7 @@ from mathy.agent.curriculum.level1 import (
     moves_per_complexity,
     yellow_belt,
     green_belt,
+    green_belt_practice,
 )
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
@@ -50,7 +51,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 lessons = {
     "practice1": lesson_plan,
     "exam1": yellow_belt,
-    "practice2": lesson_plan_2,
+    "practice2": green_belt_practice,
     "exam2": green_belt,
     "practice3": lesson_plan_3,
     "dev": lesson_quick,
