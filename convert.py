@@ -4,13 +4,13 @@ import random
 import os
 import sys
 from pathlib import Path
-from mathzero.model.features import (
+from mathy.agent.features import (
     FEATURE_FWD_VECTORS,
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
 )
-from mathzero.core.expressions import MathTypeKeys
+from mathy.core.expressions import MathTypeKeys
 
 
 def iterate_jsonl(filename):

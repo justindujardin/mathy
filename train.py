@@ -2,38 +2,40 @@
 """Train a mathy model on a given input set, then run a lesson evaluation"""
 import json
 import os
-import tempfile
-from pathlib import Path
 import random
-from colr import color
+import tempfile
+import time
+from datetime import timedelta
+from pathlib import Path
+from shutil import copyfile
+
 import numpy
 import plac
-import time
-from shutil import copyfile
-from mathzero.environment_state import INPUT_EXAMPLES_FILE_NAME
-from mathzero.training.lessons import LessonExercise, LessonPlan
-from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.math_game import MathGame
-from mathzero.model.controller import MathModel
-from mathzero.training.lessons import LessonExercise, build_lesson_plan
-from curriculum.level1 import combine_like_terms_complexity_challenge
-from mathzero.training.practice_runner import (
+import tensorflow as tf
+from colr import color
+
+from mathy.agent.controller import MathModel
+from mathy.agent.curriculum.level1 import combine_like_terms_complexity_challenge
+from mathy.agent.training.actor_mcts import ActorMCTS
+from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
+from mathy.agent.training.math_experience import MathExperience
+from mathy.agent.training.mcts import MCTS
+from mathy.agent.training.practice_runner import (
     ParallelPracticeRunner,
     PracticeRunner,
     RunnerConfig,
 )
-from mathzero.training.practice_session import PracticeSession
-from mathzero.training.problems import (
+from mathy.agent.training.practice_session import PracticeSession
+from mathy.agent.training.problems import (
     MODE_SIMPLIFY_POLYNOMIAL,
-    simplify_multiple_terms,
-    rand_var,
-    maybe_int,
     get_rand_vars,
+    maybe_int,
+    rand_var,
+    simplify_multiple_terms,
 )
-from mathzero.training.math_experience import MathExperience
-from mathzero.training.mcts import MCTS
-from mathzero.training.actor_mcts import ActorMCTS
-from datetime import timedelta
+from mathy.core.parser import ExpressionParser, ParserException
+from mathy.environment_state import INPUT_EXAMPLES_FILE_NAME
+from mathy.math_game import MathGame
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 # tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -128,7 +130,6 @@ hard_plan = build_lesson_plan(
     ),
 )
 def main(model_dir, examples_file, transfer_from=None, no_train=False):
-    import tensorflow as tf
 
     plan = lesson_plan
     lessons = plan.lessons[:]

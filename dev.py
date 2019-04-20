@@ -9,21 +9,21 @@ from colr import color
 import numpy
 import plac
 import time
-from mathzero.training.lessons import LessonExercise, LessonPlan
-from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.math_game import MathGame
-from mathzero.model.controller import MathModel
-from mathzero.training.lessons import LessonExercise, build_lesson_plan
-from mathzero.training.practice_runner import (
+from mathy.agent.training.lessons import LessonExercise, LessonPlan
+from mathy.core.parser import ExpressionParser, ParserException
+from mathy.math_game import MathGame
+from mathy.agent.controller import MathModel
+from mathy.agent.training.lessons import LessonExercise, build_lesson_plan
+from mathy.agent.training.practice_runner import (
     ParallelPracticeRunner,
     PracticeRunner,
     RunnerConfig,
 )
-from mathzero.training.practice_session import PracticeSession
-from mathzero.training.problems import MODE_SIMPLIFY_POLYNOMIAL, simplify_multiple_terms
-from mathzero.training.math_experience import MathExperience
-from mathzero.training.mcts import MCTS
-from mathzero.training.actor_mcts import ActorMCTS
+from mathy.agent.training.practice_session import PracticeSession
+from mathy.agent.training.problems import MODE_SIMPLIFY_POLYNOMIAL, simplify_multiple_terms
+from mathy.agent.training.math_experience import MathExperience
+from mathy.agent.training.mcts import MCTS
+from mathy.agent.training.actor_mcts import ActorMCTS
 from datetime import timedelta
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
@@ -84,7 +84,6 @@ def main(model_dir, transfer_from=None):
                 env_state, train_example, final_result = actor.step(
                     controller, env_state, mathy, time_steps
                 )
-                # mathy.train_one(train_example)
 
             elapsed = time.time() - start
             episode_examples, episode_reward, is_win = final_result

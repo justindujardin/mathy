@@ -38,10 +38,10 @@ git config --global user.email "justin@dujardinconsulting.com"
 git config --global user.name "Justin DuJardin"
 
 echo "Cloning mz..."
-git clone git@github.com:justindujardin/mathzero.git
+git clone git@github.com:justindujardin/mathy.git
 
 echo "Installing requirements..."
-cd mathzero
+cd mathy
 pip3 install -r requirements.txt
 
 echo "Done."
