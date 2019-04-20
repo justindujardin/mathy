@@ -74,6 +74,8 @@ optional arguments:
                         during evaluation
 ```
 
+#### New Model
+
 Let's check to ensure the agent is working by solving some two and three term problems using the brute-force power
 of the Monte Carlo Tree Search to provide good results without a pretrained model. We'll launch the main training 
 script with a verbose argument to see the moves and using the `quick` lesson plan so it doesn't take a long time to
@@ -102,6 +104,42 @@ ca cs dm -- -- -- | 16 | 003 | distributive factoring    | (39 + 17) * y
 THREE_TERMS [4/1] -- duration(0:00:01.821146) outcome(solved)
 [skip training] only have 50 observations, but need at least 1024 before training
 ```
+
+#### Transfer Learning
+
+In order to start out with a good baseline policy, Mathy supports transferring pretrained weights into new models to enable them to perform better than just a brute-force MCTS search.
+
+Let's try training an agent on harder problems `exam2` to see the transfer learning in action.
+
+```bash
+(.env) mathtastic > python main.py trained/transfer agents/mathy_alpha/ -l exam2 -v
+-- transferring trainable variables to blank model from: agents/mathy_alpha/
+-- init math model in: trained/transfer/train
+init model dir: agents/mathy_alpha/
+[Lesson:0]
+lesson order: ['six_terms_with_exponents', 'eight_terms_with_exponents', 'commute_blockers_1_7', 'ten_terms_with_exponents', 'commute_blockers_2_7']
+
+SIX_TERMS_WITH_EXPONENTS...
+-- cs -- df ag -- | 36 | -01 | initial-state             | 10z^2 + 24y + 22y + 2z + 3z + 12z^2
+ca cs dm df ag -- | 36 | 017 | distributive factoring    | 10z^2 + 24y + 22y + (2 + 3) * z + 12z^2
+ca cs dm -- ag -- | 35 | 005 | commutative swap          | 24y + 10z^2 + 22y + (2 + 3) * z + 12z^2
+ca cs dm -- ag -- | 34 | 005 | commutative swap          | 24y + z^2 * 10 + 22y + (2 + 3) * z + 12z^2
+ca cs dm -- ag -- | 33 | 015 | commutative swap          | 24y + z^2 * 10 + 22y + (3 + 2) * z + 12z^2
+ca cs dm -- ag -- | 32 | 007 | commutative swap          | 24y + 10z^2 + 22y + (3 + 2) * z + 12z^2
+-- cs -- -- ag -- | 31 | 015 | constant arithmetic       | 24y + 10z^2 + 22y + 5z + 12z^2
+-- cs -- -- ag -- | 30 | 003 | associative group         | 24y + (10z^2 + 22y) + 5z + 12z^2
+-- cs -- df ag -- | 29 | 003 | commutative swap          | 10z^2 + 22y + 24y + 5z + 12z^2
+ca cs dm -- ag -- | 28 | 009 | distributive factoring    | 10z^2 + (22 + 24) * y + 5z + 12z^2
+ca cs dm -- ag -- | 27 | 001 | commutative swap          | z^2 * 10 + (22 + 24) * y + 5z + 12z^2
+ca cs dm -- ag -- | 26 | 005 | commutative swap          | (22 + 24) * y + z^2 * 10 + 5z + 12z^2
+-- cs -- -- ag -- | 25 | 001 | constant arithmetic       | 46y + z^2 * 10 + 5z + 12z^2
+-- cs -- -- ag -- | 24 | 013 | commutative swap          | 12z^2 + (46y + z^2 * 10 + 5z)
+-- cs -- -- ag -- | 23 | 015 | associative group         | 12z^2 + (46y + z^2 * 10) + 5z
+-- cs -- df ag -- | 22 | 005 | commutative swap          | 46y + z^2 * 10 + 12z^2 + 5z
+ca cs dm -- ag -- | 21 | 009 | distributive factoring    | 46y + (10 + 12) * z^2 + 5z
+-- cs -- -- ag -- | 20 | 005 | constant arithmetic       | 46y + 22z^2 + 5z
+```
+
 
 
 ### Credits
