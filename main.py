@@ -1,47 +1,58 @@
 # coding: utf8
 import json
 import os
-import tempfile
-from pathlib import Path
 import random
-from colr import color
+import tempfile
+import time
+from datetime import timedelta
+from pathlib import Path
+
 import numpy
 import plac
-import time
-from mathzero.training.lessons import LessonExercise, LessonPlan
-from mathzero.core.parser import ExpressionParser, ParserException
-from mathzero.math_game import MathGame
-from mathzero.model.controller import MathModel
-from mathzero.training.lessons import LessonExercise, build_lesson_plan
-from mathzero.training.practice_runner import (
-    ParallelPracticeRunner,
-    PracticeRunner,
-    RunnerConfig,
-)
-from mathzero.training.practice_session import PracticeSession
-from mathzero.training.problems import (
-    MODE_SIMPLIFY_POLYNOMIAL,
-    simplify_multiple_terms,
-    rand_var,
-    maybe_int,
-    get_rand_vars,
-)
-from mathzero.training.math_experience import MathExperience
-from mathzero.training.mcts import MCTS
-from mathzero.training.actor_mcts import ActorMCTS
-from datetime import timedelta
-from curriculum.level1 import (
+import tensorflow as tf
+from colr import color
+
+from mathy.agent.controller import MathModel
+from mathy.agent.curriculum.level1 import (
+    combine_forced,
     lesson_plan,
     lesson_plan_2,
     lesson_plan_3,
     lesson_quick,
     moves_per_complexity,
     yellow_belt,
-    combine_forced,
 )
+from mathy.agent.training.actor_mcts import ActorMCTS
+from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
+from mathy.agent.training.math_experience import MathExperience
+from mathy.agent.training.mcts import MCTS
+from mathy.agent.training.practice_runner import (
+    ParallelPracticeRunner,
+    PracticeRunner,
+    RunnerConfig,
+)
+from mathy.agent.training.practice_session import PracticeSession
+from mathy.agent.training.problems import (
+    MODE_SIMPLIFY_POLYNOMIAL,
+    get_rand_vars,
+    maybe_int,
+    rand_var,
+    simplify_multiple_terms,
+)
+from mathy.core.parser import ExpressionParser, ParserException
+from mathy.math_game import MathGame
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
-# tf.compat.v1.logging.set_verbosity("CRITICAL")
+tf.compat.v1.logging.set_verbosity("CRITICAL")
+
+
+lessons = {
+    "practice1": lesson_plan,
+    "exam1": yellow_belt,
+    "practice2": lesson_plan_2,
+    "practice3": lesson_plan_3,
+    "dev": lesson_quick,
+}
 
 
 @plac.annotations(
@@ -57,6 +68,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
         None,
         str,
     ),
+    lesson_id=("The lesson plan to execute by ID", "option", "l", str),
     initial_train=(
         "When true, train the network on everything in `examples.json` in the checkpoint directory",
         "flag",
@@ -68,9 +80,10 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
         "v",
     ),
 )
-def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
-    import tensorflow as tf
-
+def main(
+    model_dir, transfer_from=None, lesson_id=None, initial_train=False, verbose=False
+):
+    global lessons
     shuffle_lessons = False
     min_train_experience = 1024
     eval_interval = 2
@@ -82,10 +95,14 @@ def main(model_dir, transfer_from=None, initial_train=False, verbose=False):
     mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
-    # plan = combine_forced
-    plan = lesson_plan_3
-    # plan = lesson_plan if counter % 5 == 0 else commutative_lessons
-    # plan = quick_test_plan
+    if lesson_id is None:
+        plan = yellow_belt
+    elif lesson_id not in lessons:
+        raise ValueError(
+            f"Lesson '{lesson_id}' not found in ids, must be one of: {', '.join(lessons)} "
+        )
+    else:
+        plan = lessons[lesson_id]
 
     if initial_train is True:
         print(
