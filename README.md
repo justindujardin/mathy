@@ -1,10 +1,29 @@
 ## Mathy
 
-A reinforcement learning agent that learns to solve math problems with step-by-step explanations through self-practice on randomly generated problems.
+A reinforcement learning agent that learns to solve math problems with step-by-step explanations through self-practice on generated problems from user specified template functions.
+
+
+```bash
+COMBINE_LIKE_TERMS_1 - SIX_TERMS...
+-- cs -- -- ag -- | 36 | -01 | initial-state             | 13z^2 + 2x + 16z + 21x + 13z + 20z^2
+-- cs -- -- ag -- | 36 | 009 | commutative swap          | 16z + (13z^2 + 2x) + 21x + 13z + 20z^2
+-- cs -- -- ag -- | 35 | 017 | commutative swap          | 13z + (16z + (13z^2 + 2x) + 21x) + 20z^2
+-- cs -- df ag -- | 34 | 007 | associative group         | 13z + (16z + (13z^2 + 2x + 21x)) + 20z^2
+ca cs dm -- ag -- | 33 | 017 | distributive factoring    | 13z + (16z + (13z^2 + (2 + 21) * x)) + 20z^2
+-- cs -- -- ag -- | 32 | 015 | constant arithmetic       | 13z + (16z + (13z^2 + 23x)) + 20z^2
+-- cs -- -- ag -- | 31 | 013 | commutative swap          | 13z + (16z + (23x + 13z^2)) + 20z^2
+-- cs -- -- ag -- | 30 | 003 | associative group         | 13z + (16z + (23x + 13z^2) + 20z^2)
+-- cs -- df ag -- | 29 | 007 | associative group         | 13z + (16z + (23x + 13z^2 + 20z^2))
+-- cs -- df ag -- | 28 | 007 | associative group         | 13z + 16z + (23x + 13z^2 + 20z^2)
+ca cs dm df ag -- | 27 | 017 | distributive factoring    | 13z + 16z + (23x + (13 + 20) * z^2)
+ca cs dm -- ag -- | 26 | 003 | distributive factoring    | (13 + 16) * z + (23x + (13 + 20) * z^2)
+ca cs dm -- ag -- | 25 | 001 | constant arithmetic       | 29z + (23x + (13 + 20) * z^2)
+-- cs -- -- ag -- | 24 | 009 | constant arithmetic       | 29z + (23x + 33z^2)
+```
 
 ### Development Setup
 
-You need a virutalenv with the correct set of dependencies for your CPU or GPU training environment.
+You need a Python3 (probably virutal) environment with the correct set of dependencies for your CPU or GPU training environment. Here's how to configure one assuming that you have python and the `virtualenv` package installed.
 
 #### CPU Environment
 
