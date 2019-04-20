@@ -28,6 +28,8 @@ class BinaryTreeNode:
             BinaryTreeNode._idCounter = BinaryTreeNode._idCounter + 1
             id = "mn-{}".format(BinaryTreeNode._idCounter)
         self.id = id
+        self.left = None
+        self.right = None
         self.setLeft(left)
         self.setRight(right)
         self.parent = parent
@@ -161,6 +163,8 @@ class BinaryTreeNode:
 
     # Set the left node to the passed `child`
     def setLeft(self, child) -> "BinaryTreeNode":
+        if self.left is not None:
+            self.left.parent = None
         self.left = child
         if self.left:
             self.left.parent = self
@@ -169,6 +173,8 @@ class BinaryTreeNode:
 
     # Set the right node to the passed `child`
     def setRight(self, child) -> "BinaryTreeNode":
+        if self.right is not None:
+            self.right.parent = None
         self.right = child
         if self.right:
             self.right.parent = self

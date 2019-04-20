@@ -382,6 +382,7 @@ lesson_quick = build_lesson_plan(
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            num_observations=1,
             mcts_sims=250,
         ),
         LessonExercise(
@@ -389,6 +390,7 @@ lesson_quick = build_lesson_plan(
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            num_observations=1,
             mcts_sims=200,
         ),
     ],

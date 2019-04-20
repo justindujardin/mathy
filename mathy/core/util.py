@@ -38,16 +38,15 @@ def load_rule_tests(name):
 #
 # 1. Clear expression references in `parent`
 # 2. Clear `parent` in expression
-def unlink(node):
-    if not node:
+def unlink(node=None):
+    if node is None:
         return None
 
-    if node.parent:
-        if node == node.parent.left:
-            node.parent.setLeft(None)
+    if node.parent is not None and node == node.parent.left:
+        node.parent.setLeft(None)
 
-        if node == node.parent.right:
-            node.parent.setRight(None)
+    if node.parent is not None and node == node.parent.right:
+        node.parent.setRight(None)
 
     node.parent = None
     return node
@@ -280,12 +279,12 @@ def factorAddTerms(lTerm, rTerm):
     hasLeft = len(lTerm.variables) > 0
     hasRight = len(rTerm.variables) > 0
 
-    # If there are variables, we want to extract them, so 
+    # If there are variables, we want to extract them, so
     # the smallest number to factor out. TODO: is this okay?
     if hasLeft or hasRight:
         best = numpy.min(common)
     else:
-        best = numpy.max(common) 
+        best = numpy.max(common)
     result = FactorResult()
     result.best = best
     result.left = lCoefficients[best]

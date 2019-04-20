@@ -4,13 +4,13 @@
     "invalid": "different variables cannot be combined"
   },
   "valid": [
-    { "input": "(8y * 4y)", "output": "32y^2", "debug": true },
-    { "input": "x * x", "output": "x^(1 + 1)" },
+    { "input": "x * x", "output": "x^(1 + 1)", "debug": true },
     { "input": "x * x^3", "output": "x^(1 + 3)" },
     { "input": "y^11 * y", "output": "y^(11 + 1)" },
     { "input": "x^2 * x^7", "output": "x^(2 + 7)" }
   ],
   "invalid": [
+    { "input": "(8y * 4y)", "output": "32y^2", "why": "TODO: support this type of problem" },
     { "input": "x * z" },
     { "input": "x * y^2" },
     { "input": "2x * 1y^3" }

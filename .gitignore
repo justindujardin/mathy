@@ -7,9 +7,7 @@ doom/
 /.pydevproject
 .env
 .pytest_cache
-.training/
 .training-old/
-.vscode
 program.prof
 .terraform
 
@@ -20,3 +18,6 @@ events*
 model.ckpt*
 checkpoint
 graph.pbtxt
+
+# For trained models
+trained/

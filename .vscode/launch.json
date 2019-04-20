@@ -52,9 +52,9 @@
       "request": "launch",
       "module": "pytest",
       "args": [
-        "--cov=mathzero",
+        "--cov=mathy",
         "--pyargs",
-        "mathzero"
+        "mathy"
       ]
     },
     {
@@ -64,9 +64,9 @@
       "module": "pytest",
       "args": [
         "--pyargs",
-        "mathzero",
+        "mathy",
         "-k",
-        "test_distributive_factor_out"
+        "test_variable_multiply"
       ]
     },
     {

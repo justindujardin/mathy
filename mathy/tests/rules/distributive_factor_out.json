@@ -4,6 +4,11 @@
   },
   "valid": [
     {
+      "input": "22d + 13p + 1m + 15v + 20j + 9j",
+      "output": "22d + 13p + 1m + 15v + (20 + 9) * j",
+      "debug": true
+    },
+    {
       "input": "7a + (17b + (14c + (14d + 47e + 17f) + 27g + 29h + 24i)) + (21j + 9x + 13x) + 11k + 26l",
       "output": "7a + (17b + (14c + (14d + 47e + 17f) + 27g + 29h + 24i)) + (21j + (9 + 13) * x) + 11k + 26l",
       "why": "regression test for dropping left-hand-side with complex tree structures"
@@ -11,10 +16,6 @@
     {
       "input": "22d + 13p + 1m + 15v + (20j + 9j + 14b + 18x + (20 + 3) * o)",
       "output": "22d + 13p + 1m + 15v + ((20 + 9) * j + 14b + 18x + (20 + 3) * o)"
-    },
-    {
-      "input": "22d + 13p + 1m + 15v + 20j + 9j",
-      "output": "22d + 13p + 1m + 15v + (20 + 9) * j"
     },
     {
       "input": "9y + 9y",

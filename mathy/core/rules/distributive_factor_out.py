@@ -119,6 +119,7 @@ class DistributiveFactorOutRule(BaseRule):
         elif tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
             # How to fix up tree
             left_link = node.left
+            left_link.parent = node.parent
             inside = (
                 AddExpression(b, c)
                 if isinstance(node, AddExpression)

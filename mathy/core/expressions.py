@@ -447,7 +447,6 @@ class BinaryExpression(MathExpression):
         rightChildBinary = self.right and isinstance(self.right, BinaryExpression)
         return (
             rightChildBinary
-            and self.right
             and not self.right.selfParenthesis()
             and self.right.getPriority() <= self.getPriority()
         )
@@ -456,10 +455,7 @@ class BinaryExpression(MathExpression):
         my_pri = self.getPriority()
         # (7 - (5 - 3)) * (32 - 7)
         return (
-            self.right
-            and isinstance(self.right, BinaryExpression)
-            and self.right.getPriority() <= my_pri
-            and self.parent
+            self.parent
             and isinstance(self.parent, BinaryExpression)
             and self.parent.getPriority() > my_pri
         )
