@@ -14,10 +14,6 @@ program.prof
 models/
 draws.txt
 visualization
-events*
-model.ckpt*
-checkpoint
-graph.pbtxt
 
 # For trained models
 trained/
