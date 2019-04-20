@@ -150,7 +150,7 @@ yellow_belt = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=100,
             num_observations=32,
         ),
         LessonExercise(
@@ -158,7 +158,7 @@ yellow_belt = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=100,
             num_observations=32,
         ),
         LessonExercise(
@@ -166,7 +166,7 @@ yellow_belt = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_one(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=500,
+            mcts_sims=100,
             num_observations=32,
         ),
         LessonExercise(
@@ -174,7 +174,7 @@ yellow_belt = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(4),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=100,
             num_observations=32,
         ),
         LessonExercise(
@@ -182,6 +182,37 @@ yellow_belt = build_lesson_plan(
             problem_count=1,
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+    ],
+)
+
+
+green_belt = build_lesson_plan(
+    "green_belt",
+    [
+        LessonExercise(
+            lesson_name="six_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(6),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="eight_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(8),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="ten_terms",
+            problem_fn=lambda: simplify_multiple_terms(10),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
             mcts_sims=500,
             num_observations=32,
         ),
