@@ -16,7 +16,7 @@ from .core.util import getTerms, has_like_terms, isPreferredTermForm
 from .environment_state import MathEnvironmentState, AgentTimeStep
 from .agent.training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
 from .util import GameRewards, is_terminal_transition
-from tf_agents.environments import time_step
+from tf_agents.trajectories import time_step
 
 
 class MathGame:

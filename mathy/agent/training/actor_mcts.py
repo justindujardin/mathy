@@ -6,7 +6,7 @@ from random import shuffle
 from sys import stdin
 
 import numpy
-from tf_agents.environments import time_step
+from tf_agents.trajectories import time_step
 
 from ...core.expressions import MathExpression
 from ...environment_state import MathEnvironmentState

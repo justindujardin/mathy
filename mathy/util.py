@@ -1,5 +1,5 @@
 import numpy
-from tf_agents.environments import time_step
+from tf_agents.trajectories import time_step
 
 # From TZ: "my rule of thumb is win/loss = +/-1, and everything else is determined in orders of magnitude of importance
 # so for instance, my timestep penalty might be -0.01, picking up a gem or something might be +0.1"
