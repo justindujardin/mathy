@@ -1,53 +1,29 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "MathZero (Train)",
+      "name": "mathy:main",
       "type": "python",
       "request": "launch",
       "debugStdLib": true,
       "module": "train",
       "args": [
-        "/mnt/gcs/mzc/dev/",
-        "/mnt/gcs/mzc/love/train/examples.jsonl"
+        "trained/dev/"
       ]
     },
     {
-      "name": "MathZero (Dev Train)",
+      "name": "mathy:train",
       "type": "python",
       "request": "launch",
       "debugStdLib": true,
-      "module": "main",
+      "module": "train",
       "args": [
-        "/mnt/gcs/mzc/deep_context/",
+        "trained/dev_train/",
         "-v"
       ]
     },
     {
-      "name": "math_agent (sac)",
-      "type": "python",
-      "request": "launch",
-      "pythonPath": "${workspaceFolder}/.env/bin/python",
-      "module": "sac",
-      "args": [
-        "--root_dir=.training/debug/",
-        "--model_dir=/mnt/gcs/mzc/mathy_4/"
-      ]
-    },
-    {
-      "name": "math_agent (dqn)",
-      "type": "python",
-      "request": "launch",
-      "module": "dqn",
-      "args": [
-        "--root_dir=.training/dqn/"
-      ]
-    },
-    {
-      "name": "Math Model Tests",
+      "name": "mathy:tests",
       "type": "python",
       "request": "launch",
       "module": "pytest",
@@ -58,7 +34,7 @@
       ]
     },
     {
-      "name": "Math Tests (Focused)",
+      "name": "mathy:tests_filtered",
       "type": "python",
       "request": "launch",
       "module": "pytest",
@@ -70,20 +46,11 @@
       ]
     },
     {
-      "name": "Python: Current File",
+      "name": "python:current_file",
       "type": "python",
+      "debugStdLib": true,
       "request": "launch",
       "program": "${file}"
-    },
-    {
-      "name": "Python: Attach",
-      "type": "python",
-      "request": "attach",
-      "localRoot": "${workspaceFolder}",
-      "remoteRoot": "${workspaceFolder}",
-      "port": 3000,
-      "secret": "my_secret",
-      "host": "localhost"
     }
   ]
 }

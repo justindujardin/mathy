@@ -1,11 +1,4 @@
 {
     "python.pythonPath": ".env/bin/python",
-    "python.formatting.provider": "black",
-    "python.unitTest.pyTestArgs": [
-        "math"
-    ],
-    "python.unitTest.unittestEnabled": false,
-    "python.unitTest.nosetestsEnabled": false,
-    "python.unitTest.pyTestEnabled": false,
-    "python.unitTest.promptToConfigure": false
+    "python.formatting.provider": "black"
 }
