@@ -223,17 +223,17 @@ green_belt = build_lesson_plan(
     "green_belt",
     [
         LessonExercise(
-            lesson_name="six_terms_with_exponents",
+            lesson_name="six_terms",
             problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(6),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=32,
         ),
         LessonExercise(
-            lesson_name="eight_terms_with_exponents",
+            lesson_name="eight_terms",
             problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(8),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=32,
@@ -247,7 +247,7 @@ green_belt = build_lesson_plan(
             num_observations=32,
         ),
         LessonExercise(
-            lesson_name="ten_terms_with_exponents",
+            lesson_name="ten_terms",
             problem_fn=lambda: simplify_multiple_terms(10),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
