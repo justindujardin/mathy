@@ -1,5 +1,5 @@
 # coding: utf8
-"""Train a mathy model on a given input set, then run a lesson evaluation"""
+"""Train a mathy model on a given input set, then run a lesson evaluation and exit"""
 import json
 import os
 import random
@@ -38,7 +38,7 @@ from mathy.environment_state import INPUT_EXAMPLES_FILE_NAME
 from mathy.math_game import MathGame
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
-# tf.compat.v1.logging.set_verbosity("CRITICAL")
+tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 moves_per_complexity = 3
 

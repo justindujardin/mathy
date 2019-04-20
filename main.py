@@ -123,7 +123,7 @@ def main(
         print("[Lesson:{}]".format(counter))
         counter = counter + 1
         eval_run = (
-            bool(counter % eval_interval != 0)
+            bool(counter % eval_interval == 0)
             and experience.count > min_train_experience
         )
         num_solved = 0
