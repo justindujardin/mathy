@@ -142,8 +142,8 @@ quick_test_plan = build_lesson_plan(
 )
 
 
-yellow_belt = build_lesson_plan(
-    "yellow_belt",
+white_belt = build_lesson_plan(
+    "white_belt",
     [
         LessonExercise(
             lesson_name="two_terms",
@@ -158,14 +158,6 @@ yellow_belt = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=100,
-            num_observations=32,
-        ),
-        LessonExercise(
-            lesson_name="commute_blockers_1",
-            problem_fn=lambda: move_around_blockers_one(3),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
             mcts_sims=100,
             num_observations=32,
         ),
@@ -188,32 +180,86 @@ yellow_belt = build_lesson_plan(
     ],
 )
 
+yellow_belt = build_lesson_plan(
+    "yellow_belt",
+    [
+        LessonExercise(
+            lesson_name="commute_blockers_1_3",
+            problem_fn=lambda: move_around_blockers_one(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=100,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="five_terms_with_exponents",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(5, powers=True),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=100,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="commute_blockers_2_3",
+            problem_fn=lambda: move_around_blockers_two(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=100,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="six_terms_with_exponents",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=32,
+        ),
+    ],
+)
+
 
 green_belt = build_lesson_plan(
     "green_belt",
     [
         LessonExercise(
-            lesson_name="six_terms",
+            lesson_name="six_terms_with_exponents",
             problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(6),
+            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=32,
         ),
         LessonExercise(
-            lesson_name="eight_terms",
+            lesson_name="eight_terms_with_exponents",
             problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(8),
+            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=32,
         ),
         LessonExercise(
-            lesson_name="ten_terms",
+            lesson_name="commute_blockers_1_7",
+            problem_fn=lambda: move_around_blockers_one(7),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=100,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="ten_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(10),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
             mcts_sims=500,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="commute_blockers_2_7",
+            problem_fn=lambda: move_around_blockers_two(7),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=100,
             num_observations=32,
         ),
     ],
