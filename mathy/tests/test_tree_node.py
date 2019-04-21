@@ -9,7 +9,7 @@ def test_tree_node_constructor():
         nonlocal count
         count = count + 1
 
-    tree.visitInorder(node_visit)
+    tree.visit_inorder(node_visit)
     assert count == 3
     assert tree.left.parent == tree
     assert tree.right.parent == tree

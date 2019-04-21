@@ -7,9 +7,9 @@ def test_expression_get_children():
     variable = VariableExpression("x")
     expr = AddExpression(constant, variable)
     # expect two children for add expression
-    assert len(expr.getChildren()) == 2
+    assert len(expr.get_children()) == 2
     # when both children are present, the 0 index should be the left child
-    assert expr.getChildren()[0] == constant
+    assert expr.get_children()[0] == constant
     assert expr.evaluate({'x': 10}) == 14
 
 

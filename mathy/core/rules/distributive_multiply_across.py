@@ -6,7 +6,7 @@ from ..expressions import (
     PowerExpression,
     SubtractExpression,
 )
-from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike, unlink, makeTerm
+from ..util import is_add_or_sub, is_const, get_term, terms_are_like, unlink, make_term
 from ..rule import BaseRule
 
 # ### Distributive Property
@@ -41,7 +41,7 @@ class DistributiveMultiplyRule(BaseRule):
     def code(self):
         return "DM"
 
-    def canApplyTo(self, expression):
+    def can_apply_to(self, expression):
         if isinstance(expression, MultiplyExpression):
             if expression.right and isinstance(expression.left, AddExpression):
                 return True
@@ -53,8 +53,8 @@ class DistributiveMultiplyRule(BaseRule):
 
         return False
 
-    def applyTo(self, node):
-        change = super().applyTo(node).saveParent()
+    def apply_to(self, node):
+        change = super().apply_to(node).save_parent()
 
         if isinstance(node.left, AddExpression):
             a = node.right

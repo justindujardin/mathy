@@ -43,10 +43,10 @@ def unlink(node=None):
         return None
 
     if node.parent is not None and node == node.parent.left:
-        node.parent.setLeft(None)
+        node.parent.set_left(None)
 
     if node.parent is not None and node == node.parent.right:
-        node.parent.setRight(None)
+        node.parent.set_right(None)
 
     node.parent = None
     return node
@@ -82,11 +82,11 @@ def factor(value):
     return factors
 
 
-def isAddSubtract(node):
+def is_add_or_sub(node):
     return isinstance(node, AddExpression) or isinstance(node, SubtractExpression)
 
 
-def getSubTerms(node: MathExpression):
+def get_sub_terms(node: MathExpression):
     nodes = node.toList()
     terms = []
 
@@ -105,7 +105,7 @@ def getSubTerms(node: MathExpression):
             term_const = current
             current = safe_pop()
             # Cannot have add/sub in sub-terms
-            if isAddSubtract(current):
+            if is_add_or_sub(current):
                 return False
             # It should be one of these operators
             assert current is None or isinstance(
@@ -119,7 +119,7 @@ def getSubTerms(node: MathExpression):
             term_var = current
             current = safe_pop()
             # cannot have add/sub in sub-terms
-            if isAddSubtract(current):
+            if is_add_or_sub(current):
                 return False
             # It should be one of these operators
             assert current is None or isinstance(
@@ -144,7 +144,7 @@ def getSubTerms(node: MathExpression):
     return terms
 
 
-def isSimpleTerm(node: MathExpression) -> bool:
+def is_simple_term(node: MathExpression) -> bool:
     """
     Return True if a given term has been simplified such that it only has at 
     most one of each variable and a constant.
@@ -155,7 +155,7 @@ def isSimpleTerm(node: MathExpression) -> bool:
         Simple = x^2 * 4
         Complex = 2 * 2x^2
     """
-    sub_terms = getSubTerms(node)
+    sub_terms = get_sub_terms(node)
     if sub_terms is False:
         return False
     seen = set()
@@ -176,7 +176,7 @@ def isSimpleTerm(node: MathExpression) -> bool:
     return True
 
 
-def isPreferredTermForm(expression: MathExpression) -> bool:
+def is_preferred_term_form(expression: MathExpression) -> bool:
     """
     Return True if a given term has been simplified such that it only has
     a max of one coefficient and variable, with the variable on the right
@@ -186,7 +186,7 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
         Simple    = x^2 * 4
         Preferred = 4x^2
     """
-    if not isSimpleTerm(expression):
+    if not is_simple_term(expression):
         return False
 
     # If there are multiple multiplications this term can be simplified further. At most
@@ -203,7 +203,7 @@ def isPreferredTermForm(expression: MathExpression) -> bool:
         parent = var
         if isinstance(var.parent, PowerExpression):
             parent = var.parent
-        if parent.parent is not None and parent.parent.getSide(parent) == LEFT:
+        if parent.parent is not None and parent.parent.get_side(parent) == LEFT:
             if isinstance(parent.parent.right, ConstantExpression):
                 return False
 
@@ -222,9 +222,9 @@ def has_like_terms(expression: MathExpression) -> bool:
     """
 
     seen = set()
-    term_nodes = getTerms(expression)
+    term_nodes = get_terms(expression)
     for node in term_nodes:
-        term = getTerm(node)
+        term = get_term(node)
         if term == False:
             continue
         var_key = ("".join(term.variables), term.exponent)
@@ -237,7 +237,7 @@ def has_like_terms(expression: MathExpression) -> bool:
     # Look for multiple free-floating constants
     consts = expression.findByType(ConstantExpression)
     for const in consts:
-        if const.parent and isAddSubtract(const.parent):
+        if const.parent and is_add_or_sub(const.parent):
             if "const_term" in seen:
                 return True
             seen.add("const_term")
@@ -259,7 +259,7 @@ class FactorResult:
         self.rightVariable = None
 
 
-def factorAddTerms(lTerm, rTerm):
+def factor_add_terms(lTerm, rTerm):
     if not lTerm or not rTerm:
         raise ValueError("invalid terms for factoring")
 
@@ -317,7 +317,7 @@ def factorAddTerms(lTerm, rTerm):
 # Create a term node hierarchy from a given set of
 # term parameters.  This takes into account removing
 # implicit coefficients of 1 where possible.
-def makeTerm(coefficient, variable, exponent):
+def make_term(coefficient, variable, exponent):
     constExp = ConstantExpression(coefficient)
     if not variable and not exponent:
         return constExp
@@ -349,24 +349,24 @@ class TermResult:
 
 # Extract term information from the given node
 #
-def getTerm(node) -> TermResult:
+def get_term(node) -> TermResult:
     result = TermResult()
     # Constant with add/sub parent should be OKAY.
     if isinstance(node, ConstantExpression):
-        if not node.parent or (node.parent and isAddSubtract(node.parent)):
+        if not node.parent or (node.parent and is_add_or_sub(node.parent)):
             result.coefficients = [node.value]
             result.node_coefficients = [node]
             return result
 
     # Variable with add/sub parent should be OKAY.
     if isinstance(node, VariableExpression):
-        if not node.parent or (node.parent and isAddSubtract(node.parent)):
+        if not node.parent or (node.parent and is_add_or_sub(node.parent)):
             result.variables = [node.identifier]
             result.node_variables = [node]
             return result
 
     # TODO: Comment resolution on whether +- is OKAY, and if not, why it breaks down.
-    if not isAddSubtract(node):
+    if not is_add_or_sub(node):
         if (
             len(node.findByType(AddExpression)) > 0
             or len(node.findByType(SubtractExpression)) > 0
@@ -377,7 +377,7 @@ def getTerm(node) -> TermResult:
     # is _NOT_ a leaf, we cannot extract a term.  If it is a leaf, the term should be
     # just the right node.
     if node.left and len(node.left.findByType(AddExpression)) > 0:
-        if node.right and not node.right.isLeaf():
+        if node.right and not node.right.is_leaf():
             return False
 
     if node.right and len(node.right.findByType(AddExpression)) > 0:
@@ -391,7 +391,7 @@ def getTerm(node) -> TermResult:
 
         exponent = exponents[0]
         if not isinstance(exponent.right, ConstantExpression):
-            raise Exception("getTerm supports constant term powers")
+            raise Exception("get_term supports constant term powers")
 
         result.exponent = exponent.right.value
         result.node_exponent = exponent
@@ -445,29 +445,29 @@ def getTerm(node) -> TermResult:
     return result
 
 
-def getTerms(expression: MathExpression):
+def get_terms(expression: MathExpression):
     results = []
-    root = expression.getRoot()
+    root = expression.get_root()
     if isinstance(root, MultiplyExpression):
         results.append(root)
 
     def visit_fn(node, depth, data):
         nonlocal results
-        if not isAddSubtract(node):
+        if not is_add_or_sub(node):
             return
-        if not isAddSubtract(node.left):
+        if not is_add_or_sub(node.left):
             results.append(node.left)
-        if not isAddSubtract(node.right):
+        if not is_add_or_sub(node.right):
             results.append(node.right)
 
-    root.visitInorder(visit_fn)
+    root.visit_inorder(visit_fn)
     return [expression] if len(results) == 0 else results
 
 
-def termsAreLike(one, two):
+def terms_are_like(one, two):
     """
-    @param {Object|MathExpression} one The first term {@link #getTerm}
-    @param {Object|MathExpression} two The second term {@link #getTerm}
+    @param {Object|MathExpression} one The first term {@link #get_term}
+    @param {Object|MathExpression} two The second term {@link #get_term}
     @returns {Boolean} Whether the terms are like or not.
     """
     # Both must be valid terms
@@ -476,10 +476,10 @@ def termsAreLike(one, two):
 
     # Extract terms from MathExpressions if need be
     if isinstance(one, MathExpression):
-        one = getTerm(one)
+        one = get_term(one)
 
     if isinstance(two, MathExpression):
-        two = getTerm(two)
+        two = get_term(two)
 
     # if neither have variables, then they are a match!
     if len(one.variables) == 0 and len(two.variables) == 0:
@@ -514,34 +514,21 @@ def termsAreLike(one, two):
 #       4   x              4   x       2
 def negate(node):
     save = node.parent
-    saveSide = save.getSide(node) if save != None else None
+    saveSide = save.get_side(node) if save != None else None
     unlink(node)
     newNode = AddExpression(node.left, NegateExpression(node.right))
     if save != None:
-        save.setSide(newNode, saveSide)
+        save.set_side(newNode, saveSide)
 
     return newNode
 
 
 # Determine if an expression represents a constant term
-def isConstTerm(node):
+def is_const(node):
     if isinstance(node, ConstantExpression):
         return True
 
-    if isinstance(node, NegateExpression) and isConstTerm(node.child):
+    if isinstance(node, NegateExpression) and is_const(node.child):
         return True
 
     return False
-
-
-def getTermConst(node):
-    if isinstance(node, ConstantExpression):
-        return node.value
-
-    if isinstance(node.left, ConstantExpression):
-        return node.left.value
-
-    if isinstance(node.right, ConstantExpression):
-        return node.right.value
-
-    raise Exception("Unable to determine coefficient for expression")

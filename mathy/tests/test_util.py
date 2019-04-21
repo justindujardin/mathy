@@ -7,7 +7,7 @@ from ..core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..core.util import isPreferredTermForm
+from ..core.util import is_preferred_term_form
 from ..util import discount
 from ..core.rules import (
     AssociativeSwapRule,
@@ -31,7 +31,7 @@ def test_is_preferred_term_form():
     parser = ExpressionParser()
     for input, expected in examples:
         expr = parser.parse(input)
-        assert input == input and isPreferredTermForm(expr) == expected
+        assert input == input and is_preferred_term_form(expr) == expected
 
 
 def test_reward_discounting():

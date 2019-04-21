@@ -8,7 +8,7 @@ from ..core.expressions import (
     MultiplyExpression,
     DivideExpression,
 )
-from ..core.util import getTerms, termsAreLike, load_rule_tests
+from ..core.util import get_terms, terms_are_like, load_rule_tests
 from ..core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -72,11 +72,11 @@ def run_rule_tests(name, rule_class, callback=None):
         rule = init_rule_for_test(ex, rule_class)
         expression = parser.parse(ex["input"]).clone()
         print(ex)
-        node = rule.findNode(expression)
+        node = rule.find_node(expression)
         if node is None:
             assert "expected to find node but did not for" == str(expression)
-        change = rule.applyTo(node)
-        assert str(change.result.getRoot()).strip() == ex["output"]
+        change = rule.apply_to(node)
+        assert str(change.result.get_root()).strip() == ex["output"]
     for ex in tests["invalid"]:
         # Skip over non-debug examples if there are any for easier debugging.
         if has_debug and "debug" not in ex:
@@ -86,7 +86,7 @@ def run_rule_tests(name, rule_class, callback=None):
             callback(ex)
         rule = init_rule_for_test(ex, rule_class)
         expression = parser.parse(ex["input"]).clone()
-        node = rule.findNode(expression)
+        node = rule.find_node(expression)
         if node is not None:
             raise ValueError(
                 "expected not to find a node, but found: {}".format(str(node))
@@ -146,32 +146,32 @@ def test_rule_can_apply_to():
         AssociativeSwapRule(),
     ]
     for action in available_actions:
-        assert type(action.canApplyTo(expression)) == bool
+        assert type(action.can_apply_to(expression)) == bool
 
 
 def test_like_terms_compare():
     parser = ExpressionParser()
     expr = parser.parse("10 + (7x + 6x)")
-    terms = getTerms(expr)
+    terms = get_terms(expr)
     assert len(terms) == 3
-    assert not termsAreLike(terms[0], terms[1])
-    assert termsAreLike(terms[1], terms[2])
+    assert not terms_are_like(terms[0], terms[1])
+    assert terms_are_like(terms[1], terms[2])
 
     expr = parser.parse("10 + 7x + 6")
-    terms = getTerms(expr)
+    terms = get_terms(expr)
     assert len(terms) == 3
-    assert not termsAreLike(terms[0], terms[1])
-    assert termsAreLike(terms[0], terms[2])
+    assert not terms_are_like(terms[0], terms[1])
+    assert terms_are_like(terms[0], terms[2])
 
     expr = parser.parse("6x + 6 * 5")
-    terms = getTerms(expr)
+    terms = get_terms(expr)
     assert len(terms) == 2
-    assert not termsAreLike(terms[0], terms[1])
+    assert not terms_are_like(terms[0], terms[1])
 
     expr = parser.parse("360y^1")
-    terms = getTerms(expr)
+    terms = get_terms(expr)
     assert len(terms) == 1
 
     expr = parser.parse("4z")
-    terms = getTerms(expr)
+    terms = get_terms(expr)
     assert len(terms) == 1

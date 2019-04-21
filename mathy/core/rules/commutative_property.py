@@ -6,11 +6,10 @@ from ..expressions import (
     PowerExpression,
 )
 from ..util import (
-    isAddSubtract,
-    isConstTerm,
-    getTerm,
-    termsAreLike,
-    isPreferredTermForm,
+    is_add_or_sub,
+    is_const,
+    terms_are_like,
+    is_preferred_term_form,
 )
 from ..rule import BaseRule
 
@@ -46,7 +45,7 @@ class CommutativeSwapRule(BaseRule):
     def code(self):
         return "CS"
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         # Must be an add/multiply
         if isinstance(node, AddExpression):
             return True
@@ -60,13 +59,13 @@ class CommutativeSwapRule(BaseRule):
                 return False
         return True
 
-    def applyTo(self, node):
-        change = super().applyTo(node)
+    def apply_to(self, node):
+        change = super().apply_to(node)
         a = node.left
         b = node.right
 
-        node.setRight(a)
-        node.setLeft(b)
+        node.set_right(a)
+        node.set_left(b)
 
         change.done(node)
         return change

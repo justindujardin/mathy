@@ -4,6 +4,7 @@ import curses
 
 class TidierExtreme:
     """Hold state about an extreme end of the tree during layout."""
+
     def __init__(self):
         self.left = None
         self.right = None
@@ -13,6 +14,7 @@ class TidierExtreme:
 
 class TreeMeasurement:
     """Summary of the rendered tree"""
+
     def __init__(self):
         self.minX = 10000
         self.maxX = 0
@@ -207,56 +209,3 @@ class TreeLayout:
         measure.centerX = measure.minX + measure.width / 2
         measure.centerY = measure.minY + measure.height / 2
         return measure
-
-    def render_curses(self, expression, node_namer_fn=None):
-        """
-        Render an expression tree to the terminal using curses given a function
-        that is called with an expression and returns a string that should be
-        rendered to represent it. If no node namer is provided, the node will be
-        cast to a string type.
-        """
-        # TODO: Curses sucks for what I'm doing. Allocate a 2d grid initialized 
-        #       to spaces and render into that. Then the result can be printed 
-        #       like everything else in the world.
-        tidier = TreeLayout()
-        measure = tidier.layout(expression, 6, 2)
-
-        def wrapper(screen):
-            screen.clear()
-            curses.curs_set(0)
-
-            def visit_fn(node, depth, data):
-                nonlocal measure, node_namer_fn
-                text = str(node) if node_namer_fn is None else node_namer_fn(node)
-                x = node.x
-                if measure.minX < 0:
-                    x += abs(measure.minX)
-                y = node.y + 1
-                if node.parent is not None:
-                    cur_x = int(x)
-                    if node.parent.getSide(node) == LEFT:
-                        target_x = (node.parent.x + abs(measure.minX)) - 2
-                        cur_x += 1
-                        screen.addstr(int(y) - 1, cur_x, "/")
-                        cur_x += 1
-                        while cur_x < target_x:
-                            screen.addstr(int(y) - 2, cur_x + 1, "_")
-                            cur_x += 1
-                        
-                    else:
-                        target_x = (node.parent.x + abs(measure.minX)) + 2
-                        cur_x -= 1
-                        screen.addstr(int(y) - 1, cur_x, "\\")
-                        cur_x -= 1
-                        while cur_x > target_x:
-                            screen.addstr(int(y) - 2, cur_x - 1, "_")
-                            cur_x -= 1
-
-                screen.addstr(int(y), int(x), text)
-
-            expression.visitPostorder(visit_fn)
-            screen.refresh()
-            screen.getkey()
-
-        curses.wrapper(wrapper)
-

@@ -1,21 +1,21 @@
 from ..expressions import (
     AddExpression,
-    MultiplyExpression,
     ConstantExpression,
-    VariableExpression,
+    MultiplyExpression,
     PowerExpression,
     SubtractExpression,
-)
-from ..util import (
-    isAddSubtract,
-    isConstTerm,
-    getTerm,
-    termsAreLike,
-    unlink,
-    factorAddTerms,
-    makeTerm,
+    VariableExpression,
 )
 from ..rule import BaseRule
+from ..util import (
+    factor_add_terms,
+    get_term,
+    is_add_or_sub,
+    is_const,
+    make_term,
+    terms_are_like,
+    unlink,
+)
 
 # ### Distributive Property
 # `ab + ac = a(b + c)`
@@ -48,13 +48,13 @@ class DistributiveFactorOutRule(BaseRule):
         return "DF"
 
     def get_type(self, node):
-        if not isAddSubtract(node) or isAddSubtract(node.right):
+        if not is_add_or_sub(node) or is_add_or_sub(node.right):
             return None
-        if isAddSubtract(node.left):
+        if is_add_or_sub(node.left):
             return DistributiveFactorOutRule.POS_SURROUNDED
         return DistributiveFactorOutRule.POS_NATURAL
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         tree_position = self.get_type(node)
         if tree_position is None:
             return False
@@ -64,11 +64,11 @@ class DistributiveFactorOutRule(BaseRule):
             left_interest = node.left.right
 
         # There are two tree configurations recognized by this rule.
-        leftTerm = getTerm(left_interest)
+        leftTerm = get_term(left_interest)
         if not leftTerm:
             return False
 
-        rightTerm = getTerm(node.right)
+        rightTerm = get_term(node.right)
         if not rightTerm:
             return False
 
@@ -80,7 +80,7 @@ class DistributiveFactorOutRule(BaseRule):
         if len(leftTerm.variables) == 0 and len(rightTerm.variables) == 0:
             return False
 
-        f = factorAddTerms(leftTerm, rightTerm)
+        f = factor_add_terms(leftTerm, rightTerm)
         if not f:
             return False
 
@@ -89,22 +89,22 @@ class DistributiveFactorOutRule(BaseRule):
 
         return True
 
-    def applyTo(self, node):
+    def apply_to(self, node):
         tree_position = self.get_type(node)
         if tree_position is None:
             raise ValueError("invalid node for rule, call canApply first.")
-        change = super().applyTo(node).saveParent()
+        change = super().apply_to(node).save_parent()
 
         left_interest = node.left
         if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
             left_interest = node.left.right
-        left_term = getTerm(left_interest)
-        right_term = getTerm(node.right)
+        left_term = get_term(left_interest)
+        right_term = get_term(node.right)
 
-        factors = factorAddTerms(left_term, right_term)
-        a = makeTerm(factors.best, factors.variable, factors.exponent)
-        b = makeTerm(factors.left, factors.leftVariable, factors.leftExponent)
-        c = makeTerm(factors.right, factors.rightVariable, factors.rightExponent)
+        factors = factor_add_terms(left_term, right_term)
+        a = make_term(factors.best, factors.variable, factors.exponent)
+        b = make_term(factors.left, factors.leftVariable, factors.leftExponent)
+        c = make_term(factors.right, factors.rightVariable, factors.rightExponent)
         if tree_position == DistributiveFactorOutRule.POS_NATURAL:
             inside = (
                 AddExpression(b, c)
@@ -131,7 +131,7 @@ class DistributiveFactorOutRule(BaseRule):
             #       ordering that can be expressed without an
             #       explicit multiplication symbol.
             result = MultiplyExpression(inside, a)
-            left_link.setRight(result)
+            left_link.set_right(result)
             result = left_link
         else:
             raise ValueError("invalid/unknown tree configuration")

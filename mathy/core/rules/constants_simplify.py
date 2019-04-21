@@ -1,6 +1,6 @@
 from ..tree import LEFT
 from ..expressions import AddExpression, BinaryExpression, ConstantExpression
-from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
+from ..util import is_add_or_sub, is_const, terms_are_like
 from ..rule import BaseRule
 
 
@@ -15,7 +15,7 @@ class ConstantsSimplifyRule(BaseRule):
     def code(self):
         return "CA"
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         # Check simple case of left/right child binary op with constants
         return (
             isinstance(node, BinaryExpression)
@@ -23,9 +23,9 @@ class ConstantsSimplifyRule(BaseRule):
             and isinstance(node.right, ConstantExpression)
         )
 
-    def applyTo(self, node):
-        change = super().applyTo(node)
-        change.saveParent()
+    def apply_to(self, node):
+        change = super().apply_to(node)
+        change.save_parent()
         result = ConstantExpression(node.evaluate())
         return change.done(result)
 

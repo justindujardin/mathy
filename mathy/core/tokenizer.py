@@ -45,36 +45,6 @@ class Token:
         self.value = value
         self.type = type
 
-    def to_feature(self):
-        # Constant values aren't turned into ordinals
-        if self.type == TokenConstant:
-            token_value = coerce_to_number(self.value)
-        elif self.type == TokenEOF:
-            token_value = 0
-        elif self.type == TokenFunction:
-            token_value = self.value
-        else:
-            token_value = ord(self.value)
-        return [token_value, float(self.type)]
-
-    @classmethod
-    def from_feature(cls, feature):
-        if not type(feature) == list:
-            raise TypeError("feature must be a list of numbers")
-        token_type = feature[1]
-        token_value = feature[0]
-        if token_type == TokenConstant:
-            token_value = str(
-                int(token_value)
-                if math.isclose(token_value % 1, 0.0)
-                else float(token_value)
-            )
-        elif token_type == TokenEOF:
-            token_value = ""
-        else:
-            token_value = chr(int(token_value))
-        return Token(token_value, token_type)
-
     def __str__(self):
         return "[type={}],[value={}]".format(self.type, self.value)
 

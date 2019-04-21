@@ -139,13 +139,11 @@ IS_MULT = TokenSet(TokenMultiply | TokenDivide)
 IS_EXP = TokenSet(TokenExponent)
 IS_EQUAL = TokenSet(TokenEqual)
 
-# TODO: 🏃🏻‍️💨 Could these be memory mapped numpy values? Then the expression parser could
-#       be parallelized!
 _parse_cache = {}
 _tokens_cache = {}
 
 
-# NOTE: This cannot be shared between threads because it stores state in self.currentToken and self.tokens
+# NOTE: This cannot be shared between threads because it stores state in self.current_token and self.tokens
 class ExpressionParser:
     # Initialize the tokenizer.
     def __init__(self):
@@ -154,14 +152,14 @@ class ExpressionParser:
     def evaluate(self, tokens):
         """Parse a given list of tokens into an expression tree"""
         self.tokens = tokens
-        self.currentToken = Token("", TokenNone)
+        self.current_token = Token("", TokenNone)
         if not self.next():
             raise InvalidExpression("Cannot parse an empty function")
 
-        expression = self.parseEqual()
+        expression = self.parse_equal()
         leftover = ""
-        while self.currentToken.type != TokenEOF:
-            leftover = leftover + self.currentToken.value
+        while self.current_token.type != TokenEOF:
+            leftover = leftover + self.current_token.value
             self.next()
 
         if leftover != "":
@@ -175,34 +173,36 @@ class ExpressionParser:
             _tokens_cache[input] = self.tokenizer.tokenize(input)
         return _tokens_cache[input][:]
 
-    # Parse a string representation of an expression into a tree that can be
-    # later evaluated.
-    # Returns : The evaluatable expression tree.
     def parse(self, input):
+        """Parse a string representation of an expression into a tree 
+        that can be later evaluated.
+        
+        Returns : The evaluatable expression tree.
+        """
         global _parse_cache
         if input in _parse_cache:
             return _parse_cache[input]
         _parse_cache[input] = self.evaluate(self.tokenize(input))
         return _parse_cache[input]
 
-    def parseEqual(self):
+    def parse_equal(self):
         if not self.check(FIRST_ADD):
             raise InvalidSyntax("Invalid expression")
 
-        exp = self.parseAdd()
+        exp = self.parse_add()
         while self.check(IS_EQUAL):
-            opType = self.currentToken.type
-            opValue = self.currentToken.value
+            opType = self.current_token.type
+            opValue = self.current_token.value
             self.eat(opType)
             expected = self.check(FIRST_ADD)
             right = None
             if expected:
-                right = self.parseAdd()
+                right = self.parse_add()
 
             if not expected or not right:
                 raise UnexpectedBehavior(
                     "Expected an expression after = operator, got: {}".format(
-                        self.currentToken.value
+                        self.current_token.value
                     )
                 )
 
@@ -215,24 +215,24 @@ class ExpressionParser:
 
         return exp
 
-    def parseAdd(self):
+    def parse_add(self):
         if not self.check(FIRST_MULT):
             raise InvalidSyntax("Invalid expression")
 
-        exp = self.parseMult()
+        exp = self.parse_mult()
         while self.check(IS_ADD):
-            opType = self.currentToken.type
-            opValue = self.currentToken.value
+            opType = self.current_token.type
+            opValue = self.current_token.value
             self.eat(opType)
             expected = self.check(FIRST_MULT)
             right = None
             if expected:
-                right = self.parseMult()
+                right = self.parse_mult()
 
             if not expected or not right:
                 raise UnexpectedBehavior(
                     "Expected an expression after + or - operator, got: {}".format(
-                        self.currentToken.value
+                        self.current_token.value
                     )
                 )
 
@@ -247,19 +247,19 @@ class ExpressionParser:
 
         return exp
 
-    def parseMult(self):
+    def parse_mult(self):
         if not self.check(FIRST_EXP):
             raise InvalidSyntax("Invalid expression")
 
-        exp = self.parseExp()
+        exp = self.parse_exponent()
         while self.check(IS_MULT):
-            opType = self.currentToken.type
-            opValue = self.currentToken.value
+            opType = self.current_token.type
+            opValue = self.current_token.value
             self.eat(opType)
             expected = self.check(FIRST_EXP)
             right = None
             if expected:
-                right = self.parseMult()
+                right = self.parse_mult()
 
             if not expected or right is None:
                 raise InvalidSyntax(
@@ -278,35 +278,35 @@ class ExpressionParser:
                 )
         return exp
 
-    def parseExp(self):
+    def parse_exponent(self):
         if not self.check(FIRST_UNARY):
             raise InvalidSyntax("Invalid expression")
 
-        exp = self.parseUnary()
+        exp = self.parse_unary()
         if self.check(TokenSet(TokenExponent)):
-            opType = self.currentToken.type
+            opType = self.current_token.type
             self.eat(opType)
             if not self.check(FIRST_UNARY):
                 raise InvalidSyntax("Expected an expression after ^ operator")
 
-            right = self.parseUnary()
+            right = self.parse_unary()
             if opType == TokenExponent:
                 exp = PowerExpression(exp, right)
             else:
                 raise UnexpectedBehavior("Expected exponent, got: {}".format(opType))
         return exp
 
-    def parseUnary(self):
+    def parse_unary(self):
         value = 0
         negate = False
-        if self.currentToken.type == TokenMinus:
+        if self.current_token.type == TokenMinus:
             self.eat(TokenMinus)
             negate = True
         expected = self.check(FIRST_FACTOR_PREFIX)
         exp = None
         if expected:
-            if self.currentToken.type == TokenConstant:
-                value = self.currentToken.value
+            if self.current_token.type == TokenConstant:
+                value = self.current_token.value
                 # Flip parse as float/int based on whether the value text
                 value = coerce_to_number(value)
                 if negate:
@@ -318,14 +318,14 @@ class ExpressionParser:
 
             if self.check(FIRST_FACTOR):
                 if exp is None:
-                    exp = self.parseFactors()
+                    exp = self.parse_factors()
                 else:
-                    exp = MultiplyExpression(exp, self.parseFactors())
+                    exp = MultiplyExpression(exp, self.parse_factors())
 
         if not expected or exp is None:
             raise InvalidSyntax(
                 "Expected a function, variable or parenthesis after - or + but got : {}".format(
-                    self.currentToken.value
+                    self.current_token.value
                 )
             )
         if negate:
@@ -333,39 +333,25 @@ class ExpressionParser:
 
         return exp
 
-    def parseFactorPrefix(self):
-        exp = None
-        if self.currentToken.type == TokenConstant:
-            exp = ConstantExpression(float(self.currentToken.value))
-            self.eat(TokenConstant)
-
-        if self.check(FIRST_FACTOR):
-            if exp is None:
-                return self.parseFactors()
-
-            return MultiplyExpression(exp, self.parseFactors())
-
-        return exp
-
-    def parseFactors(self):
+    def parse_factors(self):
         right = None
         found = True
         factors = []
         while found:
             right = None
-            opType = self.currentToken.type
+            opType = self.current_token.type
             if opType == TokenVariable:
-                factors.append(VariableExpression(self.currentToken.value))
+                factors.append(VariableExpression(self.current_token.value))
                 self.eat(TokenVariable)
             elif opType == TokenFunction:
-                factors.append(self.parseFunction())
+                factors.append(self.parse_function())
             elif opType == TokenOpenParen:
                 self.eat(TokenOpenParen)
-                factors.append(self.parseAdd())
+                factors.append(self.parse_add())
                 self.eat(TokenCloseParen)
             else:
                 raise UnexpectedBehavior(
-                    "Unexpected token in Factor: {}".format(self.currentToken.type)
+                    "Unexpected token in Factor: {}".format(self.current_token.type)
                 )
 
             found = self.check(FIRST_FACTOR)
@@ -375,12 +361,12 @@ class ExpressionParser:
 
         exp = None
         if self.check(IS_EXP):
-            opType = self.currentToken.type
+            opType = self.current_token.type
             self.eat(opType)
             if not self.check(FIRST_UNARY):
                 raise InvalidSyntax("Expected an expression after ^ operator")
 
-            right = self.parseUnary()
+            right = self.parse_unary()
             exp = PowerExpression(factors[-1], right)
 
         if len(factors) == 1:
@@ -394,11 +380,11 @@ class ExpressionParser:
 
         return exp
 
-    def parseFunction(self):
-        opFn = self.currentToken.value
-        self.eat(self.currentToken.type)
+    def parse_function(self):
+        opFn = self.current_token.value
+        self.eat(self.current_token.type)
         self.eat(TokenOpenParen)
-        exp = self.parseAdd()
+        exp = self.parse_add()
         self.eat(TokenCloseParen)
         func = self.tokenizer.functions[opFn]
         if func is None:
@@ -406,31 +392,33 @@ class ExpressionParser:
 
         return func(exp)
 
-    # Assign the next token in the queue to @currentToken
+    # Assign the next token in the queue to @current_token
     # Returns True if there are still more tokens in the queue, or
     # False if we have looked at all available tokens already
     def next(self):
-        if self.currentToken.type == TokenEOF:
+        if self.current_token.type == TokenEOF:
             raise OutOfTokens("Parsed beyond the end of the expression")
 
-        self.currentToken = self.tokens.pop(0)
-        return self.currentToken.type != TokenEOF
+        self.current_token = self.tokens.pop(0)
+        return self.current_token.type != TokenEOF
 
-    # Assign the next token in the queue to @currentToken if the @currentToken's
-    # type matches that of the specified parameter.  If the @currentToken's
-    # type does not match the parameter, raise a syntax exception
-    #
-    # `type` The type that your syntax expects @currentToken to be
     def eat(self, type):
-        if self.currentToken.type != type:
+        """Assign the next token in the queue to current_token if its type 
+        matches that of the specified parameter. If the type does not match, 
+        raise a syntax exception.
+
+        Args:
+            type The type that your syntax expects @current_token to be
+        """
+        if self.current_token.type != type:
             raise InvalidSyntax("Missing: {}".format(type))
 
         return self.next()
 
-    # Check if the @currentToken is a member of a set Token types
+    # Check if the @current_token is a member of a set Token types
     #
     # `tokens` The set of Token types to check against
-    # Returns True if the @currentToken's type is in the set or False if it is not
+    # Returns True if the @current_token's type is in the set or False if it is not
     def check(self, tokens):
-        return tokens.contains(self.currentToken.type)
+        return tokens.contains(self.current_token.type)
 

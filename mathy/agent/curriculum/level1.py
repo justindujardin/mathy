@@ -227,7 +227,7 @@ green_belt_practice = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(6, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=200,
             num_observations=128,
         ),
         LessonExercise(
@@ -235,7 +235,7 @@ green_belt_practice = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(8, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=200,
             num_observations=128,
         ),
         LessonExercise(
@@ -243,7 +243,7 @@ green_belt_practice = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_one(7),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=500,
+            mcts_sims=200,
             num_observations=128,
         ),
         LessonExercise(
@@ -251,7 +251,7 @@ green_belt_practice = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(10, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=500,
+            mcts_sims=200,
             num_observations=128,
         ),
         LessonExercise(
@@ -259,7 +259,7 @@ green_belt_practice = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_two(7),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=500,
+            mcts_sims=200,
             num_observations=128,
         ),
     ],

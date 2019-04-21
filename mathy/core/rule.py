@@ -7,21 +7,22 @@ class BaseRule:
     def name(self):
         return "Abstract Base Rule"
 
-    def findNode(self, expression, includeAll=True):
+    def find_node(self, expression):
+        """Find the first node that can have this rule applied to it."""
         result = None
 
         def visit_fn(node, depth, data):
             nonlocal result
-            if self.canApplyTo(node):
+            if self.can_apply_to(node):
                 result = node
 
             if result != None:
                 return STOP
 
-        expression.visitInorder(visit_fn)
+        expression.visit_inorder(visit_fn)
         return result
 
-    def findNodes(self, expression, includeAll=True):
+    def find_nodes(self, expression):
         """
         Find all nodes in an expression that can have this rule applied to them.
         Each node is marked with it's token index in the expression, according to 
@@ -34,54 +35,52 @@ class BaseRule:
             nonlocal nodes, index
             add = None
             node.r_index = index
-            if self.canApplyTo(node):
+            if self.can_apply_to(node):
                 add = node
 
             index += 1
             if add:
                 return nodes.append(add)
 
-        expression.visitInorder(visit_fn)
+        expression.visit_inorder(visit_fn)
         return nodes
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         return False
 
-    def applyTo(self, node):
+    def apply_to(self, node):
         # Only double-check canApply in debug mode
-        if is_debug_mode() and not self.canApplyTo(node):
+        if is_debug_mode() and not self.can_apply_to(node):
             print("Bad Apply: {}".format(node))
-            print("     Root: {}".format(node.getRoot()))
+            print("     Root: {}".format(node.get_root()))
             raise Exception("Cannot apply {} to {}".format(self.name, node))
 
         return ExpressionChangeRule(self, node)
 
 
-# Basic description of a change to an expression tree
 class ExpressionChangeRule:
+    """Object describing the change to an expression tree from a rule transformation"""
+
     def __init__(self, rule, node=None):
         self.rule = rule
         self.node = node
-        self._saveParent = None
-        self.focus_node = None
+        self._save_parent = None
 
-    def set_focus(self, node):
-        """Specify the node that is desirable to focus on based on the 
-        change that a specific rule has made to a complex tree."""
-        self.focus_node = node
-
-    def saveParent(self, parent=None, side=None):
+    def save_parent(self, parent=None, side=None):
+        """Note the parent of the node being modified, and set it as the parent of the 
+        rule output automatically."""
         if self.node and parent is None:
             parent = self.node.parent
 
-        self._saveParent = parent
-        if self._saveParent:
-            self._saveSide = side or parent.getSide(self.node)
+        self._save_parent = parent
+        if self._save_parent:
+            self._save_side = side or parent.get_side(self.node)
 
         return self
 
     def done(self, node):
-        if self._saveParent:
-            self._saveParent.setSide(node, self._saveSide)
+        """Set the result of a change to the given node. Restore the parent if `save_parent` was called"""
+        if self._save_parent:
+            self._save_parent.set_side(node, self._save_side)
         self.result = node
         return self

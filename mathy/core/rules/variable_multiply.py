@@ -7,13 +7,13 @@ from ..expressions import (
     SubtractExpression,
 )
 from ..util import (
-    isAddSubtract,
-    isConstTerm,
-    getTerm,
-    termsAreLike,
+    is_add_or_sub,
+    is_const,
+    get_term,
+    terms_are_like,
     unlink,
-    factorAddTerms,
-    makeTerm,
+    factor_add_terms,
+    make_term,
     FactorResult,
     factor,
 )
@@ -83,7 +83,7 @@ class VariableMultiplyRule(BaseRule):
             return (child.identifier, 1)
         return (None, None)
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         """
         To cleanly apply, the node must be a multiply and it must have single variable terms 
         as its left and right children.
@@ -99,8 +99,8 @@ class VariableMultiplyRule(BaseRule):
             return False
         return left_var == right_var
 
-    def applyTo(self, node):
-        change = super().applyTo(node).saveParent()
+    def apply_to(self, node):
+        change = super().apply_to(node).save_parent()
 
         left_variable, left_exp = self.get_child_components(node.left)
         right_variable, right_exp = self.get_child_components(node.right)

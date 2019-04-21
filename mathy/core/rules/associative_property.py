@@ -1,6 +1,6 @@
 from ..tree import LEFT
 from ..expressions import AddExpression, MultiplyExpression, ConstantExpression
-from ..util import isAddSubtract, isConstTerm, getTerm, termsAreLike
+from ..util import is_add_or_sub, is_const, terms_are_like
 from ..rule import BaseRule
 
 # ### Associative Property
@@ -34,7 +34,7 @@ class AssociativeSwapRule(BaseRule):
     def code(self):
         return "AG"
 
-    def canApplyTo(self, node):
+    def can_apply_to(self, node):
         if isinstance(node.parent, AddExpression) and isinstance(node, AddExpression):
             return True
 
@@ -43,8 +43,8 @@ class AssociativeSwapRule(BaseRule):
 
         return False
 
-    def applyTo(self, node):
-        change = super().applyTo(node)
+    def apply_to(self, node):
+        change = super().apply_to(node)
         node.rotate()
         change.done(node)
         return change

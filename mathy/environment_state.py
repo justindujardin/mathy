@@ -77,7 +77,8 @@ class MathAgentState(object):
 
 
 class MathEnvironmentState(object):
-    """Class for interacting with an Environment state.
+    """Class for holding environment state and extracting features 
+    to be passed to the policy/value neural network.
     
     Mutating operations all return a copy of the environment adapter
     with its own state.
@@ -123,22 +124,6 @@ class MathEnvironmentState(object):
         agent.moves_remaining = moves_remaining
         agent.focus_index = focus_index
         return out_state
-
-    def make_features(self, tokens_or_text):
-        """
-        Make a list of tokenized features from text input, to make the learning 
-        objective easier for the model.
-        """
-        # Token list
-        tokens = None
-        if type(tokens_or_text) == list:
-            tokens = tokens_or_text
-        elif type(tokens_or_text) == str:
-            tokens = self.parser.tokenize(tokens_or_text)
-        else:
-            raise ValueError(
-                "features can only be created from a token list or str input expression"
-            )
 
     def get_node_vectors(self, expression: MathExpression):
         """Get a set of context-sensitive vectors for a given expression"""

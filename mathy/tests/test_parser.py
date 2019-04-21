@@ -19,20 +19,6 @@ def test_parser_to_string():
         assert out_str == expect["output"]
 
 
-def test_tokenizer():
-    parser = ExpressionParser()
-    tokens = parser.tokenize("(7x^2 - (5x - 3x)) * (32y - 7y)")
-
-    features = [t.to_feature() for t in tokens]
-    assert len(features) > 0
-
-    tokens_out = [Token.from_feature(f) for f in features]
-    assert len(tokens) == len(tokens_out)
-    for i, t in enumerate(tokens_out):
-        assert t.value == tokens[i].value
-        assert t.type == tokens[i].type
-
-
 def test_mult_exp_precedence():
     """should respect order of operations with factor parsing"""
     parser = ExpressionParser()
