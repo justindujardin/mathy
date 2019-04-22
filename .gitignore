@@ -17,3 +17,8 @@ visualization
 
 # For trained models
 trained/
+
+# node
+node_modules
+site/public
+.cache
