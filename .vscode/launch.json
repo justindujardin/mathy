@@ -5,17 +5,19 @@
       "name": "mathy:main",
       "type": "python",
       "request": "launch",
-      "debugStdLib": true,
-      "module": "train",
+      "justMyCode": false,
+      "module": "main",
       "args": [
-        "trained/dev/"
+        "trained/dev/",
+        "-l",
+        "dev"
       ]
     },
     {
       "name": "mathy:train",
       "type": "python",
       "request": "launch",
-      "debugStdLib": true,
+      "justMyCode": false,
       "module": "train",
       "args": [
         "trained/dev_train/",
@@ -48,7 +50,7 @@
     {
       "name": "python:current_file",
       "type": "python",
-      "debugStdLib": true,
+      "justMyCode": false,
       "request": "launch",
       "program": "${file}"
     }

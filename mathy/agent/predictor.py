@@ -26,8 +26,7 @@ class MathPredictor(object):
     Original implementation from: https://github.com/ElementAI/multithreaded-estimators
     """
 
-    def __init__(self, estimator, args):
-        self.args = args
+    def __init__(self, estimator):
         self.estimator = estimator
         self.input_queue = Queue(maxsize=1)
         self.output_queue = Queue(maxsize=1)

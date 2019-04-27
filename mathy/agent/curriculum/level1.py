@@ -7,6 +7,7 @@ from mathy.agent.training.problems import (
     rand_var,
     maybe_int,
     maybe_power,
+    rand_bool,
     get_rand_vars,
 )
 import random
@@ -14,28 +15,23 @@ import random
 moves_per_complexity = 6
 
 
-def split_in_two_random(max_items: int):
-    count = 0
-    while True:
-        count += 1
-        factor = random.uniform(0, 1)
-        left = int(factor * max_items)
-        right = max_items - left
-        if left + right == max_items:
-            # always return lower/higher
-            return min(left, right), max(left, right)
-        if count > 100:
-            break
-    raise ValueError(
-        "something is wrong. failed to generate two numbers with a sum 100 times"
-    )
+def split_in_two_random(value: int):
+    """Split a given number into two smaller numbers that sum to it.
+
+    Returns: a tuple of (lower, higher) numbers that sum to the input
+    """
+    factor = random.uniform(0, 1)
+    left = int(factor * value)
+    right = value - left
+    # always return lower/higher
+    return min(left, right), max(left, right)
 
 
 def combine_like_terms_complexity_challenge(easy=True, powers=False):
     # two max move problems with large complexity (i.e. 45 terms) with two terms side-by-side.
     # the idea is that if you do a bunch of these, the model will learn that DF/CA is a good
     # combination regardless of the position.
-    # NOTE: This could also be an AWESOME way to do really large problems without them taking forever.
+    # NOTE: This is an AWESOME way to do really large problems without them taking forever.
     #
     # Example:
     #  "4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x)  + 43n + 17j"
@@ -58,6 +54,54 @@ def combine_like_terms_complexity_challenge(easy=True, powers=False):
     # so that the model cannot use its existing knowledge about distributive
     # factoring on smaller problems to solve this problem.
     right_num, left_num = split_in_two_random(num_noise_terms)
+    for i in range(left_num):
+        current = noise_vars.pop()
+        out_terms.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
+    out_terms.append(focus_chunk)
+    for i in range(right_num):
+        current = noise_vars.pop()
+        out_terms.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
+
+    complexity = total_terms
+    problem = " + ".join(out_terms)
+    return problem, complexity
+
+
+def commutative_grouping_challenge(num_blockers=1, easy=True, powers=False):
+    """A problem with a bunch of terms that have no matches, and a single 
+    set of two terms that do match, but are separated by one other term.
+
+    The challenge is to commute the terms to each other and simplify in 
+    only a few moves. 
+    
+    Example:  "4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
+                                             ^-----------^  
+    """
+    total_terms = random.randint(7, 26)
+    num_noise_terms = total_terms - 2
+    var = rand_var()
+    noise_vars = get_rand_vars(num_noise_terms, [var])
+    power_chance = 80 if powers == True else 0
+    power = maybe_power(power_chance)
+
+    # Build up the blockers to put between the like terms
+    blockers = []
+    for i in range(num_blockers):
+        current = noise_vars.pop()
+        blockers.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
+
+    focus_chunk = f"{maybe_int()}{var}{power} + {' + '.join(blockers)} + {maybe_int()}{var}{power}"
+    # About half of the time focus the agent by grouping the subtree for them
+    if rand_bool(50 if easy else 10):
+        focus_chunk = f"({focus_chunk})"
+
+    out_terms = []
+
+    # We take the larger value for the left side to push the terms
+    # that have to be matched to the right side of expression. This is
+    # so that the model cannot use its existing knowledge about distributive
+    # factoring on smaller problems to solve this problem.
+    right_num, left_num = split_in_two_random(num_noise_terms - num_blockers)
     for i in range(left_num):
         current = noise_vars.pop()
         out_terms.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
@@ -223,6 +267,15 @@ green_belt_practice = build_lesson_plan(
     "green_belt_practice",
     [
         LessonExercise(
+            lesson_name="commute_grouping_1",
+            problem_fn=lambda: commutative_grouping_challenge(1),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            max_turns=5,
+            mcts_sims=250,
+            num_observations=128,
+        ),
+        LessonExercise(
             lesson_name="six_terms_with_exponents",
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(6, powers=True),
@@ -239,28 +292,62 @@ green_belt_practice = build_lesson_plan(
             num_observations=128,
         ),
         LessonExercise(
-            lesson_name="commute_blockers_1_7",
-            problem_fn=lambda: move_around_blockers_one(7),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
-            mcts_sims=200,
-            num_observations=128,
-        ),
-        LessonExercise(
             lesson_name="ten_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(10, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
+            mcts_sims=500,
+            num_observations=128,
+        ),
+        LessonExercise(
+            lesson_name="commute_grouping_3",
+            problem_fn=lambda: commutative_grouping_challenge(3),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=250,
+            num_observations=128,
+            max_turns=6,
+        ),
+    ],
+)
+
+white_belt_practice = build_lesson_plan(
+    "white_belt_practice",
+    [
+        LessonExercise(
+            lesson_name="commute_grouping_1",
+            problem_fn=lambda: commutative_grouping_challenge(1),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            max_turns=4,
+            mcts_sims=500,
+            num_observations=128,
+        ),
+        LessonExercise(
+            lesson_name="five_terms_with_exponents",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(5),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
             num_observations=128,
         ),
         LessonExercise(
-            lesson_name="commute_blockers_2_7",
-            problem_fn=lambda: move_around_blockers_two(7),
+            lesson_name="needle_in_haystack",
+            problem_count=4,
+            problem_fn=lambda: combine_like_terms_complexity_challenge(),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            max_turns=3,
+            num_observations=128,
+        ),
+        LessonExercise(
+            lesson_name="commute_grouping_2",
+            problem_fn=lambda: commutative_grouping_challenge(2),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=200,
+            mcts_sims=500,
             num_observations=128,
+            max_turns=6,
         ),
     ],
 )

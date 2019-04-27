@@ -23,6 +23,7 @@ from mathy.agent.curriculum.level1 import (
     yellow_belt,
     green_belt,
     green_belt_practice,
+    white_belt_practice,
 )
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
@@ -49,11 +50,12 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 lessons = {
-    "practice1": lesson_plan,
-    "exam1": yellow_belt,
-    "practice2": green_belt_practice,
-    "exam2": green_belt,
-    "practice3": lesson_plan_3,
+    "practice1": white_belt_practice,
+    "exam2": yellow_belt,
+    "practice3": green_belt_practice,
+    "exam3": green_belt,
+    "old_lesson3": lesson_plan_3,
+    "old_lesson1": lesson_plan,
     "dev": lesson_quick,
 }
 
@@ -116,10 +118,10 @@ def main(
                 fore="blue",
             )
         )
-        old = mathy.args.epochs
-        mathy.args.epochs = 10
+        old = mathy.epochs
+        mathy.epochs = 10
         mathy.train(experience.short_term, experience.long_term, train_all=True)
-        mathy.args.epochs = old
+        mathy.epochs = old
         print(color("Okay, let's do this!", fore="green"))
 
     while True:

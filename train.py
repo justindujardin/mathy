@@ -177,7 +177,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
                 fore="blue",
             )
         )
-        mathy.args.epochs = initial_train_iterations
+        mathy.epochs = initial_train_iterations
         mathy.train(experience.short_term, experience.long_term)
 
     print(color("Evaluting model performance on exam questions!", fore="green"))

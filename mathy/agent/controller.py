@@ -30,19 +30,6 @@ from .dataset import make_training_input_fn
 from .model import math_estimator
 from .train_hooks import EpochTrainerHook
 
-use_gpu = False
-
-
-class NetConfig:
-    def __init__(
-        self, lr=0.00003, dropout=0.2, epochs=4, batch_size=512, log_frequency=250
-    ):
-        self.lr = lr
-        self.dropout = dropout
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.log_frequency = log_frequency
-
 
 class MathModel:
     def __init__(
@@ -53,14 +40,27 @@ class MathModel:
         dev_mode=False,
         init_model_dir=None,
         init_model_overwrite=False,
-        long_term_size=32768,
+        # long_term_size=32768,
+        long_term_size=2048,
         is_eval_model=False,
+        lr=0.00003,
+        dropout=0.2,
+        epochs=1,
+        batch_size=512,
+        log_frequency=250,
+        use_gpu=False,
     ):
 
         self.is_eval_model = is_eval_model
         self.init_model_overwrite = init_model_overwrite
         self.long_term_size = long_term_size
         self.root_dir = root_dir
+        self.lr = lr
+        self.dropout = dropout
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.use_gpu = use_gpu
+        self.log_frequency = log_frequency
         if not is_eval_model:
             self.model_dir = os.path.join(self.root_dir, "train")
         else:
@@ -83,7 +83,6 @@ class MathModel:
                 )
             )
 
-        # TODO: make this a toggle
         # https://stackoverflow.com/questions/52447908/how-to-explicitly-run-tensor-flow-estimator-on-gpu
         session_config = tf.compat.v1.ConfigProto(
             device_count={"GPU": 1 if use_gpu else 0},
@@ -93,7 +92,6 @@ class MathModel:
         session_config.gpu_options.allow_growth = True
         estimator_config = tf.estimator.RunConfig(session_config=session_config)
         self.action_size = action_size
-        self.args = NetConfig()
         self.build_feature_columns()
 
         #
@@ -117,11 +115,11 @@ class MathModel:
                 "feature_columns": self.feature_columns,
                 "sequence_columns": self.sequence_columns,
                 "action_size": self.action_size,
-                "learning_rate": self.args.lr,
-                "batch_size": self.args.batch_size,
+                "learning_rate": self.lr,
+                "batch_size": self.batch_size,
             },
         )
-        self._worker = MathPredictor(self.network, self.args)
+        self._worker = MathPredictor(self.network)
 
     def build_feature_columns(self):
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
@@ -217,16 +215,14 @@ class MathModel:
         )
         print(
             "Training {} epochs with {} examples and learning rate {}...".format(
-                self.args.epochs, len(examples), self.args.lr
+                self.epochs, len(examples), self.lr
             )
         )
-        max_steps = len(examples) * self.args.epochs
+        max_steps = len(examples) * self.epochs
         self.network.train(
-            hooks=[
-                EpochTrainerHook(self.args.epochs, len(examples), self.args.batch_size)
-            ],
+            hooks=[EpochTrainerHook(self.epochs, len(examples), self.batch_size)],
             steps=max_steps,
-            input_fn=make_training_input_fn(examples, self.args.batch_size),
+            input_fn=make_training_input_fn(examples, self.batch_size),
         )
         return True
 
