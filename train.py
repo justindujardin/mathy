@@ -138,8 +138,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
     num_rollouts = 100
     num_exploration_moves = 0
     epsilon = 0
-    eval_ltm_sample_size = 2048
-    initial_train_iterations = 32
+    initial_train_iterations = 6
     controller = MathGame(verbose=True)
     input_examples = Path(examples_file)
     model_dir = Path(model_dir)
@@ -158,6 +157,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
         model_dir,
         init_model_dir=transfer_from,
         init_model_overwrite=True,
+        learning_rate=0.01,
     )
     experience = MathExperience(mathy.model_dir)
     mathy.start()
@@ -178,7 +178,8 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
             )
         )
         mathy.epochs = initial_train_iterations
-        mathy.train(experience.short_term, experience.long_term)
+        mathy.train(experience.short_term, experience.long_term, train_all=True)
+        # mathy.train(experience.short_term, experience.long_term)
 
     print(color("Evaluting model performance on exam questions!", fore="green"))
     ep_reward_buffer = []

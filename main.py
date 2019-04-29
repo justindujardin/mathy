@@ -20,6 +20,7 @@ from mathy.agent.curriculum.level1 import (
     lesson_plan_3,
     lesson_quick,
     moves_per_complexity,
+    white_belt,
     yellow_belt,
     green_belt,
     green_belt_practice,
@@ -56,6 +57,10 @@ lessons = {
     "exam3": green_belt,
     "old_lesson3": lesson_plan_3,
     "old_lesson1": lesson_plan,
+    "white_belt": white_belt,
+    "yellow_belt": yellow_belt,
+    "green_belt": green_belt,
+    "green_belt_practice": green_belt_practice,
     "dev": lesson_quick,
 }
 
@@ -74,6 +79,7 @@ lessons = {
         str,
     ),
     lesson_id=("The lesson plan to execute by ID", "option", "l", str),
+    learning_rate=("The learning rate to use when training", "option", "lr", float),
     initial_train=(
         "When true, train the network on everything in `examples.json` in the checkpoint directory",
         "flag",
@@ -86,7 +92,12 @@ lessons = {
     ),
 )
 def main(
-    model_dir, transfer_from=None, lesson_id=None, initial_train=False, verbose=False
+    model_dir,
+    transfer_from=None,
+    lesson_id=None,
+    initial_train=False,
+    verbose=False,
+    learning_rate=0.001,
 ):
     global lessons
     shuffle_lessons = False
@@ -97,7 +108,12 @@ def main(
     episode_counter = 0
     counter = 0
     controller = MathGame(verbose=True)
-    mathy = MathModel(controller.action_size, model_dir, init_model_dir=transfer_from)
+    mathy = MathModel(
+        controller.action_size,
+        model_dir,
+        init_model_dir=transfer_from,
+        learning_rate=learning_rate,
+    )
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     if lesson_id is None:
@@ -144,6 +160,7 @@ def main(
                 # We want to initialize from the training model for each evaluation. (?)
                 init_model_overwrite=True,
                 is_eval_model=True,
+                learning_rate=learning_rate,
             )
             eval_experience = MathExperience(mathy_eval.model_dir)
             mathy_eval.start()

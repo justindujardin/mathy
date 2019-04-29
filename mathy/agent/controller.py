@@ -43,7 +43,7 @@ class MathModel:
         # long_term_size=32768,
         long_term_size=2048,
         is_eval_model=False,
-        lr=0.00003,
+        learning_rate=0.00003,
         dropout=0.2,
         epochs=1,
         batch_size=512,
@@ -55,7 +55,7 @@ class MathModel:
         self.init_model_overwrite = init_model_overwrite
         self.long_term_size = long_term_size
         self.root_dir = root_dir
-        self.lr = lr
+        self.learning_rate = learning_rate
         self.dropout = dropout
         self.epochs = epochs
         self.batch_size = batch_size
@@ -115,7 +115,7 @@ class MathModel:
                 "feature_columns": self.feature_columns,
                 "sequence_columns": self.sequence_columns,
                 "action_size": self.action_size,
-                "learning_rate": self.lr,
+                "learning_rate": self.learning_rate,
                 "batch_size": self.batch_size,
             },
         )
@@ -215,7 +215,7 @@ class MathModel:
         )
         print(
             "Training {} epochs with {} examples and learning rate {}...".format(
-                self.epochs, len(examples), self.lr
+                self.epochs, len(examples), self.learning_rate
             )
         )
         max_steps = len(examples) * self.epochs
