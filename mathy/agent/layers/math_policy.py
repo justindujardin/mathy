@@ -8,11 +8,10 @@ class MathPolicy(tf.keras.layers.Layer):
     def __init__(self, num_predictions=2, **kwargs):
         self.num_predictions = num_predictions
         self.activate = tf.keras.layers.Dense(num_predictions, activation="softmax")
-        self.cell_units = 4
-        self.stack_height = 12
-        self.dense_stack = [ResidualDense(self.cell_units)]
+        self.stack_height = 4
+        self.dense_stack = [ResidualDense()]
         for i in range(self.stack_height - 1):
-            self.dense_stack.append(ResidualDense(self.cell_units))
+            self.dense_stack.append(ResidualDense())
         super(MathPolicy, self).__init__(**kwargs)
 
     def compute_output_shape(self, input_shape):

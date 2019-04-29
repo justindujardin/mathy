@@ -50,11 +50,11 @@ def math_estimator(features, labels, mode, params):
     # architectures.
     with tf.compat.v1.variable_scope("love"):
         # Context feature residual tower
-        for i in range(6):
-            context_inputs = ResidualDense(4)(context_inputs)
+        for i in range(3):
+            context_inputs = ResidualDense()(context_inputs)
 
         # Bi-directional LSTM over context vectors
-        hidden_states, sequence_inputs = BiLSTM(12)(sequence_inputs)
+        hidden_states, sequence_inputs = BiLSTM()(sequence_inputs)
 
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
@@ -75,7 +75,7 @@ def math_estimator(features, labels, mode, params):
         #  moves_remaining) cannot be connected to the sequential policy output predictions.
         # TODO: Someone help! ☝️ Thanks! 🙇‍
 
-        attention_context, _ = BahdanauAttention(4096)(sequence_outputs, hidden_states)
+        attention_context, _ = BahdanauAttention(512)(sequence_outputs, hidden_states)
         network = Concatenate(name="mixed_features")(
             [attention_context, context_inputs]
         )
@@ -94,7 +94,7 @@ def math_estimator(features, labels, mode, params):
     optimizer = adam.AdamOptimizer(learning_rate)
 
     # output histograms for all trainable variables.
-    summary_interval = 500
+    summary_interval = 1000
     global_step = tf.compat.v1.train.get_or_create_global_step()
     with tf.summary.record_if(lambda: tf.math.equal(global_step % summary_interval, 0)):
         for var in tf.compat.v1.trainable_variables():
