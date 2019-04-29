@@ -16,6 +16,7 @@ from .layers.bahdanau_attention import BahdanauAttention
 from .layers.bi_lstm import BiLSTM
 from .layers.math_policy import MathPolicy
 from .layers.residual_dense import ResidualDense
+from .layers.keras_self_attention import SeqSelfAttention
 
 
 def math_estimator(features, labels, mode, params):
@@ -55,6 +56,9 @@ def math_estimator(features, labels, mode, params):
 
         # Bi-directional LSTM over context vectors
         hidden_states, sequence_inputs = BiLSTM()(sequence_inputs)
+        
+        # Apply self-attention to the BiLSTM outputs
+        sequence_inputs = SeqSelfAttention()(sequence_inputs)
 
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
