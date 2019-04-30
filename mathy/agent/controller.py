@@ -185,8 +185,17 @@ class MathModel:
             self.feat_last_bwd_vectors,
         ]
 
-    def train(self, short_term_examples, long_term_examples, train_all=False):
+    def train(
+        self, short_term_examples, long_term_examples, train_all=False, sampling_fn=None
+    ):
         """examples: list of examples in JSON format"""
+
+        def shuffle_samples(examples_pool, max_items: int):
+            """default fn shuffles the remaining examples and returns
+            the front {max_items} from the shuffled list"""
+            shuffled = examples_pool[:]
+            random.shuffle(shuffled)
+            return examples_pool[:max_items]
 
         # Select some observations for training
         if train_all is not True:
@@ -202,11 +211,16 @@ class MathModel:
         # the remainder from there.
         if len(examples) < max_examples and len(long_term_examples) > 0:
             remaining_capacity = max_examples - len(examples)
-
-            random.shuffle(long_term_examples)
-            ltm_sample = long_term_examples[:remaining_capacity]
-            examples = examples + ltm_sample
-        # Shuffle all training examples
+            # Allow user specified sampling logic to experiment with
+            # training data biases (like showing equal positive/negative
+            # experiences).
+            # Inspired by UNREAL agent: https://arxiv.org/pdf/1611.05397.pdf
+            sample_it = shuffle_samples
+            if sampling_fn is not None:
+                sample_it = sampling_fn
+            ltm_samples = sample_it(long_term_examples, remaining_capacity)
+            examples = examples + ltm_samples
+        # Shuffle all training examples to break temporal dependencies
         random.shuffle(examples)
         print(
             "Mediating on {} observations from recent experience and {} past observations".format(
