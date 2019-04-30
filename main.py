@@ -25,6 +25,7 @@ from mathy.agent.curriculum.level1 import (
     green_belt,
     green_belt_practice,
     white_belt_practice,
+    node_control,
 )
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
@@ -51,6 +52,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 lessons = {
+    "node_control": node_control,
     "practice1": white_belt_practice,
     "exam2": yellow_belt,
     "practice3": green_belt_practice,
@@ -107,7 +109,7 @@ def main(
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
-    training_epochs = 3
+    training_epochs = 1
     controller = MathGame(verbose=True)
     mathy = MathModel(
         controller.action_size,

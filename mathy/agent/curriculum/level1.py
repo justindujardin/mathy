@@ -279,6 +279,44 @@ white_belt = build_lesson_plan(
     ],
 )
 
+
+node_control = build_lesson_plan(
+    "node_control",
+    [
+        LessonExercise(
+            lesson_name="simplify_in_place",
+            problem_fn=lambda: combine_like_terms_complexity_challenge(False),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            max_turns=3,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="4_terms_12_turns",
+            problem_fn=lambda: simplify_multiple_terms(4),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            max_turns=12,
+            num_observations=32,
+        ),
+        LessonExercise(
+            lesson_name="move_then_simplify",
+            problem_fn=lambda: commutative_grouping_challenge(1),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=5,
+            mcts_sims=200,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="two_terms",
+            problem_fn=lambda: simplify_multiple_terms(4),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            num_observations=32,
+        ),
+    ],
+)
+
 yellow_belt = build_lesson_plan(
     "yellow_belt",
     [
