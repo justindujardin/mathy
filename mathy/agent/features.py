@@ -15,7 +15,6 @@ FEATURE_PROBLEM_TYPE = "problem_type"
 
 TRAIN_LABELS_TARGET_PI = "policy"
 TRAIN_LABELS_TARGET_VALUE = "value"
-TRAIN_LABELS_AS_MATRIX = "matrix"
 
 
 def parse_example_for_training(example, max_sequence=None, max_policy_sequence=None):
@@ -27,17 +26,7 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
     inputs = {}
     ex_input = example["inputs"]
     # Two extract windows for context sensitivity (3 * 3) = 9
-    pad_value = (
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-        MathTypeKeys["empty"],
-    )
+    pad_value = tuple([MathTypeKeys["empty"]] * 9)
     policy_out = example["policy"][:]
     # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
     if max_sequence is not None:

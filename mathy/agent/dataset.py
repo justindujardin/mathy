@@ -14,7 +14,6 @@ from ..agent.features import (
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
-    TRAIN_LABELS_AS_MATRIX,
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
     parse_example_for_training,

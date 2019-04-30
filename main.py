@@ -97,22 +97,24 @@ def main(
     lesson_id=None,
     initial_train=False,
     verbose=False,
-    learning_rate=0.001,
+    learning_rate=0.0003,
 ):
     global lessons
     shuffle_lessons = False
-    min_train_experience = 1024
+    min_train_experience = 256
     eval_interval = 2
     short_term_size = 128
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
+    training_epochs = 3
     controller = MathGame(verbose=True)
     mathy = MathModel(
         controller.action_size,
         model_dir,
         init_model_dir=transfer_from,
         learning_rate=learning_rate,
+        epochs=training_epochs,
     )
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
@@ -161,6 +163,7 @@ def main(
                 init_model_overwrite=True,
                 is_eval_model=True,
                 learning_rate=learning_rate,
+                epochs=training_epochs,
             )
             eval_experience = MathExperience(mathy_eval.model_dir)
             mathy_eval.start()

@@ -12,7 +12,7 @@ class LessonExercise:
         lesson_name,
         problem_fn,
         problem_type,
-        problem_count,
+        problem_count=1,
         max_turns=None,
         mcts_sims=None,
         num_exploration_moves=None,

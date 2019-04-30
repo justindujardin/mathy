@@ -22,3 +22,6 @@ trained/
 node_modules
 site/public
 .cache
+
+
+agents/mathy_beta

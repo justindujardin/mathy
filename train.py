@@ -138,7 +138,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
     num_rollouts = 100
     num_exploration_moves = 0
     epsilon = 0
-    initial_train_iterations = 6
+    initial_train_iterations = 12
     controller = MathGame(verbose=True)
     input_examples = Path(examples_file)
     model_dir = Path(model_dir)
@@ -157,7 +157,7 @@ def main(model_dir, examples_file, transfer_from=None, no_train=False):
         model_dir,
         init_model_dir=transfer_from,
         init_model_overwrite=True,
-        learning_rate=0.01,
+        learning_rate=0.001,
     )
     experience = MathExperience(mathy.model_dir)
     mathy.start()

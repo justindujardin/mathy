@@ -45,7 +45,7 @@ class MathModel:
         is_eval_model=False,
         learning_rate=0.00003,
         dropout=0.2,
-        epochs=1,
+        epochs=10,
         batch_size=512,
         log_frequency=250,
         use_gpu=False,
