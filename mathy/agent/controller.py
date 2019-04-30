@@ -211,10 +211,7 @@ class MathModel:
         # the remainder from there.
         if len(examples) < max_examples and len(long_term_examples) > 0:
             remaining_capacity = max_examples - len(examples)
-            # Allow user specified sampling logic to experiment with
-            # training data biases (like showing equal positive/negative
-            # experiences).
-            # Inspired by UNREAL agent: https://arxiv.org/pdf/1611.05397.pdf
+            # Allow user specified sampling logic
             sample_it = shuffle_samples
             if sampling_fn is not None:
                 sample_it = sampling_fn

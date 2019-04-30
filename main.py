@@ -11,7 +11,6 @@ import numpy
 import plac
 import tensorflow as tf
 from colr import color
-
 from mathy.agent.controller import MathModel
 from mathy.agent.curriculum.level1 import (
     combine_forced,
@@ -29,7 +28,10 @@ from mathy.agent.curriculum.level1 import (
 )
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
-from mathy.agent.training.math_experience import MathExperience
+from mathy.agent.training.math_experience import (
+    MathExperience,
+    balanced_reward_experience_samples,
+)
 from mathy.agent.training.mcts import MCTS
 from mathy.agent.training.practice_runner import (
     ParallelPracticeRunner,
@@ -167,7 +169,7 @@ def main(
                 learning_rate=learning_rate,
                 epochs=training_epochs,
             )
-            eval_experience = MathExperience(mathy_eval.model_dir)
+            eval_experience = MathExperience(mathy_eval.model_dir, short_term_size=256)
             mathy_eval.start()
 
         else:
@@ -262,9 +264,17 @@ def main(
             # Train if we have enough data
             if experience.count > min_train_experience:
                 if not eval_run:
-                    model.train(experience.short_term, experience.long_term)
+                    model.train(
+                        experience.short_term,
+                        experience.long_term,
+                        sampling_fn=balanced_reward_experience_samples,
+                    )
                 else:
-                    model.train(eval_experience.short_term, experience.long_term)
+                    model.train(
+                        eval_experience.short_term,
+                        experience.long_term,
+                        sampling_fn=balanced_reward_experience_samples,
+                    )
             else:
                 print(
                     color(

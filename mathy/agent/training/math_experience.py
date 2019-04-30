@@ -2,10 +2,55 @@ import os
 import tempfile
 from pathlib import Path
 from shutil import copyfile
-
+import random
 import ujson
 
 from ...environment_state import INPUT_EXAMPLES_FILE_NAME
+
+
+def balanced_reward_experience_samples(examples_pool, max_items: int):
+    """Long-term memory sampling function that tries to return a roughly 
+    equal distribution of positive/negative reward examples for training.
+    If there are not enough examples of a particular type (i.e. positive/negative)
+    examples from the other class will be filled in until max_items is met
+    or all long-term memory examples are exhausted.
+
+    This sampling method is inspired by UNREAL agent (https://arxiv.org/pdf/1611.05397.pdf)
+    and their insights that "animals dream about positively or negatively rewarding events 
+    more frequently" which were gathered from (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3815616/)
+    which found this by observing the brain activity of animals while they slept.    
+    """
+    overflow_examples = []
+    positive_examples = []
+    negative_examples = []
+    shuffled = examples_pool[:]
+    half_examples = int(max_items / 2)
+    random.shuffle(shuffled)
+    for example in examples_pool:
+        reward = example["reward"]
+        if reward < 0.0 and len(negative_examples) < half_examples:
+            negative_examples.append(example)
+        elif reward > 0.0 and len(positive_examples) < half_examples:
+            positive_examples.append(example)
+        else:
+            overflow_examples.append(example)
+        if (
+            len(positive_examples) == half_examples
+            and len(negative_examples) == half_examples
+            and len(overflow_examples) > half_examples
+        ):
+            break
+    out_examples = positive_examples + negative_examples
+    overflow_count = 0
+    while len(out_examples) < max_items and len(overflow_examples) > 0:
+        overflow_count += 1
+        out_examples.append(overflow_examples.pop())
+    print(
+        f"[ltm] Sampled ({len(positive_examples)}) positive"
+        f", ({len(negative_examples)}) negative"
+        f", and ({overflow_count}) overflow examples"
+    )
+    return out_examples
 
 
 class MathExperience:
@@ -80,6 +125,8 @@ class MathExperience:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
+        if out_file.is_file():
+            copyfile(str(out_file), f"{str(out_file)}.bak")
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
         os.close(fd)

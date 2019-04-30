@@ -307,13 +307,6 @@ node_control = build_lesson_plan(
             mcts_sims=200,
             num_observations=64,
         ),
-        LessonExercise(
-            lesson_name="two_terms",
-            problem_fn=lambda: simplify_multiple_terms(4),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=200,
-            num_observations=32,
-        ),
     ],
 )
 
