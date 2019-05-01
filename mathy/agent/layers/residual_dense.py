@@ -8,7 +8,7 @@ def ResidualDense(name="residual_block"):
         activate = tf.keras.layers.Activation("relu")
         normalize = tf.keras.layers.BatchNormalization()
         dense = tf.keras.layers.Dense(input_layer.get_shape()[1], use_bias=False)
-        output = activate(normalize(dense(input_layer)))
+        output = normalize(activate(dense(input_layer)))
         return tf.keras.layers.Add(name=name)([output, input_layer])
 
     return func
