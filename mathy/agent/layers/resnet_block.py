@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def ResidualDense(name="residual_block"):
+def ResNetBlock(name="residual_block"):
     """Dense layer with residual input addition for help with backpropagation"""
 
     def func(input_layer):

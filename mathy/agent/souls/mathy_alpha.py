@@ -1,10 +1,16 @@
 import tensorflow as tf
 from tensorflow.keras.experimental import SequenceFeatures
-from tensorflow.keras.layers import Concatenate, Dense, DenseFeatures, TimeDistributed
+from tensorflow.keras.layers import (
+    Concatenate,
+    Dense,
+    DenseFeatures,
+    TimeDistributed,
+    Dropout,
+)
 from tensorflow.python.training import adam
 from tensorflow_estimator.contrib.estimator.python import estimator
 
-from ..agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -12,11 +18,11 @@ from ..agent.features import (
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
 )
-from .layers.bahdanau_attention import BahdanauAttention
-from .layers.bi_lstm import BiLSTM
-from .layers.math_policy import MathPolicy
-from .layers.residual_dense import ResidualDense
-from .layers.keras_self_attention import SeqSelfAttention
+from ..layers.bahdanau_attention import BahdanauAttention
+from ..layers.bi_lstm import BiLSTM
+from ..layers.math_policy_resnet import MathPolicyResNet
+from ..layers.resnet_block import ResNetBlock
+from ..layers.keras_self_attention import SeqSelfAttention
 
 
 def math_estimator(features, labels, mode, params):
@@ -24,6 +30,7 @@ def math_estimator(features, labels, mode, params):
     feature_columns = params["feature_columns"]
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
+    dropout_rate = params.get("dropout", 0.1)
     training = mode == tf.estimator.ModeKeys.TRAIN
 
     #
@@ -52,20 +59,21 @@ def math_estimator(features, labels, mode, params):
     with tf.compat.v1.variable_scope("love"):
         # Context feature residual tower
         for i in range(3):
-            context_inputs = ResidualDense()(context_inputs)
+            context_inputs = ResNetBlock()(context_inputs)
 
         # Bi-directional LSTM over context vectors
         hidden_states, sequence_inputs = BiLSTM()(sequence_inputs)
-        
-        # Apply self-attention to the BiLSTM outputs
-        sequence_inputs = SeqSelfAttention()(sequence_inputs)
+
+        # Apply a self-attention stack to the BiLSTM outputs
+        for i in range(4):
+            sequence_inputs = SeqSelfAttention()(sequence_inputs)
 
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
         # to know what the probability of each action is for each node in the expression
         # tree. This is key to allow the model to select which node to apply which action
         # to.
-        predict_policy = TimeDistributed(MathPolicy(action_size))
+        predict_policy = TimeDistributed(MathPolicyResNet(action_size, dropout=dropout_rate))
         sequence_outputs = predict_policy(sequence_inputs)
 
         # TODO: I can't get the reshape working to mix the context-features with the sequence

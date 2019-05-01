@@ -27,9 +27,8 @@ from ..agent.predictor import MathPredictor
 from ..core.expressions import MathTypeKeysMax
 from ..environment_state import MathEnvironmentState
 from .dataset import make_training_input_fn
-from .model import math_estimator
 from .train_hooks import EpochTrainerHook
-
+from .souls.mathy_densenet import math_estimator
 
 class MathModel:
     def __init__(

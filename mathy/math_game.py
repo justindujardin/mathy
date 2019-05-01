@@ -26,16 +26,12 @@ class MathGame:
     few moves as possible.
     """
 
-    # Default number of max moves used for training (can be overridden in init)
-    max_moves_easy = 50
-    max_moves_hard = 35
-    max_moves_expert = 20
-
-    def __init__(self, verbose=False, max_moves=None, lesson=None):
-
-        self.discount = 0.99
+    def __init__(
+        self, verbose=False, max_moves=20, lesson=None, reward_discount=0.99
+    ):
+        self.discount = reward_discount
         self.verbose = verbose
-        self.max_moves = max_moves if max_moves is not None else MathGame.max_moves_hard
+        self.max_moves = max_moves
         self.parser = ExpressionParser()
         self.problems = ProblemGenerator()
         self.lesson = lesson
@@ -135,7 +131,10 @@ class MathGame:
             operation = "dangit!"
         operation = self.available_rules[action_index]
 
-        if not isinstance(operation, BaseRule) or operation.can_apply_to(token) is False:
+        if (
+            not isinstance(operation, BaseRule)
+            or operation.can_apply_to(token) is False
+        ):
             msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
             raise Exception(msg.format(action, expression, type(operation)))
 

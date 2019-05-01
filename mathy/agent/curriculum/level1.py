@@ -305,7 +305,7 @@ node_control = build_lesson_plan(
             problem_fn=lambda: combine_terms_in_place(12, 16, False),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            max_turns=2,
+            max_turns=3,
             num_observations=256,
         ),
     ],
