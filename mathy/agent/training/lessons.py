@@ -5,7 +5,7 @@ CONCEPT_COMBINE_TERMS = "combine_terms"
 
 
 class LessonExercise:
-    """A configuration for generating/practicing problems and evaluating competency at solving them"""
+    """A configuration for generating problems, and constraints on how to solve them"""
 
     def __init__(
         self,
