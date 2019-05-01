@@ -10,7 +10,7 @@
       "args": [
         "trained/dev/",
         "-l",
-        "dev"
+        "node_control"
       ]
     },
     {

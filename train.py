@@ -16,7 +16,10 @@ from colr import color
 
 from mathy.agent.controller import MathModel
 from mathy.agent.training.actor_mcts import ActorMCTS
-from mathy.agent.training.math_experience import MathExperience
+from mathy.agent.training.math_experience import (
+    MathExperience,
+    balanced_reward_experience_samples,
+)
 from mathy.agent.training.mcts import MCTS
 from mathy.environment_state import INPUT_EXAMPLES_FILE_NAME
 from mathy.math_game import MathGame
@@ -46,7 +49,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
     ),
 )
 def main(model_dir, examples_file, transfer_from=None):
-    epochs = 24
+    epochs = 100
     train_all = False
     train_number = 4096
     controller = MathGame(verbose=True)
@@ -74,7 +77,12 @@ def main(model_dir, examples_file, transfer_from=None):
     experience = MathExperience(mathy.model_dir)
     mathy.start()
     mathy.epochs = epochs
-    mathy.train(experience.short_term, experience.long_term, train_all=train_all)
+    mathy.train(
+        experience.short_term,
+        experience.long_term,
+        train_all=train_all,
+        sampling_fn=balanced_reward_experience_samples,
+    )
     print("Complete. Bye!")
     mathy.stop()
     exit(0)

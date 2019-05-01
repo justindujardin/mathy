@@ -298,15 +298,15 @@ node_control = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=4,
             mcts_sims=500,
-            num_observations=64,
+            num_observations=256,
         ),
         LessonExercise(
             lesson_name="simplify_in_place",
             problem_fn=lambda: combine_terms_in_place(12, 16, False),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=200,
+            mcts_sims=500,
             max_turns=2,
-            num_observations=64,
+            num_observations=256,
         ),
     ],
 )

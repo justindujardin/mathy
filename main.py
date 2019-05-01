@@ -112,7 +112,7 @@ def main(
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
-    training_epochs = 2
+    training_epochs = 10
     controller = MathGame(verbose=True)
     mathy = MathModel(
         controller.action_size,
