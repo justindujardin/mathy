@@ -43,14 +43,17 @@ class MathModel:
         # long_term_size=32768,
         long_term_size=2048,
         is_eval_model=False,
-        learning_rate=0.00003,
-        dropout=0.2,
+        # Karpathy once tweeted this was the best learning rate for Adam optimizer "hands down"
+        learning_rate=3e-4,
+        # https://arxiv.org/pdf/1801.05134.pdf uses 0.1
+        dropout=0.1,
         epochs=10,
         batch_size=512,
         log_frequency=250,
         use_gpu=False,
+        random_seed=1337,
     ):
-
+        self.random_seed = random_seed
         self.is_eval_model = is_eval_model
         self.init_model_overwrite = init_model_overwrite
         self.long_term_size = long_term_size
@@ -90,7 +93,9 @@ class MathModel:
             intra_op_parallelism_threads=10,
         )
         session_config.gpu_options.allow_growth = True
-        estimator_config = tf.estimator.RunConfig(session_config=session_config)
+        estimator_config = tf.estimator.RunConfig(
+            session_config=session_config, tf_random_seed=self.random_seed
+        )
         self.action_size = action_size
         self.build_feature_columns()
 
@@ -117,6 +122,7 @@ class MathModel:
                 "action_size": self.action_size,
                 "learning_rate": self.learning_rate,
                 "batch_size": self.batch_size,
+                "dropout": self.dropout,
             },
         )
         self._worker = MathPredictor(self.network)
@@ -225,8 +231,8 @@ class MathModel:
             )
         )
         print(
-            "Training {} epochs with {} examples and learning rate {}...".format(
-                self.epochs, len(examples), self.learning_rate
+            "[training] {} epochs with {} examples, {} learning rate, and {} dropout...".format(
+                self.epochs, len(examples), self.learning_rate, self.dropout
             )
         )
         max_steps = len(examples) * self.epochs

@@ -107,11 +107,12 @@ def main(
     shuffle_lessons = False
     min_train_experience = 256
     eval_interval = 2
-    short_term_size = 128
+    short_term_size = 768
+    long_term_size = 2048
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
-    training_epochs = 1
+    training_epochs = 2
     controller = MathGame(verbose=True)
     mathy = MathModel(
         controller.action_size,
