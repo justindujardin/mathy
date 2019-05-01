@@ -21,34 +21,32 @@ def balanced_reward_experience_samples(examples_pool, max_items: int):
     which found this by observing the brain activity of animals while they slept.    
     """
     overflow_examples = []
-    positive_examples = []
-    negative_examples = []
+    positives = []
+    negatives = []
     shuffled = examples_pool[:]
     half_examples = int(max_items / 2)
     random.shuffle(shuffled)
     for example in examples_pool:
         reward = example["reward"]
-        if reward < 0.0 and len(negative_examples) < half_examples:
-            negative_examples.append(example)
-        elif reward > 0.0 and len(positive_examples) < half_examples:
-            positive_examples.append(example)
+        if reward < 0.0 and len(negatives) < half_examples:
+            negatives.append(example)
+        elif reward > 0.0 and len(positives) < half_examples:
+            positives.append(example)
         else:
             overflow_examples.append(example)
         if (
-            len(positive_examples) == half_examples
-            and len(negative_examples) == half_examples
+            len(positives) == half_examples
+            and len(negatives) == half_examples
             and len(overflow_examples) > half_examples
         ):
             break
-    out_examples = positive_examples + negative_examples
-    overflow_count = 0
+    out_examples = positives + negatives
+    counter = 0
     while len(out_examples) < max_items and len(overflow_examples) > 0:
-        overflow_count += 1
+        counter += 1
         out_examples.append(overflow_examples.pop())
     print(
-        f"[ltm] Sampled ({len(positive_examples)}) positive"
-        f", ({len(negative_examples)}) negative"
-        f", and ({overflow_count}) overflow examples"
+        f"[ltm] sampled {len(positives)} positive, {len(negatives)} negative, and {counter} overflow examples"
     )
     return out_examples
 

@@ -206,7 +206,7 @@ class MathModel:
         # Always sample all of the current episodes observations first
         stm_sample = short_term_examples[:max_examples]
         examples = stm_sample
-        ltm_sample = []
+        ltm_samples = []
         # If there's room left, shuffle the long-term examples and sample
         # the remainder from there.
         if len(examples) < max_examples and len(long_term_examples) > 0:
@@ -220,8 +220,8 @@ class MathModel:
         # Shuffle all training examples to break temporal dependencies
         random.shuffle(examples)
         print(
-            "Mediating on {} observations from recent experience and {} past observations".format(
-                len(stm_sample), len(ltm_sample)
+            "[stm] sampled {} observations from recent experience".format(
+                len(stm_sample)
             )
         )
         print(

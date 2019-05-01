@@ -101,7 +101,7 @@ def main(
     lesson_id=None,
     initial_train=False,
     verbose=False,
-    learning_rate=0.0003,
+    learning_rate=3e-4,
 ):
     global lessons
     shuffle_lessons = False
