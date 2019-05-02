@@ -14,10 +14,8 @@ class DenseNetStack(tf.keras.layers.Layer):
         dropout=0.2,
         random_seed=1337,
         layer_scaling_factor=0.75,
-        context=None,
         **kwargs
     ):
-        self.context = context
         self.units = units
         self.layer_scaling_factor = layer_scaling_factor
         self.num_layers = num_layers
@@ -31,18 +29,6 @@ class DenseNetStack(tf.keras.layers.Layer):
         super(DenseNetStack, self).__init__(**kwargs)
 
     def call(self, input_tensor):
-        # Mix in the context if any is provided
-        if self.context is not None:
-            raise EnvironmentError("Help I can't get the shapes right here!")
-            # input_tensor, _ = BahdanauAttention(128)(
-            #     input_tensor, tf.expand_dims(self.context, 1)
-            # )
-            # attn, _ = BahdanauAttention(128)(input_tensor, context)
-            # context = tf.expand_dims(self.context, 1)
-            # W1 = tf.keras.layers.Dense(128)
-            # W2 = tf.keras.layers.Dense(128)
-            # context_tensor = W2(input_tensor) * W1(context)
-
         stack_inputs = []
         # Iterate the stack and call each layer, also inputting a list
         # of all the previous stack layers outputs.

@@ -56,23 +56,21 @@ def math_estimator(features, labels, mode, params):
     # The core of the model is made with love
     with tf.compat.v1.variable_scope("love"):
 
-        # Use a shared DenseNet stack for feature sequence/context feature extraction
-
-        # TODO: I can't get the reshape working to mix the context-features with the sequence
-        #  features before doing the softmax prediction above. Without these features I think
-        #  the policy output will struggle to improve beyond a certain point. The reasoning is
-        #  that the observations are not processed as episode sequences via an RNN of some sort
-        #  but are input as distinct observations of the environment state. The sequential features
-        #  are accessed by encoding the previous observation into the input features (via the
-        #  FEATURE_LAST_FWD_VECTORS and FEATURE_LAST_BWD_VECTORS features). Because of this input
-        #  format the context features that describe lifetime and urgency (i.e. current_move,
-        #  moves_remaining) cannot be connected to the sequential policy output predictions.
+        # Bi-directional LSTM over context vectors (with non-sequential features
+        # to seed RNN initial_state)
         #
-        # dense_stack = DenseNetStack(units=64, num_layers=3, context=context_inputs)
-        # TODO: help! ☝️ Thanks! 🙇‍
-        dense_stack = DenseNetStack(units=64, num_layers=4, context=None)
-
-        sequence_inputs = dense_stack(sequence_inputs)
+        # Adding these features to the initial state allows us to condition the LSTM
+        # on the non-sequence features. Without the context features the policy output
+        # will probably struggle to improve beyond a certain point. The reasoning is
+        # that the observations are not processed as episode sequences via an RNN of some sort
+        # but are input as distinct observations of the environment state. The sequential features
+        # are accessed by encoding the previous observation into the input features (via the
+        # FEATURE_LAST_FWD_VECTORS and FEATURE_LAST_BWD_VECTORS features). Because of this input
+        # format the context features that describe lifetime and urgency (i.e. current_move,
+        # moves_remaining) cannot be connected to the sequential policy output predictions.
+        #
+        hidden_states, sequence_inputs = BiLSTM()(sequence_inputs, context_inputs)
+        sequence_inputs = DenseNetStack(units=64, num_layers=3)(sequence_inputs)
         # Apply self-attention to the sequences
         # for i in range(3):
         sequence_inputs = SeqSelfAttention(64)(sequence_inputs)
@@ -86,8 +84,10 @@ def math_estimator(features, labels, mode, params):
             MathPolicyDropout(action_size, dropout=dropout_rate)
         )
         policy_logits = predict_policy(sequence_inputs)
-        value_context, _ = BahdanauAttention(32)(policy_logits, context_inputs)
-        value_logits = Dense(1, activation="tanh", name="value_logits")(value_context)
+        attention_context, _ = BahdanauAttention(64)(policy_logits, hidden_states)
+        value_logits = Dense(1, activation="tanh", name="value_logits")(
+            attention_context
+        )
 
         # Flatten policy logits
         policy_shape = tf.shape(policy_logits)

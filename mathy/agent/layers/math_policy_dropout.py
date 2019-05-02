@@ -1,5 +1,4 @@
 import tensorflow as tf
-from .resnet_block import ResNetBlock
 
 
 class MathPolicyDropout(tf.keras.layers.Layer):

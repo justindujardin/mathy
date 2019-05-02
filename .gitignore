@@ -27,6 +27,7 @@ site/public
 agents/mathy_beta
 agents/mathy_node_control
 agents/mathy_train_more
+agents/mathy_ctx
 agents/dev/
 agents/dense/
 training/
