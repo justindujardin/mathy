@@ -8,9 +8,9 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "trained/dev/",
+        "agents/dev/",
         "-l",
-        "node_control"
+        "dev"
       ]
     },
     {

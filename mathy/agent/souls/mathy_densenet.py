@@ -53,27 +53,10 @@ def math_estimator(features, labels, mode, params):
         features_layer = DenseFeatures(feature_columns, name="context")
         context_inputs = features_layer(features)
 
-    # The core of the model is our feature extraction/processing pipeline.
-    # These are the weights we transfer when there are incompatible input/output
-    # architectures.
+    # The core of the model is made with love
     with tf.compat.v1.variable_scope("love"):
-        # Context feature extraction
-        context_inputs = DenseNetStack()(context_inputs)
 
-        # Bi-directional LSTM over context vectors
-        # hidden_states, sequence_inputs = BiLSTM()(sequence_inputs)
-
-        # Apply a self-attention stack to the BiLSTM outputs
-        for i in range(4):
-            sequence_inputs = SeqSelfAttention()(sequence_inputs)
-
-        # Push each sequence through a residual tower and activate it to predict
-        # a policy for each input. This is a many-to-many prediction where we want
-        # to know what the probability of each action is for each node in the expression
-        # tree. This is key to allow the model to select which node to apply which action
-        # to.
-        predict_policy = TimeDistributed(MathPolicyDropout(action_size, dropout=dropout_rate))
-        sequence_outputs = predict_policy(sequence_inputs)
+        # Use a shared DenseNet stack for feature sequence/context feature extraction
 
         # TODO: I can't get the reshape working to mix the context-features with the sequence
         #  features before doing the softmax prediction above. Without these features I think
@@ -84,13 +67,29 @@ def math_estimator(features, labels, mode, params):
         #  FEATURE_LAST_FWD_VECTORS and FEATURE_LAST_BWD_VECTORS features). Because of this input
         #  format the context features that describe lifetime and urgency (i.e. current_move,
         #  moves_remaining) cannot be connected to the sequential policy output predictions.
-        # TODO: Someone help! ☝️ Thanks! 🙇‍
+        #
+        # dense_stack = DenseNetStack(units=64, num_layers=3, context=context_inputs)
+        # TODO: help! ☝️ Thanks! 🙇‍
+        dense_stack = DenseNetStack(units=64, num_layers=4, context=None)
 
-        network, _ = BahdanauAttention(32)(sequence_outputs, context_inputs)
-        value_logits = Dense(1, activation="tanh", name="value_logits")(network)
+        sequence_inputs = dense_stack(sequence_inputs)
+        # Apply self-attention to the sequences
+        # for i in range(3):
+        sequence_inputs = SeqSelfAttention(64)(sequence_inputs)
+
+        # Push each sequence through a residual tower and activate it to predict
+        # a policy for each input. This is a many-to-many prediction where we want
+        # to know what the probability of each action is for each node in the expression
+        # tree. This is key to allow the model to select which node to apply which action
+        # to.
+        predict_policy = TimeDistributed(
+            MathPolicyDropout(action_size, dropout=dropout_rate)
+        )
+        policy_logits = predict_policy(sequence_inputs)
+        value_context, _ = BahdanauAttention(32)(policy_logits, context_inputs)
+        value_logits = Dense(1, activation="tanh", name="value_logits")(value_context)
 
         # Flatten policy logits
-        policy_logits = sequence_outputs
         policy_shape = tf.shape(policy_logits)
         policy_logits = tf.reshape(
             policy_logits, [policy_shape[0], -1, 1], name="policy_reshape"
