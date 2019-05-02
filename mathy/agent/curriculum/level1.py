@@ -12,7 +12,7 @@ from mathy.agent.training.problems import (
 )
 import random
 
-moves_per_complexity = 6
+moves_per_complexity = 4
 
 
 def split_in_two_random(value: int):
@@ -224,7 +224,7 @@ white_belt = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=32,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="commute_grouping_1",
@@ -253,14 +253,14 @@ white_belt = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_two(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="six_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(6, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=32,
+            num_observations=64,
         ),
         LessonExercise(
             lesson_name="needle_in_haystack",
@@ -283,7 +283,7 @@ white_belt = build_lesson_plan(
             problem_fn=lambda: move_around_blockers_one(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=32,
+            num_observations=64,
         ),
     ],
 )
