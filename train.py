@@ -77,12 +77,13 @@ def main(model_dir, examples_file, transfer_from=None):
     experience = MathExperience(mathy.model_dir)
     mathy.start()
     mathy.epochs = epochs
-    mathy.train(
+    train_examples = mathy.train(
         experience.short_term,
         experience.long_term,
         train_all=train_all,
         sampling_fn=balanced_reward_experience_samples,
     )
+    experience.write_training_set(train_examples)
     print("Complete. Bye!")
     mathy.stop()
     exit(0)

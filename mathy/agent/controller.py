@@ -240,7 +240,7 @@ class MathModel:
             steps=max_steps,
             input_fn=make_training_input_fn(examples, self.batch_size),
         )
-        return True
+        return examples
 
     def predict(self, env_state: MathEnvironmentState):
         """Predict a policy/value for a given input state.

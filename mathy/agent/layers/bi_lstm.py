@@ -40,7 +40,7 @@ def BiLSTM(name="bi_lstm", state=True):
             tf.keras.layers.Concatenate(name=f"{name}_hidden_states")(
                 [state_h_fwd, state_h_bwd]
             ),
-            tf.keras.layers.Add(name=f"{name}_concat")(
+            tf.keras.layers.Concatenate(name=f"{name}_concat")(
                 [lstm_fwd, lstm_bwd, input_layer]
             ),
         )

@@ -33,12 +33,12 @@ def math_estimator(features, labels, mode, params):
     dropout_rate = params.get("dropout", 0.2)
 
     # DenseNet stack configuration
-    densenet_layers = params.get("densenet_layers", 3)
-    densenet_units = params.get("densenet_units", 64)
+    densenet_layers = params.get("densenet_layers", 6)
+    densenet_units = params.get("densenet_units", 128)
     densenet_scaling = params.get("densenet_scaling", 0.75)
 
     # Self-attention stack configuration
-    self_attention_layers = params.get("self_attention_layers", 1)
+    self_attention_layers = params.get("self_attention_layers", 0)
     self_attention_units = params.get("self_attention_units", 64)
 
     training = mode == tf.estimator.ModeKeys.TRAIN

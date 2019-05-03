@@ -5,7 +5,7 @@ from shutil import copyfile
 import random
 import ujson
 
-from ...environment_state import INPUT_EXAMPLES_FILE_NAME
+from ...environment_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
 
 
 def balanced_reward_experience_samples(examples_pool, max_items: int):
@@ -123,6 +123,25 @@ class MathExperience:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
+        if out_file.is_file():
+            copyfile(str(out_file), f"{str(out_file)}.bak")
+        copyfile(tmp_file, str(out_file))
+        os.remove(tmp_file)
+        os.close(fd)
+        return str(out_file)
+
+    def write_training_set(self, all_experience):
+        model_dir = Path(self.model_dir)
+        if not model_dir.is_dir():
+            model_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write to local file then copy over (don't thrash virtual file systems like GCS)
+        fd, tmp_file = tempfile.mkstemp()
+        with Path(tmp_file).open("w", encoding="utf-8") as f:
+            for line in all_experience:
+                f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
+
+        out_file = model_dir / TRAINING_SET_FILE_NAME
         if out_file.is_file():
             copyfile(str(out_file), f"{str(out_file)}.bak")
         copyfile(tmp_file, str(out_file))

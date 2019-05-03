@@ -32,6 +32,7 @@ MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
+TRAINING_SET_FILE_NAME = "training.jsonl"
 
 
 # Capture summarized environment state for a previous timestep so the agent can use

@@ -5,13 +5,16 @@ from .bahdanau_attention import BahdanauAttention
 
 class DenseNetStack(tf.keras.layers.Layer):
     """DenseNet like stack of residually connected layers where the input and all of the previous
-    outputs are provided as the input to each layer: https://arxiv.org/pdf/1608.06993.pdf"""
+    outputs are provided as the input to each layer: https://arxiv.org/pdf/1608.06993.pdf
+    
+    From the paper: "Crucially, in contrast to ResNets, we never combine features through summation
+    before they are passed into a layer; instead, we combine features by concatenating them"
+    """
 
     def __init__(
         self,
         units=64,
         num_layers=4,
-        dropout=0.2,
         random_seed=1337,
         layer_scaling_factor=0.75,
         **kwargs
@@ -20,7 +23,7 @@ class DenseNetStack(tf.keras.layers.Layer):
         self.layer_scaling_factor = layer_scaling_factor
         self.num_layers = num_layers
         self.activate = tf.keras.layers.Activation("relu")
-        self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
+        self.concat = tf.keras.layers.Concatenate()
         block_units = int(self.units)
         self.dense_stack = [DenseNetBlock(block_units)]
         for i in range(self.num_layers - 1):
@@ -30,6 +33,7 @@ class DenseNetStack(tf.keras.layers.Layer):
 
     def call(self, input_tensor):
         stack_inputs = []
+        root_input = input_tensor
         # Iterate the stack and call each layer, also inputting a list
         # of all the previous stack layers outputs.
         for layer in self.dense_stack:
@@ -39,9 +43,4 @@ class DenseNetStack(tf.keras.layers.Layer):
             input_tensor = layer(input_tensor, stack_inputs)
             # Append the current input to the list of previous input tensors
             stack_inputs.append(prev_tensor)
-
-        # NOTE: Apply dropout AFTER ALL batch norms in the resnet:
-        #       see: https://arxiv.org/pdf/1801.05134.pdf
-        input_tensor = self.dropout(input_tensor)
-        return self.activate(input_tensor)
-
+        return self.activate(self.concat([input_tensor, root_input]))
