@@ -404,6 +404,44 @@ green_belt_practice = build_lesson_plan(
     ],
 )
 
+purple_belt_practice = build_lesson_plan(
+    "purple_belt_practice",
+    [
+        LessonExercise(
+            lesson_name="five_complex_terms",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(5, op=None),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="six_complex_terms_with_exponents",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(6, powers=True, op=None),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="eight_complex_terms_with_exponents",
+            problem_count=4,
+            problem_fn=lambda: simplify_multiple_terms(8, powers=True, op=None),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=500,
+            num_observations=64,
+        ),
+        LessonExercise(
+            lesson_name="ten_complex_terms_with_exponents",
+            problem_fn=lambda: simplify_multiple_terms(10, powers=True, op=None),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            problem_count=4,
+            mcts_sims=500,
+            num_observations=64,
+        ),
+    ],
+)
+
 white_belt_practice = build_lesson_plan(
     "white_belt_practice",
     [

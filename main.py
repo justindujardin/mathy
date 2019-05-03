@@ -23,6 +23,7 @@ from mathy.agent.curriculum.level1 import (
     yellow_belt,
     green_belt,
     green_belt_practice,
+    purple_belt_practice,
     white_belt_practice,
     node_control,
 )
@@ -56,6 +57,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 lessons = {
     "node_control": node_control,
     "white_belt_practice": white_belt_practice,
+    "purple_belt_practice": purple_belt_practice,
     "yellow_belt": yellow_belt,
     "green_belt_practice": green_belt_practice,
     "green_belt": green_belt,
