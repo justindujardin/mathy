@@ -89,6 +89,8 @@ def math_estimator(features, labels, mode, params):
         for i in range(self_attention_layers):
             sequence_inputs = SeqSelfAttention(self_attention_units)(sequence_inputs)
 
+        # NOTE: try applying second (smaller) densenet to TimeDistributed
+
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
         # to know what the probability of each action is for each node in the expression
@@ -98,7 +100,7 @@ def math_estimator(features, labels, mode, params):
             MathPolicyDropout(action_size, dropout=dropout_rate)
         )
         policy_logits = predict_policy(sequence_inputs)
-        attention_context, _ = BahdanauAttention(64)(policy_logits, hidden_states)
+        attention_context, _ = BahdanauAttention(64)(sequence_inputs, hidden_states)
         value_logits = Dense(1, activation="tanh", name="value_logits")(
             attention_context
         )
