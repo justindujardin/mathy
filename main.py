@@ -55,16 +55,15 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 lessons = {
     "node_control": node_control,
-    "practice1": white_belt_practice,
-    "exam2": yellow_belt,
-    "practice3": green_belt_practice,
-    "exam3": green_belt,
-    "old_lesson3": lesson_plan_3,
-    "old_lesson1": lesson_plan,
+    "white_belt_practice": white_belt_practice,
+    "yellow_belt": yellow_belt,
+    "green_belt_practice": green_belt_practice,
+    "green_belt": green_belt,
+    "lesson_plan_3": lesson_plan_3,
+    "lesson_plan": lesson_plan,
     "white_belt": white_belt,
     "yellow_belt": yellow_belt,
     "green_belt": green_belt,
-    "green_belt_practice": green_belt_practice,
     "dev": lesson_quick,
 }
 

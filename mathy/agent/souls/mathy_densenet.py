@@ -29,16 +29,16 @@ def math_estimator(features, labels, mode, params):
     sequence_columns = params["sequence_columns"]
     feature_columns = params["feature_columns"]
     action_size = params["action_size"]
-    learning_rate = params.get("learning_rate", 0.01)
+    learning_rate = params.get("learning_rate", 3e-4)
     dropout_rate = params.get("dropout", 0.2)
 
     # DenseNet stack configuration
-    densenet_layers = params.get("densenet_layers", 6)
+    densenet_layers = params.get("densenet_layers", 5)
     densenet_units = params.get("densenet_units", 128)
     densenet_scaling = params.get("densenet_scaling", 0.75)
 
     # Self-attention stack configuration
-    self_attention_layers = params.get("self_attention_layers", 0)
+    self_attention_layers = params.get("self_attention_layers", 1)
     self_attention_units = params.get("self_attention_units", 64)
 
     training = mode == tf.estimator.ModeKeys.TRAIN
@@ -50,7 +50,7 @@ def math_estimator(features, labels, mode, params):
     #  this will work but I'd like to keep the weights from the core of the model while
     #  swapping out the input (and maybe output) layers based on user mods.
     #
-    with tf.compat.v1.variable_scope("inputs"):
+    with tf.compat.v1.variable_scope("love/inputs"):
         sequence_features = {
             FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
             FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
@@ -64,7 +64,7 @@ def math_estimator(features, labels, mode, params):
         context_inputs = features_layer(features)
 
     # The core of the model is made with love
-    with tf.compat.v1.variable_scope("love"):
+    with tf.compat.v1.variable_scope("love/shared"):
 
         # Bi-directional LSTM over context vectors (with non-sequential features
         # to seed RNN initial_state)
@@ -80,17 +80,20 @@ def math_estimator(features, labels, mode, params):
         # moves_remaining) cannot be connected to the sequential policy output predictions.
         #
         hidden_states, sequence_inputs = BiLSTM()(sequence_inputs, context_inputs)
-        sequence_inputs = DenseNetStack(
+        dense_stack = DenseNetStack(
             units=densenet_units,
             num_layers=densenet_layers,
             layer_scaling_factor=densenet_scaling,
-        )(sequence_inputs)
+        )
+        # sequence_inputs = dense_stack(sequence_inputs)
         # Apply self-attention to the sequences
         for i in range(self_attention_layers):
             sequence_inputs = SeqSelfAttention(self_attention_units)(sequence_inputs)
 
-        # NOTE: try applying second (smaller) densenet to TimeDistributed
+        sequence_inputs = dense_stack(sequence_inputs)
 
+    # Policy head
+    with tf.compat.v1.variable_scope("love/policy_head"):
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
         # to know what the probability of each action is for each node in the expression
@@ -99,19 +102,19 @@ def math_estimator(features, labels, mode, params):
         predict_policy = TimeDistributed(
             MathPolicyDropout(action_size, dropout=dropout_rate)
         )
-        policy_logits = predict_policy(sequence_inputs)
-        attention_context, _ = BahdanauAttention(64)(sequence_inputs, hidden_states)
-        value_logits = Dense(1, activation="tanh", name="value_logits")(
-            attention_context
-        )
-
+        policy_predictions = predict_policy(sequence_inputs)
         # Flatten policy logits
-        policy_shape = tf.shape(policy_logits)
-        policy_logits = tf.reshape(
-            policy_logits, [policy_shape[0], -1, 1], name="policy_reshape"
+        policy_shape = tf.shape(policy_predictions)
+        policy_predictions = tf.reshape(
+            policy_predictions, [policy_shape[0], -1, 1], name="policy_reshape"
         )
 
-    logits = {"policy": policy_logits, "value": value_logits}
+    # Value head
+    with tf.compat.v1.variable_scope("love/value_head"):
+        attention_context, _ = BahdanauAttention(128)(sequence_inputs, hidden_states)
+        value_logits = Dense(1, activation="tanh")(attention_context)
+
+    logits = {"policy": policy_predictions, "value": value_logits}
 
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
@@ -143,7 +146,7 @@ def math_estimator(features, labels, mode, params):
                 "policy/target", labels[TRAIN_LABELS_TARGET_PI]
             )
     # Multi-task prediction heads
-    with tf.compat.v1.variable_scope("outputs"):
+    with tf.compat.v1.variable_scope("heads"):
         policy_head = estimator.head.regression_head(name="policy", label_dimension=1)
         value_head = estimator.head.regression_head(name="value", label_dimension=1)
         multi_head = estimator.multi_head.multi_head([policy_head, value_head])

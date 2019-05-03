@@ -50,7 +50,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 )
 def main(model_dir, examples_file, transfer_from=None):
     epochs = 10
-    train_all = False
+    train_all = True
     train_number = 2048
     controller = MathGame(verbose=True)
     input_examples = Path(examples_file)
