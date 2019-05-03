@@ -30,7 +30,17 @@ def math_estimator(features, labels, mode, params):
     feature_columns = params["feature_columns"]
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 0.01)
-    dropout_rate = params.get("dropout", 0.1)
+    dropout_rate = params.get("dropout", 0.2)
+
+    # DenseNet stack configuration
+    densenet_layers = params.get("densenet_layers", 3)
+    densenet_units = params.get("densenet_units", 64)
+    densenet_scaling = params.get("densenet_scaling", 0.75)
+
+    # Self-attention stack configuration
+    self_attention_layers = params.get("self_attention_layers", 1)
+    self_attention_units = params.get("self_attention_units", 64)
+
     training = mode == tf.estimator.ModeKeys.TRAIN
 
     #
@@ -70,10 +80,14 @@ def math_estimator(features, labels, mode, params):
         # moves_remaining) cannot be connected to the sequential policy output predictions.
         #
         hidden_states, sequence_inputs = BiLSTM()(sequence_inputs, context_inputs)
-        sequence_inputs = DenseNetStack(units=64, num_layers=3)(sequence_inputs)
+        sequence_inputs = DenseNetStack(
+            units=densenet_units,
+            num_layers=densenet_layers,
+            layer_scaling_factor=densenet_scaling,
+        )(sequence_inputs)
         # Apply self-attention to the sequences
-        # for i in range(3):
-        sequence_inputs = SeqSelfAttention(64)(sequence_inputs)
+        for i in range(self_attention_layers):
+            sequence_inputs = SeqSelfAttention(self_attention_units)(sequence_inputs)
 
         # Push each sequence through a residual tower and activate it to predict
         # a policy for each input. This is a many-to-many prediction where we want
