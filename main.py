@@ -112,7 +112,7 @@ def main(
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
-    training_epochs = 10
+    training_epochs = 3
     controller = MathGame(verbose=True)
     mathy = MathModel(
         controller.action_size,
@@ -127,7 +127,7 @@ def main(
         plan = yellow_belt
     elif lesson_id not in lessons:
         raise ValueError(
-            f"Lesson '{lesson_id}' not found in ids, must be one of: {', '.join(lessons)} "
+            f"[lesson] ERROR: '{lesson_id}' not found in ids. Valid lessons are: {', '.join(lessons)} "
         )
     else:
         plan = lessons[lesson_id]
@@ -135,20 +135,20 @@ def main(
     if initial_train is True:
         print(
             color(
-                "Training for {} iterations on existing knowledge before beginning class".format(
+                "[training] {} iterations before beginning self-practice".format(
                     initial_train_iterations
                 ),
                 fore="blue",
             )
         )
         old = mathy.epochs
-        mathy.epochs = 10
+        mathy.epochs = initial_train_iterations
         mathy.train(experience.short_term, experience.long_term, train_all=True)
         mathy.epochs = old
         print(color("Okay, let's do this!", fore="green"))
 
     while True:
-        print("[Lesson:{}]".format(counter))
+        print(f"[lesson] session {counter}")
         counter = counter + 1
         eval_run = (
             bool(counter % eval_interval == 0)
