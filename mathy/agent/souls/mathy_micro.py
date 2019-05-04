@@ -33,6 +33,7 @@ def math_estimator(features, labels, mode, params):
     action_size = params["action_size"]
     learning_rate = params.get("learning_rate", 3e-4)
     dropout_rate = params.get("dropout", 0.2)
+    shared_dense_units = params.get("shared_dense_units", 128)
     training = mode == tf.estimator.ModeKeys.TRAIN
     sequence_features = {
         FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
@@ -44,6 +45,7 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
+    resnet = ResNetBlock(units=shared_dense_units)
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -51,19 +53,18 @@ def math_estimator(features, labels, mode, params):
     # each node in the expression tree. This is key to allow the model
     # to select which node to apply which action to.
     policy_head = TimeDistributed(
-        MathPolicyDropout(
-            action_size, dropout=dropout_rate, feature_layer=ResNetBlock()
-        ),
+        MathPolicyDropout(action_size, dropout=dropout_rate, feature_layer=resnet),
         name="policy_head",
     )
     policy_predictions = policy_head(sequence_inputs)
 
     # Value head
+
     with tf.compat.v1.variable_scope("value_head"):
-        context_inputs = ResNetBlock()(context_inputs)
-        attention_context, _ = BahdanauAttention(512)(
-            policy_predictions, context_inputs
+        attention_context, _ = BahdanauAttention(shared_dense_units)(
+            sequence_inputs, context_inputs
         )
+        attention_context = resnet(attention_context)
         value_logits = Dense(1, activation="tanh", name="tanh")(attention_context)
 
     logits = {"policy": policy_predictions, "value": value_logits}
