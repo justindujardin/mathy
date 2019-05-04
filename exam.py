@@ -23,6 +23,7 @@ from mathy.agent.curriculum.level1 import (
     yellow_belt,
     green_belt,
     green_belt_practice,
+    purple_belt_practice,
     white_belt_practice,
     node_control,
 )
@@ -58,6 +59,7 @@ lessons = {
     "practice1": white_belt_practice,
     "exam2": yellow_belt,
     "practice3": green_belt_practice,
+    "purple_belt_practice": purple_belt_practice,
     "exam3": green_belt,
     "old_lesson3": lesson_plan_3,
     "old_lesson1": lesson_plan,

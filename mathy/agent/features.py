@@ -47,7 +47,7 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
         )
     if max_policy_sequence is not None:
         policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
-        policy_out = [[p] for p in policy_out]
+        policy_out = numpy.reshape(policy_out, (-1, 6))
 
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]

@@ -47,8 +47,10 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         str,
     ),
+    learning_rate=("The learning rate to use when training", "option", "lr", float),
+    dropout=("The dropout to apply to output predictions", "option", "d", float),
 )
-def main(model_dir, examples_file, transfer_from=None):
+def main(model_dir, examples_file, transfer_from=None, learning_rate=3e-4, dropout=0.2):
     epochs = 10
     train_all = True
     train_number = 2048
@@ -70,8 +72,8 @@ def main(model_dir, examples_file, transfer_from=None):
         model_dir,
         init_model_dir=transfer_from,
         init_model_overwrite=True,
-        learning_rate=3e-4,
-        dropout=0.2,
+        learning_rate=learning_rate,
+        dropout=dropout,
         long_term_size=train_number,
     )
     experience = MathExperience(mathy.model_dir)

@@ -109,7 +109,7 @@ def main(
     min_train_experience = 256
     eval_interval = 2
     short_term_size = 768
-    long_term_size = 4096
+    long_term_size = 8192
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
@@ -120,6 +120,7 @@ def main(
         model_dir,
         init_model_dir=transfer_from,
         learning_rate=learning_rate,
+        long_term_size=long_term_size,
         epochs=training_epochs,
     )
     experience = MathExperience(mathy.model_dir, short_term_size)
@@ -170,6 +171,7 @@ def main(
                 is_eval_model=True,
                 learning_rate=learning_rate,
                 epochs=training_epochs,
+                long_term_size=long_term_size,
             )
             eval_experience = MathExperience(mathy_eval.model_dir, short_term_size=256)
             mathy_eval.start()

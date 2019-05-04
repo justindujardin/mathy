@@ -195,6 +195,7 @@ quick_test_plan = build_lesson_plan(
 )
 
 
+white_belt_observations = 64
 white_belt = build_lesson_plan(
     "white_belt",
     [
@@ -213,11 +214,11 @@ white_belt = build_lesson_plan(
         #     num_observations=32,
         # ),
         LessonExercise(
-            lesson_name="eight_terms",
-            problem_fn=lambda: simplify_multiple_terms(8),
+            lesson_name="five_terms",
+            problem_fn=lambda: simplify_multiple_terms(5),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="move_then_simplify",
@@ -225,7 +226,7 @@ white_belt = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=4,
             mcts_sims=500,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="simplify_in_place",
@@ -233,73 +234,49 @@ white_belt = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             max_turns=3,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         # LessonExercise(
         #     lesson_name="five_terms",
         #     problem_fn=lambda: simplify_multiple_terms(5),
         #     problem_type=MODE_SIMPLIFY_POLYNOMIAL,
         #     mcts_sims=500,
-        #     num_observations=256,
+        #     num_observations=white_belt_observations,
         # ),
-        LessonExercise(
-            lesson_name="commute_grouping_1",
-            problem_fn=lambda: combine_terms_after_commuting(),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            max_turns=5,
-            mcts_sims=200,
-            num_observations=256,
-        ),
         LessonExercise(
             lesson_name="commute_blockers_1_3",
             problem_fn=lambda: move_around_blockers_one(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="five_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(5, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=100,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="commute_blockers_2_3",
             problem_fn=lambda: move_around_blockers_two(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="six_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(6, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=256,
-        ),
-        LessonExercise(
-            lesson_name="needle_in_haystack",
-            problem_fn=lambda: combine_terms_in_place(),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-            max_turns=3,
-            num_observations=256,
-        ),
-        LessonExercise(
-            lesson_name="needle_in_haystack_2",
-            problem_fn=lambda: combine_terms_in_place(False),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-            max_turns=3,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
         LessonExercise(
             lesson_name="inner_blockers_difficult",
-            problem_fn=lambda: move_around_blockers_one(5),
+            problem_fn=lambda: move_around_blockers_one(7),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=256,
+            num_observations=white_belt_observations,
         ),
     ],
 )
@@ -404,6 +381,16 @@ green_belt_practice = build_lesson_plan(
     ],
 )
 
+
+class ProblemGenerator(object):
+    def __init__(self, default_config):
+        self.default_config = default_config
+
+    def _generate(self, config):
+        pass
+
+
+purple_sims = 250
 purple_belt_practice = build_lesson_plan(
     "purple_belt_practice",
     [
@@ -412,7 +399,7 @@ purple_belt_practice = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(5, op=None),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=purple_sims,
             num_observations=64,
         ),
         LessonExercise(
@@ -420,7 +407,7 @@ purple_belt_practice = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(6, powers=True, op=None),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=purple_sims,
             num_observations=64,
         ),
         LessonExercise(
@@ -428,7 +415,7 @@ purple_belt_practice = build_lesson_plan(
             problem_count=4,
             problem_fn=lambda: simplify_multiple_terms(8, powers=True, op=None),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
+            mcts_sims=purple_sims,
             num_observations=64,
         ),
         LessonExercise(
@@ -436,7 +423,7 @@ purple_belt_practice = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(10, powers=True, op=None),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
-            mcts_sims=500,
+            mcts_sims=purple_sims,
             num_observations=64,
         ),
     ],

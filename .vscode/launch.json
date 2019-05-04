@@ -20,8 +20,8 @@
       "justMyCode": false,
       "module": "train",
       "args": [
-        "trained/dev_train/",
-        "-v"
+        "training/mathy_micro_dev/",
+        "training.jsonl"
       ]
     },
     {
@@ -44,7 +44,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_variable_multiply"
+        "test_commutative_property"
       ]
     },
     {
