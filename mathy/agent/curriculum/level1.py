@@ -195,7 +195,7 @@ quick_test_plan = build_lesson_plan(
 )
 
 
-white_belt_observations = 64
+white_belt_observations = 128
 white_belt = build_lesson_plan(
     "white_belt",
     [

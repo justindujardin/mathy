@@ -26,3 +26,5 @@ site/public
 
 agents/
 training/
+training.jsonl
+training_tiny.jsonl
