@@ -12,21 +12,7 @@ import plac
 import tensorflow as tf
 from colr import color
 from mathy.agent.controller import MathModel
-from mathy.agent.curriculum.level1 import (
-    combine_forced,
-    lesson_plan,
-    lesson_plan_2,
-    lesson_plan_3,
-    lesson_quick,
-    moves_per_complexity,
-    white_belt,
-    yellow_belt,
-    green_belt,
-    green_belt_practice,
-    purple_belt_practice,
-    white_belt_practice,
-    node_control,
-)
+from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
 from mathy.agent.training.math_experience import (
@@ -40,8 +26,7 @@ from mathy.agent.training.practice_runner import (
     RunnerConfig,
 )
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.agent.training.problems import (
-    MODE_SIMPLIFY_POLYNOMIAL,
+from mathy.agent.curriculum.problems import (
     get_rand_vars,
     maybe_int,
     rand_var,
@@ -52,23 +37,6 @@ from mathy.math_game import MathGame
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
-
-
-lessons = {
-    "node_control": node_control,
-    "practice1": white_belt_practice,
-    "exam2": yellow_belt,
-    "practice3": green_belt_practice,
-    "purple_belt_practice": purple_belt_practice,
-    "exam3": green_belt,
-    "old_lesson3": lesson_plan_3,
-    "old_lesson1": lesson_plan,
-    "white_belt": white_belt,
-    "yellow_belt": yellow_belt,
-    "green_belt": green_belt,
-    "green_belt_practice": green_belt_practice,
-    "dev": lesson_quick,
-}
 
 
 @plac.annotations(
@@ -89,17 +57,14 @@ lessons = {
     epsilon=("The epsilon value for MCTS search", "option", "epsilon", float),
 )
 def main(
-    model_dir,
-    lesson_id="green_belt",
-    mcts_sims=500,
-    num_exploration_moves=0,
-    epsilon=0.0,
+    model_dir, lesson_id=None, mcts_sims=500, num_exploration_moves=0, epsilon=0.0
 ):
-    global lessons
     controller = MathGame(verbose=True)
     mathy = MathModel(controller.action_size, model_dir)
     experience = MathExperience(mathy.model_dir, 128)
     mathy.start()
+    if lesson_id is None:
+        lesson_id = list(lessons)[0]
     if lesson_id not in lessons:
         raise ValueError(
             f"[exam] ERROR: '{lesson_id}' not found in ids. Valid lessons are: {', '.join(lessons)} "
@@ -125,7 +90,7 @@ def main(
             iter_experience = short_term_size
         while lesson_experience_count < iter_experience:
             env_state, complexity = controller.get_initial_state(print_problem=False)
-            complexity_value = complexity * moves_per_complexity
+            complexity_value = complexity * 2
             controller.max_moves = (
                 lesson.max_turns if lesson.max_turns is not None else complexity_value
             )

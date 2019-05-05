@@ -24,7 +24,7 @@ site/public
 .cache
 
 
-agents/
+agents/mathy_micro
 training/
 training.jsonl
 training_tiny.jsonl

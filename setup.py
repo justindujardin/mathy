@@ -1,5 +1,6 @@
 import setuptools
 import pathlib
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -11,7 +12,7 @@ setuptools.setup(
     version="0.0.1dev1",
     author="Justin DuJardin",
     author_email="justin@dujardinconsulting.com",
-    description="RL agent and CAS library that combine to solve math problems step-by-step",
+    description="RL agent and CAS library that solve math problems step-by-step",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/justindujardin/mathy",

@@ -1,26 +1,17 @@
 # coding: utf8
 """Train a mathy model on a given input set, then run a lesson evaluation and exit"""
-import json
 import os
-import random
-import tempfile
-import time
-from datetime import timedelta
 from pathlib import Path
 from shutil import copyfile
 
-import numpy
 import plac
 import tensorflow as tf
-from colr import color
 
 from mathy.agent.controller import MathModel
-from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.math_experience import (
     MathExperience,
     balanced_reward_experience_samples,
 )
-from mathy.agent.training.mcts import MCTS
 from mathy.environment_state import INPUT_EXAMPLES_FILE_NAME
 from mathy.math_game import MathGame
 

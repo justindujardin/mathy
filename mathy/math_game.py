@@ -1,6 +1,9 @@
 import math
 from itertools import groupby
 from multiprocessing import cpu_count
+
+from tf_agents.trajectories import time_step
+
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
 from .core.rules import (
@@ -13,10 +16,9 @@ from .core.rules import (
     VariableMultiplyRule,
 )
 from .core.util import get_terms, has_like_terms, is_preferred_term_form
-from .environment_state import MathEnvironmentState, AgentTimeStep
-from .agent.training.problems import MODE_SIMPLIFY_POLYNOMIAL, ProblemGenerator
+from .environment_state import AgentTimeStep, MathEnvironmentState
+from .game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from .util import GameRewards, is_terminal_transition
-from tf_agents.trajectories import time_step
 
 
 class MathGame:
@@ -26,14 +28,11 @@ class MathGame:
     few moves as possible.
     """
 
-    def __init__(
-        self, verbose=False, max_moves=20, lesson=None, reward_discount=0.99
-    ):
+    def __init__(self, verbose=False, max_moves=20, lesson=None, reward_discount=0.99):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
         self.parser = ExpressionParser()
-        self.problems = ProblemGenerator()
         self.lesson = lesson
         self.available_rules = [
             ConstantsSimplifyRule(),
@@ -191,12 +190,9 @@ class MathGame:
     def get_initial_state(self, print_problem=True):
         """Generate an initial MathEnvironmentState with the game's configuration"""
         if self.lesson is None:
-            (problem, type, complexity) = self.problems.random_problem(
-                [MODE_SIMPLIFY_POLYNOMIAL]
-            )
-        else:
-            (problem, complexity) = self.lesson.problem_fn()
-            type = self.lesson.problem_type
+            raise ValueError("cannot generate problems without a lesson plan")
+        (problem, complexity) = self.lesson.problem_fn()
+        type = self.lesson.problem_type
         env_state = MathEnvironmentState(
             problem=problem, problem_type=type, max_moves=self.max_moves
         )

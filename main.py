@@ -2,72 +2,26 @@
 import json
 import os
 import random
-import tempfile
 import time
 from datetime import timedelta
-from pathlib import Path
 
 import numpy
 import plac
 import tensorflow as tf
 from colr import color
+
 from mathy.agent.controller import MathModel
-from mathy.agent.curriculum.level1 import (
-    combine_forced,
-    lesson_plan,
-    lesson_plan_2,
-    lesson_plan_3,
-    lesson_quick,
-    moves_per_complexity,
-    white_belt,
-    yellow_belt,
-    green_belt,
-    green_belt_practice,
-    purple_belt_practice,
-    white_belt_practice,
-    node_control,
-)
+from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
-from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
 from mathy.agent.training.math_experience import (
     MathExperience,
     balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
-from mathy.agent.training.practice_runner import (
-    ParallelPracticeRunner,
-    PracticeRunner,
-    RunnerConfig,
-)
-from mathy.agent.training.practice_session import PracticeSession
-from mathy.agent.training.problems import (
-    MODE_SIMPLIFY_POLYNOMIAL,
-    get_rand_vars,
-    maybe_int,
-    rand_var,
-    simplify_multiple_terms,
-)
-from mathy.core.parser import ExpressionParser, ParserException
 from mathy.math_game import MathGame
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
-
-
-lessons = {
-    "node_control": node_control,
-    "white_belt_practice": white_belt_practice,
-    "purple_belt_practice": purple_belt_practice,
-    "yellow_belt": yellow_belt,
-    "green_belt_practice": green_belt_practice,
-    "green_belt": green_belt,
-    "lesson_plan_3": lesson_plan_3,
-    "lesson_plan": lesson_plan,
-    "white_belt": white_belt,
-    "yellow_belt": yellow_belt,
-    "green_belt": green_belt,
-    "dev": lesson_quick,
-}
 
 
 @plac.annotations(
@@ -126,7 +80,7 @@ def main(
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     if lesson_id is None:
-        plan = yellow_belt
+        plan = lessons[list(lessons)[0]]
     elif lesson_id not in lessons:
         raise ValueError(
             f"[lesson] ERROR: '{lesson_id}' not found in ids. Valid lessons are: {', '.join(lessons)} "
@@ -202,7 +156,7 @@ def main(
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False
                 )
-                complexity_value = complexity * moves_per_complexity
+                complexity_value = complexity * 2
                 controller.verbose = eval_run or verbose
                 if eval_run:
                     num_rollouts = 500

@@ -17,7 +17,7 @@ from .agent.features import (
     FEATURE_PROBLEM_TYPE,
     pad_array,
 )
-from .agent.training.problems import (
+from .game_modes import (
     MODE_ARITHMETIC,
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
