@@ -1,4 +1,5 @@
 import numpy
+import math
 from mathy.core.tokenizer import TokenEOF
 from mathy.core.expressions import MathTypeKeys
 
@@ -15,9 +16,10 @@ FEATURE_PROBLEM_TYPE = "problem_type"
 
 TRAIN_LABELS_TARGET_PI = "policy"
 TRAIN_LABELS_TARGET_VALUE = "value"
+TRAIN_LABELS_TARGET_NODE_CONTROL = "node_control"
 
 
-def parse_example_for_training(example, max_sequence=None, max_policy_sequence=None):
+def parse_example_for_training(example, max_sequence, max_policy_sequence):
     """Prepare a gathered training example for input into the Policy/Value network. 
     This requires padding sequence inputs to the given max length values given as 
     arguments. It returns an output shape that conforms to the structure defined
@@ -29,25 +31,31 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
     pad_value = tuple([MathTypeKeys["empty"]] * 9)
     policy_out = example["policy"][:]
     # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
-    if max_sequence is not None:
-        inputs[FEATURE_FWD_VECTORS] = pad_array(
-            ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_value
-        )
-        inputs[FEATURE_BWD_VECTORS] = pad_array(
-            ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
-        )
-        inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
-            ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_value
-        )
-        inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
-            ex_input[FEATURE_LAST_BWD_VECTORS][:],
-            max_sequence,
-            pad_value,
-            backwards=True,
-        )
-    if max_policy_sequence is not None:
-        policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
-        policy_out = numpy.reshape(policy_out, (-1, 6))
+
+    # Calculate node_control reward value as the absolute value change in the
+    # number of context vector floats that are non-zero (i.e. excluding padding)
+    last_fwd = numpy.array(ex_input[FEATURE_LAST_FWD_VECTORS]).flatten()
+    curr_fwd = numpy.array(ex_input[FEATURE_FWD_VECTORS]).flatten()
+    last_seq = len(numpy.trim_zeros(last_fwd))
+    curr_seq = len(numpy.trim_zeros(curr_fwd))
+    node_ctrl_reward = max(
+        0, (max_sequence - int(abs(curr_seq - last_seq))) / max_sequence
+    )
+
+    inputs[FEATURE_FWD_VECTORS] = pad_array(
+        ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_value
+    )
+    inputs[FEATURE_BWD_VECTORS] = pad_array(
+        ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
+    )
+    inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
+        ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_value
+    )
+    inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
+        ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
+    )
+    policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
+    policy_out = numpy.reshape(policy_out, (-1, 6))
 
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
@@ -57,8 +65,10 @@ def parse_example_for_training(example, max_sequence=None, max_policy_sequence=N
     # print(inputs[FEATURE_FWD_VECTORS])
     outputs = {
         TRAIN_LABELS_TARGET_PI: policy_out,
+        TRAIN_LABELS_TARGET_NODE_CONTROL: [node_ctrl_reward],
         TRAIN_LABELS_TARGET_VALUE: [example["reward"]],
     }
+    # print(f"node_control: {outputs[TRAIN_LABELS_TARGET_NODE_CONTROL]}")
     return inputs, outputs
 
 

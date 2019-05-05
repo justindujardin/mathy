@@ -59,15 +59,33 @@ def math_estimator(features, labels, mode, params):
     policy_predictions = policy_head(sequence_inputs)
 
     # Value head
-
     with tf.compat.v1.variable_scope("value_head"):
-        attention_context, _ = BahdanauAttention(shared_dense_units)(
+        attention_context, attention_weights = BahdanauAttention(shared_dense_units)(
             sequence_inputs, context_inputs
         )
         attention_context = resnet(attention_context)
         value_logits = Dense(1, activation="tanh", name="tanh")(attention_context)
 
     logits = {"policy": policy_predictions, "value": value_logits}
+
+    # Node change prediction
+    node_ctrl_logits = Dense(1, activation="relu", name="node_ctrl_head")(
+        attention_context
+    )
+
+    def node_ctrl_loss(labels, logits):
+        """Calculate node_control loss as the label value plus prediction loss
+        
+        labels are a normalized 0-1 value indicating the amount of change in the
+        number of nodes of the expression when compared to the previous state. 
+        """
+        return (labels + tf.math.abs(labels - logits)) / 2
+
+    logits = {
+        "policy": policy_predictions,
+        "value": value_logits,
+        "node_control": node_ctrl_logits,
+    }
 
     # Optimizer (for all tasks)
     optimizer = adam.AdamOptimizer(learning_rate)
@@ -104,5 +122,10 @@ def math_estimator(features, labels, mode, params):
             name="policy", label_dimension=action_size
         )
         value_head = estimator.head.regression_head(name="value", label_dimension=1)
-        multi_head = estimator.multi_head.multi_head([policy_head, value_head])
+        aux_node_ctrl_head = estimator.head.regression_head(
+            name="node_control", label_dimension=1, loss_fn=node_ctrl_loss
+        )
+        multi_head = estimator.multi_head.multi_head(
+            [policy_head, value_head, aux_node_ctrl_head]
+        )
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
