@@ -55,11 +55,16 @@ class ActorMCTS:
         is_win = True if is_term and r > 0 else False
         # out_policy = numpy.reshape(pi, (-1, len(game.available_rules)))
         out_policy = pi
-        history.append([example_data, out_policy, r, example_text])
+        action_i, token_i = game.get_action_indices(
+            game.parser.parse(state.agent.problem), action
+        )
+        history.append([example_data, out_policy, r, example_text, action_i, token_i])
         # Output a single training example for per-step training
         train_example = {
             "reward": float(r),
             "before": state.agent.problem,
+            "action": action_i,
+            "token": token_i,
             "policy": out_policy,
             "inputs": copy.deepcopy(example_data),
         }
@@ -74,8 +79,10 @@ class ActorMCTS:
         for i, x in enumerate(history):
             examples.append(
                 {
-                    "original": float(normal_rewards[i]),
+                    "action": x[4],
+                    "token": x[5],
                     "reward": float(rewards[i]),
+                    "original": float(normal_rewards[i]),
                     "before": x[3],
                     "policy": x[1],
                     "inputs": x[0],
