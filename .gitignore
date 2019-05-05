@@ -25,6 +25,8 @@ site/public
 
 
 agents/mathy_micro
+agents/mathy_micro_1
+agents/mathy_micro_aux
 training/
 training.jsonl
 training_tiny.jsonl

@@ -60,7 +60,7 @@ def main(
 ):
     global lessons
     shuffle_lessons = False
-    min_train_experience = 256
+    min_train_experience = 128
     eval_interval = 2
     short_term_size = 768
     long_term_size = 8192
@@ -156,7 +156,7 @@ def main(
                 env_state, complexity = controller.get_initial_state(
                     print_problem=False
                 )
-                complexity_value = complexity * 2
+                complexity_value = complexity * 4
                 controller.verbose = eval_run or verbose
                 if eval_run:
                     num_rollouts = 500
