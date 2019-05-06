@@ -70,7 +70,12 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
 
 
 def simplify_multiple_terms(
-    num_terms, optional_var=False, op="+", common_variables=True, powers=False
+    num_terms,
+    optional_var=False,
+    op="+",
+    common_variables=True,
+    powers=False,
+    inner_terms_scaling=0.3,
 ):
     # Generate from common varible names to have more chance of
     # sets of like terms.
@@ -86,13 +91,16 @@ def simplify_multiple_terms(
         rand_op() if op is None else op, rand_int(), variable, pre_power
     )
     var_powers = {}
+
+    # This is made up on the fly. The idea is that you subtract the two (bookend terms)
+    num_like_terms = max(2, int((num_terms - 2) * inner_terms_scaling))
+    other_vars = get_rand_vars(num_like_terms, exclude_vars=[variable]) * 10
     for i in range(num_terms - 2):
+        other_var = other_vars[i]
+        if optional_var and rand_bool() is False:
+            other_var = ""
         result = result + " {} {}{}".format(
-            rand_op() if op is None else op,
-            rand_int(),
-            maybe_var(common_var=common_variables)
-            if optional_var
-            else rand_var(common_variables),
+            rand_op() if op is None else op, rand_int(), other_var
         )
     return result + suffix, num_terms
 

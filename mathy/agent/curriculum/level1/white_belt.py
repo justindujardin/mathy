@@ -17,7 +17,7 @@ from ..problems import (
 )
 
 moves_per_complexity = 4
-white_belt_observations = 128
+white_belt_observations = 64
 white_belt = build_lesson_plan(
     "white_belt",
     [
