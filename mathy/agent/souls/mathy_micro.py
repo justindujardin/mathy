@@ -76,17 +76,17 @@ def math_estimator(features, labels, mode, params):
         )
 
     def node_ctrl_loss(labels, logits):
-        """Calculate node_control loss as the label value plus prediction loss
+        """Calculate node_ctrl loss as the label value plus prediction loss
         
         labels are a normalized 0-1 value indicating the amount of change in the
         number of nodes of the expression when compared to the previous state. 
         """
-        return (labels + tf.math.abs(labels - logits)) / 2
+        return labels + tf.math.abs(labels - logits)
 
     logits = {
         "policy": policy_predictions,
         "value": value_logits,
-        "node_control": node_ctrl_logits,
+        "node_ctrl": node_ctrl_logits,
     }
 
     # Optimizer (for all tasks)
@@ -115,9 +115,6 @@ def math_estimator(features, labels, mode, params):
                 "value/target_variance",
                 tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_VALUE]),
             )
-            tf.compat.v1.summary.histogram(
-                "policy/target", labels[TRAIN_LABELS_TARGET_PI]
-            )
     # Multi-task prediction heads
     with tf.compat.v1.variable_scope("heads"):
         policy_head = estimator.head.regression_head(
@@ -125,7 +122,7 @@ def math_estimator(features, labels, mode, params):
         )
         value_head = estimator.head.regression_head(name="value", label_dimension=1)
         aux_node_ctrl_head = estimator.head.regression_head(
-            name="node_control", label_dimension=1, loss_fn=node_ctrl_loss
+            name="node_ctrl", label_dimension=1, loss_fn=node_ctrl_loss
         )
         multi_head = estimator.multi_head.multi_head(
             [policy_head, value_head, aux_node_ctrl_head]

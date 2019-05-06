@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from .agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_FOCUS_INDEX,
+    FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
@@ -178,8 +178,13 @@ class MathEnvironmentState(object):
 
         # Provide context vectors for the previous state if there is one
         last_vectors = [pad_value] * len(vectors)
+        last_action = -1
+        if len(self.agent.history) >= 1:
+            last_action = self.agent.history[-1].action
+    
         if len(self.agent.history) > 1:
-            last_expression = self.parser.parse(self.agent.history[-2].raw)
+            last_ts: AgentTimeStep = self.agent.history[-2]
+            last_expression = self.parser.parse(last_ts.raw)
             last_vectors = self.get_node_vectors(last_expression)
 
             # If the sequences differ in length, pad to the longest one
@@ -200,15 +205,15 @@ class MathEnvironmentState(object):
             return [value] if return_batch else value
 
         return {
+            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
+            FEATURE_MOVE_COUNTER: maybe_wrap(
+                int(self.max_moves - self.agent.moves_remaining)
+            ),
+            FEATURE_LAST_RULE: maybe_wrap(last_action),
+            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
-            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
-            FEATURE_MOVE_COUNTER: maybe_wrap(
-                int(self.max_moves - self.agent.moves_remaining)
-            ),
-            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
         }

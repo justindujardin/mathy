@@ -143,8 +143,8 @@ class MathGame:
         out_problem = str(root)
         out_env = env_state.encode_player(
             problem=out_problem,
-            focus_index=0,
-            action=action,
+            focus_index=token_index,
+            action=action_index,
             moves_remaining=agent.moves_remaining - 1,
         )
 
@@ -255,8 +255,7 @@ class MathGame:
 
     def get_action_indices_from_timestep(self, time_step: AgentTimeStep):
         """Parse a timestep and return the unpacked action_index/token_index from the source action"""
-        expression = self.parser.parse(time_step.raw)
-        return self.get_action_indices(expression, time_step.action)
+        return time_step.action, time_step.focus
 
     def get_action_indices(self, expression: MathExpression, action: int):
         rule_count = len(self.available_rules)
@@ -270,8 +269,7 @@ class MathGame:
         return action_index, token_index
 
     def get_rule_from_timestep(self, time_step: AgentTimeStep):
-        action_index, token_index = self.get_action_indices_from_timestep(time_step)
-        return self.available_rules[action_index]
+        return self.available_rules[time_step.action]
 
     def get_actions_for_node(self, expression: MathExpression):
         node_count = len(expression.toList())

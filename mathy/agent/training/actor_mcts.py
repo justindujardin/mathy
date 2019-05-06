@@ -1,6 +1,7 @@
 import copy
 import math
 import time
+import uuid
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
 from sys import stdin
@@ -53,20 +54,32 @@ class ActorMCTS:
         example_text = next_state.agent.problem
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
-        # out_policy = numpy.reshape(pi, (-1, len(game.available_rules)))
-        out_policy = pi
+        # out_policy = pi
+        out_policy = numpy.reshape(pi, (len(game.available_rules), -1))
         action_i, token_i = game.get_action_indices(
             game.parser.parse(state.agent.problem), action
         )
-        history.append([example_data, out_policy, r, example_text, action_i, token_i])
+        history.append(
+            [
+                example_data,
+                out_policy,
+                r,
+                state.agent.problem,
+                next_state.agent.problem,
+                action_i,
+                token_i,
+            ]
+        )
         # Output a single training example for per-step training
         train_example = {
-            "reward": float(r),
-            "before": state.agent.problem,
+            "input": state.agent.problem,
+            "output": next_state.agent.problem,
             "action": action_i,
             "token": token_i,
+            "reward": float(r),
+            "discounted": float(r),
             "policy": out_policy,
-            "inputs": copy.deepcopy(example_data),
+            "features": copy.deepcopy(example_data),
         }
         # Keep going if the reward signal is not terminal
         if not is_term:
@@ -76,16 +89,19 @@ class ActorMCTS:
         rewards = list(discount(normal_rewards, game.discount))
         # print("discounted rewards: {}".format(numpy.asarray(rewards)))
         examples = []
+        problem_id = uuid.uuid4().hex
         for i, x in enumerate(history):
             examples.append(
                 {
-                    "action": x[4],
-                    "token": x[5],
-                    "reward": float(rewards[i]),
-                    "original": float(normal_rewards[i]),
-                    "before": x[3],
+                    "problem": problem_id,
+                    "input": x[3],
+                    "output": x[4],
+                    "action": x[5],
+                    "token": x[6],
+                    "reward": float(normal_rewards[i]),
+                    "discounted": float(rewards[i]),
                     "policy": x[1],
-                    "inputs": x[0],
+                    "features": x[0],
                 }
             )
         episode_reward = sum(rewards)

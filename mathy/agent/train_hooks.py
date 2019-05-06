@@ -13,7 +13,7 @@ from tensorflow_estimator.python.estimator.hooks.session_run_hook import Session
 MATH_OUTPUT_TENSORS = {
     "policy": "policy/weighted_loss/value:0",
     "value": "value/weighted_loss/value:0",
-    "node_control": "node_control/weighted_loss/value:0",
+    "node_ctrl": "node_ctrl/weighted_loss/value:0",
 }
 
 
@@ -54,7 +54,7 @@ class EpochTrainerHook(SessionRunHook):
         self._start_time = current_time
         loss_pi = truncate(run_values.results["policy"])
         loss_v = truncate(run_values.results["value"])
-        loss_ctrl = truncate(run_values.results["node_control"])
+        loss_ctrl = truncate(run_values.results["node_ctrl"])
         examples_per_sec = steps_per_epoch * (self.batch_size / duration)
         sec_per_batch = duration
         template = "%s: Epoch %d, loss = %.3f loss_pi = %.3f loss_v = %.3f, loss_ctrl = %.3f (%.1fex/s; %.3fs/batch)"

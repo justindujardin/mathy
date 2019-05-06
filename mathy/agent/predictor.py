@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from mathy.agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_FOCUS_INDEX,
+    FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
@@ -82,7 +82,7 @@ class MathPredictor(object):
             FEATURE_BWD_VECTORS: tf.uint8,
             FEATURE_LAST_FWD_VECTORS: tf.uint8,
             FEATURE_LAST_BWD_VECTORS: tf.uint8,
-            FEATURE_FOCUS_INDEX: tf.uint8,
+            FEATURE_LAST_RULE: tf.uint8,
             FEATURE_NODE_COUNT: tf.int32,
             FEATURE_MOVE_COUNTER: tf.int32,
             FEATURE_MOVES_REMAINING: tf.int32,
