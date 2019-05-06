@@ -63,14 +63,14 @@ def math_estimator(features, labels, mode, params):
         attention_context, attention_weights = BahdanauAttention(shared_dense_units)(
             sequence_inputs, context_inputs
         )
-        attention_context = resnet(attention_context)
-        value_logits = Dense(1, activation="tanh", name="tanh")(attention_context)
+        value_logits = Dense(1, activation="tanh", name="tanh")(
+            resnet(attention_context)
+        )
 
-    logits = {"policy": policy_predictions, "value": value_logits}
-
+    with tf.compat.v1.variable_scope("aux_head"):
     # Node change prediction
-    node_ctrl_logits = Dense(1, activation="relu", name="node_ctrl_head")(
-        attention_context
+        node_ctrl_logits = Dense(1, activation="relu", name="relu")(
+            resnet(attention_context)
     )
 
     def node_ctrl_loss(labels, logits):

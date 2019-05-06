@@ -17,7 +17,8 @@ class DenseNetStack(tf.keras.layers.Layer):
         num_layers=4,
         random_seed=1337,
         layer_scaling_factor=0.75,
-        **kwargs
+        share_weights=False,
+        **kwargs,
     ):
         self.units = units
         self.layer_scaling_factor = layer_scaling_factor
@@ -25,10 +26,14 @@ class DenseNetStack(tf.keras.layers.Layer):
         self.activate = tf.keras.layers.Activation("relu")
         self.concat = tf.keras.layers.Concatenate()
         block_units = int(self.units)
-        self.dense_stack = [DenseNetBlock(block_units)]
+        self.dense_stack = [
+            DenseNetBlock(block_units, name="densenet_0", use_shared=share_weights)
+        ]
         for i in range(self.num_layers - 1):
             block_units = int(block_units * self.layer_scaling_factor)
-            self.dense_stack.append(DenseNetBlock(block_units))
+            self.dense_stack.append(
+                DenseNetBlock(block_units, name=f"densenet_{i + 1}", use_shared=share_weights)
+            )
         super(DenseNetStack, self).__init__(**kwargs)
 
     def call(self, input_tensor):
