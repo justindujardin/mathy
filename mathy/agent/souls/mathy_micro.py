@@ -45,7 +45,9 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    resnet = ResNetBlock(units=shared_dense_units)
+    resnet = DenseNetStack(
+        units=shared_dense_units, num_layers=3, layer_scaling_factor=0.25
+    )
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -68,10 +70,10 @@ def math_estimator(features, labels, mode, params):
         )
 
     with tf.compat.v1.variable_scope("aux_head"):
-    # Node change prediction
+        # Node change prediction
         node_ctrl_logits = Dense(1, activation="relu", name="relu")(
             resnet(attention_context)
-    )
+        )
 
     def node_ctrl_loss(labels, logits):
         """Calculate node_control loss as the label value plus prediction loss
