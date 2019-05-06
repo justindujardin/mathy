@@ -399,6 +399,7 @@ def get_term(node) -> TermResult:
     variables = node.findByType(VariableExpression)
     if len(variables) > 0:
         result.variables = [v.identifier for v in variables]
+        result.variables.sort()
         result.node_variables = variables
 
     def filter_coefficients(n):
