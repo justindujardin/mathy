@@ -21,16 +21,17 @@ def balanced_reward_experience_samples(examples_pool, max_items: int):
     which found this by observing the brain activity of animals while they slept.    
     """
     overflow_examples = []
+    epsilon = 0.01
     positives = []
     negatives = []
     shuffled = examples_pool[:]
     half_examples = int(max_items / 2)
     random.shuffle(shuffled)
     for example in examples_pool:
-        reward = example["reward"]
-        if reward < 0.0 and len(negatives) < half_examples:
+        reward = example["discounted"]
+        if reward < epsilon and len(negatives) < half_examples:
             negatives.append(example)
-        elif reward > 0.0 and len(positives) < half_examples:
+        elif reward > epsilon and len(positives) < half_examples:
             positives.append(example)
         else:
             overflow_examples.append(example)
