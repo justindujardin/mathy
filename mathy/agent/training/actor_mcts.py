@@ -55,7 +55,7 @@ class ActorMCTS:
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
         # out_policy = pi
-        out_policy = list(numpy.reshape(pi, (len(game.available_rules), -1)))
+        out_policy = numpy.reshape(pi, (-1, len(game.available_rules))).tolist()
         action_i, token_i = game.get_action_indices(
             game.parser.parse(state.agent.problem), action
         )
