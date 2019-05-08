@@ -3,9 +3,10 @@ from .yellow_belt import yellow_belt, yellow_belt_practice
 from .green_belt import green_belt, green_belt_practice
 from .purple_belt import purple_belt, purple_belt_practice
 from .black_belt import black_belt, black_belt_practice
-
+from .dev import dev
 
 lessons = {
+    "dev": dev,
     "white_belt_practice": white_belt_practice,
     "white_belt": white_belt,
     "yellow_belt_practice": yellow_belt_practice,
