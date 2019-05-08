@@ -213,7 +213,7 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
         ),
     }
     # print(f"node_ctrl: {outputs[TRAIN_LABELS_TARGET_NODE_CONTROL]}")
-    print(f"grouping_ctrl: {outputs[TRAIN_LABELS_TARGET_GROUPING_CONTROL]}")
+    # print(f"grouping_ctrl: {outputs[TRAIN_LABELS_TARGET_GROUPING_CONTROL]}")
     # print(f"group_prediction: {outputs[TRAIN_LABELS_TARGET_GROUP_PREDICTION]}")
     # print(f"reward_prediction: {outputs[TRAIN_LABELS_TARGET_REWARD_PREDICTION]}")
     return inputs, outputs
