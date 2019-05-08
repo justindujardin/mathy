@@ -14,6 +14,9 @@ MATH_OUTPUT_TENSORS = {
     "policy": "policy/weighted_loss/value:0",
     "value": "value/weighted_loss/value:0",
     "node_ctrl": "node_ctrl/weighted_loss/value:0",
+    "grouping_ctrl": "grouping_ctrl/weighted_loss/value:0",
+    "group_prediction": "group_prediction/weighted_loss/value:0",
+    "reward_prediction": "reward_prediction/weighted_loss/value:0",
 }
 
 
@@ -52,19 +55,27 @@ class EpochTrainerHook(SessionRunHook):
         current_time = time.time()
         duration = current_time - self._start_time
         self._start_time = current_time
+        # print(run_values.results["loss"])
         loss_pi = truncate(run_values.results["policy"])
         loss_v = truncate(run_values.results["value"])
-        loss_ctrl = truncate(run_values.results["node_ctrl"])
+        loss_nctrl = truncate(run_values.results["node_ctrl"])
+        loss_gctrl = truncate(run_values.results["grouping_ctrl"])
+        loss_gpred = truncate(run_values.results["group_prediction"])
+        loss_rpred = truncate(run_values.results["reward_prediction"])
+        loss = loss_pi + loss_v + loss_nctrl + loss_gctrl + loss_gpred + loss_rpred
         examples_per_sec = steps_per_epoch * (self.batch_size / duration)
         sec_per_batch = duration
-        template = "%s: Epoch %d, loss = %.3f loss_pi = %.3f loss_v = %.3f, loss_ctrl = %.3f (%.1fex/s; %.3fs/batch)"
+        template = "%s: epoch %d, loss= %.3f pi= %.3f v= %.3f, nctrl= %.3f, gctrl= %.3f, gpred= %.3f, rpred= %.3f (%.1fex/s; %.3fs/batch)"
         args = (
-            datetime.now(),
+            datetime.now().time(),
             current_epoch,
-            loss_pi + loss_v + loss_ctrl,
+            loss,
             loss_pi,
             loss_v,
-            loss_ctrl,
+            loss_nctrl,
+            loss_gctrl,
+            loss_gpred,
+            loss_rpred,
             examples_per_sec,
             sec_per_batch,
         )

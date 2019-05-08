@@ -44,8 +44,8 @@ class MathModel:
         is_eval_model=False,
         # Karpathy once tweeted this was the best learning rate for Adam optimizer "hands down"
         learning_rate=3e-4,
-        # https://arxiv.org/pdf/1801.05134.pdf uses 0.1
-        dropout=0.1,
+        # https://arxiv.org/pdf/1801.05134.pdf
+        dropout=0.2,
         epochs=10,
         batch_size=512,
         log_frequency=250,

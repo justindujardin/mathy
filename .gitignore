@@ -24,9 +24,10 @@ site/public
 .cache
 
 
+agents/dev
 agents/mathy_micro
 agents/mathy_micro_1
 agents/mathy_micro_aux
-training/
+/training/
 training.jsonl
 training_tiny.jsonl

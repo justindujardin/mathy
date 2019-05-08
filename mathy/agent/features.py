@@ -1,3 +1,4 @@
+import re
 import numpy
 import math
 from mathy.core.tokenizer import TokenEOF
@@ -17,31 +18,147 @@ FEATURE_PROBLEM_TYPE = "problem_type"
 TRAIN_LABELS_TARGET_PI = "policy"
 TRAIN_LABELS_TARGET_VALUE = "value"
 TRAIN_LABELS_TARGET_NODE_CONTROL = "node_ctrl"
+TRAIN_LABELS_TARGET_GROUPING_CONTROL = "grouping_ctrl"
+TRAIN_LABELS_TARGET_GROUP_PREDICTION = "group_prediction"
+TRAIN_LABELS_TARGET_REWARD_PREDICTION = "reward_prediction"
 
 
-def calculate_node_control_signal(example_inputs, max_sequence):
-    """Calculate node_ctrl signal as the absolute value change in the
-    number of context vector floats that are non-zero (i.e. excluding padding)
-    in the expression.
+def build_cnn_image_input(observation_dict):
+    """Build an image representation of the observation.
+    
+    Use the tree layout algorithm to draw
     """
-    last_fwd = numpy.array(example_inputs[FEATURE_LAST_FWD_VECTORS]).flatten()
-    curr_fwd = numpy.array(example_inputs[FEATURE_FWD_VECTORS]).flatten()
-    last_seq = len(numpy.trim_zeros(last_fwd))
-    curr_seq = len(numpy.trim_zeros(curr_fwd))
-    node_ctrl_loss = max(
-        0, (max_sequence - int(abs(curr_seq - last_seq))) / max_sequence
-    )
-    return node_ctrl_loss
+    pass
 
 
-def calculate_grouping_control_signal(example_inputs, max_sequence):
+def calculate_node_control_signal(observation_dict):
+    """node_ctrl signal is either 0 or 1 depending on if the input
+    matches the output.
+    
+    So if a problem gets more of less complex (by adding or removing
+    characters) then the resulting signal will be 0, but if nothing
+    changes the signal is 1.
+
+    This is intended not to prefer shortening or lengthening expressions
+    but just change in the number of characters. The hope is that this 
+    will lead to a better representation that can deal with both the tasks
+    of simplification and re-stating in more complex ways.
+
+    Examples:
+        "2x + 4x"      "4x + 2x"     = 7 == 7  = 1
+        "2x + 4x"      "x * (2 + 4)" = 7 != 11 = 0
+        "x * (2 + 4)"  "6x"          = 2 != 11 = 0
+        "6x"           "x * (2 + 4)" = 2 != 11 = 0
+
+    TODO: This might need to be a separately predicted policy, e.g. 
+            `pi2 = TimeDistributed(MathPolicyDropout)`
+          Need to better understand comments on Q-learning being necessary
+          
+          https://arxiv.org/pdf/1611.05397.pdf
+
+          "In principle, any reinforcement learning method could be applied to 
+           maximise these objectives. However, to efficiently learn to maximise 
+           many different pseudo-rewards simultaneously in parallel from a single 
+           stream of experience, it is necessary to use off-policy reinforcement 
+           learning. We focus on value-based RL methods that approximate the optimal
+           action-values by Qlearning"
+    """
+    input = len(observation_dict["input"])
+    output = len(observation_dict["output"])
+    # lesser = min(input, output)
+    # greater = max(input, output)
+    # max protects against div by zero
+    # signal = lesser / max(greater, 1)
+    return 0 if input != output else 1
+
+
+def calculate_grouping_control_signal(observation_dict):
     """Calculate grouping_control signals as the sum of all distances between 
-    all like terms. Iterate over each context vector and extract the node type
-    it represents
-     
-    number of context vector floats that are non-zero (i.e. excluding padding)
+    all like terms. Gather all the terms in an expression and add an error value
+    whenever a like term is separated by another term.
+
+    Examples:
+        "2x + 2x" = 0
+        "2x + 4y + 2x" = 1
+        "2x + 4y + 2x + 4y" = 2
+        "2x + 2x  + 4y + 4y" = 0
     """
-    raise EnvironmentError("unimplemented")
+
+    # We cheat the term grouping a bit by not parsing the expression
+    # and finding the real set of terms. Instead we remove all the non-variables
+    # and then count the distances from the resulting string.
+    #
+    # NOTE: this means that the signal is not correct when exponents or complex
+    #       terms with multiple variables are in the expression. Perhaps it's a
+    #       good improvement to make here.
+    input = observation_dict["input"]
+
+    # "2x + 2x  + 4y + 4y" -> "xxyy"
+    vars = re.sub(r"[^a-zA-Z]+", "", input)
+    seen_pos = dict()
+    for i, var in enumerate(vars):
+        if var not in seen_pos:
+            seen_pos[var] = []
+        seen_pos[var].append(i)
+
+    def get_var_signal(var, positions):
+        out_signal = 0.0
+        last_pos = -1
+        for position in positions:
+            if last_pos != -1:
+                out_signal += position - last_pos
+            last_pos = position
+        return out_signal
+
+    # seen_pos is a dict of positions that each variable is seen at
+    # add up all the distances between the points in each variable
+    signal = 0.0
+    for key, value in seen_pos.items():
+        signal += get_var_signal(key, value)
+
+    return signal
+
+
+def calculate_group_prediction_signal(observation_dict):
+    """Calculate group_prediction signal as the number of unique types
+    of like-term groups in an expression. The challenge for the model is 
+    to predict the number of groups in an expression.
+
+    Examples:
+        "2x + 4x" = 1
+        "2x^2 + 3x" = 2
+        "y + x + z" = 3
+        "x + x + y + y + y" = 2
+     
+    """
+    # We cheat the term grouping a bit by not parsing the expression
+    # and finding the real set of terms. Instead we remove all the non-variables
+    # and then count the distances from the resulting string.
+    #
+    # NOTE: this means that the signal is not correct when exponents or complex
+    #       terms with multiple variables are in the expression. Perhaps it's a
+    #       good improvement to make here.
+    input = observation_dict["input"]
+
+    # "2x + 2x  + 4y + 4y" -> "xxyy"
+    vars = re.sub(r"[^a-zA-Z]+", "", input)
+    unique_vars = set()
+    for var in vars:
+        unique_vars.add(var)
+    return len(unique_vars)
+
+
+def calculate_reward_prediction_signal(observation_dict):
+    """reward_prediction signal is a single integer indicating one of three
+    classes: POSITIVE, NEUTRAL, NEGATIVE based on the undiscounted reward for
+    entering the current state.
+    """
+    undiscounted = observation_dict["reward"]
+    epsilon = 0.01
+    neutral = 1 if undiscounted < epsilon and undiscounted > -epsilon else 0
+    negative = 1 if not neutral and undiscounted < 0.0 else 0
+    positive = 1 if not neutral and undiscounted > 0.0 else 0
+    return [negative, neutral, positive]
 
 
 def parse_example_for_training(example, max_sequence, max_policy_sequence):
@@ -83,12 +200,22 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     # print(inputs[FEATURE_FWD_VECTORS])
     outputs = {
         TRAIN_LABELS_TARGET_PI: policy_out,
-        TRAIN_LABELS_TARGET_NODE_CONTROL: [
-            calculate_node_control_signal(ex_input, max_sequence)
-        ],
         TRAIN_LABELS_TARGET_VALUE: [example["discounted"]],
+        TRAIN_LABELS_TARGET_NODE_CONTROL: [calculate_node_control_signal(example)],
+        TRAIN_LABELS_TARGET_GROUPING_CONTROL: [
+            calculate_grouping_control_signal(example)
+        ],
+        TRAIN_LABELS_TARGET_GROUP_PREDICTION: [
+            calculate_group_prediction_signal(example)
+        ],
+        TRAIN_LABELS_TARGET_REWARD_PREDICTION: calculate_reward_prediction_signal(
+            example
+        ),
     }
     # print(f"node_ctrl: {outputs[TRAIN_LABELS_TARGET_NODE_CONTROL]}")
+    print(f"grouping_ctrl: {outputs[TRAIN_LABELS_TARGET_GROUPING_CONTROL]}")
+    # print(f"group_prediction: {outputs[TRAIN_LABELS_TARGET_GROUP_PREDICTION]}")
+    # print(f"reward_prediction: {outputs[TRAIN_LABELS_TARGET_REWARD_PREDICTION]}")
     return inputs, outputs
 
 

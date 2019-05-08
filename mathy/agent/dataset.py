@@ -15,6 +15,9 @@ from ..agent.features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
     TRAIN_LABELS_TARGET_NODE_CONTROL,
+    TRAIN_LABELS_TARGET_GROUPING_CONTROL,
+    TRAIN_LABELS_TARGET_GROUP_PREDICTION,
+    TRAIN_LABELS_TARGET_REWARD_PREDICTION,
     TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
     parse_example_for_training,
@@ -42,6 +45,9 @@ def make_training_input_fn(examples, batch_size):
         {
             TRAIN_LABELS_TARGET_PI: tf.float32,
             TRAIN_LABELS_TARGET_NODE_CONTROL: tf.int32,
+            TRAIN_LABELS_TARGET_GROUPING_CONTROL: tf.int32,
+            TRAIN_LABELS_TARGET_GROUP_PREDICTION: tf.int32,
+            TRAIN_LABELS_TARGET_REWARD_PREDICTION: tf.int32,
             TRAIN_LABELS_TARGET_VALUE: tf.float32,
         },
     )
