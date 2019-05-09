@@ -29,6 +29,8 @@ from ..environment_state import MathEnvironmentState
 from .dataset import make_training_input_fn
 from .train_hooks import EpochTrainerHook
 from .souls.mathy_micro import math_estimator
+from .layers.densenet_stack import DenseNetStack
+
 
 class MathModel:
     def __init__(
@@ -130,16 +132,16 @@ class MathModel:
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
         into the neural network."""
         self.f_move_count = tf.feature_column.numeric_column(
-            key=FEATURE_MOVE_COUNTER, dtype=tf.uint8
+            key=FEATURE_MOVE_COUNTER, dtype=tf.int64
         )
         self.f_moves_remaining = tf.feature_column.numeric_column(
-            key=FEATURE_MOVES_REMAINING, dtype=tf.uint8
+            key=FEATURE_MOVES_REMAINING, dtype=tf.int64
         )
         self.f_last_rule = tf.feature_column.numeric_column(
-            key=FEATURE_LAST_RULE, dtype=tf.int8
+            key=FEATURE_LAST_RULE, dtype=tf.int64
         )
         self.f_node_count = tf.feature_column.numeric_column(
-            key=FEATURE_NODE_COUNT, dtype=tf.uint8
+            key=FEATURE_NODE_COUNT, dtype=tf.int64
         )
         self.f_problem_type = tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_identity(
@@ -189,6 +191,14 @@ class MathModel:
             self.feat_last_fwd_vectors,
             self.feat_last_bwd_vectors,
         ]
+        self.feature_spec = tf.feature_column.make_parse_example_spec(
+            self.feature_columns + self.sequence_columns
+        )
+
+        # Build receiver function, and export.
+        self.serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(
+            self.feature_spec
+        )
 
     def train(
         self, short_term_examples, long_term_examples, train_all=False, sampling_fn=None
@@ -250,6 +260,8 @@ class MathModel:
 
         input_features = env_state.to_input_features(return_batch=True)
         # start = time.time()
+        # import json
+        # print(json.dumps(input_features))
         prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         # print("distribution is : {}".format(prediction[("policy", "predictions")]))
@@ -257,6 +269,10 @@ class MathModel:
             prediction[("policy", "predictions")],
             prediction[("value", "predictions")][0],
         )
+
+    def export(self, path: str):
+        """Export the current estimator checkpoint to a saved model"""
+        self.network.export_saved_model(path, self.serving_input_fn)
 
     def start(self):
         """Start the cached inference worker"""

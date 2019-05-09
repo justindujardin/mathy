@@ -116,19 +116,22 @@ def calculate_grouping_control_signal(observation_dict):
     for key, value in seen_pos.items():
         signal += get_var_signal(key, value)
 
-    return signal
+    # Scale the signal down to avoid it growing ever larger with more
+    # complex inputs.
+    return signal / len(vars)
 
 
 def calculate_group_prediction_signal(observation_dict):
     """Calculate group_prediction signal as the number of unique types
     of like-term groups in an expression. The challenge for the model is 
-    to predict the number of groups in an expression.
+    to predict the ratio of unique groups of like terms to all terms in 
+    an expression.
 
     Examples:
-        "2x + 4x" = 1
-        "2x^2 + 3x" = 2
-        "y + x + z" = 3
-        "x + x + y + y + y" = 2
+        "2x + 4x" = 1 / 2
+        "2x^2 + 3x" = 2 / 2
+        "y + x + z" = 3 / 3
+        "x + x + y + y + y" = 2 / 5
      
     """
     # We cheat the term grouping a bit by not parsing the expression
@@ -145,15 +148,15 @@ def calculate_group_prediction_signal(observation_dict):
     unique_vars = set()
     for var in vars:
         unique_vars.add(var)
-    return len(unique_vars)
+    return len(unique_vars) / len(vars)
 
 
 def calculate_reward_prediction_signal(observation_dict):
     """reward_prediction signal is a single integer indicating one of three
-    classes: POSITIVE, NEUTRAL, NEGATIVE based on the undiscounted reward for
+    classes: POSITIVE, NEUTRAL, NEGATIVE based on the reward for
     entering the current state.
     """
-    undiscounted = observation_dict["reward"]
+    undiscounted = observation_dict["discounted"]
     epsilon = 0.01
     neutral = 1 if undiscounted < epsilon and undiscounted > -epsilon else 0
     negative = 1 if not neutral and undiscounted < 0.0 else 0

@@ -32,15 +32,15 @@ def make_training_input_fn(examples, batch_size):
 
     output_types = (
         {
-            FEATURE_FWD_VECTORS: tf.uint8,
-            FEATURE_BWD_VECTORS: tf.uint8,
-            FEATURE_LAST_FWD_VECTORS: tf.uint8,
-            FEATURE_LAST_BWD_VECTORS: tf.uint8,
-            FEATURE_LAST_RULE: tf.uint8,
-            FEATURE_NODE_COUNT: tf.int32,
-            FEATURE_MOVE_COUNTER: tf.int32,
-            FEATURE_MOVES_REMAINING: tf.int32,
-            FEATURE_PROBLEM_TYPE: tf.int32,
+            FEATURE_FWD_VECTORS: tf.int64,
+            FEATURE_BWD_VECTORS: tf.int64,
+            FEATURE_LAST_FWD_VECTORS: tf.int64,
+            FEATURE_LAST_BWD_VECTORS: tf.int64,
+            FEATURE_LAST_RULE: tf.int64,
+            FEATURE_NODE_COUNT: tf.int64,
+            FEATURE_MOVE_COUNTER: tf.int64,
+            FEATURE_MOVES_REMAINING: tf.int64,
+            FEATURE_PROBLEM_TYPE: tf.int64,
         },
         {
             TRAIN_LABELS_TARGET_PI: tf.float32,

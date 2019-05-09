@@ -45,7 +45,9 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    resnet = DenseNetStack(units=64, num_layers=6, layer_scaling_factor=0.8)
+    shared_network = DenseNetStack(
+        units=64, num_layers=6, layer_scaling_factor=0.8, activation=None
+    )
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -53,7 +55,9 @@ def math_estimator(features, labels, mode, params):
     # each node in the expression tree. This is key to allow the model
     # to select which node to apply which action to.
     policy_head = TimeDistributed(
-        MathPolicyDropout(action_size, dropout=dropout_rate, feature_layer=resnet),
+        MathPolicyDropout(
+            action_size, dropout=dropout_rate, feature_layer=shared_network
+        ),
         name="policy_head",
     )
     policy_predictions = policy_head(sequence_inputs)
@@ -64,7 +68,7 @@ def math_estimator(features, labels, mode, params):
             sequence_inputs, context_inputs
         )
         value_logits = Dense(1, activation="tanh", name="tanh")(
-            resnet(attention_context)
+            shared_network(attention_context)
         )
 
     with tf.compat.v1.variable_scope("auxiliary_heads"):
@@ -72,22 +76,22 @@ def math_estimator(features, labels, mode, params):
             sequence_inputs, context_inputs
         )
         # Node change prediction
-        node_ctrl_logits = Dense(1, name="node_ctrl_head")(resnet(aux_attention))
+        node_ctrl_logits = Dense(1, name="node_ctrl_head")(
+            shared_network(aux_attention)
+        )
         # Grouping error prediction
         grouping_ctrl_logits = Dense(1, name="grouping_ctrl_head")(
-            resnet(aux_attention)
+            shared_network(aux_attention)
         )
         # Group prediction head is an integer value predicting the number
         #  of like-term groups in the observation.
-        group_prediction_logits = tf.math.round(
-            Dense(1, activation="relu", name="group_prediction_head")(
-                resnet(aux_attention)
-            )
+        group_prediction_logits = Dense(1, name="group_prediction_head")(
+            shared_network(aux_attention)
         )
         # Reward prediction head with 3 class labels (positive, negative, neutral)
         reward_prediction_logits = Dense(
             3, activation="softmax", name="reward_prediction_head"
-        )(resnet(aux_attention))
+        )(shared_network(aux_attention))
 
     def scalar_signal_loss(labels, logits):
         """Calculate node_ctrl loss as the label value plus prediction loss
@@ -110,7 +114,7 @@ def math_estimator(features, labels, mode, params):
     optimizer = adam.AdamOptimizer(learning_rate)
 
     # output histograms for all trainable variables.
-    summary_interval = 500
+    summary_interval = 100
     global_step = tf.compat.v1.train.get_or_create_global_step()
     with tf.summary.record_if(lambda: tf.math.equal(global_step % summary_interval, 0)):
         for var in tf.compat.v1.trainable_variables():
@@ -160,6 +164,6 @@ def math_estimator(features, labels, mode, params):
         ]
         # The first two (policy/value) heads get full weight, and the aux
         # tasks combine to half the weight of the policy/value heads
-        head_weights = [1.0, 1.0, 0.25, 0.25, 0.25, 0.25]
+        head_weights = [1.0, 1.0, 0.25, 0.75, 0.5, 0.5]
         multi_head = estimator.multi_head.multi_head(heads, head_weights=head_weights)
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)

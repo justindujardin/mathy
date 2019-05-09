@@ -28,7 +28,7 @@ class MathGame:
     few moves as possible.
     """
 
-    def __init__(self, verbose=False, max_moves=20, lesson=None, reward_discount=0.85):
+    def __init__(self, verbose=False, max_moves=20, lesson=None, reward_discount=0.99):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves

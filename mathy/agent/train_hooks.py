@@ -65,7 +65,7 @@ class EpochTrainerHook(SessionRunHook):
         loss = loss_pi + loss_v + loss_nctrl + loss_gctrl + loss_gpred + loss_rpred
         examples_per_sec = steps_per_epoch * (self.batch_size / duration)
         sec_per_batch = duration
-        template = "%s: epoch %d, loss= %.3f pi= %.3f v= %.3f, nctrl= %.3f, gctrl= %.3f, gpred= %.3f, rpred= %.3f (%.1fex/s; %.3fs/batch)"
+        template = "%s: epoch %d, total = %.3f pi = %.3f v = %.3f [nctrl = %.3f, gctrl = %.3f, gpred = %.3f, rpred = %.3f] (%.1fex/s; %.3fs/batch)"
         args = (
             datetime.now().time(),
             current_epoch,
