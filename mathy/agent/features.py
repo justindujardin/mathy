@@ -72,28 +72,7 @@ def calculate_node_control_signal(observation_dict):
     return 0 if input != output else 1
 
 
-def calculate_grouping_control_signal(observation_dict):
-    """Calculate grouping_control signals as the sum of all distances between 
-    all like terms. Gather all the terms in an expression and add an error value
-    whenever a like term is separated by another term.
-
-    Examples:
-        "2x + 2x" = 0
-        "2x + 4y + 2x" = 1
-        "2x + 4y + 2x + 4y" = 2
-        "2x + 2x  + 4y + 4y" = 0
-    """
-
-    # We cheat the term grouping a bit by not parsing the expression
-    # and finding the real set of terms. Instead we remove all the non-variables
-    # and then count the distances from the resulting string.
-    #
-    # NOTE: this means that the signal is not correct when exponents or complex
-    #       terms with multiple variables are in the expression. Perhaps it's a
-    #       good improvement to make here.
-    input = observation_dict["input"]
-
-    # "2x + 2x  + 4y + 4y" -> "xxyy"
+def calculate_term_grouping_distances(input: str):
     vars = re.sub(r"[^a-zA-Z]+", "", input)
     seen_pos = dict()
     for i, var in enumerate(vars):
@@ -119,6 +98,34 @@ def calculate_grouping_control_signal(observation_dict):
     # Scale the signal down to avoid it growing ever larger with more
     # complex inputs.
     return signal / len(vars)
+
+
+def calculate_grouping_control_signal(observation_dict):
+    """Calculate grouping_control signals as the sum of all distances between 
+    all like terms. Gather all the terms in an expression and add an error value
+    whenever a like term is separated by another term.
+
+    Examples:
+        "2x + 2x" = 0
+        "2x + 4y + 2x" = 1
+        "2x + 4y + 2x + 4y" = 2
+        "2x + 2x  + 4y + 4y" = 0
+    """
+
+    # We cheat the term grouping a bit by not parsing the expression
+    # and finding the real set of terms. Instead we remove all the non-variables
+    # and then count the distances from the resulting string.
+    #
+    # NOTE: this means that the signal is not correct when exponents or complex
+    #       terms with multiple variables are in the expression. Perhaps it's a
+    #       good improvement to make here.
+    in_signal = calculate_term_grouping_distances(observation_dict["input"])
+    out_signal = calculate_term_grouping_distances(observation_dict["output"])
+    if in_signal < out_signal:
+        return 1.0
+    if in_signal > out_signal:
+        return 0.0
+    return 0.5
 
 
 def calculate_group_prediction_signal(observation_dict):
