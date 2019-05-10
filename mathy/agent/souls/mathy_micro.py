@@ -24,6 +24,7 @@ from ..layers.bi_lstm import BiLSTM
 from ..layers.math_policy_dropout import MathPolicyDropout
 from ..layers.densenet_stack import DenseNetStack
 from ..layers.resnet_block import ResNetBlock
+from ..layers.resnet_stack import ResNetStack
 from ..layers.keras_self_attention import SeqSelfAttention
 
 
@@ -45,9 +46,7 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    shared_network = DenseNetStack(
-        units=64, num_layers=6, layer_scaling_factor=0.8, activation=None
-    )
+    shared_network = ResNetStack(num_layers=6, units=128, share_weights=True)
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -89,9 +88,9 @@ def math_estimator(features, labels, mode, params):
             shared_network(aux_attention)
         )
         # Reward prediction head with 3 class labels (positive, negative, neutral)
-        reward_prediction_logits = Dense(
-            3, activation="softmax", name="reward_prediction_head"
-        )(shared_network(aux_attention))
+        reward_prediction_logits = Dense(3, name="reward_prediction_head")(
+            shared_network(aux_attention)
+        )
 
     def scalar_signal_loss(labels, logits):
         """Calculate node_ctrl loss as the label value plus prediction loss
@@ -164,6 +163,6 @@ def math_estimator(features, labels, mode, params):
         ]
         # The first two (policy/value) heads get full weight, and the aux
         # tasks combine to half the weight of the policy/value heads
-        head_weights = [1.0, 1.0, 0.25, 0.75, 0.5, 0.5]
-        multi_head = estimator.multi_head.multi_head(heads, head_weights=head_weights)
+        # head_weights = [1.0, 1.0, 0.25, 0.75, 0.5, 0.5]
+        multi_head = estimator.multi_head.multi_head(heads)
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)
