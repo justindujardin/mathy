@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class MathPolicyDropout(tf.keras.layers.Layer):
-    """policy predictor that applies Dropout and Softmax activation"""
+    """policy predictor that applies Dropout and activation"""
 
     def __init__(
         self,
@@ -15,7 +15,7 @@ class MathPolicyDropout(tf.keras.layers.Layer):
         self.num_predictions = num_predictions
         self.feature_layer = feature_layer
         self.activate = tf.keras.layers.Dense(
-            num_predictions, name="softmax", activation="softmax"
+            num_predictions, name="relu", activation="relu"
         )
         self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
         super(MathPolicyDropout, self).__init__(**kwargs)

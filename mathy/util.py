@@ -11,10 +11,10 @@ class GameRewards:
     LOSE = -1
     WIN = 1
     TIMESTEP = -0.01
-    NEW_LOCATION = 0.001
-    HELPFUL_MOVE = 0.025
+    NEW_LOCATION = 0.1
+    HELPFUL_MOVE = 0.25
     NOT_HELPFUL_MOVE = -0.01
-    PREVIOUS_LOCATION = -0.02
+    PREVIOUS_LOCATION = -0.2
     INVALID_ACTION = -0.02
 
 
@@ -36,7 +36,7 @@ def discount(r, gamma=0.99):
     gamma: a float value between 0 and 0.99"""
     discounted_r = numpy.zeros_like(r, dtype=numpy.float32)
     running_add = 0
-    for t in reversed(range(len(r))):
+    for t in range(len(r)):
         running_add = running_add * gamma + r[t]
         discounted_r[t] = running_add
     return discounted_r
