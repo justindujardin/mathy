@@ -63,7 +63,7 @@ def main(
     min_train_experience = 256
     eval_interval = 2
     short_term_size = 768
-    long_term_size = 8192
+    long_term_size = 8192 * 3
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
@@ -127,11 +127,7 @@ def main(
                 epochs=training_epochs,
                 long_term_size=long_term_size,
             )
-            eval_experience = MathExperience(mathy_eval.model_dir, short_term_size=256)
             mathy_eval.start()
-
-        else:
-            eval_experience = None
         model = mathy_eval if eval_run else mathy
 
         lessons = plan.lessons[:]
@@ -216,23 +212,14 @@ def main(
                 )
                 experience.add_batch(episode_examples)
                 ep_reward_buffer.append(episode_reward / episode_steps)
-                if eval_experience is not None:
-                    eval_experience.add_batch(episode_examples)
 
             # Train if we have enough data
             if experience.count > min_train_experience:
-                if not eval_run:
-                    model.train(
-                        experience.short_term,
-                        experience.long_term,
-                        sampling_fn=balanced_reward_experience_samples,
-                    )
-                else:
-                    model.train(
-                        eval_experience.short_term,
-                        experience.long_term,
-                        sampling_fn=balanced_reward_experience_samples,
-                    )
+                model.train(
+                    experience.short_term,
+                    experience.long_term,
+                    sampling_fn=balanced_reward_experience_samples,
+                )
             else:
                 print(
                     color(
