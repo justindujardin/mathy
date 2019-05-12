@@ -142,16 +142,16 @@ def math_estimator(features, labels, mode, params):
         )
         value_head = estimator.head.regression_head(name="value", label_dimension=1)
         aux_node_ctrl_head = estimator.head.regression_head(
-            name="node_ctrl", label_dimension=1, loss_fn=scalar_signal_loss
+            name="node_ctrl", label_dimension=1
         )
         aux_grouping_ctrl_head = estimator.head.regression_head(
             name="grouping_ctrl", label_dimension=1, loss_fn=scalar_signal_loss
         )
         aux_group_prediction_head = estimator.head.regression_head(
-            name="group_prediction", label_dimension=1, loss_fn=scalar_signal_loss
+            name="group_prediction", label_dimension=1
         )
         aux_reward_prediction_head = estimator.head.regression_head(
-            name="reward_prediction", label_dimension=3, loss_fn=scalar_signal_loss
+            name="reward_prediction", label_dimension=3
         )
         heads = [
             policy_head,

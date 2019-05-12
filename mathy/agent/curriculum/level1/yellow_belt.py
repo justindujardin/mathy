@@ -27,14 +27,14 @@ yellow_belt = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             problem_count=4,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
         LessonExercise(
             lesson_name="five_terms_with_exponents",
             problem_fn=lambda: simplify_multiple_terms(5, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
         LessonExercise(
             lesson_name="move_then_simplify_1",
@@ -42,14 +42,14 @@ yellow_belt = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=4,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
         LessonExercise(
             lesson_name="commute_blockers_2_3",
             problem_fn=lambda: move_around_blockers_two(3),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
         LessonExercise(
             lesson_name="combine_in_place_1",
@@ -57,7 +57,7 @@ yellow_belt = build_lesson_plan(
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             max_turns=3,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
         LessonExercise(
             lesson_name="six_terms_with_exponents",
@@ -65,7 +65,7 @@ yellow_belt = build_lesson_plan(
             problem_fn=lambda: simplify_multiple_terms(6, powers=True),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=200,
-            num_observations=32,
+            num_observations=observations,
         ),
     ],
 )
