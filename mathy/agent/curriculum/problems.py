@@ -93,7 +93,7 @@ def simplify_multiple_terms(
     var_powers = {}
 
     # This is made up on the fly. The idea is that you subtract the two (bookend terms)
-    num_like_terms = max(2, int((num_terms - 2) * inner_terms_scaling))
+    num_like_terms = max(1, int((num_terms - 2) * inner_terms_scaling))
     other_vars = get_rand_vars(num_like_terms, exclude_vars=[variable]) * 10
     for i in range(num_terms - 2):
         other_var = other_vars[i]

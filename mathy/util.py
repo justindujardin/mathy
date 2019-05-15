@@ -10,11 +10,10 @@ class GameRewards:
 
     LOSE = -1
     WIN = 1
-    TIMESTEP = -0.01
-    NEW_LOCATION = 0.1
-    HELPFUL_MOVE = 0.25
-    NOT_HELPFUL_MOVE = -0.01
-    PREVIOUS_LOCATION = -0.2
+    TIMESTEP = 0.0
+    NEW_LOCATION = 0.01
+    HELPFUL_MOVE = 0.1
+    PREVIOUS_LOCATION = 0.0
     INVALID_ACTION = -0.02
 
 

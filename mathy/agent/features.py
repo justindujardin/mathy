@@ -31,7 +31,7 @@ def build_cnn_image_input(observation_dict):
     pass
 
 
-def calculate_node_control_signal(observation_dict):
+def calculate_chaos_node_control_signal(observation_dict):
     """node_ctrl signal is either 0 or 1 depending on if the input
     matches the output.
     
@@ -70,6 +70,36 @@ def calculate_node_control_signal(observation_dict):
     # max protects against div by zero
     # signal = lesser / max(greater, 1)
     return 0 if input != output else 1
+
+
+def calculate_brevity_node_control_signal(observation_dict):
+    """node_ctrl signal is either 0 or 1 depending on if the output state
+    has fewer nodes than the input. This doesn't always make sense, but for
+    most problems in math I think it does. If it doesn't then expansion tends
+    to make sense. I think perhaps these could switch based on the problem type.
+   
+    Examples:
+        "2x + 4x"      "4x + 2x"     = 7 >= 7  = 0
+        "2x + 4x"      "x * (2 + 4)" = 7 >= 11 = 1
+        "x * (2 + 4)"  "6x"          = 11 >= 2 = 0
+        "6x"           "x * (2 + 4)" = 2 >= 11 = 1
+
+    TODO: This might need to be a separately predicted policy, e.g. 
+            `pi2 = TimeDistributed(MathPolicyDropout)`
+          Need to better understand comments on Q-learning being necessary
+          
+          https://arxiv.org/pdf/1611.05397.pdf
+
+          "In principle, any reinforcement learning method could be applied to 
+           maximise these objectives. However, to efficiently learn to maximise 
+           many different pseudo-rewards simultaneously in parallel from a single 
+           stream of experience, it is necessary to use off-policy reinforcement 
+           learning. We focus on value-based RL methods that approximate the optimal
+           action-values by Qlearning"
+    """
+    input = len(observation_dict["input"])
+    output = len(observation_dict["output"])
+    return 0 if input >= output else 1
 
 
 def calculate_term_grouping_distances(input: str):
@@ -207,11 +237,12 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     inputs[FEATURE_LAST_RULE] = ex_input[FEATURE_LAST_RULE]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
-    # print(inputs[FEATURE_FWD_VECTORS])
     outputs = {
         TRAIN_LABELS_TARGET_PI: policy_out,
         TRAIN_LABELS_TARGET_VALUE: [example["discounted"]],
-        TRAIN_LABELS_TARGET_NODE_CONTROL: [calculate_node_control_signal(example)],
+        TRAIN_LABELS_TARGET_NODE_CONTROL: [
+            calculate_brevity_node_control_signal(example)
+        ],
         TRAIN_LABELS_TARGET_GROUPING_CONTROL: [
             calculate_grouping_control_signal(example)
         ],
