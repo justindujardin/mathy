@@ -58,10 +58,10 @@ class EpochTrainerHook(SessionRunHook):
         # print(run_values.results["loss"])
         loss_pi = truncate(run_values.results["policy"])
         loss_v = truncate(run_values.results["value"])
-        loss_nctrl = truncate(run_values.results["node_ctrl"])
-        loss_gctrl = truncate(run_values.results["grouping_ctrl"])
-        loss_gpred = truncate(run_values.results["group_prediction"])
-        loss_rpred = truncate(run_values.results["reward_prediction"])
+        loss_nctrl = truncate(run_values.results.get("node_ctrl", 0.0))
+        loss_gctrl = truncate(run_values.results.get("grouping_ctrl", 0.0))
+        loss_gpred = truncate(run_values.results.get("group_prediction", 0.0))
+        loss_rpred = truncate(run_values.results.get("reward_prediction", 0.0))
         loss = loss_pi + loss_v + loss_nctrl + loss_gctrl + loss_gpred + loss_rpred
         examples_per_sec = steps_per_epoch * (self.batch_size / duration)
         sec_per_batch = duration

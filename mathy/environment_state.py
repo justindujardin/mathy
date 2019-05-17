@@ -14,6 +14,7 @@ from .agent.features import (
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
+    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
     pad_array,
 )
@@ -151,7 +152,7 @@ class MathEnvironmentState(object):
 
         return context_vectors
 
-    def to_input_features(self, return_batch=False):
+    def to_input_features(self, move_mask, return_batch=False):
         """Output a one element array of features that can be fed to the 
         neural network for prediction.
 
@@ -181,7 +182,7 @@ class MathEnvironmentState(object):
         last_action = -1
         if len(self.agent.history) >= 1:
             last_action = self.agent.history[-1].action
-    
+
         if len(self.agent.history) > 1:
             last_ts: AgentTimeStep = self.agent.history[-2]
             last_expression = self.parser.parse(last_ts.raw)
@@ -216,4 +217,5 @@ class MathEnvironmentState(object):
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
+            FEATURE_MOVE_MASK: maybe_wrap(move_mask)
         }

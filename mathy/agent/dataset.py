@@ -13,6 +13,7 @@ from ..agent.features import (
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
+    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
     TRAIN_LABELS_TARGET_NODE_CONTROL,
     TRAIN_LABELS_TARGET_GROUPING_CONTROL,
@@ -41,6 +42,7 @@ def make_training_input_fn(examples, batch_size):
             FEATURE_MOVE_COUNTER: tf.int64,
             FEATURE_MOVES_REMAINING: tf.int64,
             FEATURE_PROBLEM_TYPE: tf.int64,
+            FEATURE_MOVE_MASK: tf.int64,
         },
         {
             TRAIN_LABELS_TARGET_PI: tf.float32,

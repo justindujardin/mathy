@@ -37,7 +37,8 @@ class ActorMCTS:
 
         # Hold on to the episode example data for training the neural net
         state = env_state.clone()
-        example_data = state.to_input_features()
+        pi_mask = game.get_valid_moves(state)
+        example_data = state.to_input_features(pi_mask)
         move_count = state.max_moves - state.agent.moves_remaining
 
         # If the move_count is less than threshold, set temp = 1 else 0
@@ -54,23 +55,15 @@ class ActorMCTS:
         example_text = next_state.agent.problem
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
-        # out_policy = pi
+        out_policy = pi
         out_policy = numpy.reshape(pi, (-1, len(game.available_rules))).tolist()
+        pi_mask = numpy.reshape(pi_mask, (-1, len(game.available_rules))).tolist()
         action_i, token_i = game.get_action_indices(
             game.parser.parse(state.agent.problem), action
         )
-        history.append(
-            [
-                example_data,
-                out_policy,
-                r,
-                state.agent.problem,
-                next_state.agent.problem,
-                action_i,
-                token_i,
-            ]
-        )
         # Output a single training example for per-step training
+        train_features = copy.deepcopy(example_data)
+        train_features["policy_mask"] = pi_mask
         train_example = {
             "input": state.agent.problem,
             "output": next_state.agent.problem,
@@ -79,30 +72,19 @@ class ActorMCTS:
             "reward": float(r),
             "discounted": float(r),
             "policy": out_policy,
-            "features": copy.deepcopy(example_data),
+            "features": train_features,
         }
+        history.append(train_example)
         # Keep going if the reward signal is not terminal
         if not is_term:
             return next_state, train_example, None
-        normal_rewards = [x[2] for x in history]
+        normal_rewards = [x["reward"] for x in history]
         # print("initial rewards: {}".format(numpy.asarray(rewards)))
         rewards = list(discount(normal_rewards, game.discount))
         # print("discounted rewards: {}".format(numpy.asarray(rewards)))
-        examples = []
         problem_id = uuid.uuid4().hex
         for i, x in enumerate(history):
-            examples.append(
-                {
-                    "problem": problem_id,
-                    "input": x[3],
-                    "output": x[4],
-                    "action": x[5],
-                    "token": x[6],
-                    "reward": float(normal_rewards[i]),
-                    "discounted": float(rewards[i]),
-                    "policy": x[1],
-                    "features": x[0],
-                }
-            )
+            x["problem"] = problem_id
+            x["discounted"] = float(rewards[i])
         episode_reward = sum(rewards)
-        return next_state, train_example, (examples, episode_reward, is_win)
+        return next_state, train_example, (history, episode_reward, is_win)

@@ -1,31 +1,19 @@
 import tensorflow as tf
 from tensorflow.keras.experimental import SequenceFeatures
-from tensorflow.keras.layers import (
-    Concatenate,
-    Dense,
-    DenseFeatures,
-    TimeDistributed,
-    Dropout,
-)
+from tensorflow.keras.layers import Dense, DenseFeatures, TimeDistributed
 from tensorflow.python.training import adam
 from tensorflow_estimator.contrib.estimator.python import estimator
 
-
 from ..features import (
-    FEATURE_BWD_VECTORS,
+    FEATURE_BWD_VECTORS,  # FEATURE_MOVE_MASK,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
-    TRAIN_LABELS_TARGET_PI,
     TRAIN_LABELS_TARGET_VALUE,
 )
 from ..layers.bahdanau_attention import BahdanauAttention
-from ..layers.bi_lstm import BiLSTM
 from ..layers.math_policy_dropout import MathPolicyDropout
-from ..layers.densenet_stack import DenseNetStack
-from ..layers.resnet_block import ResNetBlock
 from ..layers.resnet_stack import ResNetStack
-from ..layers.keras_self_attention import SeqSelfAttention
 
 
 def math_estimator(features, labels, mode, params):
@@ -35,18 +23,24 @@ def math_estimator(features, labels, mode, params):
     learning_rate = params.get("learning_rate", 3e-4)
     dropout_rate = params.get("dropout", 0.2)
     shared_dense_units = params.get("shared_dense_units", 128)
-    training = mode == tf.estimator.ModeKeys.TRAIN
     sequence_features = {
+        # FEATURE_MOVE_MASK: features[FEATURE_MOVE_MASK],
         FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
         FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
         FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
         FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
     }
+    # Pop the policy mask off (since we use it directly)
+    # pi_mask = features[FEATURE_MOVE_MASK]
+    # del features[FEATURE_MOVE_MASK]
+
     sequence_inputs, sequence_length = SequenceFeatures(
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    shared_network = ResNetStack(num_layers=6, units=128, share_weights=True)
+    shared_network = ResNetStack(
+        num_layers=2, units=shared_dense_units, share_weights=True
+    )
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -55,7 +49,7 @@ def math_estimator(features, labels, mode, params):
     # to select which node to apply which action to.
     policy_head = TimeDistributed(
         MathPolicyDropout(
-            action_size, dropout=dropout_rate, feature_layer=shared_network
+            action_size, dropout=dropout_rate, feature_layers=[shared_network]
         ),
         name="policy_head",
     )
@@ -91,14 +85,6 @@ def math_estimator(features, labels, mode, params):
         reward_prediction_logits = Dense(3, name="reward_prediction_head")(
             shared_network(aux_attention)
         )
-
-    def scalar_signal_loss(labels, logits):
-        """Calculate node_ctrl loss as the label value plus prediction loss
-        
-        labels are a normalized 0-1 value indicating the amount of change in the
-        number of nodes of the expression when compared to the previous state. 
-        """
-        return labels + tf.math.abs(labels - logits)
 
     logits = {
         "policy": policy_predictions,
@@ -145,7 +131,7 @@ def math_estimator(features, labels, mode, params):
             name="node_ctrl", label_dimension=1
         )
         aux_grouping_ctrl_head = estimator.head.regression_head(
-            name="grouping_ctrl", label_dimension=1, loss_fn=scalar_signal_loss
+            name="grouping_ctrl", label_dimension=1
         )
         aux_group_prediction_head = estimator.head.regression_head(
             name="group_prediction", label_dimension=1

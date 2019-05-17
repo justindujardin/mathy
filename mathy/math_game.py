@@ -61,7 +61,7 @@ class MathGame:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        features = env_state.to_input_features()
+        features = env_state.to_input_features(self.get_valid_moves(env_state))
         root = expression.get_root()
         if (
             env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL

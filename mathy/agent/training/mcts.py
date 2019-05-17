@@ -106,7 +106,7 @@ class MCTS:
             # leaf node
             valids = self.game.get_valid_moves(env_state)
             num_valids = len(valids)
-            out_policy, action_v = self.predictor.predict(env_state)
+            out_policy, action_v = self.predictor.predict(env_state, valids)
             out_policy = out_policy.flatten()
             # Clip any predictions over batch-size padding tokens
             if len(out_policy) > num_valids:

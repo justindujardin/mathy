@@ -60,17 +60,17 @@ def main(
 ):
     global lessons
     shuffle_lessons = False
-    min_train_experience = 256
+    min_train_experience = 16
     eval_interval = 2
     short_term_size = 768
     long_term_size = 8192 * 3
     initial_train_iterations = 10
     episode_counter = 0
     counter = 0
-    training_epochs = 8
-    controller = MathGame(verbose=True)
+    training_epochs = 3
+    math_game = MathGame(verbose=True)
     mathy = MathModel(
-        controller.action_size,
+        math_game.action_size,
         model_dir,
         init_model_dir=transfer_from,
         learning_rate=learning_rate,
@@ -117,7 +117,7 @@ def main(
             print("\n\n=== Evaluating model with exploitation strategy ===")
             mathy.stop()
             mathy_eval = MathModel(
-                controller.action_size,
+                math_game.action_size,
                 model_dir,
                 init_model_dir=os.path.abspath(mathy.model_dir),
                 # We want to initialize from the training model for each evaluation. (?)
@@ -140,7 +140,7 @@ def main(
         ep_reward_buffer = []
         while len(lessons) > 0:
             lesson = lessons.pop(0)
-            controller.lesson = lesson
+            math_game.lesson = lesson
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
@@ -149,11 +149,9 @@ def main(
             else:
                 iter_experience = short_term_size
             while lesson_experience_count < iter_experience:
-                env_state, complexity = controller.get_initial_state(
-                    print_problem=False
-                )
+                env_state, complexity = math_game.get_initial_state(print_problem=False)
                 complexity_value = complexity * 4
-                controller.verbose = eval_run or verbose
+                math_game.verbose = eval_run or verbose
                 if eval_run:
                     num_rollouts = 500
                     num_exploration_moves = 0
@@ -166,15 +164,15 @@ def main(
                         else complexity_value
                     )
                     epsilon = 1.0
-                controller.max_moves = (
+                math_game.max_moves = (
                     lesson.max_turns
                     if lesson.max_turns is not None
                     else complexity_value
                 )
                 # generate a new problem now that we've set the max_turns
-                env_state, complexity = controller.get_initial_state()
+                env_state, complexity = math_game.get_initial_state()
                 model = mathy_eval if eval_run else mathy
-                mcts = MCTS(controller, model, epsilon, num_rollouts)
+                mcts = MCTS(math_game, model, epsilon, num_rollouts)
                 actor = ActorMCTS(mcts, num_exploration_moves)
                 final_result = None
                 time_steps = []
@@ -183,7 +181,7 @@ def main(
                 while final_result is None:
                     episode_steps = episode_steps + 1
                     env_state, train_example, final_result = actor.step(
-                        controller, env_state, model, time_steps
+                        math_game, env_state, model, time_steps
                     )
 
                 elapsed = time.time() - start

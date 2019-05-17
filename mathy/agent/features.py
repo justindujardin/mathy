@@ -13,6 +13,7 @@ FEATURE_NODE_COUNT = "node_count"
 FEATURE_MOVES_REMAINING = "moves_remaining"
 FEATURE_MOVE_COUNTER = "move_counter"
 FEATURE_PROBLEM_TYPE = "problem_type"
+FEATURE_MOVE_MASK = "policy_mask"
 
 
 TRAIN_LABELS_TARGET_PI = "policy"
@@ -214,7 +215,6 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     )  # TODO: This is hardcoded to the number of rules in math_game.py FIXIT!
     # Two extract windows for context sensitivity (3 * 3) = 9
     pad_value = tuple([MathTypeKeys["empty"]] * 9)
-    policy_out = numpy.array(example["policy"][:]).flatten().tolist()
     # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
 
     inputs[FEATURE_FWD_VECTORS] = pad_array(
@@ -229,14 +229,21 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
         ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
     )
+
+    policy_out = numpy.array(example["policy"][:]).flatten().tolist()
     policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
     policy_out = numpy.reshape(policy_out, (-1, num_actions))
+
+    policy_mask_out = numpy.array(example[FEATURE_MOVE_MASK][:]).flatten().tolist()
+    policy_mask_out = pad_array(policy_mask_out, max_policy_sequence, 0.0)
+    policy_mask_out = numpy.reshape(policy_mask_out, (-1, num_actions))
 
     inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
     inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
     inputs[FEATURE_LAST_RULE] = ex_input[FEATURE_LAST_RULE]
     inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
+    inputs[FEATURE_MOVE_MASK] = policy_mask_out
     outputs = {
         TRAIN_LABELS_TARGET_PI: policy_out,
         TRAIN_LABELS_TARGET_VALUE: [example["discounted"]],
@@ -257,6 +264,7 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     # print(f"grouping_ctrl: {outputs[TRAIN_LABELS_TARGET_GROUPING_CONTROL]}")
     # print(f"group_prediction: {outputs[TRAIN_LABELS_TARGET_GROUP_PREDICTION]}")
     # print(f"reward_prediction: {outputs[TRAIN_LABELS_TARGET_REWARD_PREDICTION]}")
+    # print(f"inputs pi_mask = {inputs[FEATURE_MOVE_MASK]}")
     return inputs, outputs
 
 
@@ -274,3 +282,17 @@ def pad_array(A, max_length, value=0, backwards=False):
     if backwards:
         A.reverse()
     return A
+
+
+def get_max_lengths(examples):
+    """Get the max sequence lengths for a set of examples.
+    
+    Returns a tuple of(max_pi_len, max_tokens_len)"""
+    tokens_lengths = []
+    pi_lengths = []
+    for ex in examples:
+        tokens_lengths.append(len(ex["features"][FEATURE_BWD_VECTORS]))
+        pi_lengths.append(len(numpy.array(ex["policy"]).flatten()))
+    max_tokens_sequence = max(tokens_lengths)
+    max_pi_sequence = max(pi_lengths)
+    return max_pi_sequence, max_tokens_sequence

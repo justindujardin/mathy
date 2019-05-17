@@ -19,6 +19,7 @@ from ..agent.features import (
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_MOVE_COUNTER,
+    FEATURE_MOVE_MASK,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
@@ -161,6 +162,9 @@ class MathModel:
         #
         # Sequence features
         #
+        # self.feat_policy_mask = tf.feature_column.sequence_numeric_column(
+        #     key=FEATURE_MOVE_MASK, dtype=tf.int64, shape=self.action_size
+        # )
         self.feat_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_identity(
                 key=FEATURE_BWD_VECTORS, num_buckets=vocab_buckets
@@ -252,16 +256,16 @@ class MathModel:
         )
         return examples
 
-    def predict(self, env_state: MathEnvironmentState):
+    def predict(self, env_state: MathEnvironmentState, valid_moves):
         """Predict a policy/value for a given input state.
         
         Returns: a tuple of (policy, value) for the input as predicted 
         by the neural network """
 
-        input_features = env_state.to_input_features(return_batch=True)
+        input_features = env_state.to_input_features(valid_moves, return_batch=True)
         # start = time.time()
         # import json
-        # print(json.dumps(input_features))
+        print(input_features)
         prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         # print("distribution is : {}".format(prediction[("policy", "predictions")]))

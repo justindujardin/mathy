@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from mathy.agent.features import (
     FEATURE_BWD_VECTORS,
+    FEATURE_MOVE_MASK,
     FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -80,6 +81,7 @@ class MathPredictor(object):
         output_types = {
             FEATURE_FWD_VECTORS: tf.int64,
             FEATURE_BWD_VECTORS: tf.int64,
+            FEATURE_MOVE_MASK: tf.int64,
             FEATURE_LAST_FWD_VECTORS: tf.int64,
             FEATURE_LAST_BWD_VECTORS: tf.int64,
             FEATURE_LAST_RULE: tf.int64,
