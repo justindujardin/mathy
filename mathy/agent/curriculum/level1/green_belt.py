@@ -24,14 +24,14 @@ green_belt_practice = build_lesson_plan(
     [
         LessonExercise(
             lesson_name="six_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(6, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=observations,
         ),
         LessonExercise(
             lesson_name="eight_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(8, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=observations,
@@ -61,7 +61,7 @@ green_belt_practice = build_lesson_plan(
         ),
         LessonExercise(
             lesson_name="ten_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(10, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(10, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=observations,
@@ -82,14 +82,14 @@ green_belt = build_lesson_plan(
     [
         LessonExercise(
             lesson_name="six_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(6, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=50,
             num_observations=observations,
         ),
         LessonExercise(
             lesson_name="eight_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(8, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=50,
             num_observations=observations,
@@ -119,7 +119,7 @@ green_belt = build_lesson_plan(
         ),
         LessonExercise(
             lesson_name="ten_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(10, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(10, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=50,
             num_observations=observations,

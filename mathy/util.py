@@ -13,7 +13,7 @@ class GameRewards:
     TIMESTEP = 0.0
     NEW_LOCATION = 0.01
     HELPFUL_MOVE = 0.1
-    PREVIOUS_LOCATION = 0.0
+    PREVIOUS_LOCATION = -0.01
     INVALID_ACTION = -0.02
 
 

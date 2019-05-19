@@ -1,6 +1,4 @@
-import math
 from itertools import groupby
-from multiprocessing import cpu_count
 
 from tf_agents.trajectories import time_step
 
@@ -18,17 +16,24 @@ from .core.rules import (
 from .core.util import get_terms, has_like_terms, is_preferred_term_form
 from .environment_state import AgentTimeStep, MathEnvironmentState
 from .game_modes import MODE_SIMPLIFY_POLYNOMIAL
-from .util import GameRewards, is_terminal_transition
+from .util import GameRewards
 
 
 class MathGame:
     """
-    Implement a math solving game where a player wins by executing the right sequence 
-    of actions to reduce a math expression to an agreeable basic representation in as 
+    Implement a math solving game where a player wins by executing the right sequence
+    of actions to reduce a math expression to an agreeable basic representation in as
     few moves as possible.
     """
 
-    def __init__(self, verbose=False, max_moves=20, lesson=None, reward_discount=0.99):
+    def __init__(
+        self,
+        verbose=False,
+        max_moves=20,
+        lesson=None,
+        reward_discount=0.99,
+        rewarding_actions=None,
+    ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
@@ -42,6 +47,9 @@ class MathGame:
             AssociativeSwapRule(),
             VariableMultiplyRule(),
         ]
+        self.rewarding_actions = rewarding_actions
+        if self.rewarding_actions is None:
+            self.rewarding_actions = [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
     @property
     def action_size(self):
@@ -80,9 +88,21 @@ class MathGame:
         if env_state.agent.moves_remaining <= 0:
             return time_step.termination(features, GameRewards.LOSE)
 
+        if len(agent.history) > 0:
+            last_timestep = agent.history[-1]
+            rule = self.get_rule_from_timestep(last_timestep)
+            # The rewarding_actions can be user specified
+            for rewarding_class in self.rewarding_actions:
+                if isinstance(rule, rewarding_class):
+                    return time_step.transition(
+                        features,
+                        reward=GameRewards.HELPFUL_MOVE,
+                        discount=self.discount,
+                    )
+
         # The agent is penalized for returning to a previous state.
         for key, group in groupby(
-            sorted([f"{h.raw}{h.focus}" for h in env_state.agent.history])
+            sorted([f"{h.raw}" for h in env_state.agent.history])
         ):
             list_group = list(group)
             list_count = len(list_group)
@@ -93,17 +113,7 @@ class MathGame:
                 features, reward=GameRewards.PREVIOUS_LOCATION, discount=self.discount
             )
 
-        # NOTE: perhaps right here is a good point for an abstraction around custom rules
-        #       that generate different agent reward values based on game types.
-        if len(agent.history) > 0:
-            last_timestep = agent.history[-1]
-            rule = self.get_rule_from_timestep(last_timestep)
-            if isinstance(rule, ConstantsSimplifyRule):
-                return time_step.transition(
-                    features, reward=GameRewards.HELPFUL_MOVE, discount=self.discount
-                )
-
-        # We're in a new state, and the agent is a little older. Minus reward!
+        # We're in a new state, and the agent is a little older.
         return time_step.transition(
             features, reward=GameRewards.TIMESTEP, discount=self.discount
         )
@@ -123,8 +133,7 @@ class MathGame:
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
         rule_count = len(self.available_rules)
-        total_actions = len(expression.toList()) * rule_count
-        action_index, token_index = self.get_action_indices(expression, action)
+        action_index, token_index = self.get_action_indices(action)
         token = self.get_token_at_index(expression, token_index)
         if action_index > rule_count - 1:
             operation = "dangit!"
@@ -134,7 +143,7 @@ class MathGame:
             not isinstance(operation, BaseRule)
             or operation.can_apply_to(token) is False
         ):
-            msg = "Invalid move selected ({}) for expression({}). Rule({}) does not apply."
+            msg = "Invalid move '{}' for expression '{}'."
             raise Exception(msg.format(action, expression, type(operation)))
 
         change = operation.apply_to(token.clone_from_root())
@@ -223,14 +232,9 @@ class MathGame:
         return result
 
     def get_valid_moves(self, env_state: MathEnvironmentState):
-        """
-        Input:
-            env_state: current env_state
-
-        Returns:
-            validMoves: a binary vector of length self.get_agent_actions_count(), 1 for
-                        moves that are valid from the current env_state, and 0 for invalid 
-                        moves
+        """Get a vector the length of the action space that is filled
+         with 1/0 indicating whether the action at that index is valid
+         for the current state.
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -238,13 +242,12 @@ class MathGame:
         return actions
 
     def get_valid_rules(self, env_state: MathEnvironmentState):
-        """
-        Input:
-            env_state: current env_state
+        """Get a vector the length of the number of valid rules that is
+        filled with 0/1 based on whether the rule has any nodes in the
+        expression that it can be applied to.
 
-        Returns:
-            validRules: a binary vector of length len(self.available_rules) for rules that can
-                        be validly applied to at least one node in the current state.
+        NOTE: If you want to get a list of which nodes each rule can be 
+        applied to, prefer to use the `get_valid_moves` method.
         """
         expression = self.parser.parse(env_state.agent.problem)
         actions = [0] * len(self.available_rules)
@@ -254,14 +257,16 @@ class MathGame:
         return actions
 
     def get_action_indices_from_timestep(self, time_step: AgentTimeStep):
-        """Parse a timestep and return the unpacked action_index/token_index from the source action"""
+        """Parse a timestep and return the unpacked action_index/token_index
+        from the source action"""
         return time_step.action, time_step.focus
 
-    def get_action_indices(self, expression: MathExpression, action: int):
+    def get_action_indices(self, action: int):
+        """Get the normalized action/node_index values from a
+        given absolute action value.
+
+        Returns a tuple of (rule_index, node_index)"""
         rule_count = len(self.available_rules)
-        nodes = expression.toList()
-        node_count = len(nodes)
-        total_actions = node_count * rule_count
         # Rule index = val % rule_count
         action_index = action % rule_count
         # And the action at that token

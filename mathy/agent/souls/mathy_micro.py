@@ -20,8 +20,8 @@ def math_estimator(features, labels, mode, params):
     sequence_columns = params["sequence_columns"]
     feature_columns = params["feature_columns"]
     action_size = params["action_size"]
-    learning_rate = params.get("learning_rate", 3e-4)
-    dropout_rate = params.get("dropout", 0.2)
+    learning_rate = params["learning_rate"]
+    dropout_rate = params["dropout"]
     shared_dense_units = params.get("shared_dense_units", 128)
     sequence_features = {
         # FEATURE_MOVE_MASK: features[FEATURE_MOVE_MASK],

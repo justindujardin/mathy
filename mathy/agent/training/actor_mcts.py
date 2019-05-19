@@ -58,9 +58,7 @@ class ActorMCTS:
         out_policy = pi
         out_policy = numpy.reshape(pi, (-1, len(game.available_rules))).tolist()
         pi_mask = numpy.reshape(pi_mask, (-1, len(game.available_rules))).tolist()
-        action_i, token_i = game.get_action_indices(
-            game.parser.parse(state.agent.problem), action
-        )
+        action_i, token_i = game.get_action_indices(action)
         # Output a single training example for per-step training
         train_features = copy.deepcopy(example_data)
         train_features["policy_mask"] = pi_mask

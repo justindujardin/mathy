@@ -30,8 +30,6 @@ def test_math_game_jd():
     f = features
 
 
-
-
 def test_math_game_win_conditions():
 
     expectations = [

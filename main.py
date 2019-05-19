@@ -56,7 +56,8 @@ def main(
     lesson_id=None,
     initial_train=False,
     verbose=False,
-    learning_rate=3e-4,
+    # Learning rate found via some hyperparam exploration.
+    learning_rate=2e-4,
 ):
     global lessons
     shuffle_lessons = False
@@ -83,7 +84,7 @@ def main(
         plan = lessons[list(lessons)[0]]
     elif lesson_id not in lessons:
         raise ValueError(
-            f"[lesson] ERROR: '{lesson_id}' not found in ids. Valid lessons are: {', '.join(lessons)} "
+            f"[lesson] ERROR: '{lesson_id}' must be one of: {', '.join(lessons)} "
         )
     else:
         plan = lessons[lesson_id]
@@ -144,13 +145,16 @@ def main(
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
+            moves_per_complexity = 4
+            if lesson.moves_per_complexity is not None:
+                moves_per_complexity = lesson.moves_per_complexity
             if lesson.num_observations is not None:
                 iter_experience = lesson.num_observations
             else:
                 iter_experience = short_term_size
             while lesson_experience_count < iter_experience:
                 env_state, complexity = math_game.get_initial_state(print_problem=False)
-                complexity_value = complexity * 4
+                complexity_value = complexity * moves_per_complexity
                 math_game.verbose = eval_run or verbose
                 if eval_run:
                     num_rollouts = 500

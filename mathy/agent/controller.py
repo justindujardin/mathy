@@ -51,7 +51,6 @@ class MathModel:
         dropout=0.2,
         epochs=10,
         batch_size=512,
-        log_frequency=250,
         use_gpu=False,
         random_seed=1337,
     ):
@@ -65,7 +64,6 @@ class MathModel:
         self.epochs = epochs
         self.batch_size = batch_size
         self.use_gpu = use_gpu
-        self.log_frequency = log_frequency
         if not is_eval_model:
             self.model_dir = os.path.join(self.root_dir, "train")
         else:
@@ -265,7 +263,7 @@ class MathModel:
         input_features = env_state.to_input_features(valid_moves, return_batch=True)
         # start = time.time()
         # import json
-        print(input_features)
+        # print(input_features)
         prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         # print("distribution is : {}".format(prediction[("policy", "predictions")]))

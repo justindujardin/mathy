@@ -202,6 +202,31 @@ def calculate_reward_prediction_signal(observation_dict):
     return [negative, neutral, positive]
 
 
+def calculate_policy_target(observation_dict, soft=True):
+    policy = numpy.array(observation_dict["policy"][:], dtype="float32")
+    # If we're using the hard targets, pass the policy distribution back
+    # directly from the tree search. This may end up being the best way, but
+    # I'm exploring "soft" targets after watching Jeff Dean talk at Stanford
+    # for Karpathy's course. 
+    if soft is not True:
+        return policy
+    # The policy coming from the network will usually already include weight
+    # for each active rule, but we want the model to be less sure of itself
+    # with the targets so we adjust the policy weightings slightly.
+    policy_mask = numpy.array(
+        observation_dict["features"]["policy_mask"][:], dtype="float32"
+    )
+    # assert numpy.count_nonzero(policy_mask) == numpy.count_nonzero(policy)
+    # The policy mask has 0.0 and 1.0 values. We scale the mask down so that
+    # 1 becomes smaller, and then we elementwise add the policy and the mask to
+    # increment each valid action by the scaled value
+    policy_soft = policy + (policy_mask * 0.01)
+    # Finally we re-normalize the values so that they sum to 1.0 like they
+    # did before we incremented them.
+    policy_soft /= numpy.sum(policy_soft)
+    return policy_soft
+
+
 def parse_example_for_training(example, max_sequence, max_policy_sequence):
     """Prepare a gathered training example for input into the Policy/Value network. 
     This requires padding sequence inputs to the given max length values given as 
@@ -230,11 +255,11 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
         ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
     )
 
-    policy_out = numpy.array(example["policy"][:]).flatten().tolist()
+    policy_out = numpy.array(calculate_policy_target(example)).flatten().tolist()
     policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
     policy_out = numpy.reshape(policy_out, (-1, num_actions))
 
-    policy_mask_out = numpy.array(example[FEATURE_MOVE_MASK][:]).flatten().tolist()
+    policy_mask_out = numpy.array(ex_input[FEATURE_MOVE_MASK][:]).flatten().tolist()
     policy_mask_out = pad_array(policy_mask_out, max_policy_sequence, 0.0)
     policy_mask_out = numpy.reshape(policy_mask_out, (-1, num_actions))
 
