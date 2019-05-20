@@ -14,6 +14,9 @@ from ..features import (
 from ..layers.bahdanau_attention import BahdanauAttention
 from ..layers.math_policy_dropout import MathPolicyDropout
 from ..layers.resnet_stack import ResNetStack
+from ..layers.keras_self_attention import SeqSelfAttention
+from ..layers.bi_lstm import BiLSTM
+from ..layers.lstm_stack import LSTMStack
 
 
 def math_estimator(features, labels, mode, params):
@@ -38,9 +41,9 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    shared_network = ResNetStack(
-        num_layers=2, units=shared_dense_units, share_weights=True
-    )
+    shared_network = LSTMStack(units=shared_dense_units, share_weights=True)
+
+    hidden_states, policy_vectors = shared_network(sequence_inputs, context_inputs)
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -48,42 +51,34 @@ def math_estimator(features, labels, mode, params):
     # each node in the expression tree. This is key to allow the model
     # to select which node to apply which action to.
     policy_head = TimeDistributed(
-        MathPolicyDropout(
-            action_size, dropout=dropout_rate, feature_layers=[shared_network]
-        ),
+        MathPolicyDropout(action_size, dropout=dropout_rate, feature_layers=[]),
         name="policy_head",
     )
-    policy_predictions = policy_head(sequence_inputs)
+    policy_predictions = policy_head(policy_vectors)
 
     # Value head
     with tf.compat.v1.variable_scope("value_head"):
+        value_hidden, value_vectors = shared_network(sequence_inputs, context_inputs)
         attention_context, attention_weights = BahdanauAttention(shared_dense_units)(
-            sequence_inputs, context_inputs
+            value_vectors, value_hidden
         )
-        value_logits = Dense(1, activation="tanh", name="tanh")(
-            shared_network(attention_context)
-        )
+        value_logits = Dense(1, activation="tanh", name="tanh")(attention_context)
 
     with tf.compat.v1.variable_scope("auxiliary_heads"):
+        aux_hidden, aux_vectors = shared_network(sequence_inputs, context_inputs)
         aux_attention, aux_attention_weights = BahdanauAttention(shared_dense_units)(
-            sequence_inputs, context_inputs
+            aux_vectors, aux_hidden
         )
         # Node change prediction
-        node_ctrl_logits = Dense(1, name="node_ctrl_head")(
-            shared_network(aux_attention)
-        )
+        node_ctrl_logits = Dense(1, name="node_ctrl_head")(aux_attention)
         # Grouping error prediction
-        grouping_ctrl_logits = Dense(1, name="grouping_ctrl_head")(
-            shared_network(aux_attention)
-        )
+        grouping_ctrl_logits = Dense(1, name="grouping_ctrl_head")(aux_attention)
         # Group prediction head is an integer value predicting the number
         #  of like-term groups in the observation.
-        group_prediction_logits = Dense(1, name="group_prediction_head")(
-            shared_network(aux_attention)
-        )
+        group_prediction_logits = Dense(1, name="group_prediction_head")(aux_attention)
         # Reward prediction head with 3 class labels (positive, negative, neutral)
         reward_prediction_logits = Dense(3, name="reward_prediction_head")(
-            shared_network(aux_attention)
+            aux_attention
         )
 
     logits = {
