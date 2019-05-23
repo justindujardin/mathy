@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from .lstm import LSTM
 
 
@@ -20,12 +21,10 @@ class LSTMStack(tf.keras.layers.Layer):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
     def call(self, input_tensor, initial_states):
-        with tf.compat.v1.variable_scope("lstm_stack"):
-            # Prepare initial state as transformations from contextual features
-            hidden_states = [self.dense_h(initial_states), self.dense_c(initial_states)]
-            for layer in self.stack:
-                hidden_states, input_tensor = layer(input_tensor, hidden_states)
-            # Drop the cell state at the end
-            hidden_states = hidden_states[0]
-            return hidden_states, input_tensor
-
+        # Prepare initial state as transformations from contextual features
+        hidden_states = [self.dense_h(initial_states), self.dense_c(initial_states)]
+        for layer in self.stack:
+            hidden_states, input_tensor = layer(input_tensor, hidden_states)
+        # Drop the cell state at the end
+        hidden_states = hidden_states[0]
+        return hidden_states, input_tensor

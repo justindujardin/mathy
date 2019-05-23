@@ -8,9 +8,9 @@ def LSTM(units=32, name="lstm", use_shared=False):
 
     def build():
         lstm = tf.keras.layers.LSTM(
-            units, return_sequences=True, return_state=True, name=f"{name}/forward"
+            units, return_sequences=True, return_state=True, name="lstm"
         )
-        combine = tf.keras.layers.Add(name=f"{name}/add")
+        combine = tf.keras.layers.Add(name="add")
         return lstm, combine
 
     if use_shared:
@@ -27,9 +27,6 @@ def LSTM(units=32, name="lstm", use_shared=False):
             lstm_fwd, state_h_fwd, state_c_fwd = lstm(
                 input_layer, initial_state=initial_state
             )
-            return (
-                [state_h_fwd, state_c_fwd],
-                tf.keras.layers.Add(name=f"{name}/add")([lstm_fwd, input_layer]),
-            )
+            return ([state_h_fwd, state_c_fwd], combine([lstm_fwd, input_layer]))
 
     return func

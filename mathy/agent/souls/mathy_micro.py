@@ -41,9 +41,9 @@ def math_estimator(features, labels, mode, params):
         sequence_columns, name="seq_features"
     )(sequence_features)
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
-    shared_network = LSTMStack(units=shared_dense_units, share_weights=True)
-
-    hidden_states, policy_vectors = shared_network(sequence_inputs, context_inputs)
+    lstm = LSTMStack(units=shared_dense_units, share_weights=True)
+    shared_network = ResNetStack(shared_dense_units, share_weights=True)
+    hidden_states, lstm_vectors = lstm(sequence_inputs, context_inputs)
 
     # Push each sequence through the policy layer to predict
     # a policy for each input node. This is a many-to-many prediction
@@ -54,20 +54,19 @@ def math_estimator(features, labels, mode, params):
         MathPolicyDropout(action_size, dropout=dropout_rate, feature_layers=[]),
         name="policy_head",
     )
-    policy_predictions = policy_head(policy_vectors)
+    policy_predictions = policy_head(lstm_vectors)
 
     # Value head
     with tf.compat.v1.variable_scope("value_head"):
-        value_hidden, value_vectors = shared_network(sequence_inputs, context_inputs)
         attention_context, attention_weights = BahdanauAttention(shared_dense_units)(
-            value_vectors, value_hidden
+            shared_network(lstm_vectors), hidden_states
         )
         value_logits = Dense(1, activation="tanh", name="tanh")(attention_context)
 
     with tf.compat.v1.variable_scope("auxiliary_heads"):
-        aux_hidden, aux_vectors = shared_network(sequence_inputs, context_inputs)
+
         aux_attention, aux_attention_weights = BahdanauAttention(shared_dense_units)(
-            aux_vectors, aux_hidden
+            shared_network(lstm_vectors), hidden_states
         )
         # Node change prediction
         node_ctrl_logits = Dense(1, name="node_ctrl_head")(aux_attention)
