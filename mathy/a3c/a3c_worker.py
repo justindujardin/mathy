@@ -28,15 +28,19 @@ class A3CWorker(threading.Thread):
         game_name="CartPole-v0",
         save_dir="/tmp",
         args=None,
+        shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
         self.state_size = state_size
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
+        self.shared_layers = shared_layers
         self.opt = opt
         self.args = args
-        self.local_model = ActorCriticModel(self.state_size, self.action_size)
+        self.local_model = ActorCriticModel(
+            self.state_size, self.action_size, shared_layers=shared_layers
+        )
         self.worker_idx = idx
         self.game_name = game_name
         self.env = gym.make(self.game_name).unwrapped

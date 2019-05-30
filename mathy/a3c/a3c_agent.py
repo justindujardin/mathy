@@ -24,10 +24,13 @@ class A3CAgent:
         self.state_size = env.observation_space.shape[0]
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
+        self.shared_network = tf.keras.layers.Dense(
+            128, activation="relu", name="shared_network"
+        )
         print(self.state_size, self.action_size)
 
         self.global_model = ActorCriticModel(
-            self.state_size, self.action_size
+            self.state_size, self.action_size, shared_layers=[self.shared_network]
         )  # global network
         self.global_model(
             tf.convert_to_tensor(
@@ -54,6 +57,7 @@ class A3CAgent:
                 game_name=self.game_name,
                 save_dir=self.save_dir,
                 args=self.args,
+                shared_layers=[self.shared_network],
             )
             for i in range(multiprocessing.cpu_count())
         ]
