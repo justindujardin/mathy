@@ -9,7 +9,7 @@ from ..features import (
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
-    TRAIN_LABELS_TARGET_VALUE,
+    TENSOR_KEY_VALUE,
 )
 from ..layers.bahdanau_attention import BahdanauAttention
 from ..layers.math_policy_dropout import MathPolicyDropout
@@ -109,11 +109,11 @@ def math_estimator(features, labels, mode, params):
         # Training targets
         if labels is not None:
             tf.compat.v1.summary.scalar(
-                "value/target_mean", tf.reduce_mean(labels[TRAIN_LABELS_TARGET_VALUE])
+                "value/target_mean", tf.reduce_mean(labels[TENSOR_KEY_VALUE])
             )
             tf.compat.v1.summary.scalar(
                 "value/target_variance",
-                tf.math.reduce_variance(labels[TRAIN_LABELS_TARGET_VALUE]),
+                tf.math.reduce_variance(labels[TENSOR_KEY_VALUE]),
             )
     # Multi-task prediction heads
     with tf.compat.v1.variable_scope("heads"):

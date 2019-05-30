@@ -143,8 +143,8 @@ class MathGame:
             not isinstance(operation, BaseRule)
             or operation.can_apply_to(token) is False
         ):
-            msg = "Invalid move '{}' for expression '{}'."
-            raise Exception(msg.format(action, expression, type(operation)))
+            msg = "Invalid action({}) '{}' for expression '{}'."
+            raise Exception(msg.format(action, type(operation), expression))
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()

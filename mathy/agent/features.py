@@ -16,12 +16,12 @@ FEATURE_PROBLEM_TYPE = "problem_type"
 FEATURE_MOVE_MASK = "policy_mask"
 
 
-TRAIN_LABELS_TARGET_PI = "policy"
-TRAIN_LABELS_TARGET_VALUE = "value"
-TRAIN_LABELS_TARGET_NODE_CONTROL = "node_ctrl"
-TRAIN_LABELS_TARGET_GROUPING_CONTROL = "grouping_ctrl"
-TRAIN_LABELS_TARGET_GROUP_PREDICTION = "group_prediction"
-TRAIN_LABELS_TARGET_REWARD_PREDICTION = "reward_prediction"
+TENSOR_KEY_PI = "policy"
+TENSOR_KEY_VALUE = "value"
+TENSOR_KEY_NODE_CTRL = "node_ctrl"
+TENSOR_KEY_GROUPING_CTRL = "grouping_ctrl"
+TENSOR_KEY_GROUP_PREDICT = "group_prediction"
+TENSOR_KEY_REWARD_PREDICT = "reward_prediction"
 
 
 def build_cnn_image_input(observation_dict):
@@ -270,25 +270,25 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
     inputs[FEATURE_MOVE_MASK] = policy_mask_out
     outputs = {
-        TRAIN_LABELS_TARGET_PI: policy_out,
-        TRAIN_LABELS_TARGET_VALUE: [example["discounted"]],
-        TRAIN_LABELS_TARGET_NODE_CONTROL: [
+        TENSOR_KEY_PI: policy_out,
+        TENSOR_KEY_VALUE: [example["discounted"]],
+        TENSOR_KEY_NODE_CTRL: [
             calculate_brevity_node_control_signal(example)
         ],
-        TRAIN_LABELS_TARGET_GROUPING_CONTROL: [
+        TENSOR_KEY_GROUPING_CTRL: [
             calculate_grouping_control_signal(example)
         ],
-        TRAIN_LABELS_TARGET_GROUP_PREDICTION: [
+        TENSOR_KEY_GROUP_PREDICT: [
             calculate_group_prediction_signal(example)
         ],
-        TRAIN_LABELS_TARGET_REWARD_PREDICTION: calculate_reward_prediction_signal(
+        TENSOR_KEY_REWARD_PREDICT: calculate_reward_prediction_signal(
             example
         ),
     }
-    # print(f"node_ctrl: {outputs[TRAIN_LABELS_TARGET_NODE_CONTROL]}")
-    # print(f"grouping_ctrl: {outputs[TRAIN_LABELS_TARGET_GROUPING_CONTROL]}")
-    # print(f"group_prediction: {outputs[TRAIN_LABELS_TARGET_GROUP_PREDICTION]}")
-    # print(f"reward_prediction: {outputs[TRAIN_LABELS_TARGET_REWARD_PREDICTION]}")
+    # print(f"node_ctrl: {outputs[TENSOR_KEY_NODE_CTRL]}")
+    # print(f"grouping_ctrl: {outputs[TENSOR_KEY_GROUPING_CTRL]}")
+    # print(f"group_prediction: {outputs[TENSOR_KEY_GROUP_PREDICT]}")
+    # print(f"reward_prediction: {outputs[TENSOR_KEY_REWARD_PREDICT]}")
     # print(f"inputs pi_mask = {inputs[FEATURE_MOVE_MASK]}")
     return inputs, outputs
 

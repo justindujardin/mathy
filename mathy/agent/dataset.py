@@ -15,12 +15,12 @@ from ..agent.features import (
     FEATURE_NODE_COUNT,
     FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
-    TRAIN_LABELS_TARGET_NODE_CONTROL,
-    TRAIN_LABELS_TARGET_GROUPING_CONTROL,
-    TRAIN_LABELS_TARGET_GROUP_PREDICTION,
-    TRAIN_LABELS_TARGET_REWARD_PREDICTION,
-    TRAIN_LABELS_TARGET_PI,
-    TRAIN_LABELS_TARGET_VALUE,
+    TENSOR_KEY_NODE_CTRL,
+    TENSOR_KEY_GROUPING_CTRL,
+    TENSOR_KEY_GROUP_PREDICT,
+    TENSOR_KEY_REWARD_PREDICT,
+    TENSOR_KEY_PI,
+    TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
 from ..environment_state import INPUT_EXAMPLES_FILE_NAME
@@ -45,12 +45,12 @@ def make_training_input_fn(examples, batch_size):
             FEATURE_MOVE_MASK: tf.int64,
         },
         {
-            TRAIN_LABELS_TARGET_PI: tf.float32,
-            TRAIN_LABELS_TARGET_NODE_CONTROL: tf.int32,
-            TRAIN_LABELS_TARGET_GROUPING_CONTROL: tf.int32,
-            TRAIN_LABELS_TARGET_GROUP_PREDICTION: tf.int32,
-            TRAIN_LABELS_TARGET_REWARD_PREDICTION: tf.int32,
-            TRAIN_LABELS_TARGET_VALUE: tf.float32,
+            TENSOR_KEY_PI: tf.float32,
+            TENSOR_KEY_NODE_CTRL: tf.int32,
+            TENSOR_KEY_GROUPING_CTRL: tf.int32,
+            TENSOR_KEY_GROUP_PREDICT: tf.int32,
+            TENSOR_KEY_REWARD_PREDICT: tf.int32,
+            TENSOR_KEY_VALUE: tf.float32,
         },
     )
 

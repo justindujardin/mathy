@@ -1,15 +1,6 @@
 import time
-from multiprocessing import Array, Pool, Process, Queue, cpu_count
-from random import shuffle
-from sys import stdin
+from multiprocessing import Process, Queue, cpu_count
 
-import numpy
-
-from ..controller import MathModel
-from ...core.expressions import MathExpression
-from ...environment_state import MathEnvironmentState
-from ...math_game import MathGame
-from ...util import is_terminal_transition, normalize_rewards
 from .actor_mcts import ActorMCTS
 from .mcts import MCTS
 
@@ -37,10 +28,11 @@ class RunnerConfig:
 
 class PracticeRunner:
     """
-    Instance that controls how episodes are executed. By default this class executes episodes serially
-    in a single process. This is great for debugging problems in an interactive debugger or running locally
-    but is not ideal for machines with many processors available. For multiprocessing swap out the default 
-    `PracticeRunner` class for the `ParallelPracticeRunner` class that is defined below.    
+    Instance that controls how episodes are executed. By default this class
+    executes episodes serially in a single process. This is great for debugging
+    problems in an interactive debugger or running locally but is not ideal for
+    machines with many processors available. For multiprocessing swap out the default
+    `PracticeRunner` class for the `ParallelPracticeRunner` class that is defined below.
     """
 
     def __init__(self, config):
@@ -74,9 +66,8 @@ class PracticeRunner:
         self.predictor.start()
         for i, args in enumerate(episode_args_list):
             start = time.time()
-            episode_examples, episode_reward, is_win, episode_complexity = self.execute_episode(
-                i, self.game, self.predictor, **args
-            )
+            result = self.execute_episode(i, self.game, self.predictor, **args)
+            episode_examples, episode_reward, is_win, episode_complexity = result
             duration = time.time() - start
             examples.extend(episode_examples)
             episode_summary = dict(

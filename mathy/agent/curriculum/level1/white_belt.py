@@ -16,8 +16,8 @@ from ..problems import (
     move_around_blockers_two,
 )
 
-moves_per_complexity = 2
-white_belt_observations = 32
+moves_per_complexity = 3
+white_belt_observations = 128
 white_belt = build_lesson_plan(
     "white_belt",
     [
