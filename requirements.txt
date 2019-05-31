@@ -6,12 +6,16 @@ pytest-cov
 plac
 ujson
 tensorflow_estimator
-tensorflow>=2.0.0a
+tf-nightly-2.0-preview
 tf-agents-nightly
-tensorboard
+tb-nightly
 colr
 
 
 # dev 
 matplotlib
 black
+flake8
+
+graphviz
+pydot

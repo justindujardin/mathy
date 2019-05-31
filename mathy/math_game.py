@@ -1,5 +1,5 @@
 from itertools import groupby
-
+from typing import Optional, List
 from tf_agents.trajectories import time_step
 
 from .core.expressions import STOP, MathExpression
@@ -28,11 +28,11 @@ class MathGame:
 
     def __init__(
         self,
-        verbose=False,
-        max_moves=20,
+        verbose: bool = False,
+        max_moves: int = 20,
         lesson=None,
-        reward_discount=0.99,
-        rewarding_actions=None,
+        reward_discount: float = 0.99,
+        rewarding_actions: Optional[List[BaseRule]] = None,
     ):
         self.discount = reward_discount
         self.verbose = verbose
@@ -50,6 +50,8 @@ class MathGame:
         self.rewarding_actions = rewarding_actions
         if self.rewarding_actions is None:
             self.rewarding_actions = [ConstantsSimplifyRule, DistributiveFactorOutRule]
+        self._all_actions_cache = dict()
+        self._rule_list_cache = dict()
 
     @property
     def action_size(self):
@@ -202,6 +204,8 @@ class MathGame:
             raise ValueError("cannot generate problems without a lesson plan")
         (problem, complexity) = self.lesson.problem_fn()
         type = self.lesson.problem_type
+        self._all_actions_cache = dict()
+        self._rule_list_cache = dict()
         env_state = MathEnvironmentState(
             problem=problem, problem_type=type, max_moves=self.max_moves
         )
@@ -249,11 +253,15 @@ class MathGame:
         NOTE: If you want to get a list of which nodes each rule can be 
         applied to, prefer to use the `get_valid_moves` method.
         """
+        key = self.to_hash_key(env_state)
+        if key in self._rule_list_cache:
+            return self._rule_list_cache[key]
         expression = self.parser.parse(env_state.agent.problem)
         actions = [0] * len(self.available_rules)
         for rule_index, rule in enumerate(self.available_rules):
             nodes = rule.find_nodes(expression)
             actions[rule_index] = 0 if len(nodes) == 0 else 1
+        self._rule_list_cache[key] = actions[:]
         return actions
 
     def get_action_indices_from_timestep(self, time_step: AgentTimeStep):
@@ -277,6 +285,9 @@ class MathGame:
         return self.available_rules[time_step.action]
 
     def get_actions_for_node(self, expression: MathExpression):
+        key = str(expression)
+        if key in self._all_actions_cache:
+            return self._all_actions_cache[key][:]
         node_count = len(expression.toList())
         rule_count = len(self.available_rules)
         actions = [0] * rule_count * node_count
@@ -294,6 +305,7 @@ class MathGame:
                 #     )
                 # )
 
+        self._all_actions_cache[key] = actions[:]
         return actions
 
     def to_hash_key(self, env_state: MathEnvironmentState):

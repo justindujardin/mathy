@@ -1,29 +1,21 @@
 # coding: utf8
-import json
 import os
-import random
-import tempfile
 import time
 from datetime import timedelta
-from pathlib import Path
 
-import numpy
 import plac
 import tensorflow as tf
 from colr import color
 from mathy.agent.controller import MathModel
 from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
-from mathy.agent.training.lessons import LessonExercise, LessonPlan, build_lesson_plan
 from mathy.agent.training.math_experience import (
     MathExperience,
-    balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
 from mathy.agent.training.practice_runner import (
     ParallelPracticeRunner,
     PracticeRunner,
-    RunnerConfig,
 )
 from mathy.agent.training.practice_session import PracticeSession
 from mathy.agent.curriculum.problems import (
@@ -90,7 +82,7 @@ def main(
             iter_experience = short_term_size
         while lesson_experience_count < iter_experience:
             env_state, complexity = controller.get_initial_state(print_problem=False)
-            complexity_value = complexity * 2
+            complexity_value = complexity * 4
             controller.max_moves = (
                 lesson.max_turns if lesson.max_turns is not None else complexity_value
             )

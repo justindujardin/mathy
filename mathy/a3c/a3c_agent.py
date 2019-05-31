@@ -10,10 +10,11 @@ import tensorflow as tf
 from .actor_critic_model import ActorCriticModel
 from .random_agent import RandomAgent
 from .a3c_worker import A3CWorker
+from .ddqn_agent import DDQNAgent
 
 
 class A3CAgent:
-    def __init__(self, args):
+    def __init__(self, args, units=128):
         self.args = args
         self.game_name = "CartPole-v1"
         self.save_dir = self.args.save_dir
@@ -25,10 +26,8 @@ class A3CAgent:
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
         self.shared_network = tf.keras.layers.Dense(
-            128, activation="relu", name="shared_network"
+            units, activation="relu", name="shared_network"
         )
-        print(self.state_size, self.action_size)
-
         self.global_model = ActorCriticModel(
             self.state_size, self.action_size, shared_layers=[self.shared_network]
         )  # global network

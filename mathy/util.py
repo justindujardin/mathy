@@ -35,9 +35,11 @@ def discount(r, gamma=0.99):
     gamma: a float value between 0 and 0.99"""
     discounted_r = numpy.zeros_like(r, dtype=numpy.float32)
     running_add = 0
-    for t in range(len(r)):
+    for t in reversed(range(len(r))):
         running_add = running_add * gamma + r[t]
         discounted_r[t] = running_add
+    # reverse them to restore the correct order
+    numpy.flip(discounted_r)
     return discounted_r
 
 

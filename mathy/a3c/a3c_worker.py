@@ -7,6 +7,7 @@ import tensorflow as tf
 from . import record
 from .replay_buffer import ReplayBuffer
 from .actor_critic_model import ActorCriticModel
+from .ddqn_agent import DDQNAgent
 
 
 class A3CWorker(threading.Thread):
@@ -28,6 +29,7 @@ class A3CWorker(threading.Thread):
         game_name="CartPole-v0",
         save_dir="/tmp",
         args=None,
+        shared_units=128,
         shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
@@ -36,6 +38,7 @@ class A3CWorker(threading.Thread):
         self.result_queue = result_queue
         self.global_model = global_model
         self.shared_layers = shared_layers
+        self.shared_units = shared_units
         self.optimizer = optimizer
         self.args = args
         self.local_model = ActorCriticModel(
@@ -46,16 +49,10 @@ class A3CWorker(threading.Thread):
         self.env = gym.make(self.game_name).unwrapped
         self.save_dir = save_dir
         self.ep_loss = 0.0
-        self._build_reward_prediction()
+        self._build_control_policy()
 
-    def _build_reward_prediction(self):
-        shared = self.shared_layers
-        if shared is None:
-            shared = []
-        self.aux_model = tf.keras.Sequential(shared + [tf.keras.layers.Dense(3)])
-
-    def _run_reward_prediction(self, replay_buffer: ReplayBuffer):
-        pass
+    def ensure_state(self, state):
+        return np.reshape(state, [1, self.state_size])
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -86,10 +83,10 @@ class A3CWorker(threading.Thread):
 
             if time_count == self.args.update_freq or done:
                 self.update_global_network(done, new_state, replay_buffer)
-                self._run_reward_prediction(replay_buffer)
                 time_count = 0
                 if done:
                     self.finish_episode(ep_reward, ep_steps)
+
             ep_steps += 1
             time_count += 1
             current_state = new_state
