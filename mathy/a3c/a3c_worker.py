@@ -144,7 +144,7 @@ class A3CWorker(threading.Thread):
             _, values = self.local_model(
                 tf.convert_to_tensor(value=new_state[None, :], dtype=tf.float32)
             )
-            reward_sum = values.numpy()[0]
+            reward_sum = tf.squeeze(values).numpy()
 
         # Get discounted rewards
         discounted_rewards = []

@@ -140,7 +140,7 @@ def calculate_grouping_control_signal(observation_dict):
         "2x + 2x" = 0
         "2x + 4y + 2x" = 1
         "2x + 4y + 2x + 4y" = 2
-        "2x + 2x  + 4y + 4y" = 0
+        "2x + 2x + 4y + 4y" = 0
     """
 
     # We cheat the term grouping a bit by not parsing the expression
@@ -203,7 +203,7 @@ def calculate_reward_prediction_signal(observation_dict):
 
 
 def calculate_policy_target(observation_dict, soft=True):
-    policy = numpy.array(observation_dict["policy"][:], dtype="float32")
+    policy = numpy.array(observation_dict[TENSOR_KEY_PI][:], dtype="float32")
     # If we're using the hard targets, pass the policy distribution back
     # directly from the tree search. This may end up being the best way, but
     # I'm exploring "soft" targets after watching Jeff Dean talk at Stanford

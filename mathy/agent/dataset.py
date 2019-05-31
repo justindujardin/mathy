@@ -55,7 +55,7 @@ def make_training_input_fn(examples, batch_size):
     )
 
     lengths = [len(l["features"][FEATURE_BWD_VECTORS]) for l in examples]
-    pi_lengths = [len(numpy.array(l["policy"]).flatten()) for l in examples]
+    pi_lengths = [len(numpy.array(l[TENSOR_KEY_PI]).flatten()) for l in examples]
 
     max_sequence = max(lengths)
     max_pi_sequence = max(pi_lengths)

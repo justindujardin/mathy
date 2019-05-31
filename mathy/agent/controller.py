@@ -45,12 +45,12 @@ class MathModel:
         # long_term_size=32768,
         long_term_size=2048,
         is_eval_model=False,
-        # Karpathy once tweeted this was the best learning rate for Adam optimizer "hands down"
+        # Karpathy once tweeted this was "hands down" the best lr for Adam
         learning_rate=3e-4,
         # https://arxiv.org/pdf/1801.05134.pdf
         dropout=0.2,
         epochs=10,
-        batch_size=512,
+        batch_size=128,
         use_gpu=False,
         random_seed=1337,
     ):

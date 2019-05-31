@@ -50,9 +50,6 @@ class ActorMCTS:
         # Calculate the next state based on the selected action
         next_state, transition = game.get_next_state(state, action)
         r = transition.reward
-        is_done = transition.step_type == time_step.StepType.LAST
-
-        example_text = next_state.agent.problem
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
         out_policy = pi
@@ -77,9 +74,9 @@ class ActorMCTS:
         if not is_term:
             return next_state, train_example, None
         normal_rewards = [x["reward"] for x in history]
-        # print("initial rewards: {}".format(numpy.asarray(rewards)))
+        print("initial rewards: {}".format(numpy.asarray(normal_rewards)))
         rewards = list(discount(normal_rewards, game.discount))
-        # print("discounted rewards: {}".format(numpy.asarray(rewards)))
+        print("discounted rewards: {}".format(numpy.asarray(rewards)))
         problem_id = uuid.uuid4().hex
         for i, x in enumerate(history):
             x["problem"] = problem_id
