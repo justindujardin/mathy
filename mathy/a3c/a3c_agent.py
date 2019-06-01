@@ -10,13 +10,12 @@ import tensorflow as tf
 from .actor_critic_model import ActorCriticModel
 from .random_agent import RandomAgent
 from .a3c_worker import A3CWorker
-from .ddqn_agent import DDQNAgent
 
 
 class A3CAgent:
     def __init__(self, args, units=128):
         self.args = args
-        self.game_name = "CartPole-v1"
+        self.game_name = "Acrobot-v1"
         self.save_dir = self.args.save_dir
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
@@ -29,8 +28,10 @@ class A3CAgent:
             units, activation="relu", name="shared_network"
         )
         self.global_model = ActorCriticModel(
-            self.state_size, self.action_size, shared_layers=[self.shared_network]
-        )  # global network
+            units=units,
+            predictions=self.action_size,
+            shared_layers=[self.shared_network],
+        )
         self.global_model(
             tf.convert_to_tensor(
                 value=np.random.random((1, self.state_size)), dtype=tf.float32

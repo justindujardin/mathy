@@ -2,14 +2,13 @@ import tensorflow as tf
 
 
 class ActorCriticModel(tf.keras.Model):
-    def __init__(self, state_size, action_size, shared_layers=None):
+    def __init__(self, units=128, predictions=2, shared_layers=None):
         super(ActorCriticModel, self).__init__()
-        self.state_size = state_size
-        self.action_size = action_size
+        self.predictions = predictions
         self.shared_layers = shared_layers
-        self.in_dense = tf.keras.layers.Dense(128)
-        self.value_dense = tf.keras.layers.Dense(128)
-        self.pi_logits = tf.keras.layers.Dense(action_size)
+        self.in_dense = tf.keras.layers.Dense(units)
+        self.value_dense = tf.keras.layers.Dense(units)
+        self.pi_logits = tf.keras.layers.Dense(predictions)
         self.value_logits = tf.keras.layers.Dense(1)
 
     def call(self, inputs):

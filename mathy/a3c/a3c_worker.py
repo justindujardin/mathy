@@ -7,7 +7,6 @@ import tensorflow as tf
 from . import record
 from .replay_buffer import ReplayBuffer
 from .actor_critic_model import ActorCriticModel
-from .ddqn_agent import DDQNAgent
 
 
 class A3CWorker(threading.Thread):
@@ -15,7 +14,7 @@ class A3CWorker(threading.Thread):
     global_episode = 0
     # Moving average reward
     global_moving_average_reward = 0
-    best_score = 0
+    best_score = None
     save_lock = threading.Lock()
 
     def __init__(
@@ -26,7 +25,7 @@ class A3CWorker(threading.Thread):
         optimizer,
         result_queue,
         idx,
-        game_name="CartPole-v0",
+        game_name,
         save_dir="/tmp",
         args=None,
         shared_units=128,
@@ -42,14 +41,15 @@ class A3CWorker(threading.Thread):
         self.optimizer = optimizer
         self.args = args
         self.local_model = ActorCriticModel(
-            self.state_size, self.action_size, shared_layers=shared_layers
+            units=self.shared_units,
+            predictions=self.action_size,
+            shared_layers=shared_layers,
         )
         self.worker_idx = idx
         self.game_name = game_name
         self.env = gym.make(self.game_name).unwrapped
         self.save_dir = save_dir
         self.ep_loss = 0.0
-        self._build_control_policy()
 
     def ensure_state(self, state):
         return np.reshape(state, [1, self.state_size])
@@ -121,15 +121,15 @@ class A3CWorker(threading.Thread):
             episode_steps,
         )
         # We must use a lock to save our model and to print to prevent data races.
-        if episode_reward > A3CWorker.best_score:
+        if A3CWorker.best_score is None or episode_reward > A3CWorker.best_score:
             with A3CWorker.save_lock:
+                model_full_path = os.path.join(
+                    self.save_dir, "model_{}.h5".format(self.game_name)
+                )
                 print(
-                    "Saving best model to {}, "
-                    "episode score: {}".format(self.save_dir, episode_reward)
+                    f" -- wrote best model {model_full_path}, score: {episode_reward}"
                 )
-                self.global_model.save_weights(
-                    os.path.join(self.save_dir, "model_{}.h5".format(self.game_name))
-                )
+                self.global_model.save_weights(model_full_path)
                 A3CWorker.best_score = episode_reward
         A3CWorker.global_episode += 1
 
