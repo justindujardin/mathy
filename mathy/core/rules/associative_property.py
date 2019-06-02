@@ -1,31 +1,30 @@
-from ..tree import LEFT
-from ..expressions import AddExpression, MultiplyExpression, ConstantExpression
-from ..util import is_add_or_sub, is_const, terms_are_like
+from ..expressions import AddExpression, MultiplyExpression
 from ..rule import BaseRule
 
-# ### Associative Property
-#
-# Addition: `(a + b) + c = a + (b + c)`
-#
-#         (y) +            + (x)
-#            / \          / \
-#           /   \        /   \
-#      (x) +     c  ->  a     + (y)
-#         / \                / \
-#        /   \              /   \
-#       a     b            b     c
-#
-# Multiplication: `(ab)c = a(bc)`
-#
-#         (x) *            * (y)
-#            / \          / \
-#           /   \        /   \
-#      (y) *     c  <-  a     * (x)
-#         / \                / \
-#        /   \              /   \
-#       a     b            b     c
-#
+
 class AssociativeSwapRule(BaseRule):
+    r"""Associative Property
+    Addition: `(a + b) + c = a + (b + c)`
+
+             (y) +            + (x)
+                / \          / \
+               /   \        /   \
+          (x) +     c  ->  a     + (y)
+             / \                / \
+            /   \              /   \
+           a     b            b     c
+
+     Multiplication: `(ab)c = a(bc)`
+
+             (x) *            * (y)
+                / \          / \
+               /   \        /   \
+          (y) *     c  <-  a     * (x)
+             / \                / \
+            /   \              /   \
+           a     b            b     c
+        """
+
     @property
     def name(self):
         return "Associative Group"
@@ -38,7 +37,9 @@ class AssociativeSwapRule(BaseRule):
         if isinstance(node.parent, AddExpression) and isinstance(node, AddExpression):
             return True
 
-        if isinstance(node.parent, MultiplyExpression) and isinstance(node, MultiplyExpression):
+        if isinstance(node.parent, MultiplyExpression) and isinstance(
+            node, MultiplyExpression
+        ):
             return True
 
         return False

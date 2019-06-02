@@ -1,13 +1,16 @@
 from .tree import STOP
 from .util import is_debug_mode
+from .expressions import MathExpression
 
-# Basic rule class that visits a tree with a specified visit order.
+
 class BaseRule:
+    """Basic rule class that visits a tree with a specified visit order."""
+
     @property
     def name(self):
         return "Abstract Base Rule"
 
-    def find_node(self, expression):
+    def find_node(self, expression: MathExpression):
         """Find the first node that can have this rule applied to it."""
         result = None
 
@@ -16,13 +19,13 @@ class BaseRule:
             if self.can_apply_to(node):
                 result = node
 
-            if result != None:
+            if result is not None:
                 return STOP
 
         expression.visit_inorder(visit_fn)
         return result
 
-    def find_nodes(self, expression):
+    def find_nodes(self, expression: MathExpression):
         """
         Find all nodes in an expression that can have this rule applied to them.
         Each node is marked with it's token index in the expression, according to 
@@ -48,8 +51,8 @@ class BaseRule:
     def can_apply_to(self, node):
         return False
 
-    def apply_to(self, node):
-        # Only double-check canApply in debug mode
+    def apply_to(self, node: MathExpression):
+        # Only double-check canApply in debug mode for performance reasons
         if is_debug_mode() and not self.can_apply_to(node):
             print("Bad Apply: {}".format(node))
             print("     Root: {}".format(node.get_root()))
@@ -67,7 +70,7 @@ class ExpressionChangeRule:
         self._save_parent = None
 
     def save_parent(self, parent=None, side=None):
-        """Note the parent of the node being modified, and set it as the parent of the 
+        """Note the parent of the node being modified, and set it as the parent of the
         rule output automatically."""
         if self.node and parent is None:
             parent = self.node.parent
@@ -79,7 +82,8 @@ class ExpressionChangeRule:
         return self
 
     def done(self, node):
-        """Set the result of a change to the given node. Restore the parent if `save_parent` was called"""
+        """Set the result of a change to the given node. Restore the parent
+        if `save_parent` was called"""
         if self._save_parent:
             self._save_parent.set_side(node, self._save_side)
         self.result = node

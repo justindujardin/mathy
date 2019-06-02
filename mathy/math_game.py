@@ -12,6 +12,7 @@ from .core.rules import (
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
+    ExpressionChangeRule,
 )
 from .core.util import get_terms, has_like_terms, is_preferred_term_form
 from .environment_state import AgentTimeStep, MathEnvironmentState
@@ -160,29 +161,26 @@ class MathGame:
         )
 
         if not searching and self.verbose:
-            output = """{:<25} | {}""".format(change_name[:25].lower(), out_problem)
-
-            def get_move_shortname(index, move):
-                if move == 0:
-                    return "--"
-                if move >= len(self.available_rules):
-                    return "xx"
-                return self.available_rules[index].code.lower()
-
             token_idx = "{}".format(token_index).zfill(3)
-            moves_left = str(agent.moves_remaining).zfill(2)
-            valid_moves = self.get_valid_rules(out_env)
-            move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
-            moves = " ".join(move_codes)
-            print("{} | {} | {} | {}".format(moves, moves_left, token_idx, output))
+            self.print_state(
+                out_env,
+                change_name[:25].lower(),
+                token_idx,
+                change,
+            )
         transition = self.get_state_value(out_env, searching)
         return out_env, transition
 
     def print_state(
-        self, env_state: MathEnvironmentState, action_name: str, token_index=-1
+        self,
+        env_state: MathEnvironmentState,
+        action_name: str,
+        token_index: int = -1,
+        change: ExpressionChangeRule = None,
     ):
         """Render the given state to stdout for visualization"""
-        output = """{:<25} | {}""".format(action_name.lower(), env_state.agent.problem)
+        changed_problem = env_state.agent.problem
+        output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
         def get_move_shortname(index, move):
             if move == 0:

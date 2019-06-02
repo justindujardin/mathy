@@ -160,10 +160,15 @@ def calculate_grouping_control_signal(observation_dict):
 
 
 def calculate_group_prediction_signal(observation_dict):
-    """Calculate group_prediction signal as the number of unique types
-    of like-term groups in an expression. The challenge for the model is 
-    to predict the ratio of unique groups of like terms to all terms in 
-    an expression.
+    """Calculate the ratio of unique groups of like terms to all terms in
+    the expression. This is useful to get a number that stays in range of 0-1
+    so your loss does not run all over the place when you introduce variable 
+    length inputs. The division by the number of terms is important for making 
+    the problem difficult to predict, because it causes the value to change 
+    as the problem evolves over time. i.e. without the divide the model would 
+    easily be able to predict the number of fixed unique term groups in an expression
+    because it wouldn't change for any of the transformations of that input in
+    an episode.
 
     Examples:
         "2x + 4x" = 1 / 2
