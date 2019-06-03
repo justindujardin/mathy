@@ -162,12 +162,7 @@ class MathGame:
 
         if not searching and self.verbose:
             token_idx = "{}".format(token_index).zfill(3)
-            self.print_state(
-                out_env,
-                change_name[:25].lower(),
-                token_idx,
-                change,
-            )
+            self.print_state(out_env, change_name[:25].lower(), token_idx, change)
         transition = self.get_state_value(out_env, searching)
         return out_env, transition
 
@@ -180,6 +175,8 @@ class MathGame:
     ):
         """Render the given state to stdout for visualization"""
         changed_problem = env_state.agent.problem
+        if change is not None:
+            changed_problem = change.result.get_root().colored
         output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
         def get_move_shortname(index, move):

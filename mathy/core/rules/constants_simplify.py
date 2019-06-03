@@ -27,5 +27,6 @@ class ConstantsSimplifyRule(BaseRule):
         change = super().apply_to(node)
         change.save_parent()
         result = ConstantExpression(node.evaluate())
+        result.set_changed()
         return change.done(result)
 

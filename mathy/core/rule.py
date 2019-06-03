@@ -83,7 +83,7 @@ class ExpressionChangeRule:
 
     def done(self, node):
         """Set the result of a change to the given node. Restore the parent
-        if `save_parent` was called"""
+        if `save_parent` was called """
         if self._save_parent:
             self._save_parent.set_side(node, self._save_side)
         self.result = node
