@@ -61,14 +61,17 @@ def main(
 ):
     global lessons
     shuffle_lessons = False
-    min_train_experience = 16
+    min_train_experience = 128
     eval_interval = 2
-    short_term_size = 768
+    short_term_size = 2048
     long_term_size = 8192 * 3
     initial_train_iterations = 10
     episode_counter = 0
+    eval_rollouts = 500
+    eval_exploration_moves = 0
     counter = 0
-    training_epochs = 10
+    moves_per_complexity = 3
+    training_epochs = 4
     math_game = MathGame(verbose=True)
     mathy = MathModel(
         math_game.action_size,
@@ -145,20 +148,20 @@ def main(
             print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
             # Fill up a certain amount of experience per problem type
             lesson_experience_count = 0
-            moves_per_complexity = 4
+            lesson_complexity = moves_per_complexity
             if lesson.moves_per_complexity is not None:
-                moves_per_complexity = lesson.moves_per_complexity
+                lesson_complexity = lesson.moves_per_complexity
             if lesson.num_observations is not None:
                 iter_experience = lesson.num_observations
             else:
                 iter_experience = short_term_size
             while lesson_experience_count < iter_experience:
                 env_state, complexity = math_game.get_initial_state(print_problem=False)
-                complexity_value = complexity * moves_per_complexity
+                complexity_value = complexity * lesson_complexity
                 math_game.verbose = eval_run or verbose
                 if eval_run:
-                    num_rollouts = 500
-                    num_exploration_moves = 0
+                    num_rollouts = eval_rollouts
+                    num_exploration_moves = eval_exploration_moves
                     epsilon = 0
                 else:
                     num_rollouts = lesson.mcts_sims

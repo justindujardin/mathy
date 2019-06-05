@@ -9,14 +9,9 @@ from colr import color
 from mathy.agent.controller import MathModel
 from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
-from mathy.agent.training.math_experience import (
-    MathExperience,
-)
+from mathy.agent.training.math_experience import MathExperience
 from mathy.agent.training.mcts import MCTS
-from mathy.agent.training.practice_runner import (
-    ParallelPracticeRunner,
-    PracticeRunner,
-)
+from mathy.agent.training.practice_runner import ParallelPracticeRunner, PracticeRunner
 from mathy.agent.training.practice_session import PracticeSession
 from mathy.agent.curriculum.problems import (
     get_rand_vars,
@@ -53,7 +48,8 @@ def main(
 ):
     controller = MathGame(verbose=True)
     mathy = MathModel(controller.action_size, model_dir)
-    experience = MathExperience(mathy.model_dir, 128)
+    short_term_size = 128
+    experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     if lesson_id is None:
         lesson_id = list(lessons)[0]
@@ -66,6 +62,7 @@ def main(
     num_solved = 0
     num_failed = 0
     model = mathy
+    print("[exam] using {} MCTS rollouts".format(mcts_sims))
     print("[exam] lesson order: {}".format([l.name for l in plan_lessons]))
     # we fill this with episode rewards and when it's a fixed size we
     # dump the average value to tensorboard

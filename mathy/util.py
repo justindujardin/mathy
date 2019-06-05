@@ -8,13 +8,12 @@ from tf_agents.trajectories import time_step
 class GameRewards:
     """Game reward constant values"""
 
-    LOSE = -1
-    WIN = 1
-    TIMESTEP = 0.0
-    NEW_LOCATION = 0.01
+    LOSE = -1.0
+    WIN = 1.0
     HELPFUL_MOVE = 0.1
-    PREVIOUS_LOCATION = -0.01
-    INVALID_ACTION = -0.02
+    TIMESTEP = -0.01
+    PREVIOUS_LOCATION = -0.2
+    INVALID_ACTION = -0.03
 
 
 def is_terminal_transition(transition: time_step.TimeStep):

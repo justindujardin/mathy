@@ -74,9 +74,15 @@ class ActorMCTS:
         if not is_term:
             return next_state, train_example, None
         normal_rewards = [x["reward"] for x in history]
-        print("initial rewards: {}".format(numpy.asarray(normal_rewards)))
         rewards = list(discount(normal_rewards, game.discount))
-        print("discounted rewards: {}".format(numpy.asarray(rewards)))
+        #
+        episode_totals = numpy.cumsum(rewards)
+        numpy.set_printoptions(precision=3, suppress=True)
+        print(
+            "rewards: normal, discounted, total \n{}".format(
+                numpy.asarray(list(zip(normal_rewards, rewards, episode_totals)))
+            )
+        )
         problem_id = uuid.uuid4().hex
         for i, x in enumerate(history):
             x["problem"] = problem_id

@@ -141,8 +141,7 @@ def math_estimator(features, labels, mode, params):
             aux_group_prediction_head,
             aux_reward_prediction_head,
         ]
-        # The first two (policy/value) heads get full weight, and the aux
-        # tasks combine to half the weight of the policy/value heads
-        # head_weights = [1.0, 1.0, 0.25, 0.75, 0.5, 0.5]
-        multi_head = estimator.multi_head.multi_head(heads)
+        # The first two (policy/value) heads get full weight, and the aux tasks get whatever...
+        head_weights = [1.0, 1.0, 0.25, 0.25, 0.25, 0.25]
+        multi_head = estimator.multi_head.multi_head(heads, head_weights=head_weights)
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)

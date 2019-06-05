@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def LSTM(units=32, name="lstm", use_shared=False):
+def LSTM(units=32, name="lstm", use_shared=False, use_mask=False):
     """LSTM for processing input vectors, optionally seeded with state from another 
     input. Usually this would be something like non-sequential features that are 
     associated with your sequence features"""
@@ -23,7 +23,8 @@ def LSTM(units=32, name="lstm", use_shared=False):
 
     def func(input_layer, initial_state=None):
         with tf.compat.v1.variable_scope(name):
-            input_layer = mask(input_layer)
+            if use_mask is True:
+                input_layer = mask(input_layer)
             # Support seeding the LSTM with initial state from some other input
             # Inspired by: https://cs.stanford.edu/people/karpathy/cvpr2015.pdf
             lstm_fwd, state_h_fwd, state_c_fwd = lstm(

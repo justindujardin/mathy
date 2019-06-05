@@ -40,11 +40,6 @@ TRAINING_SET_FILE_NAME = "training.jsonl"
 # context from its history when making new predictions.
 AgentTimeStep = namedtuple("AgentTimeStep", ["raw", "focus", "action"])
 
-# Build a context sensitive vector for each token
-class ContextualToken(namedtuple("ContextualToken", ["previous", "current", "next"])):
-    def __str__(self):
-        return f"prev:{previous}, current:{current}, next:{next}"
-
 
 class MathAgentState(object):
     def __init__(
@@ -217,5 +212,5 @@ class MathEnvironmentState(object):
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
-            FEATURE_MOVE_MASK: maybe_wrap(move_mask)
+            FEATURE_MOVE_MASK: maybe_wrap(move_mask),
         }

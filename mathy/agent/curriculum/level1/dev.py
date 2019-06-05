@@ -4,6 +4,21 @@ from ...training.lessons import LessonExercise, build_lesson_plan
 from ..problems import simplify_multiple_terms
 
 
+def simple_polynomials(number_terms, sims=500, observations=32):
+    return build_lesson_plan(
+        "simple_polynomials",
+        [
+            LessonExercise(
+                lesson_name=f"polynomials_{number_terms}_terms",
+                problem_fn=lambda: simplify_multiple_terms(number_terms),
+                problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+                mcts_sims=sims,
+                num_observations=observations,
+            )
+        ],
+    )
+
+
 dev = build_lesson_plan(
     "dev",
     [

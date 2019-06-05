@@ -207,12 +207,12 @@ def calculate_reward_prediction_signal(observation_dict):
     return [negative, neutral, positive]
 
 
-def calculate_policy_target(observation_dict, soft=True):
+def calculate_policy_target(observation_dict, soft=False):
     policy = numpy.array(observation_dict[TENSOR_KEY_PI][:], dtype="float32")
     # If we're using the hard targets, pass the policy distribution back
     # directly from the tree search. This may end up being the best way, but
     # I'm exploring "soft" targets after watching Jeff Dean talk at Stanford
-    # for Karpathy's course. 
+    # for Karpathy's course.
     if soft is not True:
         return policy
     # The policy coming from the network will usually already include weight
@@ -278,7 +278,7 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
         TENSOR_KEY_PI: policy_out,
         TENSOR_KEY_VALUE: [example["discounted"]],
         TENSOR_KEY_NODE_CTRL: [
-            calculate_brevity_node_control_signal(example)
+            calculate_chaos_node_control_signal(example)
         ],
         TENSOR_KEY_GROUPING_CTRL: [
             calculate_grouping_control_signal(example)

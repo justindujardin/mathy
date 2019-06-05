@@ -59,6 +59,20 @@ class MathGame:
         """Return the number of available actions"""
         return len(self.available_rules)
 
+    def get_win_signal(self, env_state: MathEnvironmentState) -> float:
+        """Calculate the reward value for completing the episode. This is done
+        so that the reward signal can be scaled based on the time it took to 
+        complete the episode """
+        total_moves = env_state.max_moves
+        # guard against divide by zero with max and a small value
+        current_move = round(
+            max(3e-10, total_moves - env_state.agent.moves_remaining), 3
+        )
+        bonus = (total_moves / current_move) / total_moves
+        if current_move < total_moves / 2:
+            bonus *= 2
+        return GameRewards.WIN + bonus
+
     def get_state_value(self, env_state: MathEnvironmentState, searching=False):
         """Get the value of the current state
 
@@ -84,7 +98,7 @@ class MathGame:
                 if not is_preferred_term_form(term):
                     is_win = False
             if is_win:
-                return time_step.termination(features, GameRewards.WIN)
+                return time_step.termination(features, self.get_win_signal(env_state))
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
