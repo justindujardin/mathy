@@ -79,7 +79,7 @@ def main(
             iter_experience = short_term_size
         while lesson_experience_count < iter_experience:
             env_state, complexity = controller.get_initial_state(print_problem=False)
-            complexity_value = complexity * 4
+            complexity_value = complexity * 3
             controller.max_moves = (
                 lesson.max_turns if lesson.max_turns is not None else complexity_value
             )
