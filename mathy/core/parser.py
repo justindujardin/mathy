@@ -169,7 +169,7 @@ class ExpressionParser:
 
     def tokenize(self, input):
         global _tokens_cache
-        if not input in _tokens_cache:
+        if input not in _tokens_cache:
             _tokens_cache[input] = self.tokenizer.tokenize(input)
         return _tokens_cache[input][:]
 

@@ -1,48 +1,56 @@
-from pathlib import Path
-
+import numpy
 import tensorflow as tf
-
-import ujson
 
 from ..agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_FOCUS_INDEX,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
+    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
-    TRAIN_LABELS_TARGET_PI,
-    TRAIN_LABELS_TARGET_VALUE,
+    TENSOR_KEY_NODE_CTRL,
+    TENSOR_KEY_GROUPING_CTRL,
+    TENSOR_KEY_GROUP_PREDICT,
+    TENSOR_KEY_REWARD_PREDICT,
+    TENSOR_KEY_PI,
+    TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
-from ..environment_state import INPUT_EXAMPLES_FILE_NAME
 
 
 def make_training_input_fn(examples, batch_size):
-    """Return an input function that lazily loads self-play examples from 
-    the given file during training
-    """
+    """Return an input function that lazily loads self-play examples from
+    the given file during training."""
 
     output_types = (
         {
-            FEATURE_FWD_VECTORS: tf.uint8,
-            FEATURE_BWD_VECTORS: tf.uint8,
-            FEATURE_LAST_FWD_VECTORS: tf.uint8,
-            FEATURE_LAST_BWD_VECTORS: tf.uint8,
-            FEATURE_FOCUS_INDEX: tf.uint8,
-            FEATURE_NODE_COUNT: tf.int32,
-            FEATURE_MOVE_COUNTER: tf.int32,
-            FEATURE_MOVES_REMAINING: tf.int32,
-            FEATURE_PROBLEM_TYPE: tf.int32,
+            FEATURE_FWD_VECTORS: tf.int64,
+            FEATURE_BWD_VECTORS: tf.int64,
+            FEATURE_LAST_FWD_VECTORS: tf.int64,
+            FEATURE_LAST_BWD_VECTORS: tf.int64,
+            FEATURE_LAST_RULE: tf.int64,
+            FEATURE_NODE_COUNT: tf.int64,
+            FEATURE_MOVE_COUNTER: tf.int64,
+            FEATURE_MOVES_REMAINING: tf.int64,
+            FEATURE_PROBLEM_TYPE: tf.int64,
+            FEATURE_MOVE_MASK: tf.int64,
         },
-        {TRAIN_LABELS_TARGET_PI: tf.float32, TRAIN_LABELS_TARGET_VALUE: tf.float32},
+        {
+            TENSOR_KEY_PI: tf.float32,
+            TENSOR_KEY_NODE_CTRL: tf.int32,
+            TENSOR_KEY_GROUPING_CTRL: tf.int32,
+            TENSOR_KEY_GROUP_PREDICT: tf.int32,
+            TENSOR_KEY_REWARD_PREDICT: tf.int32,
+            TENSOR_KEY_VALUE: tf.float32,
+        },
     )
 
-    lengths = [len(l["inputs"][FEATURE_BWD_VECTORS]) for l in examples]
-    pi_lengths = [len(l["policy"]) for l in examples]
+    lengths = [len(l["features"][FEATURE_BWD_VECTORS]) for l in examples]
+    pi_lengths = [len(numpy.array(l[TENSOR_KEY_PI]).flatten()) for l in examples]
 
     max_sequence = max(lengths)
     max_pi_sequence = max(pi_lengths)

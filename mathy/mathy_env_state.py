@@ -1,19 +1,21 @@
 import json
 import random
 from collections import namedtuple
+from typing import NamedTuple, List
 
 import numpy
 import tensorflow as tf
 
 from .agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_FOCUS_INDEX,
+    FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
+    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
     pad_array,
 )
@@ -35,22 +37,33 @@ INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 TRAINING_SET_FILE_NAME = "training.jsonl"
 
 
-# Capture summarized environment state for a previous timestep so the agent can use
-# context from its history when making new predictions.
-AgentTimeStep = namedtuple("AgentTimeStep", ["raw", "focus", "action"])
+class MathyEnvTimeStep(NamedTuple):
+    """Capture summarized environment state for a previous timestep so the
+    agent can use context from its history when making new predictions.
+    - "raw" is the input text at the timestep
+    - "focus" is the index of the node that is acted on
+    - "action" is the action taken
+    """
 
-# Build a context sensitive vector for each token
-class ContextualToken(namedtuple("ContextualToken", ["previous", "current", "next"])):
-    def __str__(self):
-        return f"prev:{previous}, current:{current}, next:{next}"
+    raw: str
+    focus: int
+    action: int
 
 
-class MathAgentState(object):
+class MathAgentState:
+    moves_remaining: int
+    problem: str
+    problem_type: int
+    reward: float
+    history: List[MathyEnvTimeStep]
+    focus_index: int
+    last_action: int
+
     def __init__(
         self,
-        moves_remaining: int,
-        problem: str,
-        problem_type: int,
+        moves_remaining,
+        problem,
+        problem_type,
         reward=0.0,
         history=None,
         focus_index=0,
@@ -77,10 +90,10 @@ class MathAgentState(object):
         )
 
 
-class MathEnvironmentState(object):
-    """Class for holding environment state and extracting features 
+class MathyEnvState(object):
+    """Class for holding environment state and extracting features
     to be passed to the policy/value neural network.
-    
+
     Mutating operations all return a copy of the environment adapter
     with its own state.
 
@@ -105,36 +118,38 @@ class MathEnvironmentState(object):
             self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
+        # Ensure a string made it into the problem slot
+        assert isinstance(self.agent.problem, str)
 
     @classmethod
     def copy(cls, from_state):
-        return MathEnvironmentState(state=from_state)
+        return MathyEnvState(state=from_state)
 
     def clone(self):
-        return MathEnvironmentState(state=self)
+        return MathyEnvState(state=self)
 
     def encode_player(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
     ):
         """Encode a player's state into the env_state, and return the env_state"""
-        out_state = MathEnvironmentState.copy(self)
+        out_state = MathyEnvState.copy(self)
         agent = out_state.agent
-        agent.history.append(AgentTimeStep(problem, focus_index, action))
+        agent.history.append(MathyEnvTimeStep(problem, focus_index, action))
         agent.problem = problem
         agent.action = action
         agent.moves_remaining = moves_remaining
         agent.focus_index = focus_index
         return out_state
 
-    def get_node_vectors(self, expression: MathExpression):
+    def get_node_vectors(self, expression: MathExpression) -> List[int]:
         """Get a set of context-sensitive vectors for a given expression"""
         nodes = expression.toList()
         vectors = []
         nodes_len = len(nodes)
-        node_masks = []
         pad_value = MathTypeKeys["empty"]
         context_pad_value = (pad_value, pad_value, pad_value)
-        # Add context before/current/after node values  (thanks @honnibal for this trick)
+        # Add context before/current/after node values  (thanks @honnibal for
+        # this trick.)
         for i, t in enumerate(nodes):
             last = pad_value if i == 0 else nodes[i - 1].type_id
             next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
@@ -151,8 +166,8 @@ class MathEnvironmentState(object):
 
         return context_vectors
 
-    def to_input_features(self, return_batch=False):
-        """Output a one element array of features that can be fed to the 
+    def to_input_features(self, move_mask, return_batch=False):
+        """Output Dict of integer features that can be fed to the
         neural network for prediction.
 
         When return_batch is true, the outputs will have an array of features for each
@@ -178,8 +193,13 @@ class MathEnvironmentState(object):
 
         # Provide context vectors for the previous state if there is one
         last_vectors = [pad_value] * len(vectors)
+        last_action = -1
+        if len(self.agent.history) >= 1:
+            last_action = self.agent.history[-1].action
+
         if len(self.agent.history) > 1:
-            last_expression = self.parser.parse(self.agent.history[-2].raw)
+            last_ts: MathyEnvTimeStep = self.agent.history[-2]
+            last_expression = self.parser.parse(last_ts.raw)
             last_vectors = self.get_node_vectors(last_expression)
 
             # If the sequences differ in length, pad to the longest one
@@ -200,15 +220,16 @@ class MathEnvironmentState(object):
             return [value] if return_batch else value
 
         return {
+            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
+            FEATURE_MOVE_COUNTER: maybe_wrap(
+                int(self.max_moves - self.agent.moves_remaining)
+            ),
+            FEATURE_LAST_RULE: maybe_wrap(last_action),
+            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
             FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
-            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_FOCUS_INDEX: maybe_wrap(self.agent.focus_index),
-            FEATURE_MOVE_COUNTER: maybe_wrap(
-                int(self.max_moves - self.agent.moves_remaining)
-            ),
-            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
+            FEATURE_MOVE_MASK: maybe_wrap(move_mask),
         }

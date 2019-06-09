@@ -13,7 +13,7 @@ from mathy.agent.training.math_experience import (
     balanced_reward_experience_samples,
 )
 from mathy.environment_state import INPUT_EXAMPLES_FILE_NAME
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -39,13 +39,20 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         str,
     ),
     learning_rate=("The learning rate to use when training", "option", "lr", float),
+    epochs=("The number of training epochs", "option", "e", int),
     dropout=("The dropout to apply to output predictions", "option", "d", float),
 )
-def main(model_dir, examples_file, transfer_from=None, learning_rate=3e-4, dropout=0.2):
-    epochs = 10
+def main(
+    model_dir,
+    examples_file,
+    transfer_from=None,
+    epochs=10,
+    learning_rate=3e-4,
+    dropout=0.2,
+):
     train_all = True
-    train_number = 2048
-    controller = MathGame(verbose=True)
+    train_number = 2048 if not train_all else 1e6
+    controller = MathyEnv(verbose=True)
     input_examples = Path(examples_file)
     model_dir = Path(model_dir)
     if not model_dir.is_dir():

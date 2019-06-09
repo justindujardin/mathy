@@ -58,30 +58,30 @@ class PracticeSession:
     def run_self_play(self, iteration, num_episodes):
         if self.lesson is None:
             raise ValueError("cannot train without LessonExercise")
-        bar = Bar(self.lesson.name.upper(), max=num_episodes)
-        bar.suffix = "working on first problem..."
-        bar.next()
+        # bar = Bar(self.lesson.name.upper(), max=num_episodes)
+        # bar.suffix = "working on first problem..."
+        # bar.next()
         current_episode = 0
 
         solved = 0
         failed = 0
 
         def episode_complete(self, episode, summary):
-            nonlocal current_episode, bar, num_episodes, solved, failed
+            nonlocal current_episode, num_episodes, solved, failed
             current_episode += 1
             if summary.get("solved", False) is True:
                 solved = solved + 1
             else:
                 failed = failed + 1
 
-            bar.message = "{} [{},{}]".format(self.lesson.name.upper(), solved, failed)
-            bar.suffix = "({eps}/{maxeps}) | total: {total:} | remaining: {eta:}".format(
-                eps=current_episode,
-                maxeps=num_episodes,
-                total=bar.elapsed_td,
-                eta=bar.eta_td,
-            )
-            bar.next()
+            # bar.message = "{} [{},{}]".format(self.lesson.name.upper(), solved, failed)
+            # bar.suffix = "({eps}/{maxeps}) | total: {total:} | remaining: {eta:}".format(
+            #     eps=current_episode,
+            #     maxeps=num_episodes,
+            #     total=bar.elapsed_td,
+            #     eta=bar.eta_td,
+            # )
+            # bar.next()
 
         episodes_with_args = []
         for _ in range(1, num_episodes + 1):
@@ -119,7 +119,7 @@ class PracticeSession:
         # )
         # print("By complexity:\n{}\n\n".format(json.dumps(complexity_stats, indent=2)))
         self.runner.episode_complete = old_update
-        bar.finish()
+        # bar.finish()
 
         # Swap the latest examples, and append the old latest to all examples
         self.all_examples.extend(self.latest_examples)

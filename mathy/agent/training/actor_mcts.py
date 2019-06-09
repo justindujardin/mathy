@@ -1,6 +1,7 @@
 import copy
 import math
 import time
+import uuid
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
 from sys import stdin
@@ -9,8 +10,8 @@ import numpy
 from tf_agents.trajectories import time_step
 
 from ...core.expressions import MathExpression
-from ...environment_state import MathEnvironmentState
-from ...math_game import MathGame
+from ...mathy_env_state import MathyEnvState
+from ...mathy_env import MathyEnv
 from ...util import discount, is_terminal_transition, normalize_rewards
 from ..controller import MathModel
 from .mcts import MCTS
@@ -27,7 +28,7 @@ class ActorMCTS:
         self.explore_for_n_moves = explore_for_n_moves
 
     def step(
-        self, game: MathGame, env_state: MathEnvironmentState, model: MathModel, history
+        self, game: MathyEnv, env_state: MathyEnvState, model: MathModel, history
     ):
         """Pick an action, take it, and return the next state.
 
@@ -36,7 +37,8 @@ class ActorMCTS:
 
         # Hold on to the episode example data for training the neural net
         state = env_state.clone()
-        example_data = state.to_input_features()
+        pi_mask = game.get_valid_moves(state)
+        example_data = state.to_input_features(pi_mask)
         move_count = state.max_moves - state.agent.moves_remaining
 
         # If the move_count is less than threshold, set temp = 1 else 0
@@ -48,38 +50,42 @@ class ActorMCTS:
         # Calculate the next state based on the selected action
         next_state, transition = game.get_next_state(state, action)
         r = transition.reward
-        is_done = transition.step_type == time_step.StepType.LAST
-
-        example_text = next_state.agent.problem
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
-        # out_policy = numpy.reshape(pi, (-1, len(game.available_rules)))
         out_policy = pi
-        history.append([example_data, out_policy, r, example_text])
+        out_policy = numpy.reshape(pi, (-1, len(game.actions))).tolist()
+        pi_mask = numpy.reshape(pi_mask, (-1, len(game.actions))).tolist()
+        action_i, token_i = game.get_action_indices(action)
         # Output a single training example for per-step training
+        train_features = copy.deepcopy(example_data)
+        train_features["policy_mask"] = pi_mask
         train_example = {
+            "input": state.agent.problem,
+            "output": next_state.agent.problem,
+            "action": action_i,
+            "token": token_i,
             "reward": float(r),
-            "before": state.agent.problem,
+            "discounted": float(r),
             "policy": out_policy,
-            "inputs": copy.deepcopy(example_data),
+            "features": train_features,
         }
+        history.append(train_example)
         # Keep going if the reward signal is not terminal
         if not is_term:
             return next_state, train_example, None
-        normal_rewards = [x[2] for x in history]
-        # print("initial rewards: {}".format(numpy.asarray(rewards)))
+        normal_rewards = [x["reward"] for x in history]
         rewards = list(discount(normal_rewards, game.discount))
-        # print("discounted rewards: {}".format(numpy.asarray(rewards)))
-        examples = []
-        for i, x in enumerate(history):
-            examples.append(
-                {
-                    "original": float(normal_rewards[i]),
-                    "reward": float(rewards[i]),
-                    "before": x[3],
-                    "policy": x[1],
-                    "inputs": x[0],
-                }
+        #
+        episode_totals = numpy.cumsum(rewards)
+        numpy.set_printoptions(precision=3, suppress=True)
+        print(
+            "rewards: normal, discounted, total \n{}".format(
+                numpy.asarray(list(zip(normal_rewards, rewards, episode_totals)))
             )
+        )
+        problem_id = uuid.uuid4().hex
+        for i, x in enumerate(history):
+            x["problem"] = problem_id
+            x["discounted"] = float(rewards[i])
         episode_reward = sum(rewards)
-        return next_state, train_example, (examples, episode_reward, is_win)
+        return next_state, train_example, (history, episode_reward, is_win)

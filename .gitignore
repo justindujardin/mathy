@@ -10,7 +10,7 @@ doom/
 .training-old/
 program.prof
 .terraform
-
+.mypy_cache
 models/
 draws.txt
 visualization
@@ -24,7 +24,8 @@ site/public
 .cache
 
 
-agents/mathy_micro
-training/
+agents/
+/training/
 training.jsonl
 training_tiny.jsonl
+hoarding/

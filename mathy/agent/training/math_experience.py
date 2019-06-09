@@ -5,7 +5,7 @@ from shutil import copyfile
 import random
 import ujson
 
-from ...environment_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
+from ...mathy_env_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
 
 
 def balanced_reward_experience_samples(examples_pool, max_items: int):
@@ -21,16 +21,17 @@ def balanced_reward_experience_samples(examples_pool, max_items: int):
     which found this by observing the brain activity of animals while they slept.    
     """
     overflow_examples = []
+    epsilon = 0.01
     positives = []
     negatives = []
     shuffled = examples_pool[:]
     half_examples = int(max_items / 2)
     random.shuffle(shuffled)
     for example in examples_pool:
-        reward = example["reward"]
-        if reward < 0.0 and len(negatives) < half_examples:
+        reward = example["discounted"]
+        if reward < epsilon and len(negatives) < half_examples:
             negatives.append(example)
-        elif reward > 0.0 and len(positives) < half_examples:
+        elif reward > epsilon and len(positives) < half_examples:
             positives.append(example)
         else:
             overflow_examples.append(example)
@@ -51,6 +52,59 @@ def balanced_reward_experience_samples(examples_pool, max_items: int):
     return out_examples
 
 
+class MathExamples:
+    """Load and save a list of training examples from the file system"""
+
+    def __init__(self, file_path, initial_load=True):
+        self.file_path = file_path
+        self._examples = []
+        if initial_load:
+            self.load()
+
+    @property
+    def examples(self):
+        """Get the entire list of examples"""
+        return self._examples
+
+    def add(self, examples):
+        self._examples += examples
+
+    def load(self):
+        # Try to match a specified file first
+        file_path = Path(self.file_path)
+        if not file_path.is_file():
+            raise ValueError(f"file '{file_path}' does not exist!")
+        examples = []
+        with file_path.open("r", encoding="utf8") as f:
+            for line in f:
+                ex = ujson.loads(line)
+                examples.append(ex)
+        self._examples = examples
+        return True
+
+    def save(self, to_file=None):
+        """Save the accumulated experience to a file. Defaults to the file it was loaded from"""
+        if to_file is None:
+            to_file = self.file_path
+        experience_folder = Path(self.file_path).parent
+        if not experience_folder.is_dir():
+            experience_folder.mkdir(parents=True, exist_ok=True)
+
+        # Write to local file then copy over (don't thrash virtual file systems like GCS)
+        fd, tmp_file = tempfile.mkstemp()
+        with Path(tmp_file).open("w", encoding="utf-8") as f:
+            for line in self._examples:
+                f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
+
+        out_file = Path(self.file_path)
+        if out_file.is_file():
+            copyfile(str(out_file), f"{str(out_file)}.bak")
+        copyfile(tmp_file, str(out_file))
+        os.remove(tmp_file)
+        os.close(fd)
+        return str(out_file)
+
+
 class MathExperience:
     #
     #
@@ -65,8 +119,8 @@ class MathExperience:
     #       I think this will be useful for generalization because we can force the
     #       model to maintain a balance of training inputs across everything it knows.
     #
-    def __init__(self, model_dir, short_term_size=64):
-        self.model_dir = model_dir
+    def __init__(self, experience_folder, short_term_size=64):
+        self.experience_folder = experience_folder
         self.long_term = []
         self.short_term = []
         self.short_term_size = short_term_size
@@ -95,7 +149,7 @@ class MathExperience:
 
     def _load_experience(self):
         # Try to match a specified file first
-        file_path = Path(self.model_dir)
+        file_path = Path(self.experience_folder)
         if not file_path.is_file():
             # Check for a folder with the inputs file inside of it
             file_path = file_path / INPUT_EXAMPLES_FILE_NAME
@@ -110,9 +164,9 @@ class MathExperience:
         return True
 
     def _save_experience(self):
-        model_dir = Path(self.model_dir)
-        if not model_dir.is_dir():
-            model_dir.mkdir(parents=True, exist_ok=True)
+        experience_folder = Path(self.experience_folder)
+        if not experience_folder.is_dir():
+            experience_folder.mkdir(parents=True, exist_ok=True)
 
         all_experience = self.long_term + self.short_term
 
@@ -122,7 +176,7 @@ class MathExperience:
             for line in all_experience:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
-        out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
+        out_file = experience_folder / INPUT_EXAMPLES_FILE_NAME
         if out_file.is_file():
             copyfile(str(out_file), f"{str(out_file)}.bak")
         copyfile(tmp_file, str(out_file))
@@ -131,9 +185,9 @@ class MathExperience:
         return str(out_file)
 
     def write_training_set(self, all_experience):
-        model_dir = Path(self.model_dir)
-        if not model_dir.is_dir():
-            model_dir.mkdir(parents=True, exist_ok=True)
+        experience_folder = Path(self.experience_folder)
+        if not experience_folder.is_dir():
+            experience_folder.mkdir(parents=True, exist_ok=True)
 
         # Write to local file then copy over (don't thrash virtual file systems like GCS)
         fd, tmp_file = tempfile.mkstemp()
@@ -141,10 +195,11 @@ class MathExperience:
             for line in all_experience:
                 f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
 
-        out_file = model_dir / TRAINING_SET_FILE_NAME
+        out_file = experience_folder / TRAINING_SET_FILE_NAME
         if out_file.is_file():
             copyfile(str(out_file), f"{str(out_file)}.bak")
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)
         os.close(fd)
         return str(out_file)
+

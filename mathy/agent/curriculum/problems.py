@@ -1,5 +1,6 @@
 import random
 import sys
+from typing import Tuple, Dict, Any
 
 operators = list("+*")
 common_variables = list("xyz")
@@ -70,31 +71,39 @@ def combine_multiple_like_add_terms(num_terms, optional_var=False):
 
 
 def simplify_multiple_terms(
-    num_terms, optional_var=False, op="+", common_variables=True, powers=False
-):
-    # Generate from common varible names to have more chance of
-    # sets of like terms.
-    variable = rand_var(common_variables)
-    # Guarantee at least one set of terms with a common variable. This ensures
-    # that the problem has at least one operation that must be done (resolve the conflict
-    # between the two matching variable terms.)
-    power_percent_chance = 80 if powers == True else 0
-    pre_power = maybe_power(power_percent_chance)
-    result = "{}{}{}".format(rand_int(), variable, pre_power)
-    result = "{}{}{}".format(rand_int(), variable, pre_power)
-    suffix = " {} {}{}{}".format(
-        rand_op() if op is None else op, rand_int(), variable, pre_power
-    )
-    var_powers = {}
-    for i in range(num_terms - 2):
+    num_terms,
+    optional_var=False,
+    op="+",
+    common_variables=True,
+    inner_terms_scaling=0.3,
+    powers_proability=0.33,
+    shuffle_probability=0.33,
+) -> Tuple[str, int]:
+    power_prob_percent = powers_proability * 100
+    powers = rand_bool(power_prob_percent)
+    num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    term_templates = get_rand_vars(num_like_terms)
+    if powers is not False:
+        for i, var in enumerate(term_templates):
+            term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
+
+    # Repeat enough times to satisfy max_terms
+    term_templates *= int(num_terms / num_like_terms) + 1
+
+    # sometimes shuffle the terms
+    if rand_bool(shuffle_probability * 100) is True:
+        random.shuffle(term_templates)
+
+    root_term = term_templates.pop()
+    result = f"{rand_int()}{root_term}"
+    for i in range(num_terms - 1):
+        other_var = term_templates[i]
+        if optional_var and rand_bool() is False:
+            other_var = ""
         result = result + " {} {}{}".format(
-            rand_op() if op is None else op,
-            rand_int(),
-            maybe_var(common_var=common_variables)
-            if optional_var
-            else rand_var(common_variables),
+            rand_op() if op is None else op, rand_int(), other_var
         )
-    return result + suffix, num_terms
+    return result, num_terms
 
 
 def solve_for_variable(terms=4):
@@ -186,7 +195,7 @@ def combine_terms_after_commuting(
     num_noise_terms = total_terms - 2
     var = rand_var()
     noise_vars = get_rand_vars(num_noise_terms, [var])
-    power_chance = 80 if powers == True else 0
+    power_chance = 80 if powers is True else 0
     power = maybe_power(power_chance)
 
     # Build up the blockers to put between the like terms

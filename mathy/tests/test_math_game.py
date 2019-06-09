@@ -1,38 +1,33 @@
-from ..math_game import MathGame
-from ..environment_state import MathEnvironmentState, MathAgentState
+from ..mathy_env import MathyEnv
+from ..mathy_env_state import MathyEnvState, MathAgentState
 from ..util import is_terminal_transition
 from math import isclose
 import random
 
 
-def test_math_game_init():
-    game = MathGame()
-    assert game is not None
-    state, complexity = game.get_initial_state()
-    # Kind of arbitrary, ensure there's more than one term
-    assert complexity >= 1
+def test_mathy_env_init():
+    env = MathyEnv()
+    assert env is not None
+    state, prob = env.get_initial_state()
+    assert prob == MathyEnv.INVALID_PROBLEM
     assert state is not None
-    # Assert about the structure a bit
     assert state.agent is not None
 
 
-def test_math_game_jd():
-    game = MathGame()
-    assert game is not None
+def test_mathy_env_jd():
+    env = MathyEnv()
+    assert env is not None
     problem = "5y * 9x + 8z + 8x + 3z * 10y * 11x + 10y"
-    env_state = MathEnvironmentState(problem=problem, max_moves=35)
+    env_state = MathyEnvState(problem=problem, max_moves=35)
     for i in range(3):
-        actions = game.get_valid_moves(env_state)
+        actions = env.get_valid_moves(env_state)
         indices = [i for i, value in enumerate(actions) if value == 1]
         random.shuffle(indices)
-        env_state, value = game.get_next_state(env_state, indices[0])
-    features = env_state.to_input_features()
-    f = features
+        env_state, value = env.get_next_state(env_state, indices[0])
+    assert env_state.to_input_features([]) is not None
 
 
-
-
-def test_math_game_win_conditions():
+def test_mathy_env_win_conditions():
 
     expectations = [
         ("4x^2", True),
@@ -56,8 +51,8 @@ def test_math_game_win_conditions():
     # polynomial expressions
     out_of_scope_valid = []
 
-    game = MathGame()
+    env = MathyEnv()
     for text, is_win in expectations + out_of_scope_valid:
-        env_state = MathEnvironmentState(problem=text)
-        reward = game.get_state_value(env_state)
+        env_state = MathyEnvState(problem=text)
+        reward = env.get_state_transition(env_state)
         assert text == text and is_terminal_transition(reward) == int(is_win)

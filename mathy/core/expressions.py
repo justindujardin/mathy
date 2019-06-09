@@ -1,5 +1,6 @@
 from .tree import BinaryTreeNode, STOP
 import numpy
+from colr import color
 
 OOO_FUNCTION = 4
 OOO_PARENS = 3
@@ -73,8 +74,25 @@ class MathExpression(BinaryTreeNode):
     def type_id(self):
         raise NotImplementedError("must be implemented in subclass")
 
+    @property
+    def colored(self):
+        def visit_fn(node, depth, data):
+            node._rendering_change = data
+
+        self.visit_inorder(visit_fn, data=True)
+        result = str(self)
+        self.visit_inorder(visit_fn, data=False)
+        return result
+
+    @property
+    def color(self):
+        """Color to use for this node when rendering it as dirty with `.colored` property"""
+        return "blue"
+
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
+        self._rendering_change = None
+        self._changed = False
         self.classes = [self.id]
         self.cloned_node = None
         self.cloned_target = None
@@ -83,21 +101,40 @@ class MathExpression(BinaryTreeNode):
         """Evaluate the expression, resolving all variables to constant values"""
         return 0.0
 
+    def set_changed(self):
+        """Mark this node as having been changed by the application of a Rule"""
+        self._changed = True
+
+    def all_changed(self):
+        """Mark this node and all of its children as changed"""
+
+        def visit_fn(node, depth, data):
+            node.set_changed()
+
+        self.visit_inorder(visit_fn)
+
     def differentiate(self, by_variable):
         """Differentiate the expression by a given variable"""
         raise Exception("cannot differentiate an abstract MathExpression node")
 
-    def addClass(self, classes):
+    def with_color(self, text: str, style="dim") -> str:
+        """Render a string that is colored if the boolean input is True"""
+        if self._rendering_change is True and self._changed is True:
+            return color(text, fore=self.color, style=style)
+        return text
+
+    def add_class(self, classes):
         """
-        Associate a class name with an expression.  This class name will be tagged on nodes
-        when the expression is converted to a capable output format.  See {@link #getMathML}.
+        Associate a class name with an expression.  This class name will be
+        tagged on nodes when the expression is converted to a capable output
+        format.  See {@link #to_math_ml}.
         """
         if type(classes) == str:
             classes = [classes]
         self.classes = list(set(self.classes).union(classes))
         return self
 
-    def countNodes(self):
+    def count_nodes(self):
         """Return the number of nodes in this expression"""
         count = 0
 
@@ -128,9 +165,18 @@ class MathExpression(BinaryTreeNode):
             raise ValueError(f"invalid visit order: {visit}")
         return results
 
+    def clear_classes(self):
+        """Clear all the classes currently set on the nodes in this expression."""
+        results = []
+
+        def visit_fn(node, depth, data):
+            node.classes = []
+
+        return results
+
     def findByType(self, instanceType):
-        """
-        Find an expression in this tree by type.
+        """Find an expression in this tree by type.
+        
         @param {Function} instanceType The type to check for instances of
         @returns {Array} Array of {@link MathExpression} that are of the given type.
         """
@@ -144,8 +190,8 @@ class MathExpression(BinaryTreeNode):
         return results
 
     def findById(self, id):
-        """
-        Find an expression by its unique ID.
+        """Find an expression by its unique ID.
+
         @returns {MathExpression|None} The node.
         """
         result = None
@@ -163,7 +209,7 @@ class MathExpression(BinaryTreeNode):
         """Convert this single node into MathML."""
         return ""
 
-    def getMathML(self):
+    def to_math_ml_element(self):
         """Convert this expression into a MathML container."""
         return "\n".join(
             [
@@ -173,7 +219,7 @@ class MathExpression(BinaryTreeNode):
             ]
         )
 
-    def makeMLTag(self, tag, content, classes=[]):
+    def make_ml_tag(self, tag, content, classes=[]):
         """
         Make an ML tag for the given content, respecting the node's
         given classes.
@@ -187,7 +233,7 @@ class MathExpression(BinaryTreeNode):
             classes = " class='{}'".format(" ".join(classes))
         return "<{}{}>{}</{}>".format(tag, classes, content, tag)
 
-    def pathToRoot(self):
+    def path_to_root(self):
         """
         Generate a namespaced path key to from the current node to the root.
         This key can be used to identify a node inside of a tree.
@@ -214,7 +260,7 @@ class MathExpression(BinaryTreeNode):
         """
         node = node if node is not None else self
         self.cloned_node = None
-        self.cloned_target = node.pathToRoot()
+        self.cloned_target = node.path_to_root()
         result = node.get_root().clone()
         if not self.cloned_node:
             print("While cloning root of: {}".format(node))
@@ -233,7 +279,7 @@ class MathExpression(BinaryTreeNode):
         node.  See {@link #clone_from_root} for more details.
         """
         result = super().clone()
-        if self.cloned_target is not None and self.pathToRoot() == self.cloned_target:
+        if self.cloned_target is not None and self.path_to_root() == self.cloned_target:
             self.cloned_node = result
 
         return result
@@ -312,7 +358,7 @@ class NegateExpression(UnaryExpression):
         return -value
 
     def __str__(self):
-        return "-{}".format(self.get_child())
+        return self.with_color("-{}".format(self.get_child()))
 
     def differentiate(self, by_variable):
         """
@@ -340,10 +386,10 @@ class FunctionExpression(UnaryExpression):
 
     def __str__(self):
         child = self.get_child()
+        output = self.name
         if child:
-            return "{}({})".format(self.name, child)
-
-        return self.name
+            output = "{}({})".format(self.name, child)
+        return self.with_color(output)
 
 
 # ## Binary Expressions
@@ -426,34 +472,34 @@ class BinaryExpression(MathExpression):
     def __str__(self):
         if self.left is None or self.right is None:
             raise ValueError(
-                "{}: invalid state, left and right must not be none in binary expression".format(
+                "{}: left/right children must both be valid".format(
                     self.__class__.__name__
                 )
             )
 
         left = f"({self.left})" if self.left_parens() else f"{self.left}"
         right = f"({self.right})" if self.right_parens() else f"{self.right}"
-        out = f"{left} {self.name} {right}"
+        out = f"{left} {self.with_color(self.name)} {right}"
         return f"({out})" if self.self_parens() else out
 
     def to_math_ml(self):
         right_ml = self.right.to_math_ml()
         left_ml = self.left.to_math_ml()
-        op_ml = self.makeMLTag("mo", self.get_ml_name())
+        op_ml = self.make_ml_tag("mo", self.get_ml_name())
         if self.right_parens():
-            return self.makeMLTag(
+            return self.make_ml_tag(
                 "mrow",
                 "{}{}<mo>(</mo>{}<mo>)</mo>".format(left_ml, op_ml, right_ml),
                 self.classes,
             )
         elif self.left_parens():
-            return self.makeMLTag(
+            return self.make_ml_tag(
                 "mrow",
                 "<mo>(</mo>{}<mo>)</mo>{}{}".format(left_ml, op_ml, right_ml),
                 self.classes,
             )
 
-        return self.makeMLTag(
+        return self.make_ml_tag(
             "mrow", "{}{}{}".format(left_ml, op_ml, right_ml), self.classes
         )
 
@@ -469,7 +515,7 @@ class EqualExpression(BinaryExpression):
     def name(self):
         return "="
 
-    def operate(self, one, two):
+    def operate(self, one: BinaryExpression, two: BinaryExpression):
         """
     This is where assignment of context variables might make sense.  But context is not
     present in the expression's `operate` method.  TODO: Investigate this thoroughly.
@@ -555,7 +601,7 @@ class MultiplyExpression(BinaryExpression):
             if isinstance(self.right, VariableExpression) or isinstance(
                 self.right, PowerExpression
             ):
-                return "{}{}".format(self.left, self.right)
+                return self.with_color("{}{}".format(self.left, self.right))
 
         return super().__str__()
 
@@ -617,9 +663,9 @@ class PowerExpression(BinaryExpression):
         left_ml = self.left.to_math_ml()
         # if left is mult, enclose only right in msup
         if isinstance(self.left, MultiplyExpression):
-            left_ml = self.makeMLTag("mrow", left_ml, self.classes)
+            left_ml = self.make_ml_tag("mrow", left_ml, self.classes)
 
-        return self.makeMLTag("msup", "{}{}".format(left_ml, right_ml), self.classes)
+        return self.make_ml_tag("msup", "{}{}".format(left_ml, right_ml), self.classes)
 
     def operate(self, one, two):
         return numpy.power(one, two)
@@ -628,7 +674,7 @@ class PowerExpression(BinaryExpression):
         raise Exception("Unimplemented")
 
     def __str__(self):
-        return "{}{}{}".format(self.left, self.name, self.right)
+        return "{}{}{}".format(self.left, self.with_color(self.name), self.right)
 
 
 class ConstantExpression(MathExpression):
@@ -650,7 +696,7 @@ class ConstantExpression(MathExpression):
         return self.value
 
     def __str__(self):
-        return "{}".format(self.value)
+        return self.with_color("{}".format(self.value))
 
     def to_json(self):
         result = super().to_json()
@@ -674,16 +720,16 @@ class VariableExpression(MathExpression):
         return result
 
     def __str__(self):
-        if self.identifier == None:
+        if self.identifier is None:
             return ""
         else:
-            return "{}".format(self.identifier)
+            return self.with_color("{}".format(self.identifier))
 
     def to_math_ml(self):
-        if self.identifier == None:
+        if self.identifier is None:
             return ""
         else:
-            return self.makeMLTag("mi", self.identifier)
+            return self.make_ml_tag("mi", self.identifier)
 
     def to_json(self):
         result = super().to_json()

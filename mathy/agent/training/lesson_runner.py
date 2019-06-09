@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 from mathy.agent.controller import MathModel
 from mathy.agent.training.practice_runner import (
     PracticeRunner,
@@ -13,12 +13,11 @@ from .lessons import LessonPlan, LessonExercise
 
 
 def lesson_runner(
-    agent_name, lesson_plan, parallel=True, dev_mode=False, skip_completed=True
+    model_dir, lesson_plan, parallel=True, dev_mode=False, skip_completed=True
 ):
     """Practice a concept for up to (n) lessons or until the concept is learned as defined
     by the lesson plan. """
     lessons = lesson_plan.lessons[:]
-    model_dir = "/mnt/gcs/mzc/{}/".format(agent_name)
     lesson_checkpoint = Path("{}lesson_state.json".format(model_dir))
     BaseEpisodeRunner = PracticeRunner if not parallel else ParallelPracticeRunner
 
@@ -46,9 +45,10 @@ def lesson_runner(
         )
     while len(lessons) > 0:
         lesson = lessons.pop(0)
+
         class LessonRunner(BaseEpisodeRunner):
             def get_game(self):
-                return MathGame(
+                return MathyEnv(
                     verbose=dev_mode, lesson=lesson, max_moves=lesson.max_turns
                 )
 
@@ -76,9 +76,7 @@ def lesson_runner(
             #     return False
 
         print("Practicing {} - {}...".format(lesson_plan.name, lesson.name))
-        args = {
-            "self_play_iterations": lesson.problem_count,
-        }
+        args = {"self_play_iterations": lesson.problem_count}
         config = RunnerConfig(
             model_dir=model_dir,
             num_mcts_sims=lesson.mcts_sims,

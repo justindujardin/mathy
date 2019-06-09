@@ -220,7 +220,7 @@ lesson_plan_3 = build_lesson_plan(
         LessonExercise(
             lesson_name="needle_in_haystack_3",
             problem_count=4,
-            problem_fn=lambda: combine_terms_in_place(easy=False, powers=True),
+            problem_fn=lambda: combine_terms_in_place(easy=False, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             max_turns=3,
@@ -229,7 +229,7 @@ lesson_plan_3 = build_lesson_plan(
         LessonExercise(
             lesson_name="three_terms_with_powers",
             problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(3, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(3, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
             num_observations=256,
@@ -237,7 +237,7 @@ lesson_plan_3 = build_lesson_plan(
         LessonExercise(
             lesson_name="seven_terms_with_powers",
             problem_count=1,
-            problem_fn=lambda: simplify_multiple_terms(7, powers=True),
+            problem_fn=lambda: simplify_multiple_terms(7, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=250,
             num_observations=256,

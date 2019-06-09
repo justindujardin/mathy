@@ -8,10 +8,28 @@
       "justMyCode": false,
       "module": "main",
       "args": [
+        "agents/dev_2/",
+        "-v"
+      ]
+    },
+    {
+      "name": "mathy:parallel",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "parallel",
+      "args": [
         "agents/dev/",
         "-l",
         "dev"
       ]
+    },
+    {
+      "name": "mathy:lstm",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "lstm"
     },
     {
       "name": "mathy:train",
@@ -23,6 +41,14 @@
         "training/mathy_micro_dev/",
         "training.jsonl"
       ]
+    },
+    {
+      "name": "mathy:a3c",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "mathy.a3c",
+      "args": ["--train"]
     },
     {
       "name": "mathy:tests",

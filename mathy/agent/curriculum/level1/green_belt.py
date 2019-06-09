@@ -16,89 +16,79 @@ from ..problems import (
     move_around_blockers_two,
 )
 
-moves_per_complexity = 4
+observations = 128
+green_belt = build_lesson_plan(
+    "green_belt",
+    [
+        LessonExercise(
+            lesson_name="eight_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(8, powers_proability=0.85),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            num_observations=observations,
+        ),
+        LessonExercise(
+            lesson_name="simplify_in_place_8_9",
+            problem_fn=lambda: combine_terms_in_place(8, 9),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=5,
+            mcts_sims=200,
+            num_observations=observations,
+        ),
+        LessonExercise(
+            lesson_name="move_then_simplify_8_9",
+            problem_fn=lambda: combine_terms_after_commuting(8, 9),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=5,
+            mcts_sims=200,
+            num_observations=observations,
+        ),
+        LessonExercise(
+            lesson_name="nine_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(9, powers_proability=0.85),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            mcts_sims=200,
+            num_observations=observations,
+        ),
+    ],
+)
 
 green_belt_practice = build_lesson_plan(
     "green_belt_practice",
     [
         LessonExercise(
-            lesson_name="five_terms",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(5),
+            lesson_name="eight_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(8, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=64,
+            num_observations=observations,
         ),
         LessonExercise(
-            lesson_name="six_terms_with_exponents",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
+            lesson_name="simplify_in_place_8_9",
+            problem_fn=lambda: combine_terms_in_place(8, 9),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=2,
+            mcts_sims=500,
+            num_observations=observations,
+        ),
+        LessonExercise(
+            lesson_name="move_then_simplify_8_9",
+            problem_fn=lambda: combine_terms_after_commuting(8, 9),
+            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
+            max_turns=3,
+            mcts_sims=500,
+            num_observations=observations,
+        ),
+        LessonExercise(
+            lesson_name="nine_terms",
+            problem_count=1,
+            problem_fn=lambda: simplify_multiple_terms(9, powers_proability=0.85),
             problem_type=MODE_SIMPLIFY_POLYNOMIAL,
             mcts_sims=500,
-            num_observations=64,
-        ),
-        LessonExercise(
-            lesson_name="eight_terms_with_exponents",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=500,
-            num_observations=64,
-        ),
-        LessonExercise(
-            lesson_name="ten_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(10, powers=True),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
-            mcts_sims=500,
-            num_observations=64,
-        ),
-    ],
-)
-
-
-green_belt = build_lesson_plan(
-    "green_belt",
-    [
-        LessonExercise(
-            lesson_name="six_terms_with_exponents",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(6, powers=True),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=50,
-            num_observations=32,
-        ),
-        LessonExercise(
-            lesson_name="eight_terms_with_exponents",
-            problem_count=4,
-            problem_fn=lambda: simplify_multiple_terms(8, powers=True),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            mcts_sims=50,
-            num_observations=32,
-        ),
-        LessonExercise(
-            lesson_name="commute_blockers_1_7",
-            problem_fn=lambda: move_around_blockers_one(7),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
-            mcts_sims=50,
-            num_observations=32,
-        ),
-        LessonExercise(
-            lesson_name="ten_terms_with_exponents",
-            problem_fn=lambda: simplify_multiple_terms(10, powers=True),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
-            mcts_sims=50,
-            num_observations=32,
-        ),
-        LessonExercise(
-            lesson_name="commute_blockers_2_7",
-            problem_fn=lambda: move_around_blockers_two(7),
-            problem_type=MODE_SIMPLIFY_POLYNOMIAL,
-            problem_count=4,
-            mcts_sims=50,
-            num_observations=32,
+            num_observations=observations,
         ),
     ],
 )

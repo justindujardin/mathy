@@ -1,7 +1,6 @@
 import math
 import numpy
 from ...util import is_terminal_transition
-from ...environment_state import MathEnvironmentState
 
 EPS = 1e-8
 
@@ -17,7 +16,8 @@ class MCTS:
         self.game = game
         self.predictor = predictor
         self.num_mcts_sims = num_mcts_sims
-        # cpuct is a hyperparameter controlling the degree of exploration (1.0 in suragnair experiments.)
+        # cpuct is a hyperparameter controlling the degree of exploration (1.0 in
+        # Suragnair experiments.)
         self.cpuct = cpuct
         self.dir_alpha = dir_alpha
         # Set epsilon = 0 to disable dirichlet noise in root node.
@@ -29,7 +29,7 @@ class MCTS:
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
 
-        self.Es = {}  # stores game.get_state_value ended for env_state s
+        self.Es = {}  # stores game.get_state_transition ended for env_state s
         self.Vs = {}  # stores game.get_valid_moves for env_state s
 
     def getActionProb(self, env_state, temp=1):
@@ -63,15 +63,6 @@ class MCTS:
         if count_sum == 0.0:
             # Arg, no valid moves picked from the tree! Let's go ahead and make each
             valids = numpy.array(self.game.get_valid_moves(env_state))
-            # raise ValueError(
-            #     "there have been no actions taken to derive probabilities from. "
-            #     "This usually means that the problem you generated was solved without "
-            #     "taking any actions. Make sure to generate problems that take at least "
-            #     "a few actions to complete\n"
-            #     "state = {}".format(s)
-            # )
-            # NOTE: This used to be an error, but now I'm less concerned with it. Just assign
-            #       equal chance to all actions
             return list(valids / valids.sum())
         probs = [x / float(count_sum) for x in counts]
         return probs
@@ -96,7 +87,7 @@ class MCTS:
 
         # if s not in self.Es:
         # print('calculating ending state for: {}'.format(s))
-        self.Es[s] = self.game.get_state_value(env_state, searching=True)
+        self.Es[s] = self.game.get_state_transition(env_state, searching=True)
         if is_terminal_transition(self.Es[s]):
             # terminal node
             return self.Es[s].reward
@@ -106,7 +97,7 @@ class MCTS:
             # leaf node
             valids = self.game.get_valid_moves(env_state)
             num_valids = len(valids)
-            out_policy, action_v = self.predictor.predict(env_state)
+            out_policy, action_v = self.predictor.predict(env_state, valids)
             out_policy = out_policy.flatten()
             # Clip any predictions over batch-size padding tokens
             if len(out_policy) > num_valids:
@@ -115,7 +106,7 @@ class MCTS:
             # print("calculating valid moves for: {}".format(s))
             # print("action_v = {}".format(action_v))
             # print("Ps = {}".format(self.Ps[s].shape))
-            save_ps = self.Ps[s]
+            # save_ps = self.Ps[s]
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = numpy.sum(self.Ps[s])
             # print("sum Ps = {}".format(sum_Ps_s))
@@ -125,7 +116,7 @@ class MCTS:
             else:
                 # If all valid moves were masked make all valid moves equally probable
                 # NOTE: This can happen if your model is under/over fitting.
-                # See more: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
+                # MORE: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
                 # print("All valid moves were masked, do workaround.")
                 # print("problem: {}".format(env_state.agent.problem))
                 # print("history: {}".format(env_state.agent.history))
@@ -143,7 +134,8 @@ class MCTS:
         cur_best = -float("inf")
         all_best = []
         e = self.epsilon
-        # add Dirichlet noise for root node. set epsilon=0 for ExaminationRunner competitions of trained models
+        # add Dirichlet noise for root node. set epsilon=0 for ExaminationRunner
+        # competitions of trained models
         add_noise = isRootNode and e > 0
         if add_noise:
             moves = self.game.get_valid_moves(env_state)

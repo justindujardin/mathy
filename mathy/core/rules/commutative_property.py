@@ -4,8 +4,8 @@ from ..expressions import (
     ConstantExpression,
     VariableExpression,
     PowerExpression,
+    MathExpression,
 )
-from ..util import is_add_or_sub, is_const, terms_are_like, is_preferred_term_form
 from ..rule import BaseRule
 
 # ### Commutative Property
@@ -62,13 +62,14 @@ class CommutativeSwapRule(BaseRule):
                     return False
         return True
 
-    def apply_to(self, node):
+    def apply_to(self, node: MathExpression):
         change = super().apply_to(node)
         a = node.left
         b = node.right
 
         node.set_right(a)
         node.set_left(b)
+        node.set_changed()
 
         change.done(node)
         return change

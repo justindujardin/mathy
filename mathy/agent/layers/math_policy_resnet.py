@@ -2,9 +2,6 @@ import tensorflow as tf
 from .resnet_block import ResNetBlock
 
 
-#  Aux objective similar rule prediction. Given the selected action, predict the next action index that would apply the same rule
-
-
 class MathPolicyResNet(tf.keras.layers.Layer):
     """Policy that passes inputs through a ResNet tower for feature extraction before
     applying Dropout and Softmax"""

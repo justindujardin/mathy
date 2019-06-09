@@ -17,25 +17,27 @@ from ..util import (
     unlink,
 )
 
-# ### Distributive Property
-# `ab + ac = a(b + c)`
-#
-# The distributive property can be used to expand out expressions
-# to allow for simplification, as well as to factor out common properties of terms.
 
-# **Factor out a common term**
-#
-# This handles the `ab + ac` conversion of the distributive property, which factors
-# out a common term from the given two addition operands.
-#
-#           +               *
-#          / \             / \
-#         /   \           /   \
-#        /     \    ->   /     \
-#       *       *       a       +
-#      / \     / \             / \
-#     a   b   a   c           b   c
 class DistributiveFactorOutRule(BaseRule):
+    r"""Distributive Property
+        `ab + ac = a(b + c)`
+        
+         The distributive property can be used to expand out expressions
+         to allow for simplification, as well as to factor out common properties of terms.
+
+         **Factor out a common term**
+        
+         This handles the `ab + ac` conversion of the distributive property, which factors
+         out a common term from the given two addition operands.
+        
+                   +               *
+                  / \             / \
+                 /   \           /   \
+                /     \    ->   /     \
+               *       *       a       +
+              / \     / \             / \
+             a   b   a   c           b   c
+    """
     POS_NATURAL = "natural"
     POS_SURROUNDED = "surrounded"
 
@@ -94,7 +96,6 @@ class DistributiveFactorOutRule(BaseRule):
         if tree_position is None:
             raise ValueError("invalid node for rule, call canApply first.")
         change = super().apply_to(node).save_parent()
-
         left_interest = node.left
         if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
             left_interest = node.left.right
@@ -116,6 +117,7 @@ class DistributiveFactorOutRule(BaseRule):
             #       ordering that can be expressed without an
             #       explicit multiplication symbol.
             result = MultiplyExpression(inside, a)
+            result.all_changed()
         elif tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
             # How to fix up tree
             left_link = node.left
@@ -131,6 +133,7 @@ class DistributiveFactorOutRule(BaseRule):
             #       ordering that can be expressed without an
             #       explicit multiplication symbol.
             result = MultiplyExpression(inside, a)
+            result.all_changed()
             left_link.set_right(result)
             result = left_link
         else:

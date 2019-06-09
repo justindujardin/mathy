@@ -70,5 +70,7 @@ class DistributiveMultiplyRule(BaseRule):
         ac = MultiplyExpression(a.clone(), c.clone())
         result = AddExpression(ab, ac)
 
+        [n.set_changed() for n in [node, a, ab, ac, result]]
+
         change.done(result)
         return change

@@ -15,6 +15,7 @@ class LessonExercise:
         problem_count=1,
         max_turns=None,
         mcts_sims=None,
+        moves_per_complexity=None,
         num_exploration_moves=None,
         training_wheels=False,
         num_observations=None,
@@ -27,6 +28,7 @@ class LessonExercise:
         self.mcts_sims = mcts_sims
         self.training_wheels = training_wheels
         self.num_exploration_moves = num_exploration_moves
+        self.moves_per_complexity = moves_per_complexity
         self.num_observations = num_observations
 
 

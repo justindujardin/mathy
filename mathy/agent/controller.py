@@ -1,23 +1,16 @@
-import collections
-import math
 import os
 import random
-import sys
-import time
-from itertools import zip_longest
-from multiprocessing import cpu_count
-from pathlib import Path
 
-import numpy
 import tensorflow as tf
+from tensorflow.estimator.export import build_parsing_serving_input_receiver_fn
 from colr import color
 
 from ..agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_FOCUS_INDEX,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
@@ -25,10 +18,11 @@ from ..agent.features import (
 )
 from ..agent.predictor import MathPredictor
 from ..core.expressions import MathTypeKeysMax
-from ..environment_state import MathEnvironmentState
+from ..mathy_env_state import MathyEnvState
 from .dataset import make_training_input_fn
-from .train_hooks import EpochTrainerHook
 from .souls.mathy_micro import math_estimator
+from .train_hooks import EpochTrainerHook
+
 
 class MathModel:
     def __init__(
@@ -42,13 +36,12 @@ class MathModel:
         # long_term_size=32768,
         long_term_size=2048,
         is_eval_model=False,
-        # Karpathy once tweeted this was the best learning rate for Adam optimizer "hands down"
+        # Karpathy once tweeted this was "hands down" the best lr for Adam
         learning_rate=3e-4,
-        # https://arxiv.org/pdf/1801.05134.pdf uses 0.1
-        dropout=0.1,
+        # https://arxiv.org/pdf/1801.05134.pdf
+        dropout=0.2,
         epochs=10,
-        batch_size=512,
-        log_frequency=250,
+        batch_size=128,
         use_gpu=False,
         random_seed=1337,
     ):
@@ -62,7 +55,6 @@ class MathModel:
         self.epochs = epochs
         self.batch_size = batch_size
         self.use_gpu = use_gpu
-        self.log_frequency = log_frequency
         if not is_eval_model:
             self.model_dir = os.path.join(self.root_dir, "train")
         else:
@@ -130,16 +122,16 @@ class MathModel:
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
         into the neural network."""
         self.f_move_count = tf.feature_column.numeric_column(
-            key=FEATURE_MOVE_COUNTER, dtype=tf.uint8
+            key=FEATURE_MOVE_COUNTER, dtype=tf.int64
         )
         self.f_moves_remaining = tf.feature_column.numeric_column(
-            key=FEATURE_MOVES_REMAINING, dtype=tf.uint8
+            key=FEATURE_MOVES_REMAINING, dtype=tf.int64
         )
-        self.f_focus_index = tf.feature_column.numeric_column(
-            key=FEATURE_FOCUS_INDEX, dtype=tf.int8
+        self.f_last_rule = tf.feature_column.numeric_column(
+            key=FEATURE_LAST_RULE, dtype=tf.int64
         )
         self.f_node_count = tf.feature_column.numeric_column(
-            key=FEATURE_NODE_COUNT, dtype=tf.uint8
+            key=FEATURE_NODE_COUNT, dtype=tf.int64
         )
         self.f_problem_type = tf.feature_column.indicator_column(
             tf.feature_column.categorical_column_with_identity(
@@ -148,7 +140,7 @@ class MathModel:
         )
         self.feature_columns = [
             self.f_problem_type,
-            self.f_focus_index,
+            self.f_last_rule,
             self.f_node_count,
             self.f_move_count,
             self.f_moves_remaining,
@@ -159,6 +151,9 @@ class MathModel:
         #
         # Sequence features
         #
+        # self.feat_policy_mask = tf.feature_column.sequence_numeric_column(
+        #     key=FEATURE_MOVE_MASK, dtype=tf.int64, shape=self.action_size
+        # )
         self.feat_bwd_vectors = tf.feature_column.embedding_column(
             tf.feature_column.sequence_categorical_column_with_identity(
                 key=FEATURE_BWD_VECTORS, num_buckets=vocab_buckets
@@ -189,6 +184,14 @@ class MathModel:
             self.feat_last_fwd_vectors,
             self.feat_last_bwd_vectors,
         ]
+        self.feature_spec = tf.feature_column.make_parse_example_spec(
+            self.feature_columns + self.sequence_columns
+        )
+
+        # Build receiver function, and export.
+        self.serving_input_fn = build_parsing_serving_input_receiver_fn(
+            self.feature_spec
+        )
 
     def train(
         self, short_term_examples, long_term_examples, train_all=False, sampling_fn=None
@@ -230,7 +233,7 @@ class MathModel:
             )
         )
         print(
-            "[training] {} epochs with {} examples, {} learning rate, and {} dropout...".format(
+            "[training] {} epochs with {} examples, {} lr, and {} dropout...".format(
                 self.epochs, len(examples), self.learning_rate, self.dropout
             )
         )
@@ -242,14 +245,15 @@ class MathModel:
         )
         return examples
 
-    def predict(self, env_state: MathEnvironmentState):
+    def predict(self, env_state: MathyEnvState, valid_moves):
         """Predict a policy/value for a given input state.
-        
-        Returns: a tuple of (policy, value) for the input as predicted 
+        Returns: a tuple of (policy, value) for the input as predicted
         by the neural network """
 
-        input_features = env_state.to_input_features(return_batch=True)
+        input_features = env_state.to_input_features(valid_moves, return_batch=True)
         # start = time.time()
+        # import json
+        # print(input_features)
         prediction = self._worker.predict(input_features)
         # print("predict : {0:03f}".format(time.time() - start))
         # print("distribution is : {}".format(prediction[("policy", "predictions")]))
@@ -257,6 +261,10 @@ class MathModel:
             prediction[("policy", "predictions")],
             prediction[("value", "predictions")][0],
         )
+
+    def export(self, path: str):
+        """Export the current estimator checkpoint to a saved model"""
+        self.network.export_saved_model(path, self.serving_input_fn)
 
     def start(self):
         """Start the cached inference worker"""
