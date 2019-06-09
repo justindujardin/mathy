@@ -8,8 +8,11 @@
       "justMyCode": false,
       "module": "main",
       "args": [
+        "poly",
         "agents/dev_2/",
-        "-v"
+        "-v",
+        "-d",
+        "4"
       ]
     },
     {

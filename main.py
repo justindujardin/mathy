@@ -1,7 +1,7 @@
-# coding: utf8
 import os
 import time
 from datetime import timedelta
+from typing import List, Optional, Type
 
 import numpy
 import plac
@@ -15,13 +15,16 @@ from mathy.agent.training.math_experience import (
     balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
+from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
 from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from mathy.mathy_env import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 @plac.annotations(
+    env=("Environment to load", "positional", None, str),
     model_dir=(
         "The name of the model to train. This changes the output folder.",
         "positional",
@@ -34,7 +37,19 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         str,
     ),
+    difficulty=(
+        "The arbitrary integer difficulty of problems to generate",
+        "option",
+        "d",
+        int,
+    ),
     learning_rate=("The learning rate to use when training", "option", "lr", float),
+    turns_per_complexity=(
+        "The number of moves to allocate per unit of problem complexity",
+        "option",
+        "t",
+        int,
+    ),
     verbose=(
         "When true, print all problem moves rather than just during evaluation",
         "flag",
@@ -42,20 +57,33 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
     ),
 )
 def main(
-    model_dir,
+    env: str,
+    model_dir: str,
     transfer_from=None,
     verbose=False,
+    turns_per_complexity=3,
+    difficulty=3,
     # Learning rate found via some hyperparam exploration.
     learning_rate=2e-4,
 ):
+
+    envs = {
+        "poly": MathyPolynomialSimplificationEnv,
+        "complex": MathyComplexTermSimplificationEnv,
+    }
+    if env not in envs:
+        raise EnvironmentError(f"Invalid env, must be one of: {envs.keys()}")
+    env_class: Type[MathyEnv] = envs[env]
+    # How many observations to gather between training sessions.
+    iter_experience = 128
     min_train_experience = 128
     eval_interval = 2
     short_term_size = 2048
     long_term_size = 8192 * 3
     counter = 0
-    moves_per_complexity = 3
     training_epochs = 4
-    mathy_env = MathyPolynomialSimplificationEnv(verbose=True)
+    mathy_env = env_class(verbose=True)
+    mathy_eval: Optional[MathModel] = None
     mathy = MathModel(
         mathy_env.action_size,
         model_dir,
@@ -67,7 +95,9 @@ def main(
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     env_name = str(mathy_env.__class__.__name__)
-    print(f"ENV: {env_name}")
+    print(f"Environment: {env_name}")
+    print(f"Moves per complexity: {turns_per_complexity}")
+    print(f"Problem Difficulty: {difficulty}")
     while True:
         print(f"[lesson] session {counter}")
         counter = counter + 1
@@ -96,12 +126,12 @@ def main(
         model = mathy_eval if eval_run else mathy
         # we fill this with episode rewards and when it's a fixed size we
         # dump the average value to tensorboard
-        ep_reward_buffer = []
+        ep_reward_buffer: List[float] = []
         # Fill up a certain amount of experience per problem type
         lesson_experience_count = 0
-        iter_experience = 128
         while lesson_experience_count < iter_experience:
-            env_state, prob = mathy_env.get_initial_state(print_problem=False)
+            options = {"difficulty": difficulty}
+            env_state, prob = mathy_env.get_initial_state(options, print_problem=False)
             mathy_env.verbose = eval_run or verbose
             if eval_run:
                 num_rollouts = 500
@@ -109,11 +139,11 @@ def main(
                 epsilon = 0.0
             else:
                 num_rollouts = 250
-                num_exploration_moves = mathy_env.max_moves / 2
+                num_exploration_moves = int(mathy_env.max_moves / 2)
                 epsilon = 0.9
-            mathy_env.max_moves = prob.complexity * moves_per_complexity
+            mathy_env.max_moves = prob.complexity * turns_per_complexity
             # generate a new problem now that we've set the max_turns
-            env_state, prob = mathy_env.get_initial_state()
+            env_state, prob = mathy_env.get_initial_state(options)
             model = mathy_eval if eval_run else mathy
             mcts = MCTS(mathy_env, model, epsilon, num_rollouts)
             actor = ActorMCTS(mcts, num_exploration_moves)
@@ -176,9 +206,7 @@ def main(
         summary_writer = tf.summary.create_file_writer(model.model_dir)
         with summary_writer.as_default():
             global_step = model.network.get_variable_value("global_step")
-            var_name = "{}/step_avg_reward_{}".format(
-                env_name.replace(" ", "_").lower()
-            )
+            var_name = "{}/step_avg_reward".format(env_name.replace(" ", "_").lower())
             var_data = (
                 numpy.mean(ep_reward_buffer) if len(ep_reward_buffer) > 0 else 0.0
             )
@@ -203,7 +231,6 @@ def main(
                     style="bright",
                 )
             )
-            print("training on evaluation data...")
             mathy_eval.stop()
             mathy_eval = None
             mathy.start()

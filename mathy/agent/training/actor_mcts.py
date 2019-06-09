@@ -79,7 +79,7 @@ class ActorMCTS:
         episode_totals = numpy.cumsum(rewards)
         numpy.set_printoptions(precision=3, suppress=True)
         print(
-            "rewards: normal, discounted, total \n{}".format(
+            "normal, discounted, total \n{}".format(
                 numpy.asarray(list(zip(normal_rewards, rewards, episode_totals)))
             )
         )

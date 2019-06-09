@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
+from ..core.rules import ConstantsSimplifyRule, DistributiveFactorOutRule
 from ..core.util import get_terms, has_like_terms, is_preferred_term_form
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnv, MathyEnvironmentProblem
@@ -18,11 +19,13 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
      operators are excluded. This is a good area for improvement.
     """
 
+    def get_rewarding_actions(self):
+        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
+
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any
     ) -> Optional[time_step.TimeStep]:
         """If there are no like terms."""
-        assert env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
         if not has_like_terms(expression):
             term_nodes = get_terms(expression)
             is_win = True
@@ -42,6 +45,12 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
         config = params if params is not None else dict()
-        num_terms = config.get("num_terms", 5)
+        if "difficulty" not in config:
+            raise ValueError(
+                "problem 'difficulty' must be provided as an integer value. "
+                "The value is to represent the relative difficulty of the problem"
+                " in this case it is the number of terms to generate"
+            )
+        num_terms = int(config["difficulty"])
         text, complexity = simplify_multiple_terms(num_terms)
         return MathyEnvironmentProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

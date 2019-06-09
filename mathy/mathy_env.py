@@ -75,12 +75,12 @@ class MathyEnv:
         self.verbose = verbose
         self.max_moves = max_moves
         self.parser = ExpressionParser()
-        self.rewarding_actions = rewarding_actions
         self.actions = actions
         if self.actions is None:
             self.actions = mathy_core_rules()
+        self.rewarding_actions = rewarding_actions
         if self.rewarding_actions is None:
-            self.rewarding_actions = []
+            self.rewarding_actions = self.get_rewarding_actions()
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
 
@@ -88,6 +88,12 @@ class MathyEnv:
     def action_size(self) -> int:
         """Return the number of available actions"""
         return len(self.actions)
+
+    def get_rewarding_actions(self) -> List[Type[BaseRule]]:
+        """Get the list of rewarding action types. When these actions
+        are selected, the agent gets a positive reward as opposed to the
+        normal negative timestep reward."""
+        return []
 
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any

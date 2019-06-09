@@ -77,6 +77,7 @@ def simplify_multiple_terms(
     common_variables=True,
     inner_terms_scaling=0.3,
     powers_proability=0.33,
+    optional_var_probability=0.5,
     shuffle_probability=0.33,
 ) -> Tuple[str, int]:
     power_prob_percent = powers_proability * 100
@@ -98,7 +99,7 @@ def simplify_multiple_terms(
     result = f"{rand_int()}{root_term}"
     for i in range(num_terms - 1):
         other_var = term_templates[i]
-        if optional_var and rand_bool() is False:
+        if optional_var and rand_bool(optional_var_probability * 100) is False:
             other_var = ""
         result = result + " {} {}{}".format(
             rand_op() if op is None else op, rand_int(), other_var
