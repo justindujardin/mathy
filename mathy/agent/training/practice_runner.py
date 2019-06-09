@@ -52,9 +52,8 @@ class PracticeRunner:
 
     def execute_episodes(self, episode_args_list):
         """
-        Execute (n) episodes of self-play serially. This is mostly useful for debugging, and
-        when you cannot fit multiple copies of your model in GPU memory
-        """
+        Execute (n) episodes of self-play serially. This is mostly useful for debugging,
+        and when you cannot fit multiple copies of your model in GPU memory."""
         examples = []
         results = []
 
@@ -81,10 +80,9 @@ class PracticeRunner:
         return examples, results
 
     def execute_episode(self, episode, game, predictor, model):
-        """
-        This function executes one episode.
+        """Execute one episode.
         As the game is played, each turn is added as a training example to
-        trainExamples. The game continues until get_state_value returns a non-zero
+        trainExamples. The game continues until get_state_transition returns a non-zero
         value, then the outcome of the game is used to assign values to each example
         in trainExamples.
         """
@@ -93,7 +91,8 @@ class PracticeRunner:
         if predictor is None:
             raise NotImplementedError("PracticeRunner.get_predictor returned None type")
 
-        env_state, complexity = game.get_initial_state()
+        env_state, prob = game.get_initial_state()
+        complexity = prob.complexity
 
         episode_history = []
         move_count = 0
@@ -106,7 +105,8 @@ class PracticeRunner:
                 return result + (complexity,)
 
     def episode_complete(self, episode, summary):
-        """Called after each episode completes. Useful for things like updating progress indicators"""
+        """Called after each episode completes. Useful for things like updating
+        progress indicators."""
         pass
 
     def process_trained_model(
@@ -121,9 +121,8 @@ class PracticeRunner:
         self, iteration, short_term_examples, long_term_examples, model_path=None
     ):
         """
-        Train the model at the given checkpoint path with the training examples and return
-        the updated model or None if there was an error.
-        """
+        Train the model at the given checkpoint path with the training examples and
+        return the updated model or None if there was an error."""
         return self.train_with_examples(
             iteration, short_term_examples, long_term_examples, model_path
         )
@@ -134,10 +133,8 @@ class PracticeRunner:
         if self.predictor is None:
             raise ValueError("predictor must be initialized before training")
         # Train the model with the examples
-        if self.predictor.train(short_term_examples, long_term_examples) == False:
-            print(
-                "There are not at least batch-size examples for training, more self-play is required..."
-            )
+        if self.predictor.train(short_term_examples, long_term_examples) is False:
+            print("Need batch-size examples before for training...")
             return None
         return self.predictor
 
@@ -147,16 +144,18 @@ class ParallelPracticeRunner(PracticeRunner):
 
     def execute_episodes(self, episode_args_list):
         def worker(work_queue, result_queue):
-            """Pull items out of the work queue and execute episodes until there are no items left"""
+            """Pull items out of the work queue and execute episodes until there are no
+            items left"""
             game = self.get_game()
             predictor = self.get_predictor(game)
             predictor.start()
-            while work_queue.empty() == False:
+            while work_queue.empty() is False:
                 episode, args = work_queue.get()
                 start = time.time()
                 try:
-                    episode_examples, episode_reward, is_win, episode_complexity = self.execute_episode(
-                        episode, game, predictor, **args
+                    result = self.execute_episode(episode, game, predictor, **args)
+                    episode_examples, episode_reward, is_win, episode_complexity = (
+                        result
                     )
                 except Exception as e:
                     print(
@@ -215,6 +214,7 @@ class ParallelPracticeRunner(PracticeRunner):
             update_model = self.train_with_examples(
                 i, st_examples, lt_examples, out_path
             )
+            examples = st_examples + lt_examples
             output.put(self.process_trained_model(update_model, i, examples, out_path))
 
         result_queue = Queue()

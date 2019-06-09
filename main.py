@@ -18,7 +18,7 @@ from mathy.agent.training.math_experience import (
     balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
-from mathy.math_game import MathGame
+from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -37,13 +37,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         str,
     ),
-    lesson_id=("The lesson plan to execute by ID", "option", "l", str),
     learning_rate=("The learning rate to use when training", "option", "lr", float),
-    initial_train=(
-        "When true, train the network on everything in `examples.json` in the checkpoint directory",
-        "flag",
-        "t",
-    ),
     verbose=(
         "When true, print all problem moves rather than just during evaluation",
         "flag",
@@ -53,28 +47,20 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 def main(
     model_dir,
     transfer_from=None,
-    lesson_id=None,
-    initial_train=False,
     verbose=False,
     # Learning rate found via some hyperparam exploration.
     learning_rate=2e-4,
 ):
-    global lessons
-    shuffle_lessons = False
     min_train_experience = 128
     eval_interval = 2
     short_term_size = 2048
     long_term_size = 8192 * 3
-    initial_train_iterations = 10
-    episode_counter = 0
-    eval_rollouts = 500
-    eval_exploration_moves = 0
     counter = 0
     moves_per_complexity = 3
     training_epochs = 4
-    math_game = MathGame(verbose=True)
+    mathy_env = MathyPolynomialSimplificationEnv(verbose=True)
     mathy = MathModel(
-        math_game.action_size,
+        mathy_env.action_size,
         model_dir,
         init_model_dir=transfer_from,
         learning_rate=learning_rate,
@@ -83,30 +69,7 @@ def main(
     )
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
-    if lesson_id is None:
-        plan = lessons[list(lessons)[0]]
-    elif lesson_id not in lessons:
-        raise ValueError(
-            f"[lesson] ERROR: '{lesson_id}' must be one of: {', '.join(lessons)} "
-        )
-    else:
-        plan = lessons[lesson_id]
-
-    if initial_train is True:
-        print(
-            color(
-                "[training] {} iterations before beginning self-practice".format(
-                    initial_train_iterations
-                ),
-                fore="blue",
-            )
-        )
-        old = mathy.epochs
-        mathy.epochs = initial_train_iterations
-        mathy.train(experience.short_term, experience.long_term, train_all=True)
-        mathy.epochs = old
-        print(color("Okay, let's do this!", fore="green"))
-
+    env_name = mathy_env.__class__.__name__
     while True:
         print(f"[lesson] session {counter}")
         counter = counter + 1
@@ -121,7 +84,7 @@ def main(
             print("\n\n=== Evaluating model with exploitation strategy ===")
             mathy.stop()
             mathy_eval = MathModel(
-                math_game.action_size,
+                mathy_env.action_size,
                 model_dir,
                 init_model_dir=os.path.abspath(mathy.model_dir),
                 # We want to initialize from the training model for each evaluation. (?)
@@ -133,128 +96,102 @@ def main(
             )
             mathy_eval.start()
         model = mathy_eval if eval_run else mathy
-
-        lessons = plan.lessons[:]
-
-        if shuffle_lessons:
-            random.shuffle(lessons)
-        print("lesson order: {}".format([l.name for l in lessons]))
         # we fill this with episode rewards and when it's a fixed size we
         # dump the average value to tensorboard
         ep_reward_buffer = []
-        while len(lessons) > 0:
-            lesson = lessons.pop(0)
-            math_game.lesson = lesson
-            print("\n{} - {}...".format(plan.name.upper(), lesson.name.upper()))
-            # Fill up a certain amount of experience per problem type
-            lesson_experience_count = 0
-            lesson_complexity = moves_per_complexity
-            if lesson.moves_per_complexity is not None:
-                lesson_complexity = lesson.moves_per_complexity
-            if lesson.num_observations is not None:
-                iter_experience = lesson.num_observations
+        # Fill up a certain amount of experience per problem type
+        lesson_experience_count = 0
+        iter_experience = short_term_size
+        while lesson_experience_count < iter_experience:
+            env_state, prob = mathy_env.get_initial_state(print_problem=False)
+            mathy_env.verbose = eval_run or verbose
+            if eval_run:
+                num_rollouts = 500
+                num_exploration_moves = 0
+                epsilon = 0.0
             else:
-                iter_experience = short_term_size
-            while lesson_experience_count < iter_experience:
-                env_state, complexity = math_game.get_initial_state(print_problem=False)
-                complexity_value = complexity * lesson_complexity
-                math_game.verbose = eval_run or verbose
-                if eval_run:
-                    num_rollouts = eval_rollouts
-                    num_exploration_moves = eval_exploration_moves
-                    epsilon = 0
-                else:
-                    num_rollouts = lesson.mcts_sims
-                    num_exploration_moves = (
-                        lesson.num_exploration_moves
-                        if lesson.num_exploration_moves is not None
-                        else complexity_value
-                    )
-                    epsilon = 1.0
-                math_game.max_moves = (
-                    lesson.max_turns
-                    if lesson.max_turns is not None
-                    else complexity_value
+                num_rollouts = 250
+                num_exploration_moves = mathy_env.max_moves / 2
+                epsilon = 0.9
+            mathy_env.max_moves = prob.complexity * moves_per_complexity
+            # generate a new problem now that we've set the max_turns
+            env_state, prob = mathy_env.get_initial_state()
+            model = mathy_eval if eval_run else mathy
+            mcts = MCTS(mathy_env, model, epsilon, num_rollouts)
+            actor = ActorMCTS(mcts, num_exploration_moves)
+            final_result = None
+            time_steps = []
+            episode_steps = 0
+            start = time.time()
+            while final_result is None:
+                episode_steps = episode_steps + 1
+                env_state, train_example, final_result = actor.step(
+                    mathy_env, env_state, model, time_steps
                 )
-                # generate a new problem now that we've set the max_turns
-                env_state, complexity = math_game.get_initial_state()
-                model = mathy_eval if eval_run else mathy
-                mcts = MCTS(math_game, model, epsilon, num_rollouts)
-                actor = ActorMCTS(mcts, num_exploration_moves)
-                final_result = None
-                time_steps = []
-                episode_steps = 0
-                start = time.time()
-                while final_result is None:
-                    episode_steps = episode_steps + 1
-                    env_state, train_example, final_result = actor.step(
-                        math_game, env_state, model, time_steps
-                    )
 
-                elapsed = time.time() - start
-                episode_examples, episode_reward, is_win = final_result
-                lesson_experience_count += len(episode_examples)
-                if is_win:
-                    num_solved = num_solved + 1
-                    outcome = "solved"
-                    fore = "green"
-                else:
-                    num_failed = num_failed + 1
-                    outcome = "failed"
-                    fore = "red"
-                print(
-                    color(
-                        "{} [{}/{}] -- duration({}) outcome({})".format(
-                            lesson.name.upper(),
-                            lesson_experience_count,
-                            iter_experience,
-                            str(timedelta(seconds=elapsed)),
-                            outcome,
-                        ),
-                        fore=fore,
-                        style="bright",
-                    )
-                )
-                experience.add_batch(episode_examples)
-                ep_reward_buffer.append(episode_reward / episode_steps)
-
-            # Train if we have enough data
-            if experience.count > min_train_experience:
-                model.train(
-                    experience.short_term,
-                    experience.long_term,
-                    sampling_fn=balanced_reward_experience_samples,
-                )
+            elapsed = time.time() - start
+            episode_examples, episode_reward, is_win = final_result
+            lesson_experience_count += len(episode_examples)
+            if is_win:
+                num_solved = num_solved + 1
+                outcome = "solved"
+                fore = "green"
             else:
-                print(
-                    color(
-                        f"[skip training] only have {experience.count} observations, but need at least {min_train_experience} before training",
-                        fore="yellow",
-                        style="bright",
-                    )
+                num_failed = num_failed + 1
+                outcome = "failed"
+                fore = "red"
+            print(
+                color(
+                    "{} [{}/{}] -- duration({}) outcome({})".format(
+                        env_name,
+                        lesson_experience_count,
+                        iter_experience,
+                        str(timedelta(seconds=elapsed)),
+                        outcome,
+                    ),
+                    fore=fore,
+                    style="bright",
                 )
-                continue
+            )
+            experience.add_batch(episode_examples)
+            ep_reward_buffer.append(episode_reward / episode_steps)
 
-            summary_writer = tf.summary.create_file_writer(model.model_dir)
-            with summary_writer.as_default():
-                global_step = model.network.get_variable_value("global_step")
-                var_name = "{}/step_avg_reward_{}".format(
-                    plan.name.replace(" ", "_").lower(),
-                    lesson.name.replace(" ", "_").lower(),
+        # Train if we have enough data
+        if experience.count > min_train_experience:
+            model.train(
+                experience.short_term,
+                experience.long_term,
+                sampling_fn=balanced_reward_experience_samples,
+            )
+        else:
+            print(
+                color(
+                    f"[skip training] only have {experience.count} observations, but need at least {min_train_experience} before training",
+                    fore="yellow",
+                    style="bright",
                 )
-                var_data = (
-                    numpy.mean(ep_reward_buffer) if len(ep_reward_buffer) > 0 else 0.0
-                )
-                print(
-                    color(
-                        "{} [{} = {}]".format(global_step, var_name, var_data),
-                        fore="magenta",
-                    )
-                )
-                tf.summary.scalar(name=var_name, data=var_data, step=global_step)
+            )
+            continue
 
-            summary_writer.close()
-            ep_reward_buffer = []
+        summary_writer = tf.summary.create_file_writer(model.model_dir)
+        with summary_writer.as_default():
+            global_step = model.network.get_variable_value("global_step")
+            var_name = "{}/step_avg_reward_{}".format(
+                env_name.replace(" ", "_").lower()
+            )
+            var_data = (
+                numpy.mean(ep_reward_buffer) if len(ep_reward_buffer) > 0 else 0.0
+            )
+            print(
+                color(
+                    "{} [{} = {}]".format(global_step, var_name, var_data),
+                    fore="magenta",
+                )
+            )
+            tf.summary.scalar(name=var_name, data=var_data, step=global_step)
+
+        summary_writer.close()
+        ep_reward_buffer = []
 
         if eval_run:
             print(

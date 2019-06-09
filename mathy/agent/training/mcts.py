@@ -1,7 +1,7 @@
 import math
 import numpy
 from ...util import is_terminal_transition
-from ...environment_state import MathEnvironmentState
+from ...mathy_env_state import MathyEnvState
 
 EPS = 1e-8
 
@@ -29,7 +29,7 @@ class MCTS:
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
 
-        self.Es = {}  # stores game.get_state_value ended for env_state s
+        self.Es = {}  # stores game.get_state_transition ended for env_state s
         self.Vs = {}  # stores game.get_valid_moves for env_state s
 
     def getActionProb(self, env_state, temp=1):
@@ -96,7 +96,7 @@ class MCTS:
 
         # if s not in self.Es:
         # print('calculating ending state for: {}'.format(s))
-        self.Es[s] = self.game.get_state_value(env_state, searching=True)
+        self.Es[s] = self.game.get_state_transition(env_state, searching=True)
         if is_terminal_transition(self.Es[s]):
             # terminal node
             return self.Es[s].reward

@@ -20,7 +20,7 @@ from mathy.agent.curriculum.problems import (
     simplify_multiple_terms,
 )
 from mathy.core.parser import ExpressionParser, ParserException
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -46,7 +46,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 def main(
     model_dir, lesson_id=None, mcts_sims=500, num_exploration_moves=0, epsilon=0.0
 ):
-    controller = MathGame(verbose=True)
+    controller = MathyEnv(verbose=True)
     mathy = MathModel(controller.action_size, model_dir)
     short_term_size = 128
     experience = MathExperience(mathy.model_dir, short_term_size)

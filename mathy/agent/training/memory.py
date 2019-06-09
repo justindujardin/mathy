@@ -5,7 +5,7 @@ from shutil import copyfile
 
 import ujson
 
-from ...environment_state import INPUT_EXAMPLES_FILE_NAME
+from ...mathy_env_state import INPUT_EXAMPLES_FILE_NAME
 
 
 def memory_files(from_folder: str):

@@ -57,10 +57,10 @@ def calculate_chaos_node_control_signal(observation_dict):
           
           https://arxiv.org/pdf/1611.05397.pdf
 
-          "In principle, any reinforcement learning method could be applied to 
-           maximise these objectives. However, to efficiently learn to maximise 
-           many different pseudo-rewards simultaneously in parallel from a single 
-           stream of experience, it is necessary to use off-policy reinforcement 
+          "In principle, any reinforcement learning method could be applied to
+           maximise these objectives. However, to efficiently learn to maximise
+           many different pseudo-rewards simultaneously in parallel from a single
+           stream of experience, it is necessary to use off-policy reinforcement
            learning. We focus on value-based RL methods that approximate the optimal
            action-values by Qlearning"
     """
@@ -242,7 +242,7 @@ def parse_example_for_training(example, max_sequence, max_policy_sequence):
     ex_input = example["features"]
     num_actions = (
         6
-    )  # TODO: This is hardcoded to the number of rules in math_game.py FIXIT!
+    )  # TODO: This is hardcoded to the number of rules in mathy_env.py FIXIT!
     # Two extract windows for context sensitivity (3 * 3) = 9
     pad_value = tuple([MathTypeKeys["empty"]] * 9)
     # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")

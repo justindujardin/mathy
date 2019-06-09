@@ -1,5 +1,6 @@
 import random
 import sys
+from typing import Tuple, Dict, Any
 
 operators = list("+*")
 common_variables = list("xyz")
@@ -77,7 +78,7 @@ def simplify_multiple_terms(
     inner_terms_scaling=0.3,
     powers_proability=0.33,
     shuffle_probability=0.33,
-):
+) -> Tuple[str, int]:
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
     num_like_terms = max(2, int(num_terms * inner_terms_scaling))

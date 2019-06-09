@@ -25,7 +25,7 @@ from mathy.agent.training.practice_runner import (
     RunnerConfig,
 )
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -76,7 +76,7 @@ def main(
     episode_counter = 0
     counter = 0
     training_epochs = 8
-    controller = MathGame(verbose=True)
+    controller = MathyEnv(verbose=True)
     BaseEpisodeRunner = PracticeRunner if not parallel else ParallelPracticeRunner
     if lesson_id is None:
         plan = lessons[list(lessons)[0]]
@@ -91,7 +91,7 @@ def main(
 
     class LessonRunner(BaseEpisodeRunner):
         def get_game(self):
-            return MathGame(verbose=dev_mode, lesson=lesson, max_moves=lesson.max_turns)
+            return MathyEnv(verbose=dev_mode, lesson=lesson, max_moves=lesson.max_turns)
 
         def get_predictor(self, game, all_memory=False):
             return MathModel(game, model_dir, all_memory)

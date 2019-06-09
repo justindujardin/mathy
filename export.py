@@ -4,7 +4,7 @@ import plac
 import tensorflow as tf
 from pathlib import Path
 from mathy.agent.controller import MathModel
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -25,7 +25,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
     ),
 )
 def main(model_dir, export_dir):
-    mathy = MathModel(MathGame().action_size, model_dir)
+    mathy = MathModel(MathyEnv().action_size, model_dir)
     export_path = Path(export_dir)
     if not export_path.is_dir():
         export_path.mkdir(parents=True, exist_ok=True)

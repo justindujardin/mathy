@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 from mathy.agent.controller import MathModel
 from mathy.agent.training.practice_runner import (
     PracticeRunner,
@@ -48,7 +48,7 @@ def lesson_runner(
 
         class LessonRunner(BaseEpisodeRunner):
             def get_game(self):
-                return MathGame(
+                return MathyEnv(
                     verbose=dev_mode, lesson=lesson, max_moves=lesson.max_turns
                 )
 

@@ -26,7 +26,7 @@ from ..agent.features import (
 )
 from ..agent.predictor import MathPredictor
 from ..core.expressions import MathTypeKeysMax
-from ..environment_state import MathEnvironmentState
+from ..mathy_env_state import MathyEnvState
 from .dataset import make_training_input_fn
 from .train_hooks import EpochTrainerHook
 from .souls.mathy_micro import math_estimator
@@ -254,7 +254,7 @@ class MathModel:
         )
         return examples
 
-    def predict(self, env_state: MathEnvironmentState, valid_moves):
+    def predict(self, env_state: MathyEnvState, valid_moves):
         """Predict a policy/value for a given input state.
         
         Returns: a tuple of (policy, value) for the input as predicted 

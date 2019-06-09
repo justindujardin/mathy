@@ -5,7 +5,7 @@ from shutil import copyfile
 import random
 import ujson
 
-from ...environment_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
+from ...mathy_env_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
 
 
 def balanced_reward_experience_samples(examples_pool, max_items: int):

@@ -13,7 +13,7 @@ class ExaminationRunner:
 
     def attempt(self, verbose=False):
         steps = []
-        env_state, complexity = self.game.get_initial_state()
+        env_state, prob = self.game.get_initial_state()
         it = 0
         done = False
         while done is False:

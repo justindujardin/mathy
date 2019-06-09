@@ -23,7 +23,7 @@ from ..agent.features import (
     TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
-from ..environment_state import INPUT_EXAMPLES_FILE_NAME
+from ..mathy_env_state import INPUT_EXAMPLES_FILE_NAME
 
 
 def make_training_input_fn(examples, batch_size):

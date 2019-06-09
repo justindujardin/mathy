@@ -10,8 +10,8 @@ import numpy
 from tf_agents.trajectories import time_step
 
 from ...core.expressions import MathExpression
-from ...environment_state import MathEnvironmentState
-from ...math_game import MathGame
+from ...mathy_env_state import MathyEnvState
+from ...mathy_env import MathyEnv
 from ...util import discount, is_terminal_transition, normalize_rewards
 from ..controller import MathModel
 from .mcts import MCTS
@@ -28,7 +28,7 @@ class ActorMCTS:
         self.explore_for_n_moves = explore_for_n_moves
 
     def step(
-        self, game: MathGame, env_state: MathEnvironmentState, model: MathModel, history
+        self, game: MathyEnv, env_state: MathyEnvState, model: MathModel, history
     ):
         """Pick an action, take it, and return the next state.
 
@@ -53,8 +53,8 @@ class ActorMCTS:
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False
         out_policy = pi
-        out_policy = numpy.reshape(pi, (-1, len(game.available_rules))).tolist()
-        pi_mask = numpy.reshape(pi_mask, (-1, len(game.available_rules))).tolist()
+        out_policy = numpy.reshape(pi, (-1, len(game.actions))).tolist()
+        pi_mask = numpy.reshape(pi_mask, (-1, len(game.actions))).tolist()
         action_i, token_i = game.get_action_indices(action)
         # Output a single training example for per-step training
         train_features = copy.deepcopy(example_data)

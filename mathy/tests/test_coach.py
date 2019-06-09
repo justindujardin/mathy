@@ -1,4 +1,4 @@
-from mathy.math_game import MathGame
+from mathy.mathy_env import MathyEnv
 from mathy.agent.controller import MathModel
 from mathy.agent.training.practice_runner import PracticeRunner, RunnerConfig
 from mathy.agent.training.practice_session import PracticeSession
@@ -6,7 +6,7 @@ from mathy.agent.training.practice_session import PracticeSession
 
 class MockEpisodeRunner(PracticeRunner):
     def get_game(self):
-        return MathGame()
+        return MathyEnv()
 
     def get_predictor(self, game, data=None):
         return MathModel(game, "/dev/null")

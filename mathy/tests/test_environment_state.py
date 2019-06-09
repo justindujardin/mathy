@@ -1,14 +1,14 @@
-from ..environment_state import MathEnvironmentState
+from ..mathy_env_state import MathyEnvState
 from ..core.parser import ExpressionParser
 
 
 def test_math_state():
-    state = MathEnvironmentState(problem="4+4")
+    state = MathyEnvState(problem="4+4")
     assert state is not None
 
 
 def test_math_state_encode_player():
-    env_state = MathEnvironmentState(problem="4x+2")
+    env_state = MathyEnvState(problem="4x+2")
     env_state = env_state.encode_player(
         problem="2+4x", focus_index=3, moves_remaining=10, action=0
     )

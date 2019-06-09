@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Optional, List
+from typing import Optional, List, Type, Dict, Any, Tuple, NamedTuple
 from tf_agents.trajectories import time_step
 
 from .core.expressions import STOP, MathExpression
@@ -15,71 +15,125 @@ from .core.rules import (
     ExpressionChangeRule,
 )
 from .core.util import get_terms, has_like_terms, is_preferred_term_form
-from .environment_state import AgentTimeStep, MathEnvironmentState
+from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
 from .game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from .util import GameRewards
 
 
-class MathGame:
+class MathyEnvironmentProblem(NamedTuple):
+    """Summarize an environment-specific problem that was generated with
+    a tuple of (text, complexity, type) where:
+     - "text" is the text content of the generated problem
+     - "complexity" is an integer value that represents the number of
+       terms in the problem text.
+     - "type" is an integer value representing the problem type that
+       the environment generates.
     """
-    Implement a math solving game where a player wins by executing the right sequence
-    of actions to reduce a math expression to an agreeable basic representation in as
-    few moves as possible.
-    """
+
+    text: str
+    complexity: int
+    type: int
+
+
+def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
+    """Return the mathy core agent actions"""
+    return [
+        ConstantsSimplifyRule(),
+        CommutativeSwapRule(preferred=preferred_term_commute),
+        DistributiveMultiplyRule(),
+        DistributiveFactorOutRule(),
+        AssociativeSwapRule(),
+        VariableMultiplyRule(),
+    ]
+
+
+class MathyEnv:
+    """Implement a math solving game where a player wins by executing the
+    right sequence of actions to reduce a math expression to an agreeable
+    basic representation in as few moves as possible."""
+
+    actions: List[BaseRule]
+    rewarding_actions: List[Type[BaseRule]]
+    max_moves: int
+    verbose: bool
+    reward_discount: float
+    parser: ExpressionParser
+    valid_actions_mask_cache: Dict[str, List[int]]
+    valid_rules_cache: Dict[str, List[int]]
+
+    INVALID_PROBLEM = MathyEnvironmentProblem("invalid", -1, -1)
 
     def __init__(
         self,
-        verbose: bool = False,
-        max_moves: int = 20,
-        lesson=None,
-        reward_discount: float = 0.99,
-        rewarding_actions: Optional[List[BaseRule]] = None,
+        actions=None,
+        rewarding_actions=None,
+        max_moves=20,
+        verbose=False,
+        reward_discount=0.99,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
         self.parser = ExpressionParser()
-        self.lesson = lesson
-        self.available_rules = [
-            ConstantsSimplifyRule(),
-            CommutativeSwapRule(preferred=False),
-            DistributiveMultiplyRule(),
-            DistributiveFactorOutRule(),
-            AssociativeSwapRule(),
-            VariableMultiplyRule(),
-        ]
         self.rewarding_actions = rewarding_actions
+        self.actions = actions
+        if self.actions is None:
+            self.actions = mathy_core_rules()
         if self.rewarding_actions is None:
-            self.rewarding_actions = [ConstantsSimplifyRule, DistributiveFactorOutRule]
-        self._all_actions_cache = dict()
-        self._rule_list_cache = dict()
+            self.rewarding_actions = []
+        self.valid_actions_mask_cache = dict()
+        self.valid_rules_cache = dict()
 
     @property
-    def action_size(self):
+    def action_size(self) -> int:
         """Return the number of available actions"""
-        return len(self.available_rules)
+        return len(self.actions)
 
-    def get_win_signal(self, env_state: MathEnvironmentState) -> float:
+    def transition_fn(
+        self, env_state: MathyEnvState, expression: MathExpression, features: Any
+    ) -> Optional[time_step.TimeStep]:
+        """Provide environment-specific transitions per timestep."""
+        assert env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
+        if not has_like_terms(expression):
+            term_nodes = get_terms(expression)
+            is_win = True
+            for term in term_nodes:
+                if not is_preferred_term_form(term):
+                    is_win = False
+            if is_win:
+                return time_step.termination(features, self.get_win_signal(env_state))
+        return None
+
+    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvironmentProblem:
+        """Return a problem for the environment given an optional set
+        of parameters to control problem generation. This is implemented
+        per environment such that each environment can generate its own
+        dataset with no required configuration. """
+        return MathyEnv.INVALID_PROBLEM
+
+    def get_win_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for completing the episode. This is done
-        so that the reward signal can be scaled based on the time it took to 
-        complete the episode """
-        total_moves = env_state.max_moves
+        so that the reward signal can be scaled based on the time it took to
+        complete the episode. """
+        tiny = 3e-10
+        total_moves = max(tiny, env_state.max_moves)
         # guard against divide by zero with max and a small value
-        current_move = round(
-            max(3e-10, total_moves - env_state.agent.moves_remaining), 3
-        )
+        current_move = max(tiny, total_moves - env_state.agent.moves_remaining)
         bonus = (total_moves / current_move) / total_moves
         if current_move < total_moves / 2:
             bonus *= 2
         return GameRewards.WIN + bonus
 
-    def get_state_value(self, env_state: MathEnvironmentState, searching=False):
-        """Get the value of the current state
+    def get_state_transition(
+        self, env_state: MathyEnvState, searching: bool = False
+    ) -> time_step.TimeStep:
+        """Given an input state calculate the transition value of the timestep.
 
+        This returns a nametuple provided by the `tf_agents` library.
 
         Input:
-            env_state:     current env_state
-            searching: boolean that is True when called by MCTS simulation
+            env_state: current env_state
+            searching: True when called by MCTS simulation
 
         Returns:
             transition: the current state value transition
@@ -88,17 +142,12 @@ class MathGame:
         expression = self.parser.parse(agent.problem)
         features = env_state.to_input_features(self.get_valid_moves(env_state))
         root = expression.get_root()
-        if (
-            env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
-            and not has_like_terms(root)
-        ):
-            term_nodes = get_terms(root)
-            is_win = True
-            for term in term_nodes:
-                if not is_preferred_term_form(term):
-                    is_win = False
-            if is_win:
-                return time_step.termination(features, self.get_win_signal(env_state))
+
+        # Subclass specific win conditions happen here. Custom win-conditions
+        # outside of that can override this method entirely.
+        result = self.transition_fn(env_state, root, features)
+        if result is not None:
+            return result
 
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
@@ -135,7 +184,9 @@ class MathGame:
             features, reward=GameRewards.TIMESTEP, discount=self.discount
         )
 
-    def get_next_state(self, env_state: MathEnvironmentState, action, searching=False):
+    def get_next_state(
+        self, env_state: MathyEnvState, action: int, searching: bool = False
+    ) -> Tuple[MathyEnvState, time_step.TimeStep]:
         """
         Input:
             env_state: current env_state
@@ -149,15 +200,13 @@ class MathGame:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        rule_count = len(self.available_rules)
         action_index, token_index = self.get_action_indices(action)
         token = self.get_token_at_index(expression, token_index)
-        if action_index > rule_count - 1:
-            operation = "dangit!"
-        operation = self.available_rules[action_index]
+        operation = self.actions[action_index]
 
         if (
-            not isinstance(operation, BaseRule)
+            token is None
+            or not isinstance(operation, BaseRule)
             or operation.can_apply_to(token) is False
         ):
             msg = "Invalid action({}) '{}' for expression '{}'."
@@ -175,14 +224,14 @@ class MathGame:
         )
 
         if not searching and self.verbose:
-            token_idx = "{}".format(token_index).zfill(3)
+            token_idx = int("{}".format(token_index).zfill(3))
             self.print_state(out_env, change_name[:25].lower(), token_idx, change)
-        transition = self.get_state_value(out_env, searching)
+        transition = self.get_state_transition(out_env, searching)
         return out_env, transition
 
     def print_state(
         self,
-        env_state: MathEnvironmentState,
+        env_state: MathyEnvState,
         action_name: str,
         token_index: int = -1,
         change: ExpressionChangeRule = None,
@@ -196,9 +245,9 @@ class MathGame:
         def get_move_shortname(index, move):
             if move == 0:
                 return "--"
-            if move >= len(self.available_rules):
+            if move >= len(self.actions):
                 return "xx"
-            return self.available_rules[index].code.lower()
+            return self.actions[index].code.lower()
 
         token_idx = "{}".format(token_index).zfill(3)
         moves_left = str(env_state.agent.moves_remaining).zfill(2)
@@ -207,29 +256,28 @@ class MathGame:
         moves = " ".join(move_codes)
         print("{} | {} | {} | {}".format(moves, moves_left, token_idx, output))
 
-    def get_initial_state(self, print_problem=True):
-        """Generate an initial MathEnvironmentState with the game's configuration"""
-        if self.lesson is None:
-            raise ValueError("cannot generate problems without a lesson plan")
-        (problem, complexity) = self.lesson.problem_fn()
-        type = self.lesson.problem_type
-        self._all_actions_cache = dict()
-        self._rule_list_cache = dict()
-        env_state = MathEnvironmentState(
-            problem=problem, problem_type=type, max_moves=self.max_moves
+    def get_initial_state(
+        self, params: Dict[str, Any] = None, print_problem: bool = True
+    ) -> Tuple[MathyEnvState, MathyEnvironmentProblem]:
+        """Generate an initial MathyEnvState with the game's configuration"""
+        prob = self.problem_fn(params)
+        self.valid_actions_mask_cache = dict()
+        self.valid_rules_cache = dict()
+        env_state = MathyEnvState(
+            problem=prob.text, problem_type=prob.type, max_moves=self.max_moves
         )
         if print_problem and self.verbose:
             self.print_state(env_state, "initial-state")
-        return env_state, complexity
+        return env_state, prob
 
-    def get_agent_actions_count(self, env_state: MathEnvironmentState):
+    def get_agent_actions_count(self, env_state: MathyEnvState) -> int:
         """Return number of all possible actions"""
         node_count = len(self.parser.parse(env_state.agent.problem).toList())
         return self.action_size * node_count
 
     def get_token_at_index(
         self, expression: MathExpression, focus_index: int
-    ) -> MathExpression:
+    ) -> Optional[MathExpression]:
         """Get the token that is `focus_index` from the left of the expression"""
         count = 0
         result = None
@@ -244,79 +292,71 @@ class MathGame:
         expression.visit_inorder(visit_fn)
         return result
 
-    def get_valid_moves(self, env_state: MathEnvironmentState):
+    def get_valid_moves(self, env_state: MathyEnvState) -> List[int]:
         """Get a vector the length of the action space that is filled
          with 1/0 indicating whether the action at that index is valid
          for the current state.
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        actions = self.get_actions_for_node(expression)
-        return actions
+        return self.get_actions_for_node(expression)
 
-    def get_valid_rules(self, env_state: MathEnvironmentState):
+    def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:
         """Get a vector the length of the number of valid rules that is
         filled with 0/1 based on whether the rule has any nodes in the
         expression that it can be applied to.
 
-        NOTE: If you want to get a list of which nodes each rule can be 
+        NOTE: If you want to get a list of which nodes each rule can be
         applied to, prefer to use the `get_valid_moves` method.
         """
         key = self.to_hash_key(env_state)
-        if key in self._rule_list_cache:
-            return self._rule_list_cache[key]
+        if key in self.valid_rules_cache:
+            return self.valid_rules_cache[key]
         expression = self.parser.parse(env_state.agent.problem)
-        actions = [0] * len(self.available_rules)
-        for rule_index, rule in enumerate(self.available_rules):
+        actions = [0] * len(self.actions)
+        for rule_index, rule in enumerate(self.actions):
             nodes = rule.find_nodes(expression)
             actions[rule_index] = 0 if len(nodes) == 0 else 1
-        self._rule_list_cache[key] = actions[:]
+        self.valid_rules_cache[key] = actions[:]
         return actions
 
-    def get_action_indices_from_timestep(self, time_step: AgentTimeStep):
+    def get_action_indices_from_timestep(
+        self, time_step: MathyEnvTimeStep
+    ) -> Tuple[int, int]:
         """Parse a timestep and return the unpacked action_index/token_index
         from the source action"""
         return time_step.action, time_step.focus
 
-    def get_action_indices(self, action: int):
+    def get_action_indices(self, action: int) -> Tuple[int, int]:
         """Get the normalized action/node_index values from a
         given absolute action value.
 
         Returns a tuple of (rule_index, node_index)"""
-        rule_count = len(self.available_rules)
+        rule_count = len(self.actions)
         # Rule index = val % rule_count
         action_index = action % rule_count
         # And the action at that token
         token_index = int((action - action_index) / rule_count)
         return action_index, token_index
 
-    def get_rule_from_timestep(self, time_step: AgentTimeStep):
-        return self.available_rules[time_step.action]
+    def get_rule_from_timestep(self, time_step: MathyEnvTimeStep):
+        return self.actions[time_step.action]
 
-    def get_actions_for_node(self, expression: MathExpression):
+    def get_actions_for_node(self, expression: MathExpression) -> List[int]:
         key = str(expression)
-        if key in self._all_actions_cache:
-            return self._all_actions_cache[key][:]
+        if key in self.valid_actions_mask_cache:
+            return self.valid_actions_mask_cache[key][:]
         node_count = len(expression.toList())
-        rule_count = len(self.available_rules)
+        rule_count = len(self.actions)
         actions = [0] * rule_count * node_count
-
-        # Properties of numbers and common simplifications
-        for rule_index, rule in enumerate(self.available_rules):
+        for rule_index, rule in enumerate(self.actions):
             nodes = rule.find_nodes(expression)
             for node in nodes:
                 action_index = (node.r_index * rule_count) + rule_index
                 actions[action_index] = 1
-
-                # print(
-                #     "[action_index={}={}] can apply to [token_index={}, {}]".format(
-                #         action_index, rule.name, node.r_index, str(node)
-                #     )
-                # )
-
-        self._all_actions_cache[key] = actions[:]
+        self.valid_actions_mask_cache[key] = actions[:]
         return actions
 
-    def to_hash_key(self, env_state: MathEnvironmentState):
-        """conversion of env_state to a string format, required by MCTS for hashing."""
-        return f"[{env_state.agent.focus_index}]{env_state.agent.problem}"
+    def to_hash_key(self, env_state: MathyEnvState) -> str:
+        """Convert env_state to a string for MCTS cache"""
+        return env_state.agent.problem
