@@ -10,7 +10,7 @@ doom/
 .training-old/
 program.prof
 .terraform
-
+.mypy_cache
 models/
 draws.txt
 visualization
@@ -28,3 +28,4 @@ agents/
 /training/
 training.jsonl
 training_tiny.jsonl
+hoarding/

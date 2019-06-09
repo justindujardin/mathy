@@ -26,7 +26,7 @@ echo 'export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 source ~/.bashrc
 
 echo "Installing Tensorflow GPU"
-pip3 --no-cache-dir install tf-nightly-gpu
+pip3 --no-cache-dir install tf-nightly-gpu-2.0-preview
 echo "Done."
 
 echo "Installing SSH keys from bucket..."
