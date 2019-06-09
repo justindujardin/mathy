@@ -1,25 +1,17 @@
-import collections
-import math
 import os
 import random
-import sys
-import time
-from itertools import zip_longest
-from multiprocessing import cpu_count
-from pathlib import Path
 
-import numpy
 import tensorflow as tf
+from tensorflow.estimator.export import build_parsing_serving_input_receiver_fn
 from colr import color
 
 from ..agent.features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
-    FEATURE_MOVE_MASK,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
@@ -28,9 +20,8 @@ from ..agent.predictor import MathPredictor
 from ..core.expressions import MathTypeKeysMax
 from ..mathy_env_state import MathyEnvState
 from .dataset import make_training_input_fn
-from .train_hooks import EpochTrainerHook
 from .souls.mathy_micro import math_estimator
-from .layers.densenet_stack import DenseNetStack
+from .train_hooks import EpochTrainerHook
 
 
 class MathModel:
@@ -198,7 +189,7 @@ class MathModel:
         )
 
         # Build receiver function, and export.
-        self.serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(
+        self.serving_input_fn = build_parsing_serving_input_receiver_fn(
             self.feature_spec
         )
 
@@ -242,7 +233,7 @@ class MathModel:
             )
         )
         print(
-            "[training] {} epochs with {} examples, {} learning rate, and {} dropout...".format(
+            "[training] {} epochs with {} examples, {} lr, and {} dropout...".format(
                 self.epochs, len(examples), self.learning_rate, self.dropout
             )
         )
@@ -256,8 +247,7 @@ class MathModel:
 
     def predict(self, env_state: MathyEnvState, valid_moves):
         """Predict a policy/value for a given input state.
-        
-        Returns: a tuple of (policy, value) for the input as predicted 
+        Returns: a tuple of (policy, value) for the input as predicted
         by the neural network """
 
         input_features = env_state.to_input_features(valid_moves, return_batch=True)

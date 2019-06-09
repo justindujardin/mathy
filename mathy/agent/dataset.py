@@ -1,8 +1,5 @@
-from pathlib import Path
-
 import numpy
 import tensorflow as tf
-import ujson
 
 from ..agent.features import (
     FEATURE_BWD_VECTORS,
@@ -23,13 +20,11 @@ from ..agent.features import (
     TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
-from ..mathy_env_state import INPUT_EXAMPLES_FILE_NAME
 
 
 def make_training_input_fn(examples, batch_size):
-    """Return an input function that lazily loads self-play examples from 
-    the given file during training
-    """
+    """Return an input function that lazily loads self-play examples from
+    the given file during training."""
 
     output_types = (
         {

@@ -1,7 +1,5 @@
 # coding: utf8
-import json
 import os
-import random
 import time
 from datetime import timedelta
 
@@ -11,7 +9,6 @@ import tensorflow as tf
 from colr import color
 
 from mathy.agent.controller import MathModel
-from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.math_experience import (
     MathExperience,
@@ -32,7 +29,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         str,
     ),
     transfer_from=(
-        "The name of another model to warm start this one from. Think Transfer Learning",
+        "Transfer weights from another model by its folder path",
         "positional",
         None,
         str,
@@ -69,7 +66,8 @@ def main(
     )
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
-    env_name = mathy_env.__class__.__name__
+    env_name = str(mathy_env.__class__.__name__)
+    print(f"ENV: {env_name}")
     while True:
         print(f"[lesson] session {counter}")
         counter = counter + 1
@@ -101,7 +99,7 @@ def main(
         ep_reward_buffer = []
         # Fill up a certain amount of experience per problem type
         lesson_experience_count = 0
-        iter_experience = short_term_size
+        iter_experience = 128
         while lesson_experience_count < iter_experience:
             env_state, prob = mathy_env.get_initial_state(print_problem=False)
             mathy_env.verbose = eval_run or verbose
@@ -166,7 +164,9 @@ def main(
         else:
             print(
                 color(
-                    f"[skip training] only have {experience.count} observations, but need at least {min_train_experience} before training",
+                    "Need {} observations for training but have {}".format(
+                        min_train_experience, experience.count
+                    ),
                     fore="yellow",
                     style="bright",
                 )

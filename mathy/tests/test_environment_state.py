@@ -1,5 +1,4 @@
 from ..mathy_env_state import MathyEnvState
-from ..core.parser import ExpressionParser
 
 
 def test_math_state():
@@ -17,4 +16,3 @@ def test_math_state_encode_player():
     assert agent.moves_remaining == 10
     assert agent.action == 0
     assert agent.focus_index == 3
-

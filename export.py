@@ -18,7 +18,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         str,
     ),
     export_dir=(
-        "The export path for the saved model to be placed in. It will be created if needed.",
+        "The export path for the saved model to be placed in.",
         "positional",
         None,
         str,
