@@ -1,12 +1,12 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Type
 
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..core.rules import ConstantsSimplifyRule, DistributiveFactorOutRule
+from ..core.rules import ConstantsSimplifyRule, DistributiveFactorOutRule, BaseRule
 from ..core.util import get_terms, has_like_terms, is_preferred_term_form
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
-from ..mathy_env import MathyEnv, MathyEnvironmentProblem
+from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..mathy_env_state import MathyEnvState
 from ..agent.curriculum.problems import simplify_multiple_terms
 
@@ -19,7 +19,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
      operators are excluded. This is a good area for improvement.
     """
 
-    def get_rewarding_actions(self):
+    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
     def transition_fn(
@@ -36,7 +36,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
                 return time_step.termination(features, self.get_win_signal(env_state))
         return None
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvironmentProblem:
+    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
         a polynomial problem with (n) total terms divided among (m) groups
         of like terms. A few examples of the form: `f(n, m) = p`
@@ -53,4 +53,4 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
             )
         num_terms = int(config["difficulty"])
         text, complexity = simplify_multiple_terms(num_terms)
-        return MathyEnvironmentProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

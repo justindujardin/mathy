@@ -1,9 +1,10 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Type
 
-from ..core.rules import ConstantsSimplifyRule, VariableMultiplyRule
+from ..core.rules import ConstantsSimplifyRule, VariableMultiplyRule, BaseRule
+from ..mathy_env_state import MathyEnvState
 from ..agent.curriculum.problems import simplify_multiple_terms
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
-from ..mathy_env import MathyEnvironmentProblem
+from ..mathy_env import MathyEnvProblem
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
 
 
@@ -13,10 +14,10 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     of environment steps.
     """
 
-    def get_rewarding_actions(self):
+    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, VariableMultiplyRule]
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvironmentProblem:
+    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
         a complex term that has a simple representation that must be found.
         - "4x * 2y^2 * 7q"
@@ -25,7 +26,8 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
         """
         config = params if params is not None else dict()
         num_terms = config.get("difficulty", 2)
+        simple = config.get("simple", False)
         text, complexity = simplify_multiple_terms(
-            num_terms, op="*", optional_var=True, optional_var_probability=0.5
+            num_terms, op="*", optional_var=simple, optional_var_probability=0.5
         )
-        return MathyEnvironmentProblem(text, complexity, MODE_SIMPLIFY_COMPLEX_TERM)
+        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_COMPLEX_TERM)

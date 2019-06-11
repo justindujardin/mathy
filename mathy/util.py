@@ -1,9 +1,6 @@
 import numpy
 from tf_agents.trajectories import time_step
 
-# From TZ: "my rule of thumb is win/loss = +/-1, and everything else is determined in orders of magnitude of importance
-# so for instance, my timestep penalty might be -0.01, picking up a gem or something might be +0.1"
-
 
 class GameRewards:
     """Game reward constant values"""
@@ -11,7 +8,7 @@ class GameRewards:
     LOSE = -1.0
     WIN = 1.0
     HELPFUL_MOVE = 0.1
-    TIMESTEP = -0.01
+    TIMESTEP = -0.1
     PREVIOUS_LOCATION = -0.2
     INVALID_ACTION = -0.03
 

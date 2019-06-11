@@ -1,6 +1,5 @@
 import random
-import sys
-from typing import Tuple, Dict, Any
+from typing import Tuple
 
 operators = list("+*")
 common_variables = list("xyz")
@@ -45,7 +44,6 @@ def rand_op():
 
 def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     """Get a list of random variables, excluding the given list of hold-out variables"""
-    var = rand_var()
     if num_vars > 25:
         raise ValueError("out of range: there are only twenty-six variables")
     rand_vars = set()
@@ -79,10 +77,11 @@ def simplify_multiple_terms(
     powers_proability=0.33,
     optional_var_probability=0.5,
     shuffle_probability=0.33,
+    min_terms=2,
 ) -> Tuple[str, int]:
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
-    num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    num_like_terms = round(max(min_terms, int(num_terms * inner_terms_scaling)))
     term_templates = get_rand_vars(num_like_terms)
     if powers is not False:
         for i, var in enumerate(term_templates):
@@ -116,7 +115,7 @@ def solve_for_variable(terms=4):
     for _ in range(terms - 3):
         num = rand_int()
         op = rand_op()
-        var = optional_var()
+        var = maybe_var()
         result = result + " {} {}{}".format(op, num, var)
     return result + suffix
 
@@ -135,24 +134,24 @@ def split_in_two_random(value: int):
 
 def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
     """Generate a problem that puts one pair of like terms somewhere inside
-    an expression of unlike terms. The agent should be challenged to make its first 
+    an expression of unlike terms. The agent should be challenged to make its first
     few moves count when combined with a very small number of maximum moves.
 
-    The hope is that by focusing the agent on selecting the right moves inside of a 
+    The hope is that by focusing the agent on selecting the right moves inside of a
     ridiculously large expression it will learn to select actions to combine like terms
     invariant of the sequence length.
-    
+
     Example:
       "4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x)  + 43n + 17j"
       max_turns=3  actions=[DistributiveFactorOut, ConstantArithmetic]
 
-    NOTE: we usually add one more move than may strictly be necessary to help with 
+    NOTE: we usually add one more move than may strictly be necessary to help with
     exploration where we inject Dirichlet noise in the root tree search node.
     """
 
     total_terms = random.randint(min_terms, max_terms)
     var = rand_var()
-    power_chance = 80 if powers == True else 0
+    power_chance = 80 if powers is True else 0
     power = maybe_power(power_chance)
     focus_chunk = f"{maybe_int()}{var}{power} + {maybe_int()}{var}{power}"
     if easy:
@@ -183,14 +182,14 @@ def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
 def combine_terms_after_commuting(
     min_terms=5, max_terms=8, commute_blockers=1, easy=True, powers=False
 ):
-    """A problem with a bunch of terms that have no matches, and a single 
+    """A problem with a bunch of terms that have no matches, and a single
     set of two terms that do match, but are separated by one other term.
 
-    The challenge is to commute the terms to each other and simplify in 
-    only a few moves. 
-    
+    The challenge is to commute the terms to each other and simplify in
+    only a few moves.
+
     Example:  "4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
-                                             ^-----------^  
+                                             ^-----------^
     """
     total_terms = random.randint(min_terms, max_terms)
     num_noise_terms = total_terms - 2
@@ -205,7 +204,9 @@ def combine_terms_after_commuting(
         current = noise_vars.pop()
         blockers.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
 
-    focus_chunk = f"{maybe_int()}{var}{power} + {' + '.join(blockers)} + {maybe_int()}{var}{power}"
+    f_prefix = f"{maybe_int()}{var}{power}"
+    f_suffix = f"{maybe_int()}{var}{power}"
+    focus_chunk = f"{f_prefix} + {' + '.join(blockers)} + {f_suffix}"
     # About half of the time focus the agent by grouping the subtree for them
     if rand_bool(50 if easy else 10):
         focus_chunk = f"({focus_chunk})"

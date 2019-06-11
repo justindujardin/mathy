@@ -1,13 +1,4 @@
-from ..core.tree import BinaryTreeNode
-from ..core.layout import TreeLayout, TidierExtreme, TreeMeasurement
 from ..core.parser import ExpressionParser
-from ..core.expressions import (
-    ConstantExpression,
-    VariableExpression,
-    AddExpression,
-    MultiplyExpression,
-    DivideExpression,
-)
 from ..core.util import get_terms, terms_are_like, load_rule_tests
 from ..core.rules import (
     AssociativeSwapRule,
@@ -18,7 +9,8 @@ from ..core.rules import (
     VariableMultiplyRule,
 )
 
-# TODO: Incorporate competency evaluations in training? Adjust hyper params/problems when certain competencies are met?
+# TODO: Incorporate competency evaluations in training? Adjust hyper params/problems
+# when certain competencies are met?
 exam_combine_like_terms = [
     ("10 + (7x + 6x)", "10 + 13x"),
     ("6x + 6 * 5 - 2x", "4x + 30"),

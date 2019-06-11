@@ -1,7 +1,7 @@
 from itertools import groupby
-from typing import Optional, List, Type, Dict, Any, Tuple, NamedTuple
+from typing import Optional, List, Type, Dict, Any, Tuple
 from tf_agents.trajectories import time_step
-
+from .types import MathyEnvProblem
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
 from .core.rules import (
@@ -14,28 +14,11 @@ from .core.rules import (
     VariableMultiplyRule,
     ExpressionChangeRule,
 )
-from .core.util import get_terms, has_like_terms, is_preferred_term_form
 from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
-from .game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from .util import GameRewards
 
 
-class MathyEnvironmentProblem(NamedTuple):
-    """Summarize an environment-specific problem that was generated with
-    a tuple of (text, complexity, type) where:
-     - "text" is the text content of the generated problem
-     - "complexity" is an integer value that represents the number of
-       terms in the problem text.
-     - "type" is an integer value representing the problem type that
-       the environment generates.
-    """
-
-    text: str
-    complexity: int
-    type: int
-
-
-def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
+def mathy_core_rules(preferred_term_commute=True) -> List[BaseRule]:
     """Return the mathy core agent actions"""
     return [
         ConstantsSimplifyRule(),
@@ -61,7 +44,7 @@ class MathyEnv:
     valid_actions_mask_cache: Dict[str, List[int]]
     valid_rules_cache: Dict[str, List[int]]
 
-    INVALID_PROBLEM = MathyEnvironmentProblem("invalid", -1, -1)
+    INVALID_PROBLEM = MathyEnvProblem("invalid", -1, -1)
 
     def __init__(
         self,
@@ -79,8 +62,6 @@ class MathyEnv:
         if self.actions is None:
             self.actions = mathy_core_rules()
         self.rewarding_actions = rewarding_actions
-        if self.rewarding_actions is None:
-            self.rewarding_actions = self.get_rewarding_actions()
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
 
@@ -89,7 +70,7 @@ class MathyEnv:
         """Return the number of available actions"""
         return len(self.actions)
 
-    def get_rewarding_actions(self) -> List[Type[BaseRule]]:
+    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of rewarding action types. When these actions
         are selected, the agent gets a positive reward as opposed to the
         normal negative timestep reward."""
@@ -99,18 +80,9 @@ class MathyEnv:
         self, env_state: MathyEnvState, expression: MathExpression, features: Any
     ) -> Optional[time_step.TimeStep]:
         """Provide environment-specific transitions per timestep."""
-        assert env_state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
-        if not has_like_terms(expression):
-            term_nodes = get_terms(expression)
-            is_win = True
-            for term in term_nodes:
-                if not is_preferred_term_form(term):
-                    is_win = False
-            if is_win:
-                return time_step.termination(features, self.get_win_signal(env_state))
         return None
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvironmentProblem:
+    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
         """Return a problem for the environment given an optional set
         of parameters to control problem generation. This is implemented
         per environment such that each environment can generate its own
@@ -126,6 +98,7 @@ class MathyEnv:
         # guard against divide by zero with max and a small value
         current_move = max(tiny, total_moves - env_state.agent.moves_remaining)
         bonus = (total_moves / current_move) / total_moves
+        # If the agent completes in half the allowed steps, double the bonus signal
         if current_move < total_moves / 2:
             bonus *= 2
         return GameRewards.WIN + bonus
@@ -163,8 +136,9 @@ class MathyEnv:
         if len(agent.history) > 0:
             last_timestep = agent.history[-1]
             rule = self.get_rule_from_timestep(last_timestep)
+            reward_actions = self.get_rewarding_actions(env_state)
             # The rewarding_actions can be user specified
-            for rewarding_class in self.rewarding_actions:
+            for rewarding_class in reward_actions:
                 if isinstance(rule, rewarding_class):
                     return time_step.transition(
                         features,
@@ -264,11 +238,20 @@ class MathyEnv:
 
     def get_initial_state(
         self, params: Dict[str, Any] = None, print_problem: bool = True
-    ) -> Tuple[MathyEnvState, MathyEnvironmentProblem]:
+    ) -> Tuple[MathyEnvState, MathyEnvProblem]:
         """Generate an initial MathyEnvState with the game's configuration"""
         prob = self.problem_fn(params)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
+        turns_preference = (
+            None if params is None else params.get("turns_per_complexity", None)
+        )
+        # If a turns per complexity value is passed, adjust max moves for
+        # the problem output
+        if turns_preference is not None:
+            self.max_moves = turns_preference * prob.complexity
+
+        # Build and return the initial state
         env_state = MathyEnvState(
             problem=prob.text, problem_type=prob.type, max_moves=self.max_moves
         )

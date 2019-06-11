@@ -1,11 +1,10 @@
-from ..tree import LEFT
-from ..expressions import AddExpression, BinaryExpression, ConstantExpression
-from ..util import is_add_or_sub, is_const, terms_are_like
+from ..expressions import BinaryExpression, ConstantExpression
 from ..rule import BaseRule
 
 
 class ConstantsSimplifyRule(BaseRule):
-    """Given a binary operation on two constants, simplify to the resulting constant expression"""
+    """Given a binary operation on two constants, simplify to the resulting
+    constant expression"""
 
     @property
     def name(self):
@@ -29,4 +28,3 @@ class ConstantsSimplifyRule(BaseRule):
         result = ConstantExpression(node.evaluate())
         result.set_changed()
         return change.done(result)
-

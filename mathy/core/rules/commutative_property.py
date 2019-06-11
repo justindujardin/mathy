@@ -8,26 +8,26 @@ from ..expressions import (
 )
 from ..rule import BaseRule
 
-# ### Commutative Property
-#
-#
-# For Addition: `a + b = b + a`
-#
-#             +                  +
-#            / \                / \
-#           /   \     ->       /   \
-#          /     \            /     \
-#         a       b          b       a
-#
-# For Multiplication: `ab = ba`
-#
-#             *                  *
-#            / \                / \
-#           /   \     ->       /   \
-#          /     \            /     \
-#         a       b          b       a
-#
+
 class CommutativeSwapRule(BaseRule):
+    r"""Commutative Property
+    For Addition: `a + b = b + a`
+
+             +                  +
+            / \                / \
+           /   \     ->       /   \
+          /     \            /     \
+         a       b          b       a
+
+    For Multiplication: `a * b = b * a`
+
+             *                  *
+            / \                / \
+           /   \     ->       /   \
+          /     \            /     \
+         a       b          b       a
+    """
+
     def __init__(self, preferred=True):
         # If false, terms that are in preferred order will not commute
         self.preferred = preferred

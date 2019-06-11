@@ -4,42 +4,29 @@ from ..expressions import (
     ConstantExpression,
     VariableExpression,
     PowerExpression,
-    SubtractExpression,
 )
-from ..util import (
-    is_add_or_sub,
-    is_const,
-    get_term,
-    terms_are_like,
-    unlink,
-    factor_add_terms,
-    make_term,
-    FactorResult,
-    factor,
-)
-import numpy
 from ..rule import BaseRule
 
 
 class VariableMultiplyRule(BaseRule):
     r"""
     This restates `x^b * x^d` as `x^(b + d)` which has the effect of isolating
-    the exponents attached to the variables, so they can be combined by an arithmetic op.
+    the exponents attached to the variables, so they can be combined.
 
         1. When there are two terms with the same base being multiplied together, their
            exponents are added together. "x * x^3" = "x^4" because "x = x^1" so
            "x^1 * x^3 = x^(1 + 3) = x^4"
 
-        TODO: 2. When there is a power raised to another power, they can be combined by multiplying
-           the exponents together. "x^(2^2) = x^4"
+        TODO: 2. When there is a power raised to another power, they can be combined by
+                 multiplying the exponents together. "x^(2^2) = x^4"
 
-    The rule identifies terms with explicit and implicit powers, so the following transformations
-    are all valid:
+    The rule identifies terms with explicit and implicit powers, so the following
+    transformations are all valid:
 
     Explicit powers: x^b * x^d = x^(b+d)
 
-            *         
-           / \        
+            *
+           / \
           /   \          ^
          /     \    =   / \
         ^       ^      x   +
@@ -49,8 +36,8 @@ class VariableMultiplyRule(BaseRule):
 
     Implicit powers: x * x^d = x^(1 + d)
 
-            *         
-           / \        
+            *
+           / \
           /   \          ^
          /     \    =   / \
         x       ^      x   +
@@ -68,9 +55,8 @@ class VariableMultiplyRule(BaseRule):
         return "VM"
 
     def get_child_components(self, child):
-        """
-        Return a tuple of (variable, exponent) for the given child node, or (None, None) if 
-        the child is invalid for this rule.
+        """Return a tuple of (variable, exponent) for the given child node, or
+        (None, None) if the child is invalid for this rule.
         """
         # A power expression with variable/constant children is OKAY
         if isinstance(child, PowerExpression):
@@ -84,9 +70,8 @@ class VariableMultiplyRule(BaseRule):
         return (None, None)
 
     def can_apply_to(self, node):
-        """
-        To cleanly apply, the node must be a multiply and it must have single variable terms 
-        as its left and right children.
+        """To cleanly apply, the node must be a multiply and it must have single
+        variable terms as its left and right children.
         """
         if not isinstance(node, MultiplyExpression):
             return False

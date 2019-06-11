@@ -8,7 +8,7 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "poly",
+        "mixed",
         "agents/dev_2/",
         "-v",
         "-d",

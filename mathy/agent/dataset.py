@@ -1,6 +1,8 @@
 import numpy
 import tensorflow as tf
 
+from ..types import MathyEnvObservation
+from typing import List
 from ..agent.features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
@@ -22,7 +24,7 @@ from ..agent.features import (
 )
 
 
-def make_training_input_fn(examples, batch_size):
+def make_training_input_fn(examples: List[MathyEnvObservation], batch_size: int):
     """Return an input function that lazily loads self-play examples from
     the given file during training."""
 
@@ -49,8 +51,8 @@ def make_training_input_fn(examples, batch_size):
         },
     )
 
-    lengths = [len(l["features"][FEATURE_BWD_VECTORS]) for l in examples]
-    pi_lengths = [len(numpy.array(l[TENSOR_KEY_PI]).flatten()) for l in examples]
+    lengths = [len(l.features[FEATURE_BWD_VECTORS]) for l in examples]
+    pi_lengths = [len(numpy.array(l.policy).flatten()) for l in examples]
 
     max_sequence = max(lengths)
     max_pi_sequence = max(pi_lengths)

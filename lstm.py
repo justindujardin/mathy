@@ -17,7 +17,67 @@ from mathy.agent.features import (
     parse_example_for_training,
 )
 from mathy.agent.layers.math_policy_dropout import MathPolicyDropout
-from mathy.agent.training.math_experience import MathExamples
+
+
+class MathExamples:
+    """Load and save a list of training examples from the file system"""
+
+    _examples: List[MathyEnvObservation]
+    file_path: str
+
+    def __init__(self, file_path, initial_load=True):
+        self.file_path = file_path
+        self._examples = []
+        if initial_load:
+            self.load()
+
+    @property
+    def examples(self) -> List[MathyEnvObservation]:
+        """Get the entire list of examples"""
+        return self._examples
+
+    def add(self, examples: List[MathyEnvObservation]):
+        self._examples += examples
+
+    def load(self):
+        # Try to match a specified file first
+        file_path = Path(self.file_path)
+        if not file_path.is_file():
+            raise ValueError(f"file '{file_path}' does not exist!")
+        examples: List[MathyEnvObservation] = []
+        with file_path.open("r", encoding="utf8") as f:
+            for line in f:
+                ex = MathyEnvObservation(**ujson.loads(line))
+                examples.append(ex)
+        self._examples = examples
+        return True
+
+    def save(self, to_file=None):
+        """Save the accumulated experience to a file. Defaults to the file it
+        was loaded from"""
+        if to_file is None:
+            to_file = self.file_path
+        experience_folder = Path(self.file_path).parent
+        if not experience_folder.is_dir():
+            experience_folder.mkdir(parents=True, exist_ok=True)
+
+        # Write to local file then copy over (don't thrash virtual file systems
+        # like GCS)
+        fd, tmp_file = tempfile.mkstemp()
+        with Path(tmp_file).open("w", encoding="utf-8") as f:
+            for line in self._examples:
+                f.write(
+                    ujson.dumps(line._as_dict(), escape_forward_slashes=False) + "\n"
+                )
+
+        out_file = Path(self.file_path)
+        if out_file.is_file():
+            copyfile(str(out_file), f"{str(out_file)}.bak")
+        copyfile(tmp_file, str(out_file))
+        os.remove(tmp_file)
+        os.close(fd)
+        return str(out_file)
+
 
 num_actions = 6
 
