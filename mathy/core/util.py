@@ -1,3 +1,4 @@
+from typing import Dict, List
 from .expressions import (
     ConstantExpression,
     VariableExpression,
@@ -198,15 +199,26 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
 
     # if there's a variable, make sure the coefficient is on the left side
     # for the preferred compact form. i.e. "4x" instead of "x * 4"
-    vars = expression.findByType(VariableExpression)
+    vars: List[VariableExpression] = expression.findByType(VariableExpression)
+    seen_vars: Dict[str, int] = dict()
+    parent: MathExpression
     for var in vars:
+        if var.identifier not in seen_vars:
+            seen_vars[var.identifier] = 0
+        seen_vars[var.identifier] += 1
         parent = var
         if isinstance(var.parent, PowerExpression):
             parent = var.parent
         if parent.parent is not None and parent.parent.get_side(parent) == LEFT:
             if isinstance(parent.parent.right, ConstantExpression):
                 return False
-
+    # If any variables show up more than once, they can be combined.
+    # examples:
+    #  - `b * (44b^2)`
+    #  - `z * (1274z^2)`
+    for key, value in seen_vars.items():
+        if value > 1:
+            return False
     return True
 
 

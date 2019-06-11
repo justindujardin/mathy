@@ -1,7 +1,7 @@
+from ..envs.mixed_simplification import MathyMixedSimplificationEnv
+from ..mathy_env_state import MathyEnvState
 from ..mathy_env import MathyEnv
-from ..mathy_env_state import MathyEnvState, MathAgentState
 from ..util import is_terminal_transition
-from math import isclose
 import random
 
 
@@ -30,6 +30,8 @@ def test_mathy_env_jd():
 def test_mathy_env_win_conditions():
 
     expectations = [
+        ("b * (44b^2)", False),
+        ("z * (1274z^2)", False),
         ("4x^2", True),
         ("100y * x + 2", True),
         ("10y * 10x + 2", False),
@@ -51,8 +53,8 @@ def test_mathy_env_win_conditions():
     # polynomial expressions
     out_of_scope_valid = []
 
-    env = MathyEnv()
+    env = MathyMixedSimplificationEnv()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathyEnvState(problem=text)
         reward = env.get_state_transition(env_state)
-        assert text == text and is_terminal_transition(reward) == int(is_win)
+        assert text == text and is_terminal_transition(reward) == bool(is_win)
