@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import timedelta
-from typing import List, Optional, Type
+from typing import List, Type
 
 import numpy
 import plac
@@ -17,7 +17,9 @@ from mathy.agent.training.math_experience import (
 from mathy.agent.training.mcts import MCTS
 from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
 from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from mathy.envs.mixed_simplification import MathyMixedSimplificationEnv
 from mathy.mathy_env import MathyEnv
+from mathy.types import MathyEnvObservation
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -61,7 +63,7 @@ def main(
     model_dir: str,
     transfer_from=None,
     verbose=False,
-    turns_per_complexity=3,
+    turns_per_complexity=4,
     difficulty=3,
     # Learning rate found via some hyperparam exploration.
     learning_rate=2e-4,
@@ -70,6 +72,7 @@ def main(
     envs = {
         "poly": MathyPolynomialSimplificationEnv,
         "complex": MathyComplexTermSimplificationEnv,
+        "mixed": MathyMixedSimplificationEnv,
     }
     if env not in envs:
         raise EnvironmentError(f"Invalid env, must be one of: {envs.keys()}")
@@ -83,7 +86,6 @@ def main(
     counter = 0
     training_epochs = 4
     mathy_env = env_class(verbose=True)
-    mathy_eval: Optional[MathModel] = None
     mathy = MathModel(
         mathy_env.action_size,
         model_dir,
@@ -94,12 +96,13 @@ def main(
     )
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
-    env_name = str(mathy_env.__class__.__name__)
-    print(f"Environment: {env_name}")
-    print(f"Moves per complexity: {turns_per_complexity}")
-    print(f"Problem Difficulty: {difficulty}")
     while True:
         print(f"[lesson] session {counter}")
+        mathy_env = env_class(verbose=True)
+        env_name = str(mathy_env.__class__.__name__)
+        print(f"Environment: {env_name}")
+        print(f"Moves per complexity: {turns_per_complexity}")
+        print(f"Problem Difficulty: {difficulty}")
         counter = counter + 1
         eval_run = (
             bool(counter % eval_interval == 0)
@@ -130,9 +133,15 @@ def main(
         # Fill up a certain amount of experience per problem type
         lesson_experience_count = 0
         while lesson_experience_count < iter_experience:
-            options = {"difficulty": difficulty}
-            env_state, prob = mathy_env.get_initial_state(options, print_problem=False)
             mathy_env.verbose = eval_run or verbose
+            # generate a new problem
+            options = {
+                "difficulty": difficulty,
+                "turns_per_complexity": turns_per_complexity,
+            }
+            env_state, prob = mathy_env.get_initial_state(options)
+
+            # Configure MCTS options for train/eval
             if eval_run:
                 num_rollouts = 500
                 num_exploration_moves = 0
@@ -141,14 +150,13 @@ def main(
                 num_rollouts = 250
                 num_exploration_moves = int(mathy_env.max_moves / 2)
                 epsilon = 0.9
-            mathy_env.max_moves = prob.complexity * turns_per_complexity
-            # generate a new problem now that we've set the max_turns
-            env_state, prob = mathy_env.get_initial_state(options)
+
+            # Execute episode
             model = mathy_eval if eval_run else mathy
             mcts = MCTS(mathy_env, model, epsilon, num_rollouts)
             actor = ActorMCTS(mcts, num_exploration_moves)
             final_result = None
-            time_steps = []
+            time_steps: List[MathyEnvObservation] = []
             episode_steps = 0
             start = time.time()
             while final_result is None:
@@ -232,7 +240,6 @@ def main(
                 )
             )
             mathy_eval.stop()
-            mathy_eval = None
             mathy.start()
 
     print("Complete. Bye!")
