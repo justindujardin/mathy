@@ -86,8 +86,8 @@ class MathExpression(BinaryTreeNode):
 
     @property
     def color(self):
-        """Color to use for this node when rendering it as dirty with `.colored` property"""
-        return "blue"
+        """Color to use for this node when rendering it as changed with `.colored`"""
+        return "green"
 
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
@@ -117,7 +117,7 @@ class MathExpression(BinaryTreeNode):
         """Differentiate the expression by a given variable"""
         raise Exception("cannot differentiate an abstract MathExpression node")
 
-    def with_color(self, text: str, style="dim") -> str:
+    def with_color(self, text: str, style="bright") -> str:
         """Render a string that is colored if the boolean input is True"""
         if self._rendering_change is True and self._changed is True:
             return color(text, fore=self.color, style=style)

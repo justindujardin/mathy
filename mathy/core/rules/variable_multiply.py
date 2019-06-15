@@ -59,7 +59,7 @@ class VariableMultiplyRule(BaseRule):
     def code(self):
         return "VM"
 
-    def get_type(self, node):
+    def get_type(self, node) -> Optional[Tuple[str, TermEx, TermEx]]:
         """Determine the configuration of the tree for this transformation.
 
         Support two types of tree configurations:
@@ -80,13 +80,11 @@ class VariableMultiplyRule(BaseRule):
         left_term = get_term_ex(node.left)
         if left_term is None or left_term.variable is None:
             return None
-
         chained = False
-        right_interest = node.right
-        if isinstance(right_interest, MultiplyExpression):
+        right_term = get_term_ex(node.right)
+        if right_term is None and isinstance(node.right, MultiplyExpression):
             chained = True
-            right_interest = right_interest.left
-        right_term = get_term_ex(right_interest)
+            right_term = get_term_ex(node.right.left)
         if right_term is None or right_term.variable is None:
             return None
         # Variables need to match because we're summing exponents.
@@ -95,28 +93,21 @@ class VariableMultiplyRule(BaseRule):
         if left_term.variable != right_term.variable:
             return None
         if chained is True:
-            return VariableMultiplyRule.POS_CHAINED
-        return VariableMultiplyRule.POS_SIMPLE
+            return VariableMultiplyRule.POS_CHAINED, left_term, right_term
+        return VariableMultiplyRule.POS_SIMPLE, left_term, right_term
 
     def can_apply_to(self, node):
         if not isinstance(node, MultiplyExpression):
             return False
-        tree_position = self.get_type(node)
-        if tree_position is None:
+        type_tuple = self.get_type(node)
+        if type_tuple is None:
             return False
         return True
 
     def apply_to(self, node):
         change = super().apply_to(node).save_parent()
-        # Left node in both cases is always resolved as a term.
-        left_term = get_term_ex(node.left)
+        tree_position, left_term, right_term = self.get_type(node)
         assert left_term is not None
-        chained = False
-        right_interest = node.right
-        if isinstance(right_interest, MultiplyExpression):
-            chained = True
-            right_interest = right_interest.left
-        right_term = get_term_ex(right_interest)
         assert right_term is not None
 
         left_exp = 1 if left_term.exponent is None else left_term.exponent
@@ -133,20 +124,27 @@ class VariableMultiplyRule(BaseRule):
         result = power_term
         # If either term has a coefficient we have to include a second term
         # in the output
-        if left_term.coefficient is not None and right_term.coefficient is not None:
+        has_left_coefficient = left_term.coefficient is not None
+        has_right_coefficient = right_term.coefficient is not None
+        if has_left_coefficient or has_right_coefficient:
             left_const = 1 if left_term.coefficient is None else left_term.coefficient
             right_const = (
                 1 if right_term.coefficient is None else right_term.coefficient
             )
-            # "(2 * 4)"
-            coefficient_term = MultiplyExpression(
-                ConstantExpression(left_const), ConstantExpression(right_const)
-            )
+            if has_left_coefficient and has_right_coefficient:
+                # "(2 * 4)" both terms have coefficients
+                coefficient_term = MultiplyExpression(
+                    ConstantExpression(left_const), ConstantExpression(right_const)
+                )
+            else:
+                # "2" only one term had a coefficient
+                const_value = left_const if has_left_coefficient else right_const
+                coefficient_term = ConstantExpression(const_value)
             # "(2 * 4) * x^(2 + 1)"
             result = MultiplyExpression(coefficient_term, power_term)
 
         # chained type has to fixup the tree to keep the chain unbroken
-        if chained is True:
+        if tree_position == VariableMultiplyRule.POS_CHAINED:
             # Because in the chained mode we extract node.right.left, the other
             # child is the remainder we want to be sure to preserve.
             # e.g. "p * p * 2x" we need to keep 2x

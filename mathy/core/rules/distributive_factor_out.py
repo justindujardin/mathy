@@ -39,6 +39,12 @@ class DistributiveFactorOutRule(BaseRule):
               / \     / \             / \
              a   b   a   c           b   c
     """
+    constants: bool
+
+    def __init__(self, constants=False):
+        # If true, will factor common numbers out of a const+const expression
+        self.constants = constants
+
     POS_NATURAL = "natural"
     POS_SURROUNDED = "surrounded"
 
@@ -80,7 +86,11 @@ class DistributiveFactorOutRule(BaseRule):
             return False
 
         # Don't try factoring out terms with no variables, e.g "4 + 84"
-        if len(leftTerm.variables) == 0 and len(rightTerm.variables) == 0:
+        if (
+            self.constants is False
+            and len(leftTerm.variables) == 0
+            and len(rightTerm.variables) == 0
+        ):
             return False
 
         f = factor_add_terms(leftTerm, rightTerm)

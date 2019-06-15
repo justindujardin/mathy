@@ -5,9 +5,12 @@
   },
   "valid": [
     {
+      "input": "324u * u",
+      "output": "324u^(1 + 1)"
+    },
+    {
       "input": "17k * 23k",
-      "output": "17 * 23 * k^(1 + 1)",
-      "debug": true
+      "output": "17 * 23 * k^(1 + 1)"
     },
     {
       "input": "p * p * 12",
@@ -16,13 +19,11 @@
     },
     {
       "input": "4x * 2p^2 * 2p^3 * 12x^2",
-      "output": "4x * (2 * 2 * p^(2 + 3) * (12x^2))",
-      "debug": true
+      "output": "4x * (2 * 2 * p^(2 + 3) * (12x^2))"
     },
     {
       "input": "4x * p^2 * p^3 * 12x^2",
-      "output": "4x * (p^(2 + 3) * (12x^2))",
-      "debug": true
+      "output": "4x * (p^(2 + 3) * (12x^2))"
     },
     {
       "input": "4 * p * p^3 * 12x^2",
@@ -34,11 +35,7 @@
     },
     {
       "input": "4 * p * p * 12",
-      "output": "4 * p^(1 + 1) * 12"
-    },
-    {
-      "input": "324u * u",
-      "output": "324u^(1 + 1)"
+      "output": "4 * (p^(1 + 1) * 12)"
     },
     {
       "input": "x * x",
@@ -55,14 +52,13 @@
     {
       "input": "x^2 * x^7",
       "output": "x^(2 + 7)"
+    },
+    {
+      "input": "(8y * 4y)",
+      "output": "8 * 4 * y^(1 + 1)"
     }
   ],
   "invalid": [
-    {
-      "input": "(8y * 4y)",
-      "output": "32y^2",
-      "why": "TODO: support this type of problem"
-    },
     {
       "input": "x * z"
     },

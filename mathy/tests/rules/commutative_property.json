@@ -26,8 +26,7 @@
       "input": "8y^4",
       "args": {
         "preferred": false
-      },
-      "debug": true
+      }
     },
     {
       "input": "4x",

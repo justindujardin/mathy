@@ -5,8 +5,7 @@
   "valid": [
     {
       "input": "22d + 13p + 1m + 15v + 20j + 9j",
-      "output": "22d + 13p + 1m + 15v + (20 + 9) * j",
-      "debug": true
+      "output": "22d + 13p + 1m + 15v + (20 + 9) * j"
     },
     {
       "input": "7a + (17b + (14c + (14d + 47e + 17f) + 27g + 29h + 24i)) + (21j + 9x + 13x) + 11k + 26l",
@@ -22,16 +21,22 @@
       "output": "(9 + 9) * y"
     },
     {
+      "input": "14x + 7x",
+      "output": "(14 + 7) * x"
+    },
+    {
       "input": "6 + 4",
-      "output": "(3.0 + 2) * 2"
+      "output": "(3.0 + 2) * 2",
+      "args": {
+        "constants": true
+      }
     },
     {
       "input": "7 + 7",
-      "output": "(1 + 1) * 7"
-    },
-    {
-      "input": "14x + 7x",
-      "output": "(14 + 7) * x"
+      "output": "(1 + 1) * 7",
+      "args": {
+        "constants": true
+      }
     }
   ],
   "invalid": [
