@@ -51,13 +51,7 @@ def run_rule_tests(name, rule_class, callback=None):
     """
     tests = load_rule_tests(name)
     parser = ExpressionParser()
-    has_valid_debug = sum([1 if "debug" in e else 0 for e in tests["valid"]]) > 0
-    has_invalid_debug = sum([1 if "debug" in e else 0 for e in tests["invalid"]]) > 0
-    has_debug = has_invalid_debug or has_valid_debug
     for ex in tests["valid"]:
-        # Skip over non-debug examples if there are any for easier debugging.
-        if has_debug and "debug" not in ex:
-            continue
         # Trigger the debug callback so the user can step over into the useful stuff
         if callback is not None:
             callback(ex)
@@ -70,9 +64,6 @@ def run_rule_tests(name, rule_class, callback=None):
         change = rule.apply_to(node)
         assert str(change.result.get_root()).strip() == ex["output"]
     for ex in tests["invalid"]:
-        # Skip over non-debug examples if there are any for easier debugging.
-        if has_debug and "debug" not in ex:
-            continue
         # Trigger the debug callback so the user can step over into the useful stuff
         if callback is not None:
             callback(ex)
