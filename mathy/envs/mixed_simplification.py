@@ -18,31 +18,27 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         if state.agent.problem_type == MODE_SIMPLIFY_COMPLEX_TERM:
-            return [
-                ConstantsSimplifyRule,
-                VariableMultiplyRule,
-                DistributiveFactorOutRule,
-            ]
+            return [ConstantsSimplifyRule, VariableMultiplyRule]
         # if not complex, must be poly simplification
         assert state.agent.problem_type == MODE_SIMPLIFY_POLYNOMIAL
 
-        return [ConstantsSimplifyRule, VariableMultiplyRule, DistributiveFactorOutRule]
+        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
     def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
 
-        # one
-        complex = 2
-        poly = 4
-
-        # two
-        # complex = 3
-        # poly = 6
-
-        # three
-        # complex = 4
-        # poly = 8
-
         config = params if params is not None else dict()
+        challenge = int(config.get("difficulty", 1))
+        if challenge == 1:
+            complex = 2
+            poly = 4
+        elif challenge == 2:
+            complex = 3
+            poly = 5
+        elif challenge == 3:
+            complex = 4
+            poly = 6
+        else:
+            raise EnvironmentError(f"unknown difficulty: {challenge}")
         num_terms = int(config.get("complex_difficulty", complex))
         simple = config.get("simple", False)
         self._counter += 1
@@ -53,7 +49,7 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
                 op="*",
                 optional_var=simple,
                 optional_var_probability=0.66,
-                min_terms=1,
+                min_terms=2,
             )
             return MathyEnvProblem(text, complexity + 1, MODE_SIMPLIFY_COMPLEX_TERM)
         # polynomial simplification
