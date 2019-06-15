@@ -7,7 +7,7 @@ from ..core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..core.util import is_preferred_term_form, has_like_terms
+from ..core.util import is_preferred_term_form, has_like_terms, TermEx, get_term_ex
 from ..util import discount
 from ..core.rules import (
     AssociativeSwapRule,
@@ -16,6 +16,21 @@ from ..core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
+
+
+def test_get_term_ex():
+    examples = [
+        ("4x^2", TermEx(4, "x", 2)),
+        ("4x", TermEx(4, "x", None)),
+        ("x", TermEx(None, "x", None)),
+        # TODO: non-natural term forms? If this is supported we can drop the other
+        #       get_term impl maybe?
+        # ("x * 2", TermEx(2, "x", None)),
+    ]
+    parser = ExpressionParser()
+    for input, expected in examples:
+        expr = parser.parse(input)
+        assert input == input and get_term_ex(expr) == expected
 
 
 def test_is_preferred_term_form():

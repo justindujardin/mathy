@@ -18,7 +18,7 @@ from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
 from .util import GameRewards
 
 
-def mathy_core_rules(preferred_term_commute=True) -> List[BaseRule]:
+def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
     """Return the mathy core agent actions"""
     return [
         ConstantsSimplifyRule(),

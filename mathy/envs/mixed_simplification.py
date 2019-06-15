@@ -31,16 +31,16 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
     def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
 
         # one
-        # complex = 2
-        # poly = 4
+        complex = 2
+        poly = 4
 
         # two
         # complex = 3
         # poly = 6
 
         # three
-        complex = 4
-        poly = 8
+        # complex = 4
+        # poly = 8
 
         config = params if params is not None else dict()
         num_terms = int(config.get("complex_difficulty", complex))
@@ -53,8 +53,7 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
                 op="*",
                 optional_var=simple,
                 optional_var_probability=0.66,
-                min_terms=2,
-                inner_terms_scaling=0.1,
+                min_terms=1,
             )
             return MathyEnvProblem(text, complexity + 1, MODE_SIMPLIFY_COMPLEX_TERM)
         # polynomial simplification

@@ -3,24 +3,74 @@
     "valid": "like variables can be combined by adding their exponents together",
     "invalid": "different variables cannot be combined"
   },
-  "valid": [{
-      "input": "p * p * 12", "output": "p^(1 + 1) * 12", "debug": true,
+  "valid": [
+    {
+      "input": "17k * 23k",
+      "output": "17 * 23 * k^(1 + 1)",
+      "debug": true
+    },
+    {
+      "input": "p * p * 12",
+      "output": "p^(1 + 1) * 12",
       "why": "this is a common case that a human would not confuse"
     },
-    { "input": "4x * p * p^3 * 12x^2", "output": "4x * (p^(1 + 3) * (12x^2))", "debug": true },
-    { "input": "4 * p * p^3 * 12x^2", "output": "4 * (p^(1 + 3) * (12x^2))" },
-    { "input": "4 * p * p * 12x^2", "output": "4 * (p^(1 + 1) * (12x^2))" },
-    { "input": "4 * p * p * 12", "output": "4 * p^(1 + 1) * 12" },
-    { "input": "324u * u", "output": "324u^(1 + 1)" },
-    { "input": "x * x", "output": "x^(1 + 1)" },
-    { "input": "x * x^3", "output": "x^(1 + 3)" },
-    { "input": "y^11 * y", "output": "y^(11 + 1)" },
-    { "input": "x^2 * x^7", "output": "x^(2 + 7)" }
+    {
+      "input": "4x * 2p^2 * 2p^3 * 12x^2",
+      "output": "4x * (2 * 2 * p^(2 + 3) * (12x^2))",
+      "debug": true
+    },
+    {
+      "input": "4x * p^2 * p^3 * 12x^2",
+      "output": "4x * (p^(2 + 3) * (12x^2))",
+      "debug": true
+    },
+    {
+      "input": "4 * p * p^3 * 12x^2",
+      "output": "4 * (p^(1 + 3) * (12x^2))"
+    },
+    {
+      "input": "4 * p * p * 12x^2",
+      "output": "4 * (p^(1 + 1) * (12x^2))"
+    },
+    {
+      "input": "4 * p * p * 12",
+      "output": "4 * p^(1 + 1) * 12"
+    },
+    {
+      "input": "324u * u",
+      "output": "324u^(1 + 1)"
+    },
+    {
+      "input": "x * x",
+      "output": "x^(1 + 1)"
+    },
+    {
+      "input": "x * x^3",
+      "output": "x^(1 + 3)"
+    },
+    {
+      "input": "y^11 * y",
+      "output": "y^(11 + 1)"
+    },
+    {
+      "input": "x^2 * x^7",
+      "output": "x^(2 + 7)"
+    }
   ],
   "invalid": [
-    { "input": "(8y * 4y)", "output": "32y^2", "why": "TODO: support this type of problem" },
-    { "input": "x * z" },
-    { "input": "x * y^2" },
-    { "input": "2x * 1y^3" }
+    {
+      "input": "(8y * 4y)",
+      "output": "32y^2",
+      "why": "TODO: support this type of problem"
+    },
+    {
+      "input": "x * z"
+    },
+    {
+      "input": "x * y^2"
+    },
+    {
+      "input": "2x * 1y^3"
+    }
   ]
 }

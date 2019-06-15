@@ -6,7 +6,7 @@ from ..expressions import (
     PowerExpression,
     MathExpression,
 )
-from ..util import is_add_or_sub, get_term
+from ..util import is_add_or_sub, get_term_ex, TermEx
 from ..rule import BaseRule
 from typing import Tuple, Optional
 
@@ -77,8 +77,8 @@ class VariableMultiplyRule(BaseRule):
         if not isinstance(node, MultiplyExpression):
             return None
         # Left node in both cases is always resolved as a term.
-        left_var, _ = self.get_term_components(node.left)
-        if left_var is None:
+        left_term = get_term_ex(node.left)
+        if left_term is None or left_term.variable is None:
             return None
 
         chained = False
@@ -86,34 +86,19 @@ class VariableMultiplyRule(BaseRule):
         if isinstance(right_interest, MultiplyExpression):
             chained = True
             right_interest = right_interest.left
-        right_var, _ = self.get_term_components(right_interest)
-        if right_var is None:
+        right_term = get_term_ex(right_interest)
+        if right_term is None or right_term.variable is None:
+            return None
+        # Variables need to match because we're summing exponents.
+        #
+        # e.g. "4x * 2y * 5x * 3y = 120 * x^2 * y^2"
+        if left_term.variable != right_term.variable:
             return None
         if chained is True:
             return VariableMultiplyRule.POS_CHAINED
         return VariableMultiplyRule.POS_SIMPLE
 
-    def get_term_components(
-        self, node: MathExpression
-    ) -> Tuple[Optional[str], Optional[int], Optional[int]]:
-        """Return a tuple of (variable, exponent) for the given node, or
-        (None, None) if the node is invalid for this rule."""
-        # A power expression with variable/constant children is OKAY
-        if isinstance(node, PowerExpression):
-            if isinstance(node.left, VariableExpression) and isinstance(
-                node.right, ConstantExpression
-            ):
-                return (node.left.identifier, node.right.value)
-        # Single variable is OKAY "x"
-        if isinstance(node, VariableExpression):
-            return (node.identifier, 1)
-        # # Is the node a simple multiply with a left that is a variable? "x"
-        # if node is not None and isinstance(node.left, VariableExpression):
-        #     return (node.left.identifier, 1)
-        return (None, None)
-
     def can_apply_to(self, node):
-
         if not isinstance(node, MultiplyExpression):
             return False
         tree_position = self.get_type(node)
@@ -122,36 +107,43 @@ class VariableMultiplyRule(BaseRule):
         return True
 
     def apply_to(self, node):
-        # tree_position = self.get_type(node)
-        # if tree_position is None:
-        #     raise ValueError("invalid node for rule, call canApply first.")
         change = super().apply_to(node).save_parent()
         # Left node in both cases is always resolved as a term.
-        left_variable, left_exp = self.get_term_components(node.left)
-        if left_variable is None:
-            raise ValueError("invalid rule application")
-
+        left_term = get_term_ex(node.left)
+        assert left_term is not None
         chained = False
         right_interest = node.right
         if isinstance(right_interest, MultiplyExpression):
             chained = True
             right_interest = right_interest.left
-        right_variable, right_exp = self.get_term_components(right_interest)
-        if right_variable is None:
-            raise ValueError("invalid rule application")
+        right_term = get_term_ex(right_interest)
+        assert right_term is not None
 
-        # If the variables don't match
-        variable = left_variable
-        if left_variable != right_variable:
-            variable = left_variable + right_variable
-        inside = AddExpression(
+        left_exp = 1 if left_term.exponent is None else left_term.exponent
+        right_exp = 1 if right_term.exponent is None else right_term.exponent
+
+        # exponential inside term, e.g. given input "2x^2 * 4x" is "(2 + 1)"
+        exponent_sum = AddExpression(
             ConstantExpression(left_exp), ConstantExpression(right_exp)
         )
-        # If both powers are 1 and the variables don't match, drop from the output
-        if left_exp == 1 and right_exp == 1 and left_variable != right_variable:
-            result = VariableExpression(variable)
-        else:
-            result = PowerExpression(VariableExpression(variable), inside)
+        # The whole power term, e.g. given input "2x^2 * 4x" is "x^(2 + 1)"
+        power_term = PowerExpression(
+            VariableExpression(left_term.variable), exponent_sum
+        )
+        result = power_term
+        # If either term has a coefficient we have to include a second term
+        # in the output
+        if left_term.coefficient is not None and right_term.coefficient is not None:
+            left_const = 1 if left_term.coefficient is None else left_term.coefficient
+            right_const = (
+                1 if right_term.coefficient is None else right_term.coefficient
+            )
+            # "(2 * 4)"
+            coefficient_term = MultiplyExpression(
+                ConstantExpression(left_const), ConstantExpression(right_const)
+            )
+            # "(2 * 4) * x^(2 + 1)"
+            result = MultiplyExpression(coefficient_term, power_term)
 
         # chained type has to fixup the tree to keep the chain unbroken
         if chained is True:

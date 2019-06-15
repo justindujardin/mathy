@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple, NamedTuple
 from .expressions import (
     ConstantExpression,
     VariableExpression,
@@ -456,6 +456,50 @@ def get_term(node) -> TermResult:
     if not result.variables:
         result.variables = []
     return result
+
+
+class TermEx(NamedTuple):
+    coefficient: Optional[int]
+    variable: Optional[str]
+    exponent: Optional[int]
+
+
+def get_term_ex(node: MathExpression) -> Optional[TermEx]:
+    """Extract the 3 components of a naturally ordered term. This doesn't care
+    about whether the node is part of a larger term, it only looks at its children.
+    """
+
+    # "x"
+    if isinstance(node, VariableExpression):
+        # Make sure the parent isn't an exponent link (in which case we'd incorrectly
+        # report this as a term with no exponent.) That case can be handled by calling
+        # this on the parent node.
+        if node.parent is None or not isinstance(node.parent, PowerExpression):
+            return TermEx(None, node.identifier, None)
+    # "4 * ???"
+    if isinstance(node, MultiplyExpression) and isinstance(
+        node.left, ConstantExpression
+    ):
+        # "4x"
+        if isinstance(node.right, VariableExpression):
+            return TermEx(node.left.value, node.right.identifier, None)
+
+        # "4x^2"
+        if isinstance(node.right, PowerExpression):
+            pow = node.right
+            if isinstance(pow.left, VariableExpression) and isinstance(
+                pow.right, ConstantExpression
+            ):
+                return TermEx(node.left.value, pow.left.identifier, pow.right.value)
+
+    # "x^2"
+    if isinstance(node, PowerExpression):
+        if isinstance(node.left, VariableExpression) and isinstance(
+            node.right, ConstantExpression
+        ):
+            return TermEx(None, node.left.identifier, node.right.value)
+
+    return None
 
 
 def get_terms(expression: MathExpression):

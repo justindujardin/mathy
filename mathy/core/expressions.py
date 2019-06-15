@@ -678,6 +678,8 @@ class PowerExpression(BinaryExpression):
 
 
 class ConstantExpression(MathExpression):
+    value: int
+
     @property
     def type_id(self):
         id = f"_{int(self.value % 10)}" if self.value is not None else ""
@@ -705,6 +707,8 @@ class ConstantExpression(MathExpression):
 
 
 class VariableExpression(MathExpression):
+    identifier: str
+
     @property
     def type_id(self):
         id = f"_{self.identifier.lower()[0]}" if self.identifier is not None else ""
