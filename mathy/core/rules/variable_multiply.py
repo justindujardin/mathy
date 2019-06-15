@@ -143,6 +143,9 @@ class VariableMultiplyRule(BaseRule):
             # "(2 * 4) * x^(2 + 1)"
             result = MultiplyExpression(coefficient_term, power_term)
 
+        # Mark all nodes in the result as having changed
+        result.all_changed()
+
         # chained type has to fixup the tree to keep the chain unbroken
         if tree_position == VariableMultiplyRule.POS_CHAINED:
             # Because in the chained mode we extract node.right.left, the other
