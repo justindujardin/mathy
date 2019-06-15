@@ -21,15 +21,16 @@ from ..util import (
 class DistributiveFactorOutRule(BaseRule):
     r"""Distributive Property
         `ab + ac = a(b + c)`
-        
+
          The distributive property can be used to expand out expressions
-         to allow for simplification, as well as to factor out common properties of terms.
+         to allow for simplification, as well as to factor out common properties
+         of terms.
 
          **Factor out a common term**
-        
-         This handles the `ab + ac` conversion of the distributive property, which factors
-         out a common term from the given two addition operands.
-        
+
+         This handles the `ab + ac` conversion of the distributive property, which
+         factors out a common term from the given two addition operands.
+
                    +               *
                   / \             / \
                  /   \           /   \

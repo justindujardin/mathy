@@ -8,6 +8,7 @@ from ..expressions import (
 )
 from ..util import is_add_or_sub, get_term
 from ..rule import BaseRule
+from typing import Tuple, Optional
 
 
 class VariableMultiplyRule(BaseRule):
@@ -92,7 +93,9 @@ class VariableMultiplyRule(BaseRule):
             return VariableMultiplyRule.POS_CHAINED
         return VariableMultiplyRule.POS_SIMPLE
 
-    def get_term_components(self, node: MathExpression):
+    def get_term_components(
+        self, node: MathExpression
+    ) -> Tuple[Optional[str], Optional[int], Optional[int]]:
         """Return a tuple of (variable, exponent) for the given node, or
         (None, None) if the node is invalid for this rule."""
         # A power expression with variable/constant children is OKAY

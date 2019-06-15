@@ -484,7 +484,7 @@ def terms_are_like(one, two):
     @returns {Boolean} Whether the terms are like or not.
     """
     # Both must be valid terms
-    if one == False or two == False:
+    if one is False or two is False:
         return False
 
     # Extract terms from MathExpressions if need be
@@ -527,10 +527,10 @@ def terms_are_like(one, two):
 #       4   x              4   x       2
 def negate(node):
     save = node.parent
-    saveSide = save.get_side(node) if save != None else None
+    saveSide = save.get_side(node) if save is not None else None
     unlink(node)
     newNode = AddExpression(node.left, NegateExpression(node.right))
-    if save != None:
+    if save is None:
         save.set_side(newNode, saveSide)
 
     return newNode

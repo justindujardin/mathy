@@ -7,6 +7,11 @@ from ..core.parser import ExpressionParser
 def test_parser_to_string():
     parser = ExpressionParser()
     expects = [
+        {
+            "input": "4x * p^(1 + 3) * 12x^2",
+            "output": "4x * p^(1 + 3) * 12x^2",
+            "meta": "fix this case, there are extra parens",
+        },
         {"input": "(7 - (5 - 3)) * (32 - 7)", "output": "(7 - (5 - 3)) * (32 - 7)"},
         {"input": "7 - (5 * 3) * (32 / 7)", "output": "7 - 5 * 3 * (32 / 7)"},
         {"input": "7 - (5 * 3) * (2^7)", "output": "7 - 5 * 3 * 2^7"},
