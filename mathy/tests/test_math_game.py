@@ -30,6 +30,7 @@ def test_mathy_env_jd():
 def test_mathy_env_win_conditions():
 
     expectations = [
+        ("70656 * (x^2 * z^6)", True),
         ("b * (44b^2)", False),
         ("z * (1274z^2)", False),
         ("4x^2", True),

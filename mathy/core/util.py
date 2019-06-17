@@ -140,6 +140,15 @@ def get_sub_terms(node: MathExpression):
 
         # Couldn't find anything
         if term_const is None and term_exp is None and term_var is None:
+            # If it's a continuation multiply, e.g in "4 * (x^2 * z^6)"
+            # NOTE: it's a continuation mult in the above expression
+            #   because of the parens grouping between the 4 multiply
+            #   and the inner multiply of the parens sub-terms
+            if isinstance(current, MultiplyExpression):
+                # pop it off for next term
+                current = safe_pop()
+                continue
+
             return False
         terms.append((term_const, term_var, term_exp))
     return terms
@@ -237,7 +246,7 @@ def has_like_terms(expression: MathExpression) -> bool:
     term_nodes = get_terms(expression)
     for node in term_nodes:
         term = get_term(node)
-        if term == False:
+        if term is False:
             continue
         var_key = ("".join(term.variables), term.exponent)
         # If the same var/power combinaton is found in the expression more than once

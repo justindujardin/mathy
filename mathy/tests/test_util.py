@@ -7,7 +7,13 @@ from ..core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..core.util import is_preferred_term_form, has_like_terms, TermEx, get_term_ex
+from ..core.util import (
+    is_preferred_term_form,
+    has_like_terms,
+    TermEx,
+    get_term_ex,
+    get_sub_terms,
+)
 from ..util import discount
 from ..core.rules import (
     AssociativeSwapRule,
@@ -16,6 +22,28 @@ from ..core.rules import (
     DistributiveMultiplyRule,
     ConstantsSimplifyRule,
 )
+
+
+def test_get_sub_terms():
+    expectations = [
+        ("70656 * (x^2 * z^6)", 2),
+        ("4x^2 * z^6 * y", 3),
+        ("2x^2", 1),
+        ("x^2", 1),
+        ("2", 1),
+    ]
+    invalid_expectations = [
+        # can't have more than one term
+        ("4 + 4", False)
+    ]
+    parser = ExpressionParser()
+    for text, output in expectations + invalid_expectations:
+        exp = parser.parse(text)
+        sub_terms = get_sub_terms(exp)
+        if output is False:
+            assert text == text and sub_terms == output
+        else:
+            assert text == text and len(sub_terms) == output
 
 
 def test_get_term_ex():
@@ -61,29 +89,3 @@ def test_has_like_terms():
     for input, expected in examples:
         expr = parser.parse(input)
         assert input == input and has_like_terms(expr) == expected
-
-
-def test_reward_discounting():
-    """Assert some things about the reward discounting to make sure we know how it impacts
-    rewards for certain actions going back in time in episode history."""
-    win_rewards = [-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, 1.0]
-    discounted_rewards = [0.8829603, 0.9019801, 0.92119205, 0.940598, 0.9602, 0.98, 1.0]
-    rewards = discount(win_rewards)
-
-    lose_rewards = [
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.01,
-        -0.02,
-        -0.02,
-        -0.02,
-        -0.02,
-        -0.02,
-        -0.02,
-        -1.0,
-    ]
