@@ -15,6 +15,7 @@ from mathy.agent.training.math_experience import (
     balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
+from mathy.envs.binomial_distribution_pairs import MathyBinomialDistributionEnv
 from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
 from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from mathy.envs.mixed_simplification import MathyMixedSimplificationEnv
@@ -71,6 +72,7 @@ def main(
 
     envs = {
         "poly": MathyPolynomialSimplificationEnv,
+        "binomial": MathyBinomialDistributionEnv,
         "complex": MathyComplexTermSimplificationEnv,
         "mixed": MathyMixedSimplificationEnv,
     }
@@ -148,7 +150,7 @@ def main(
                 epsilon = 0.0
             else:
                 num_rollouts = 250
-                num_exploration_moves = int(mathy_env.max_moves / 2)
+                num_exploration_moves = int(mathy_env.max_moves * 0.8)
                 epsilon = 0.9
 
             # Execute episode
