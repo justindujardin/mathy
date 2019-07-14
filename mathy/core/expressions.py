@@ -1,3 +1,4 @@
+from typing import Union
 from .tree import BinaryTreeNode, STOP
 import numpy
 from colr import color
@@ -678,7 +679,7 @@ class PowerExpression(BinaryExpression):
 
 
 class ConstantExpression(MathExpression):
-    value: int
+    value: Union[float, int]
 
     @property
     def type_id(self):

@@ -81,6 +81,7 @@ def test_is_preferred_term_form():
 
 def test_has_like_terms():
     examples = [
+        ("14 + 6y + 7x + x * (3y)", False),
         ("b * (44b^2)", False),
         ("z * (1274z^2)", False),
         ("100y * x + 2", False),

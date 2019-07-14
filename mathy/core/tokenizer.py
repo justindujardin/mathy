@@ -1,4 +1,4 @@
-import math
+from typing import List, Union
 
 # # Tokenizer
 
@@ -37,11 +37,9 @@ TokenFunction = TokensMap["Function"]
 TokenEqual = TokensMap["Equal"]
 TokenEOF = TokensMap["EOF"]
 
-# ##Tokenizer
 
-# Define a token
 class Token:
-    def __init__(self, value: str, type: int):
+    def __init__(self, value: Union[str, int, float], type: int):
         self.value = value
         self.type = type
 
@@ -50,7 +48,7 @@ class Token:
 
 
 class TokenContext:
-    def __init__(self, tokens=None, index=0, buffer="", chunk=""):
+    def __init__(self, *, tokens=None, index=0, buffer="", chunk=""):
         self.tokens = tokens if tokens is not None else []
         self.index = index
         self.buffer = buffer
@@ -109,7 +107,7 @@ class Tokenizer:
     # Return an array of `Token`s from a given string input.
     # This throws an exception if an unknown token type is found in
     # the input.
-    def tokenize(self, buffer: str, terms=False):
+    def tokenize(self, buffer: str, terms=False) -> List[Token]:
         context = TokenContext(buffer=buffer, chunk=str(buffer))
         while context.chunk and (
             self.identify_constants(context)

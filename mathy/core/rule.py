@@ -64,6 +64,10 @@ class BaseRule:
 class ExpressionChangeRule:
     """Object describing the change to an expression tree from a rule transformation"""
 
+    rule: BaseRule
+    node: MathExpression
+    result: MathExpression
+
     def __init__(self, rule, node=None):
         self.rule = rule
         self.node = node
