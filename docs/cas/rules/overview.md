@@ -1,0 +1,4 @@
+
+Parsed MathExpression trees can be manipulated using "rules" that take an input expression and return an output tree that is equivalent to the input but stated in a different way. A basic example might switch the order of two terms separated by an addition, from "2 + 4" to "4 + 2". This change is valid because the same value is obtained by evaluating the input and output expressions.
+
+As you may have already guessed, the base rules defined for Mathy map directly to the "Properties of Numbers" from algebra: the commutative property allows the example above, while the associative property changes the evaluation order of nodes in the tree ("4 + 2x + 3x" to "4 + (2x + 3x)" [<--check that example], and the distributive property allows factoring out common elements from nearby terms ("4x + 4x" to "(4 + 4) _ x") as well as redistributing nodes back after factoring them out ("x _ (4 +4)" to "4x + 4x").

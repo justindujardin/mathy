@@ -16,6 +16,9 @@ colr
 matplotlib
 black
 flake8
-
 graphviz
 pydot
+# Docs 
+mkdocs
+mkdocs-material
+markdown-include
