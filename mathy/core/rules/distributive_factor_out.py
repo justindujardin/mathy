@@ -1,15 +1,9 @@
-from ..expressions import (
-    AddExpression,
-    ConstantExpression,
-    MultiplyExpression,
-    PowerExpression,
-    SubtractExpression,
-    VariableExpression,
-)
+from ..expressions import AddExpression, MultiplyExpression, SubtractExpression
 from ..rule import BaseRule
 from ..util import (
-    factor_add_terms,
-    get_term,
+    TermEx,
+    factor_add_terms_ex,
+    get_term_ex,
     is_add_or_sub,
     is_const,
     make_term,
@@ -73,27 +67,27 @@ class DistributiveFactorOutRule(BaseRule):
             left_interest = node.left.right
 
         # There are two tree configurations recognized by this rule.
-        leftTerm = get_term(left_interest)
-        if not leftTerm:
+        l_term: TermEx = get_term_ex(left_interest)
+        if not l_term:
             return False
 
-        rightTerm = get_term(node.right)
-        if not rightTerm:
+        r_term: TermEx = get_term_ex(node.right)
+        if not r_term:
             return False
 
-        # Don't try factoring out terms with multiple variables, e.g "(4z + 84xz)"
-        if len(leftTerm.variables) > 1 or len(rightTerm.variables) > 1:
-            return False
+        # # Don't try factoring out terms with multiple variables, e.g "(4z + 84xz)"
+        # if len(l_term.variablevariables) > 1 or len(r_term.variables) > 1:
+        #     return False
 
         # Don't try factoring out terms with no variables, e.g "4 + 84"
         if (
             self.constants is False
-            and len(leftTerm.variables) == 0
-            and len(rightTerm.variables) == 0
+            and l_term.variable is None
+            and r_term.variable is None
         ):
             return False
 
-        f = factor_add_terms(leftTerm, rightTerm)
+        f = factor_add_terms_ex(l_term, r_term)
         if not f:
             return False
 
@@ -110,10 +104,10 @@ class DistributiveFactorOutRule(BaseRule):
         left_interest = node.left
         if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
             left_interest = node.left.right
-        left_term = get_term(left_interest)
-        right_term = get_term(node.right)
+        left_term = get_term_ex(left_interest)
+        right_term = get_term_ex(node.right)
 
-        factors = factor_add_terms(left_term, right_term)
+        factors = factor_add_terms_ex(left_term, right_term)
         a = make_term(factors.best, factors.variable, factors.exponent)
         b = make_term(factors.left, factors.leftVariable, factors.leftExponent)
         c = make_term(factors.right, factors.rightVariable, factors.rightExponent)

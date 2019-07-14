@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, NamedTuple
+from typing import Dict, List, Optional, Tuple, NamedTuple, Union
 from .expressions import (
     ConstantExpression,
     VariableExpression,
@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 def is_debug_mode():
-    """Debug mode enables extra logging and assertions, but is slower because of 
+    """Debug mode enables extra logging and assertions, but is slower because of
     the increased sanity check measurements."""
     return False
 
@@ -35,11 +35,12 @@ def load_rule_tests(name):
         return json.load(file)
 
 
-# Unlink an expression from it's parent.
-#
-# 1. Clear expression references in `parent`
-# 2. Clear `parent` in expression
-def unlink(node=None):
+def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:
+    """Unlink an expression from it's parent.
+      1. Clear expression references in `parent`
+      2. Clear `parent` in expression
+    """
+
     if node is None:
         return None
 
@@ -61,15 +62,14 @@ def unlink(node=None):
 #      result =
 #        1 : 2
 #        2 : 1
-def factor(value):
+def factor(value) -> Dict[int, int]:
     if value == 0 or math.isnan(value):
-        return []
+        return {}
 
     sqrt = numpy.sqrt(value)
     if math.isnan(sqrt):
-        return []
+        return {}
 
-    flip = value < 0
     sqrt = int(sqrt + 1)
     factors = {1: value}
     factors[value] = 1
@@ -233,7 +233,7 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
 
 def has_like_terms(expression: MathExpression) -> bool:
     """
-    Return True if a given expression has more than one of any 
+    Return True if a given expression has more than one of any
            type of term.
     Examples:
         x + y + z = False
@@ -242,7 +242,7 @@ def has_like_terms(expression: MathExpression) -> bool:
         x^2 + 4x^3 + 2y = True
     """
 
-    seen = set()
+    seen: set = set()
     term_nodes = get_terms(expression)
     for node in term_nodes:
         term = get_term(node)
@@ -270,8 +270,8 @@ class FactorResult:
         self.best = -1
         self.left = -1
         self.right = -1
-        self.allLeft = []
-        self.allRight = []
+        self.all_left = []
+        self.all_right = []
         self.variable = None
         self.exponent = None
         self.leftExponent = None
@@ -280,57 +280,74 @@ class FactorResult:
         self.rightVariable = None
 
 
-def factor_add_terms(lTerm, rTerm):
-    if not lTerm or not rTerm:
+def factor_add_terms(left_term, right_term):
+    if not left_term or not right_term:
         raise ValueError("invalid terms for factoring")
 
     # TODO: Skipping complex terms with multiple coefficients for now.
-    if lTerm.coefficients and len(lTerm.coefficients) > 1:
+    if left_term.coefficients and len(left_term.coefficients) > 1:
         return False
 
-    if rTerm.coefficients and len(rTerm.coefficients) > 1:
+    if right_term.coefficients and len(right_term.coefficients) > 1:
         return False
 
     # Common coefficients
-    lCoefficients = factor(lTerm.coefficients[0] if len(lTerm.coefficients) > 0 else 1)
-    rCoefficients = factor(rTerm.coefficients[0] if len(rTerm.coefficients) > 0 else 1)
-    common = [k for k in rCoefficients if k in lCoefficients]
+    l_factors = factor(
+        left_term.coefficients[0] if len(left_term.coefficients) > 0 else 1
+    )
+    r_factors = factor(
+        right_term.coefficients[0] if len(right_term.coefficients) > 0 else 1
+    )
+    common = [k for k in r_factors if k in l_factors]
     if len(common) == 0:
         return False
-    hasLeft = len(lTerm.variables) > 0
-    hasRight = len(rTerm.variables) > 0
+    has_left = len(left_term.variables) > 0
+    has_right = len(right_term.variables) > 0
 
     # If there are variables, we want to extract them, so
     # the smallest number to factor out. TODO: is this okay?
-    if hasLeft or hasRight:
+    if has_left or has_right:
         best = numpy.min(common)
     else:
         best = numpy.max(common)
     result = FactorResult()
     result.best = best
-    result.left = lCoefficients[best]
-    result.right = rCoefficients[best]
-    result.allLeft = lCoefficients
-    result.allRight = rCoefficients
+    result.left = l_factors[best]
+    result.right = r_factors[best]
+    result.all_left = l_factors
+    result.all_right = r_factors
 
     # Common variables and powers
-    commonExp = lTerm.exponent and rTerm.exponent and lTerm.exponent == rTerm.exponent
-    expMatch = False if (lTerm.exponent or rTerm.exponent) and not commonExp else True
-    if hasLeft and hasRight and lTerm.variables[0] == rTerm.variables[0] and expMatch:
-        result.variable = lTerm.variables[0]
-        result.exponent = lTerm.exponent
+    same_exponent = (
+        left_term.exponent
+        and right_term.exponent
+        and left_term.exponent == right_term.exponent
+    )
+    expMatch = (
+        False
+        if (left_term.exponent or right_term.exponent) and not same_exponent
+        else True
+    )
+    if (
+        has_left
+        and has_right
+        and left_term.variables[0] == right_term.variables[0]
+        and expMatch
+    ):
+        result.variable = left_term.variables[0]
+        result.exponent = left_term.exponent
 
-    if lTerm.exponent and lTerm.exponent != result.exponent:
-        result.leftExponent = lTerm.exponent
+    if left_term.exponent and left_term.exponent != result.exponent:
+        result.leftExponent = left_term.exponent
 
-    if rTerm.exponent and rTerm.exponent != result.exponent:
-        result.rightExponent = rTerm.exponent
+    if right_term.exponent and right_term.exponent != result.exponent:
+        result.rightExponent = right_term.exponent
 
-    if hasLeft and lTerm.variables[0] != result.variable:
-        result.leftVariable = lTerm.variables[0]
+    if has_left and left_term.variables[0] != result.variable:
+        result.leftVariable = left_term.variables[0]
 
-    if hasRight and rTerm.variables[0] != result.variable:
-        result.rightVariable = rTerm.variables[0]
+    if has_right and right_term.variables[0] != result.variable:
+        result.rightVariable = right_term.variables[0]
 
     return result
 
@@ -412,7 +429,7 @@ def get_term(node) -> TermResult:
 
         exponent = exponents[0]
         if not isinstance(exponent.right, ConstantExpression):
-            raise Exception("get_term supports constant term powers")
+            return False
 
         result.exponent = exponent.right.value
         result.node_exponent = exponent
@@ -468,15 +485,23 @@ def get_term(node) -> TermResult:
 
 
 class TermEx(NamedTuple):
-    coefficient: Optional[int]
+    coefficient: Optional[Union[int, float]]
     variable: Optional[str]
-    exponent: Optional[int]
+    exponent: Optional[Union[int, float]]
 
 
 def get_term_ex(node: MathExpression) -> Optional[TermEx]:
     """Extract the 3 components of a naturally ordered term. This doesn't care
     about whether the node is part of a larger term, it only looks at its children.
     """
+
+    # "4"
+    if isinstance(node, ConstantExpression):
+        # Make sure the parent isn't an exponent link (in which case we'd incorrectly
+        # report this as a term with no exponent.) That case can be handled by calling
+        # this on the parent node.
+        if node.parent is None or not isinstance(node.parent, PowerExpression):
+            return TermEx(node.value, None, None)
 
     # "x"
     if isinstance(node, VariableExpression):
@@ -509,6 +534,72 @@ def get_term_ex(node: MathExpression) -> Optional[TermEx]:
             return TermEx(None, node.left.identifier, node.right.value)
 
     return None
+
+
+def factor_add_terms_ex(left_term: TermEx, right_term: TermEx):
+    if not left_term or not right_term:
+        raise ValueError("invalid terms for factoring")
+
+    # Common coefficients
+    l_factors = factor(
+        left_term.coefficient if left_term.coefficient is not None else 1
+    )
+    r_factors = factor(
+        right_term.coefficient if right_term.coefficient is not None else 1
+    )
+    common = [k for k in r_factors if k in l_factors]
+    if len(common) == 0:
+        return False
+    has_left: bool = left_term.variable is not None
+    has_right: bool = right_term.variable is not None
+
+    # If there are variables, we want to extract them, so
+    # the smallest number to factor out. TODO: is this okay?
+    if has_left or has_right:
+        best = numpy.min(common)
+    else:
+        best = numpy.max(common)
+    result = FactorResult()
+    result.best = best
+    result.left = l_factors[best]
+    result.right = r_factors[best]
+    result.all_left = l_factors
+    result.all_right = r_factors
+
+    # Common variables and powers
+    same_exponent: bool = (
+        left_term.exponent is not None
+        and right_term.exponent is not None
+        and left_term.exponent == right_term.exponent
+    )
+    # expMatch = (
+    #     False
+    #     if (left_term.exponent or right_term.exponent) and not same_exponent
+    #     else True
+    # )
+    if (
+        has_left
+        and has_right
+        and left_term.variable == right_term.variable
+        and same_exponent
+        # and expMatch
+    ):
+        result.variable = left_term.variable
+        result.exponent = left_term.exponent
+
+    if left_term.exponent and left_term.exponent != result.exponent:
+        result.leftExponent = left_term.exponent
+
+    if right_term.exponent and right_term.exponent != result.exponent:
+        result.rightExponent = right_term.exponent
+
+    if has_left and left_term.variable != result.variable:
+        result.leftVariable = left_term.variable
+
+    if has_right and right_term.variable != result.variable:
+        result.rightVariable = right_term.variable
+
+    return result
 
 
 def get_terms(expression: MathExpression):
