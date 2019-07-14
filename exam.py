@@ -7,13 +7,12 @@ import plac
 import tensorflow as tf
 from colr import color
 from mathy.agent.controller import MathModel
-from mathy.agent.curriculum.level1 import lessons
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.math_experience import MathExperience
 from mathy.agent.training.mcts import MCTS
 from mathy.agent.training.practice_runner import ParallelPracticeRunner, PracticeRunner
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.agent.curriculum.problems import (
+from mathy.envs.problems import (
     get_rand_vars,
     maybe_int,
     rand_var,

@@ -1,11 +1,11 @@
 from typing import Any, Dict, List, Type
 
-from ..core.rules import ConstantsSimplifyRule, VariableMultiplyRule, BaseRule
-from ..mathy_env_state import MathyEnvState
-from ..agent.curriculum.problems import simplify_multiple_terms
+from ..core.rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
 from ..mathy_env import MathyEnvProblem
+from ..mathy_env_state import MathyEnvState
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from .problems import simplify_multiple_terms
 
 
 class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):

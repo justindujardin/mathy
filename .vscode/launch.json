@@ -8,11 +8,11 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "mixed",
-        "agents/dev_2/",
+        "complex",
+        "agents/var/",
         "-v",
         "-d",
-        "4"
+        "2"
       ]
     },
     {
@@ -73,7 +73,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_commutative_property"
+        "test_distributive_factor_out"
       ]
     },
     {

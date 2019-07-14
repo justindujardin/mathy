@@ -7,7 +7,7 @@ from ..core.rules import (
     DistributiveFactorOutRule,
     BaseRule,
 )
-from ..agent.curriculum.problems import simplify_multiple_terms
+from .problems import simplify_multiple_terms
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM, MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnvProblem
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
@@ -37,6 +37,9 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
         elif challenge == 3:
             complex = 4
             poly = 6
+        elif challenge == 4:
+            complex = 5
+            poly = 7
         else:
             raise EnvironmentError(f"unknown difficulty: {challenge}")
         num_terms = int(config.get("complex_difficulty", complex))
@@ -51,7 +54,7 @@ class MathyMixedSimplificationEnv(MathyPolynomialSimplificationEnv):
                 optional_var_probability=0.66,
                 min_terms=2,
             )
-            return MathyEnvProblem(text, complexity + 1, MODE_SIMPLIFY_COMPLEX_TERM)
+            return MathyEnvProblem(text, complexity + 2, MODE_SIMPLIFY_COMPLEX_TERM)
         # polynomial simplification
         num_terms = int(config.get("poly_difficulty", poly))
         text, complexity = simplify_multiple_terms(num_terms)

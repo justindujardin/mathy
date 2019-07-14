@@ -6,14 +6,25 @@ import { MathText } from '../components/MathText'
 const input = '2x + 4x'
 const alternate = '4x + 2x'
 const current = 0
-const example = '4x + 2x'
+const example = '4 * p * p * 12'
 
 Mathy really wants to help you with your homework. It is limited to only a few types of problems currently, but it's open source and
 extensible, so you can add support for solving new types of problems!
 
-Mathtastic is a Computer Algebra System and Machine Learning environment for building Reinforcement Learning agents that can manipulate math and show their work step-by-step. The stated goal is to make an open source math tutoring suite that is available to every human that has access to a computer. Today I want to tell you about the first step along the path to that lofty goal: simplifying polynomial expressions.
+<!-- Mathtastic is a Computer Algebra System and Machine Learning environment for building Reinforcement Learning agents that can manipulate math and show their work step-by-step. The stated goal is to make an open source math tutoring suite that is available to every human that has access to a computer. Today I want to tell you about the first step along the path to that lofty goal: simplifying polynomial expressions. -->
 
 # How it works
+
+
+<MathText input="p * p" />
+<MathTree input="p * p" />
+<MathText input="4p * 4p" />
+<MathTree input="4p * 4p" />
+<MathText input="p^2 * p^3" />
+<MathTree input="p^2 * p^3" />
+<MathText input="4p^2 * p^3" />
+<MathTree input="4p^2 * p^3" />
+
 
 Let's say you have an input: <MathText input={example}/>.
 
@@ -36,7 +47,14 @@ Now that the expression is represented in binary tree[link] form we can manipula
 
 If you're starting to doze off, stay with me a bit longer, this is where things start to get cool. Let's render our tree structure to get a better sense of what it looks like:
 
-<MathTree input={example} />
+<MathText input="4x * p * p * 12x^2" />
+<MathTree input="4x * p * p * 12x^2" />
+<MathText input="4x * 4p * 4p * 12x^2" />
+<MathTree input="4x * 4p * 4p * 12x^2" />
+<MathText input="4x * p^2 * p^3 * 12x^2" />
+<MathTree input="4x * p^2 * p^3 * 12x^2" />
+<MathText input="4x * 4p^2 * p^3 * 12x^2" />
+<MathTree input="4x * 4p^2 * p^3 * 12x^2" />
 
 While it's great to have a pretty tree visualization and know that expressions are valid math, that's not itself very useful. What we'd like is to "output" a new tree from an "input" using some kind of "rules" that ensure that the transformations don't change the meaning of the input expression. Said another way, we want to change the expressions so that "4 _ 5" can be changed to "5 _ 4" but not "4 + 5". Enter the Mathy rules system...
 
