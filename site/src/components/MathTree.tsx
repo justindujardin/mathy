@@ -1,12 +1,12 @@
-import { BinaryTreeTidier } from '../mathtastic/math/treeNode'
+import { BinaryTreeTidier } from '../mathy/math/treeNode'
 import {
   MathExpression,
   BinaryExpression,
   VariableExpression
-} from '../mathtastic/math/expressions'
-import { ExpressionParser } from '../mathtastic/math/parser'
+} from '../mathy/math/expressions'
+import { ExpressionParser } from '../mathy/math/parser'
 import React, { Fragment } from 'react'
-import { uuidv4 } from '../mathtastic/math/util'
+import { uuidv4 } from '../mathy/math/util'
 const { Paper, Text, Line, Rect } = require('react-raphael')
 
 /**

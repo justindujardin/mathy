@@ -1,4 +1,4 @@
-import { MathExpression } from './../../expressions'
+import { MathExpression } from '../../expressions'
 import { AddExpression, MultiplyExpression } from '../../expressions'
 import { BaseRule, ExpressionChangeRule } from '../../rule'
 

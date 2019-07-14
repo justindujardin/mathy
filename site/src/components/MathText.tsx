@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { MathExpression } from '../mathtastic/math/expressions'
-import { ExpressionParser } from '../mathtastic/math/parser'
+import { MathExpression } from '../mathy/math/expressions'
+import { ExpressionParser } from '../mathy/math/parser'
 
 interface MathTextProps {
   input: string

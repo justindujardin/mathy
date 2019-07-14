@@ -1,4 +1,4 @@
-import { MathExpression } from './../../expressions'
+import { MathExpression } from '../../expressions'
 import { BaseRule } from '../../rule'
 
 import { isAddSubtract, getTerm, factorAddTerms, makeTerm, unlink } from '../util'

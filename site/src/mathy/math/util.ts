@@ -98,8 +98,8 @@ export interface AddTermFactors {
   best: number
   left: number
   right: number
-  allLeft: NumberFactors
-  allRight: NumberFactors
+  all_left: NumberFactors
+  all_right: NumberFactors
   variable: string | null
   exponent: number | null
   leftExponent: number | null
@@ -140,8 +140,8 @@ export function factorAddTerms(node: MathExpression): AddTermFactors | boolean {
     best,
     left: lCoefficients[best],
     right: rCoefficients[best],
-    allLeft: lCoefficients,
-    allRight: rCoefficients
+    all_left: lCoefficients,
+    all_right: rCoefficients
   }
 
   // Common variables and powers
