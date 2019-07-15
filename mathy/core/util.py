@@ -280,78 +280,6 @@ class FactorResult:
         self.rightVariable = None
 
 
-def factor_add_terms(left_term, right_term):
-    if not left_term or not right_term:
-        raise ValueError("invalid terms for factoring")
-
-    # TODO: Skipping complex terms with multiple coefficients for now.
-    if left_term.coefficients and len(left_term.coefficients) > 1:
-        return False
-
-    if right_term.coefficients and len(right_term.coefficients) > 1:
-        return False
-
-    # Common coefficients
-    l_factors = factor(
-        left_term.coefficients[0] if len(left_term.coefficients) > 0 else 1
-    )
-    r_factors = factor(
-        right_term.coefficients[0] if len(right_term.coefficients) > 0 else 1
-    )
-    common = [k for k in r_factors if k in l_factors]
-    if len(common) == 0:
-        return False
-    has_left = len(left_term.variables) > 0
-    has_right = len(right_term.variables) > 0
-
-    # If there are variables, we want to extract them, so
-    # the smallest number to factor out. TODO: is this okay?
-    if has_left or has_right:
-        best = numpy.min(common)
-    else:
-        best = numpy.max(common)
-    result = FactorResult()
-    result.best = best
-    result.left = l_factors[best]
-    result.right = r_factors[best]
-    result.all_left = l_factors
-    result.all_right = r_factors
-
-    # Common variables and powers
-    same_exponent = (
-        left_term.exponent
-        and right_term.exponent
-        and left_term.exponent == right_term.exponent
-    )
-    expMatch = (
-        False
-        if (left_term.exponent or right_term.exponent) and not same_exponent
-        else True
-    )
-    if (
-        has_left
-        and has_right
-        and left_term.variables[0] == right_term.variables[0]
-        and expMatch
-    ):
-        result.variable = left_term.variables[0]
-        result.exponent = left_term.exponent
-
-    if left_term.exponent and left_term.exponent != result.exponent:
-        result.leftExponent = left_term.exponent
-
-    if right_term.exponent and right_term.exponent != result.exponent:
-        result.rightExponent = right_term.exponent
-
-    if has_left and left_term.variables[0] != result.variable:
-        result.leftVariable = left_term.variables[0]
-
-    if has_right and right_term.variables[0] != result.variable:
-        result.rightVariable = right_term.variables[0]
-
-    return result
-
-
 # Create a term node hierarchy from a given set of
 # term parameters.  This takes into account removing
 # implicit coefficients of 1 where possible.
@@ -567,22 +495,21 @@ def factor_add_terms_ex(left_term: TermEx, right_term: TermEx):
     result.all_right = r_factors
 
     # Common variables and powers
-    same_exponent: bool = (
+    two_exp_and_match: bool = (
         left_term.exponent is not None
         and right_term.exponent is not None
         and left_term.exponent == right_term.exponent
     )
-    # expMatch = (
-    #     False
-    #     if (left_term.exponent or right_term.exponent) and not same_exponent
-    #     else True
-    # )
+    both_match = (
+        False
+        if (left_term.exponent or right_term.exponent) and not two_exp_and_match
+        else True
+    )
     if (
         has_left
         and has_right
         and left_term.variable == right_term.variable
-        and same_exponent
-        # and expMatch
+        and both_match
     ):
         result.variable = left_term.variable
         result.exponent = left_term.exponent

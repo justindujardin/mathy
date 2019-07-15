@@ -1,3 +1,4 @@
+from typing import Optional, Tuple
 from ..expressions import AddExpression, MultiplyExpression, SubtractExpression
 from ..rule import BaseRule
 from ..util import (
@@ -39,8 +40,9 @@ class DistributiveFactorOutRule(BaseRule):
         # If true, will factor common numbers out of a const+const expression
         self.constants = constants
 
-    POS_NATURAL = "natural"
-    POS_SURROUNDED = "surrounded"
+    POS_SIMPLE = "simple"
+    POS_CHAINED_LEFT = "chained_left"
+    POS_CHAINED_RIGHT = "chained_right"
 
     @property
     def name(self):
@@ -50,35 +52,74 @@ class DistributiveFactorOutRule(BaseRule):
     def code(self):
         return "DF"
 
-    def get_type(self, node):
-        if not is_add_or_sub(node) or is_add_or_sub(node.right):
+    def get_type(self, node) -> Optional[Tuple[str, TermEx, TermEx]]:
+        """Determine the configuration of the tree for this transformation.
+
+        Support the three types of tree configurations:
+         - Simple is where the node's left and right children are exactly
+           terms linked by an add operation.
+         - Chained Left is where the node's left child is a term, but the right
+           child is another add operation. In this case the left child
+           of the next add node is the target.
+         - Chained Right is where the node's right child is a term, but the left
+           child is another add operation. In this case the right child
+           of the child add node is the target.
+
+        Structure:
+         - Simple
+            * node(add),node.left(term),node.right(term)
+         - Chained Left
+            * node(add),node.left(term),node.right(add),node.right.left(term)
+         - Chained Right
+            * node(add),node.right(term),node.left(add),node.left.right(term)
+        """
+        if not isinstance(node, AddExpression):
             return None
-        if is_add_or_sub(node.left):
-            return DistributiveFactorOutRule.POS_SURROUNDED
-        return DistributiveFactorOutRule.POS_NATURAL
+        # Left node in both cases is always resolved as a term.
+        left_term = get_term_ex(node.left)
+        right_term = get_term_ex(node.right)
+
+        # No terms found for either child
+        if left_term is None and right_term is None:
+            return None
+
+        # Simplest case of each child being a term exactly.
+        if left_term is not None and right_term is not None:
+            return DistributiveFactorOutRule.POS_SIMPLE, left_term, right_term
+
+        # Left child is a term
+        if left_term is not None:
+            # TODO: I'm not sure why I had this restriction here.
+            # TODO: add a comment about it when you remember.
+            if left_term.variable is None:
+                return None
+            if isinstance(node.right, AddExpression):
+                right_term = get_term_ex(node.right.left)
+            if right_term is None or right_term.variable is None:
+                return None
+            return DistributiveFactorOutRule.POS_CHAINED_RIGHT, left_term, right_term
+
+        # Right child is a term
+        if right_term is not None:
+            # TODO: I'm not sure why I had this restriction here.
+            # TODO: add a comment about it when you remember.
+            if right_term.variable is None:
+                return None
+            if isinstance(node.left, AddExpression):
+                left_term = get_term_ex(node.left.right)
+            if left_term is None or left_term.variable is None:
+                return None
+            return DistributiveFactorOutRule.POS_CHAINED_LEFT, left_term, right_term
+
+        return None
 
     def can_apply_to(self, node):
-        tree_position = self.get_type(node)
-        if tree_position is None:
+        if not isinstance(node, AddExpression):
             return False
-
-        left_interest = node.left
-        if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
-            left_interest = node.left.right
-
-        # There are two tree configurations recognized by this rule.
-        l_term: TermEx = get_term_ex(left_interest)
-        if not l_term:
+        type_tuple = self.get_type(node)
+        if type_tuple is None:
             return False
-
-        r_term: TermEx = get_term_ex(node.right)
-        if not r_term:
-            return False
-
-        # # Don't try factoring out terms with multiple variables, e.g "(4z + 84xz)"
-        # if len(l_term.variablevariables) > 1 or len(r_term.variables) > 1:
-        #     return False
-
+        type, l_term, r_term = type_tuple
         # Don't try factoring out terms with no variables, e.g "4 + 84"
         if (
             self.constants is False
@@ -97,51 +138,41 @@ class DistributiveFactorOutRule(BaseRule):
         return True
 
     def apply_to(self, node):
-        tree_position = self.get_type(node)
-        if tree_position is None:
-            raise ValueError("invalid node for rule, call canApply first.")
         change = super().apply_to(node).save_parent()
-        left_interest = node.left
-        if tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
-            left_interest = node.left.right
-        left_term = get_term_ex(left_interest)
-        right_term = get_term_ex(node.right)
-
+        tree_position, left_term, right_term = self.get_type(node)
+        assert left_term is not None
+        assert right_term is not None
         factors = factor_add_terms_ex(left_term, right_term)
         a = make_term(factors.best, factors.variable, factors.exponent)
         b = make_term(factors.left, factors.leftVariable, factors.leftExponent)
         c = make_term(factors.right, factors.rightVariable, factors.rightExponent)
-        if tree_position == DistributiveFactorOutRule.POS_NATURAL:
-            inside = (
-                AddExpression(b, c)
-                if isinstance(node, AddExpression)
-                else SubtractExpression(b, c)
-            )
-            # NOTE: we swap the output order of the extracted
-            #       common factor and what remains to prefer
-            #       ordering that can be expressed without an
-            #       explicit multiplication symbol.
-            result = MultiplyExpression(inside, a)
-            result.all_changed()
-        elif tree_position == DistributiveFactorOutRule.POS_SURROUNDED:
-            # How to fix up tree
-            left_link = node.left
-            left_link.parent = node.parent
-            inside = (
-                AddExpression(b, c)
-                if isinstance(node, AddExpression)
-                else SubtractExpression(b, c)
-            )
+        inside = (
+            AddExpression(b, c)
+            if isinstance(node, AddExpression)
+            else SubtractExpression(b, c)
+        )
+        # NOTE: we swap the output order of the extracted
+        #       common factor and what remains to prefer
+        #       ordering that can be expressed without an
+        #       explicit multiplication symbol.
+        result = MultiplyExpression(inside, a)
+        result.all_changed()
 
-            # NOTE: we swap the output order of the extracted
-            #       common factor and what remains to prefer
-            #       ordering that can be expressed without an
-            #       explicit multiplication symbol.
-            result = MultiplyExpression(inside, a)
-            result.all_changed()
-            left_link.set_right(result)
-            result = left_link
-        else:
-            raise ValueError("invalid/unknown tree configuration")
+        if tree_position == DistributiveFactorOutRule.POS_CHAINED_LEFT:
+            # chained type has to fixup the tree to keep the chain unbroken
+
+            # Because in the chained mode we extract node.left.right, the other
+            # child is the remainder we want to be sure to preserve.
+            # e.g. "(4 + p) + p" we need to keep "4"
+            keep_child = node.left.left
+            result = AddExpression(keep_child, result)
+        elif tree_position == DistributiveFactorOutRule.POS_CHAINED_RIGHT:
+            # chained type has to fixup the tree to keep the chain unbroken
+
+            # Because in the chained mode we extract node.right.left, the other
+            # child is the remainder we want to be sure to preserve.
+            # e.g. "p + (p + 2x)" we need to keep 2x
+            keep_child = node.right.right
+            result = AddExpression(result, keep_child)
         change.done(result)
         return change
