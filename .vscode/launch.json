@@ -8,11 +8,9 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "complex",
-        "agents/var/",
-        "-v",
-        "-d",
-        "2"
+        "mixed",
+        "agents/mt_07_15_19",
+        "-v"
       ]
     },
     {

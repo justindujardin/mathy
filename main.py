@@ -15,10 +15,12 @@ from mathy.agent.training.math_experience import (
     balanced_reward_experience_samples,
 )
 from mathy.agent.training.mcts import MCTS
-from mathy.envs.binomial_distribution_pairs import MathyBinomialDistributionEnv
-from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
-from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
-from mathy.envs.mixed_simplification import MathyMixedSimplificationEnv
+from mathy.envs import (
+    MathyBinomialDistributionEnv,
+    MathyComplexTermSimplificationEnv,
+    MathyPolynomialSimplificationEnv,
+)
+from mathy.mathy_env import mathy_core_rules
 from mathy.mathy_env import MathyEnv
 from mathy.types import MathyEnvObservation
 
@@ -70,15 +72,18 @@ def main(
     learning_rate=2e-4,
 ):
 
-    envs = {
-        "poly": MathyPolynomialSimplificationEnv,
-        "binomial": MathyBinomialDistributionEnv,
-        "complex": MathyComplexTermSimplificationEnv,
-        "mixed": MathyMixedSimplificationEnv,
+    environments = {
+        "poly": [MathyPolynomialSimplificationEnv],
+        "binomial": [MathyBinomialDistributionEnv],
+        "complex": [MathyComplexTermSimplificationEnv],
+        "mixed": [
+            MathyPolynomialSimplificationEnv,
+            MathyComplexTermSimplificationEnv,
+            MathyBinomialDistributionEnv,
+        ],
     }
-    if env not in envs:
-        raise EnvironmentError(f"Invalid env, must be one of: {envs.keys()}")
-    env_class: Type[MathyEnv] = envs[env]
+    if env not in environments:
+        raise EnvironmentError(f"Invalid env, must be one of: {environments.keys()}")
     # How many observations to gather between training sessions.
     iter_experience = 128
     min_train_experience = 128
@@ -87,9 +92,9 @@ def main(
     long_term_size = 8192 * 3
     counter = 0
     training_epochs = 4
-    mathy_env = env_class(verbose=True)
+    action_size = len(mathy_core_rules())
     mathy = MathModel(
-        mathy_env.action_size,
+        action_size,
         model_dir,
         init_model_dir=transfer_from,
         learning_rate=learning_rate,
@@ -99,12 +104,9 @@ def main(
     experience = MathExperience(mathy.model_dir, short_term_size)
     mathy.start()
     while True:
-        print(f"[lesson] session {counter}")
-        mathy_env = env_class(verbose=True)
-        env_name = str(mathy_env.__class__.__name__)
-        print(f"Environment: {env_name}")
-        print(f"Moves per complexity: {turns_per_complexity}")
-        print(f"Problem Difficulty: {difficulty}")
+        print(f"Iteration: {counter}")
+        print(f"Moves/complexity: {turns_per_complexity}")
+        print(f"Difficulty: {difficulty}")
         counter = counter + 1
         eval_run = (
             bool(counter % eval_interval == 0)
@@ -117,7 +119,7 @@ def main(
             print("\n\n=== Evaluating model with exploitation strategy ===")
             mathy.stop()
             mathy_eval = MathModel(
-                mathy_env.action_size,
+                action_size,
                 model_dir,
                 init_model_dir=os.path.abspath(mathy.model_dir),
                 # We want to initialize from the training model for each evaluation. (?)
@@ -134,8 +136,18 @@ def main(
         ep_reward_buffer: List[float] = []
         # Fill up a certain amount of experience per problem type
         lesson_experience_count = 0
+        lesson_problem_count = 0
         while lesson_experience_count < iter_experience:
+            env_classes: List[Type[MathyEnv]] = environments[env]  # type: ignore
+            env_class = env_classes[0]
+            for i, clazz in enumerate(reversed(env_classes)):
+                if lesson_problem_count % (len(env_classes) - i) == 0:
+                    env_class = clazz
+                    break
+            mathy_env = env_class(verbose=True)
+            env_name = str(mathy_env.__class__.__name__)
             mathy_env.verbose = eval_run or verbose
+            print(f"{env_name}")
             # generate a new problem
             options = {
                 "difficulty": difficulty,
@@ -170,6 +182,7 @@ def main(
             elapsed = time.time() - start
             episode_examples, episode_reward, is_win = final_result
             lesson_experience_count += len(episode_examples)
+            lesson_problem_count += 1
             if is_win:
                 num_solved = num_solved + 1
                 outcome = "solved"

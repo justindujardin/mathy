@@ -57,6 +57,17 @@ class MathyBinomialDistributionEnv(MathyEnv):
                 "The value is to represent the relative difficulty of the problem"
                 " in this case it is the number of terms to generate"
             )
-        num_terms = int(config["difficulty"]) / 2
-        text, complexity = simplify_distributive_binomial()
+
+        difficulty = int(config["difficulty"])
+        if difficulty < 4:
+            text, complexity = simplify_distributive_binomial(min_vars=1, max_vars=2)
+        elif difficulty <= 6:
+            text, complexity = simplify_distributive_binomial(
+                simple_variables=False, min_vars=2, max_vars=3
+            )
+        else:
+            text, complexity = simplify_distributive_binomial(
+                min_vars=3, max_vars=4, simple_variables=False
+            )
+
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

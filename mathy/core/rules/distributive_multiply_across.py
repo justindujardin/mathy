@@ -1,38 +1,35 @@
-from ..expressions import (
-    AddExpression,
-    MultiplyExpression,
-    ConstantExpression,
-    VariableExpression,
-    PowerExpression,
-    SubtractExpression,
-)
-from ..util import is_add_or_sub, is_const, get_term, terms_are_like, unlink, make_term
+from ..expressions import AddExpression, MultiplyExpression
 from ..rule import BaseRule
+from ..util import unlink
 
-# ### Distributive Property
-# `a(b + c) = ab + ac`
-#
-# The distributive property can be used to expand out expressions
-# to allow for simplification, as well as to factor out common properties of terms.
 
-# **Distribute across a group**
-#
-# This handles the `a(b + c)` conversion of the distributive property, which
-# distributes `a` across both `b` and `c`.
-#
-# *note: this is useful because it takes a complex Multiply expression and
-# replaces it with two simpler ones.  This can expose terms that can be
-# combined for further expression simplification.*
-#
-#                             +
-#         *                  / \
-#        / \                /   \
-#       /   \              /     \
-#      a     +     ->     *       *
-#           / \          / \     / \
-#          /   \        /   \   /   \
-#         b     c      a     b a     c
 class DistributiveMultiplyRule(BaseRule):
+    r"""
+    Distributive Property
+    `a(b + c) = ab + ac`
+
+    The distributive property can be used to expand out expressions
+    to allow for simplification, as well as to factor out common properties of terms.
+
+    **Distribute across a group**
+
+    This handles the `a(b + c)` conversion of the distributive property, which
+    distributes `a` across both `b` and `c`.
+
+    *note: this is useful because it takes a complex Multiply expression and
+    replaces it with two simpler ones.  This can expose terms that can be
+    combined for further expression simplification.*
+
+                                 +
+             *                  / \
+            / \                /   \
+           /   \              /     \
+          a     +     ->     *       *
+               / \          / \     / \
+              /   \        /   \   /   \
+             b     c      a     b a     c
+    """
+
     @property
     def name(self):
         return "Distributive Multiply"

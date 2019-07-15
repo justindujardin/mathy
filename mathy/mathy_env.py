@@ -16,6 +16,11 @@ from .core.rules import (
 )
 from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
 from .util import GameRewards
+from pydantic import BaseModel, Schema, conint
+
+
+class MathEnvParameters(BaseModel):
+    difficulty: int = conint(gt=0, lt=4)
 
 
 def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:

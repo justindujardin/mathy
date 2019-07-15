@@ -10,6 +10,7 @@ tf-nightly-2.0-preview
 tf-agents-nightly
 tb-nightly
 colr
+pydantic
 
 
 # dev 
