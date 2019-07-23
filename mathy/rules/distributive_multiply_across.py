@@ -1,6 +1,6 @@
-from ..expressions import AddExpression, MultiplyExpression
-from ..rule import BaseRule
-from ..util import unlink
+from ..core.expressions import AddExpression, MultiplyExpression
+from .rule import BaseRule
+from .util import unlink
 
 
 class DistributiveMultiplyRule(BaseRule):

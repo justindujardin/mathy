@@ -1,4 +1,4 @@
-from ..expressions import (
+from ..core.expressions import (
     AddExpression,
     MultiplyExpression,
     ConstantExpression,
@@ -6,7 +6,7 @@ from ..expressions import (
     PowerExpression,
     MathExpression,
 )
-from ..rule import BaseRule
+from .rule import BaseRule
 
 
 class CommutativeSwapRule(BaseRule):

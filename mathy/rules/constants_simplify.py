@@ -1,5 +1,5 @@
-from ..expressions import BinaryExpression, ConstantExpression
-from ..rule import BaseRule
+from ..core.expressions import BinaryExpression, ConstantExpression
+from .rule import BaseRule
 
 
 class ConstantsSimplifyRule(BaseRule):

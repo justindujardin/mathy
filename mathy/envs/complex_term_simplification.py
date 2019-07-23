@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Type
 
-from ..core.rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
+from ..rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
 from ..mathy_env import MathyEnvProblem
 from ..mathy_env_state import MathyEnvState

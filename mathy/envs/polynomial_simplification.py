@@ -3,8 +3,8 @@ from typing import Any, Dict, Optional, List, Type
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..core.rules import ConstantsSimplifyRule, DistributiveFactorOutRule, BaseRule
-from ..core.util import get_terms, has_like_terms, is_preferred_term_form
+from ..rules import ConstantsSimplifyRule, DistributiveFactorOutRule, BaseRule
+from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..mathy_env_state import MathyEnvState

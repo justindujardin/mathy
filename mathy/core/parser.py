@@ -149,7 +149,25 @@ class ExpressionParser:
     def __init__(self):
         self.tokenizer = Tokenizer()
 
-    def evaluate(self, tokens):
+    def tokenize(self, input):
+        global _tokens_cache
+        if input not in _tokens_cache:
+            _tokens_cache[input] = self.tokenizer.tokenize(input)
+        return _tokens_cache[input][:]
+
+    def parse(self, input):
+        """Parse a string representation of an expression into a tree
+        that can be later evaluated.
+
+        Returns : The evaluatable expression tree.
+        """
+        global _parse_cache
+        if input in _parse_cache:
+            return _parse_cache[input]
+        _parse_cache[input] = self._parse(self.tokenize(input))
+        return _parse_cache[input]
+
+    def _parse(self, tokens):
         """Parse a given list of tokens into an expression tree"""
         self.tokens = tokens
         self.current_token = Token("", TokenNone)
@@ -166,24 +184,6 @@ class ExpressionParser:
             raise TrailingTokens("Trailing characters: {}".format(leftover))
         _parse_cache[input] = expression
         return expression
-
-    def tokenize(self, input):
-        global _tokens_cache
-        if input not in _tokens_cache:
-            _tokens_cache[input] = self.tokenizer.tokenize(input)
-        return _tokens_cache[input][:]
-
-    def parse(self, input):
-        """Parse a string representation of an expression into a tree 
-        that can be later evaluated.
-        
-        Returns : The evaluatable expression tree.
-        """
-        global _parse_cache
-        if input in _parse_cache:
-            return _parse_cache[input]
-        _parse_cache[input] = self.evaluate(self.tokenize(input))
-        return _parse_cache[input]
 
     def parse_equal(self):
         if not self.check(FIRST_ADD):

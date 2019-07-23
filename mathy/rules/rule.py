@@ -1,6 +1,6 @@
-from .tree import STOP
+from ..core.expressions import MathExpression
+from ..core.tree import STOP
 from .util import is_debug_mode
-from .expressions import MathExpression
 
 
 class BaseRule:

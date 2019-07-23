@@ -1,6 +1,6 @@
 from ..core.parser import ExpressionParser
-from ..core.util import get_terms, terms_are_like, load_rule_tests
-from ..core.rules import (
+from ..rules.util import get_terms, terms_are_like, load_rule_tests
+from ..rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     DistributiveFactorOutRule,

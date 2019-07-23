@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
-from ..expressions import AddExpression, MultiplyExpression, SubtractExpression
-from ..rule import BaseRule
-from ..util import (
+from ..core.expressions import AddExpression, MultiplyExpression, SubtractExpression
+from .rule import BaseRule
+from .util import (
     TermEx,
     factor_add_terms_ex,
     get_term_ex,

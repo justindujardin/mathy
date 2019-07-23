@@ -1,14 +1,15 @@
-from ..expressions import (
+from typing import Optional, Tuple
+
+from ..core.expressions import (
     AddExpression,
-    MultiplyExpression,
     ConstantExpression,
-    VariableExpression,
-    PowerExpression,
     MathExpression,
+    MultiplyExpression,
+    PowerExpression,
+    VariableExpression,
 )
-from ..util import is_add_or_sub, get_term_ex, TermEx
-from ..rule import BaseRule
-from typing import Tuple, Optional
+from .rule import BaseRule
+from .util import TermEx, get_term_ex
 
 
 class VariableMultiplyRule(BaseRule):
@@ -59,7 +60,7 @@ class VariableMultiplyRule(BaseRule):
     def code(self):
         return "VM"
 
-    def get_type(self, node) -> Optional[Tuple[str, TermEx, TermEx]]:
+    def get_type(self, node: MathExpression) -> Optional[Tuple[str, TermEx, TermEx]]:
         """Determine the configuration of the tree for this transformation.
 
         Support two types of tree configurations:
@@ -96,7 +97,7 @@ class VariableMultiplyRule(BaseRule):
             return VariableMultiplyRule.POS_CHAINED, left_term, right_term
         return VariableMultiplyRule.POS_SIMPLE, left_term, right_term
 
-    def can_apply_to(self, node):
+    def can_apply_to(self, node: MathExpression):
         if not isinstance(node, MultiplyExpression):
             return False
         type_tuple = self.get_type(node)
@@ -104,9 +105,11 @@ class VariableMultiplyRule(BaseRule):
             return False
         return True
 
-    def apply_to(self, node):
+    def apply_to(self, node: MathExpression):
         change = super().apply_to(node).save_parent()
-        tree_position, left_term, right_term = self.get_type(node)
+        type_tuple = self.get_type(node)
+        assert type_tuple is not None
+        tree_position, left_term, right_term = type_tuple
         assert left_term is not None
         assert right_term is not None
 
@@ -121,7 +124,7 @@ class VariableMultiplyRule(BaseRule):
         power_term = PowerExpression(
             VariableExpression(left_term.variable), exponent_sum
         )
-        result = power_term
+        result: MathExpression = power_term
         # If either term has a coefficient we have to include a second term
         # in the output
         has_left_coefficient = left_term.coefficient is not None
@@ -131,6 +134,7 @@ class VariableMultiplyRule(BaseRule):
             right_const = (
                 1 if right_term.coefficient is None else right_term.coefficient
             )
+            coefficient_term: MathExpression
             if has_left_coefficient and has_right_coefficient:
                 # "(2 * 4)" both terms have coefficients
                 coefficient_term = MultiplyExpression(

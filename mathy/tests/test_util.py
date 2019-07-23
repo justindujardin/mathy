@@ -7,7 +7,7 @@ from ..core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..core.util import (
+from ..rules.util import (
     is_preferred_term_form,
     has_like_terms,
     TermEx,
@@ -15,7 +15,7 @@ from ..core.util import (
     get_sub_terms,
 )
 from ..util import discount
-from ..core.rules import (
+from ..rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     DistributiveFactorOutRule,

@@ -1,22 +1,23 @@
-from typing import Dict, List, Optional, Tuple, NamedTuple, Union
-from .expressions import (
-    ConstantExpression,
-    VariableExpression,
-    MultiplyExpression,
-    DivideExpression,
-    PowerExpression,
-    AddExpression,
-    SubtractExpression,
-    BinaryExpression,
-    NegateExpression,
-    MathExpression,
-)
-from .tree import LEFT, RIGHT, STOP
-from .layout import TreeLayout
-import numpy
-import math
 import json
+import math
 from pathlib import Path
+from typing import Dict, List, NamedTuple, Optional, Union
+
+import numpy
+
+from ..core.expressions import (
+    AddExpression,
+    BinaryExpression,
+    ConstantExpression,
+    DivideExpression,
+    MathExpression,
+    MultiplyExpression,
+    NegateExpression,
+    PowerExpression,
+    SubtractExpression,
+    VariableExpression,
+)
+from ..core.tree import LEFT
 
 
 def is_debug_mode():
@@ -30,7 +31,7 @@ def load_rule_tests(name):
         Path(__file__).parent.parent / "tests" / "rules" / "{}.json".format(name)
     )
     print(rule_file)
-    assert rule_file.is_file() == True
+    assert rule_file.is_file() is True
     with open(rule_file, "r") as file:
         return json.load(file)
 
@@ -168,7 +169,7 @@ def is_simple_term(node: MathExpression) -> bool:
     sub_terms = get_sub_terms(node)
     if sub_terms is False:
         return False
-    seen = set()
+    seen: set = set()
     co_key = "coefficient"
 
     for coefficient, variable, exponent in sub_terms:
@@ -201,8 +202,8 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
 
     # If there are multiple multiplications this term can be simplified further. At most
     # we expect a multiply to connect a coefficient and variable.
-    # NOTE: the following check is removed because we need to handle multiple variable terms
-    #       e.g. "4x * z"
+    # NOTE: the following check is removed because we need to handle multiple variable
+    #       terms, e.g. "4x * z"
     # if len(expression.findByType(MultiplyExpression)) > 1:
     #     return False
 

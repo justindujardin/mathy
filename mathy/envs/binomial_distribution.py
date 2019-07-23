@@ -3,14 +3,14 @@ from typing import Any, Dict, List, Optional, Type
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..core.rules import (
+from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..core.util import get_terms, has_like_terms, is_preferred_term_form
+from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from .problems import simplify_distributive_binomial
 from ..mathy_env import MathyEnv, MathyEnvProblem

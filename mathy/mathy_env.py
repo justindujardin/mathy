@@ -4,7 +4,7 @@ from tf_agents.trajectories import time_step
 from .types import MathyEnvProblem
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
-from .core.rules import (
+from .rules import (
     AssociativeSwapRule,
     BaseRule,
     CommutativeSwapRule,

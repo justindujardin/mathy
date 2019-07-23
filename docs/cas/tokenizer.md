@@ -32,3 +32,4 @@ To better understand the tokenizer, let's build a tokens array manually and comp
 ``` Python
 {!./snippets/cas/tokenizer_manual.py!}
 ```
+
