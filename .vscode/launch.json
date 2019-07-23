@@ -57,9 +57,7 @@
       "request": "launch",
       "module": "pytest",
       "args": [
-        "--cov=mathy",
-        "--pyargs",
-        "mathy"
+        "--cov=mathy"
       ]
     },
     {
@@ -70,6 +68,29 @@
       "args": [
         "--pyargs",
         "mathy",
+        "-k",
+        "test_distributive_factor_out"
+      ]
+    },
+    {
+      "name": "docs:tests",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "--cov=mathy",
+        "--pyargs",
+        "docs",
+      ]
+    },
+    {
+      "name": "docs:tests_filtered",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "--pyargs",
+        "docs",
         "-k",
         "test_distributive_factor_out"
       ]
