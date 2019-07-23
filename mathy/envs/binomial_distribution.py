@@ -6,7 +6,6 @@ from ..core.expressions import MathExpression
 from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
-    DistributiveFactorOutRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )

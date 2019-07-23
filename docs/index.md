@@ -1,3 +1,8 @@
+Mathy is a library for parsing and transforming math problems from arbitrary input states into desired output states. It uses Reinforcement Learning (a form of machine learning, or artificial intelligence) build an understanding of how to effectively solve math problems step-by-step without programming the system with heuristics about which rules to apply in what order.
+
+
+---
+
 Mathy really wants to help you with your homework. It is limited to only a few types of problems currently, but it's open source and
 extensible, so you can add support for solving new types of problems!
 

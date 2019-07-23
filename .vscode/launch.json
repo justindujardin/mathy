@@ -8,7 +8,7 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "mixed",
+        "binomial",
         "agents/mt_07_15_19",
         "-v"
       ]

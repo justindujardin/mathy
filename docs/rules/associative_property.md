@@ -1,5 +1,3 @@
-# Associative Property
-
 The `Associative Property` of numbers says that we can re-group two `addition` or `multiplication` terms such that one is evaluated before the other, without changing the value of the expression.
 
 The formulation of this property is the same for addition and multiplication:

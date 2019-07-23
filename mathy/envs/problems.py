@@ -58,11 +58,18 @@ def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
 
 
 def simplify_distributive_binomial(
-    *, op="+", min_vars=1, max_vars=2, simple_variables=True, powers_proability=0.33
+    *,
+    op="+",
+    min_vars=1,
+    max_vars=2,
+    simple_variables=True,
+    powers_proability=0.33,
+    like_variables_probability=1.0,
 ) -> Tuple[str, int]:
     """FOIL problems"""
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
+    like_vars = rand_bool(like_variables_probability * 100)
 
     num_terms: int = 4
 
@@ -70,12 +77,18 @@ def simplify_distributive_binomial(
     terms = [""] * 4
 
     # Build variables (with optional exponents)
-    for i, var in enumerate(get_rand_vars(num_vars)):
+    if like_vars is False:
+        for i, var in enumerate(get_rand_vars(num_vars)):
+            if powers is not False:
+                terms[i] = f"{var}{maybe_power(power_prob_percent * 2)}"
+            else:
+                terms[i] = var
+    else:
+        var = rand_var()
         if powers is not False:
-            terms[i] = f"{var}{maybe_power(power_prob_percent)}"
-        else:
+            var = f"{var}{maybe_power(power_prob_percent * 2)}"
+        for i in range(num_vars):
             terms[i] = var
-
     random.shuffle(terms)
 
     # Conditionally attach coefficients to each term
