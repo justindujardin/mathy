@@ -51,7 +51,7 @@ class BaseRule:
     def can_apply_to(self, node):
         return False
 
-    def apply_to(self, node: MathExpression):
+    def apply_to(self, node: MathExpression) -> 'ExpressionChangeRule':
         # Only double-check canApply in debug mode for performance reasons
         if is_debug_mode() and not self.can_apply_to(node):
             print("Bad Apply: {}".format(node))

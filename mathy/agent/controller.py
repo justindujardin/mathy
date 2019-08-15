@@ -139,11 +139,11 @@ class MathModel:
             )
         )
         self.feature_columns = [
-            self.f_problem_type,
+            # self.f_problem_type,
             self.f_last_rule,
             self.f_node_count,
-            self.f_move_count,
-            self.f_moves_remaining,
+            # self.f_move_count,
+            # self.f_moves_remaining,
         ]
 
         vocab_buckets = MathTypeKeysMax + 1

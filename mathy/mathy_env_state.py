@@ -102,6 +102,10 @@ class MathyEnvState(object):
     by two different sources.
     """
 
+    agent: MathAgentState
+    parser: ExpressionParser
+    max_moves: int
+
     def __init__(
         self,
         state=None,

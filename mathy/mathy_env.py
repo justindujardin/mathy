@@ -171,17 +171,17 @@ class MathyEnv:
 
     def get_next_state(
         self, env_state: MathyEnvState, action: int, searching: bool = False
-    ) -> Tuple[MathyEnvState, time_step.TimeStep]:
+    ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         Input:
             env_state: current env_state
             action:    action taken
             searching: boolean set to True when called by MCTS
 
-        Returns: tuple of (next_state, reward, is_done)
+        Returns: tuple of
             next_state: env_state after applying action
-            reward: reward value for the action taken
-            is_done: boolean indicating if the episode is done
+            transition: the timestep that represents the state transition
+            change: the change descriptor describing the change that happened
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -212,7 +212,7 @@ class MathyEnv:
             token_idx = int("{}".format(token_index).zfill(3))
             self.print_state(out_env, change_name[:25].lower(), token_idx, change)
         transition = self.get_state_transition(out_env, searching)
-        return out_env, transition
+        return out_env, transition, change
 
     def print_state(
         self,

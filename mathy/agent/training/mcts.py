@@ -1,6 +1,8 @@
 import math
 import numpy
 from ...util import is_terminal_transition
+from ...mathy_env import MathyEnv
+from ..controller import MathModel
 
 EPS = 1e-8
 
@@ -10,18 +12,31 @@ class MCTS:
     This class handles the MCTS tree.
     """
 
+    env: MathyEnv
+    model: MathModel
+    # cpuct is a hyperparameter controlling the degree of exploration
+    # (1.0 in Suragnair experiments.)
+    cpuct: int
+    num_mcts_sims: int
+    # Set epsilon = 0 to disable dirichlet noise in root node.
+    # e.g. for ExaminationRunner competitions
+    epsilon: int
+    dir_alpha: float
+
     def __init__(
-        self, game, predictor, cpuct=1, num_mcts_sims=15, epsilon=0.25, dir_alpha=0.3
+        self,
+        env: MathyEnv,
+        model: MathModel,
+        cpuct=1,
+        num_mcts_sims=15,
+        epsilon=0.25,
+        dir_alpha=0.3,
     ):
-        self.game = game
-        self.predictor = predictor
+        self.env = env
+        self.model = model
         self.num_mcts_sims = num_mcts_sims
-        # cpuct is a hyperparameter controlling the degree of exploration (1.0 in
-        # Suragnair experiments.)
         self.cpuct = cpuct
         self.dir_alpha = dir_alpha
-        # Set epsilon = 0 to disable dirichlet noise in root node.
-        # e.g. for ExaminationRunner competitions
         self.epsilon = epsilon
 
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
@@ -29,8 +44,8 @@ class MCTS:
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
 
-        self.Es = {}  # stores game.get_state_transition ended for env_state s
-        self.Vs = {}  # stores game.get_valid_moves for env_state s
+        self.Es = {}  # stores env.get_state_transition ended for env_state s
+        self.Vs = {}  # stores env.get_valid_moves for env_state s
 
     def getActionProb(self, env_state, temp=1):
         """
@@ -44,9 +59,9 @@ class MCTS:
         for _ in range(self.num_mcts_sims):
             self.search(env_state, True)
 
-        s = self.game.to_hash_key(env_state)
+        s = self.env.to_hash_key(env_state)
         counts = []
-        for a in range(self.game.get_agent_actions_count(env_state)):
+        for a in range(self.env.get_agent_actions_count(env_state)):
             if (s, a) in self.Nsa:
                 counts.append(self.Nsa[(s, a)])
             else:
@@ -62,7 +77,7 @@ class MCTS:
         count_sum = float(sum(counts))
         if count_sum == 0.0:
             # Arg, no valid moves picked from the tree! Let's go ahead and make each
-            valids = numpy.array(self.game.get_valid_moves(env_state))
+            valids = numpy.array(self.env.get_valid_moves(env_state))
             return list(valids / valids.sum())
         probs = [x / float(count_sum) for x in counts]
         return probs
@@ -83,11 +98,11 @@ class MCTS:
             v: the value of the current state
         """
 
-        s = self.game.to_hash_key(env_state)
+        s = self.env.to_hash_key(env_state)
 
         # if s not in self.Es:
         # print('calculating ending state for: {}'.format(s))
-        self.Es[s] = self.game.get_state_transition(env_state, searching=True)
+        self.Es[s] = self.env.get_state_transition(env_state, searching=True)
         if is_terminal_transition(self.Es[s]):
             # terminal node
             return self.Es[s].reward
@@ -95,9 +110,9 @@ class MCTS:
         # This state does not have a predicted policy of value vector
         if s not in self.Ps:
             # leaf node
-            valids = self.game.get_valid_moves(env_state)
+            valids = self.env.get_valid_moves(env_state)
             num_valids = len(valids)
-            out_policy, action_v = self.predictor.predict(env_state, valids)
+            out_policy, action_v = self.model.predict(env_state, valids)
             out_policy = out_policy.flatten()
             # Clip any predictions over batch-size padding tokens
             if len(out_policy) > num_valids:
@@ -138,7 +153,7 @@ class MCTS:
         # competitions of trained models
         add_noise = isRootNode and e > 0
         if add_noise:
-            moves = self.game.get_valid_moves(env_state)
+            moves = self.env.get_valid_moves(env_state)
             noise = numpy.random.dirichlet([self.dir_alpha] * len(moves))
 
         # pick the action with the highest upper confidence bound
@@ -167,9 +182,7 @@ class MCTS:
                     all_best.append(a)
 
         a = numpy.random.choice(all_best)
-
-        next_s, _ = self.game.get_next_state(env_state, a, searching=True)
-
+        next_s, _, _ = self.env.get_next_state(env_state, a, searching=True)
         action_v = self.search(next_s)
 
         # state key for next state
