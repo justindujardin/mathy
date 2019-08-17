@@ -4,6 +4,7 @@ import threading
 import gym
 import numpy as np
 import tensorflow as tf
+from multiprocessing.queues import Queue
 from gym.wrappers import FlattenDictWrapper
 
 from ..agent.features import (
@@ -29,11 +30,10 @@ class A3CWorker(threading.Thread):
 
     def __init__(
         self,
-        state_size,
         action_size,
         global_model,
         optimizer,
-        result_queue,
+        result_queue: Queue,
         idx,
         game_name,
         save_dir="/tmp",
@@ -42,7 +42,6 @@ class A3CWorker(threading.Thread):
         shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
-        self.state_size = state_size
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
@@ -58,23 +57,8 @@ class A3CWorker(threading.Thread):
         self.worker_idx = idx
         self.game_name = game_name
         self.env = gym.make(self.game_name)
-        self.env = FlattenDictWrapper(
-            self.env,
-            dict_keys=[
-                FEATURE_FWD_VECTORS,
-                FEATURE_BWD_VECTORS,
-                FEATURE_LAST_BWD_VECTORS,
-                FEATURE_LAST_FWD_VECTORS,
-                FEATURE_LAST_RULE,
-                FEATURE_NODE_COUNT,
-            ],
-        )
-
         self.save_dir = save_dir
         self.ep_loss = 0.0
-
-    def ensure_state(self, state):
-        return np.reshape(state, [1, self.state_size])
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -84,7 +68,6 @@ class A3CWorker(threading.Thread):
 
     def run_episode(self, replay_buffer: ReplayBuffer):
         current_state = self.env.reset()
-        print(current_state)
         replay_buffer.clear()
         ep_reward = 0.0
         ep_steps = 0
@@ -93,14 +76,24 @@ class A3CWorker(threading.Thread):
         time_count = 0
         done = False
         while not done:
-            logits, _ = self.local_model(
-                tf.convert_to_tensor(value=current_state, dtype=tf.float32)
-            )
-            probs = tf.nn.softmax(logits)
-            action = np.random.choice(self.action_size, p=probs.numpy()[0])
+            logits, _ = self.local_model(current_state)
+            probs = tf.nn.softmax(tf.squeeze(logits))
+            if self.env.action_space.mask is not None:
+                # Flatten for action selection and masking
+                probs = tf.reshape(probs, [-1]).numpy()
+                mask = self.env.action_space.mask[:]
+                while len(mask) < len(probs):
+                    mask.append(0.0)
+                probs *= mask
+                pi_sum = np.sum(probs)
+                if pi_sum > 0:
+                    probs /= pi_sum
+
+            # Select a random action from the distribution with the given probabilities
+            action = np.random.choice(len(probs), p=probs)
+
+            # Take an env step
             new_state, reward, done, _ = self.env.step(action)
-            if done:
-                reward = -1
             ep_reward += reward
             replay_buffer.store(current_state, action, reward)
 
@@ -113,6 +106,7 @@ class A3CWorker(threading.Thread):
             ep_steps += 1
             time_count += 1
             current_state = new_state
+
 
     def update_global_network(self, done, new_state, replay_buffer: ReplayBuffer):
         # Calculate gradient wrt to local model. We do so by tracking the
@@ -156,7 +150,7 @@ class A3CWorker(threading.Thread):
                 A3CWorker.best_score = episode_reward
         A3CWorker.global_episode += 1
 
-    def compute_loss(self, done, new_state, replay_buffer, gamma=0.99):
+    def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
         if done:
             reward_sum = 0.0  # terminal
         else:
@@ -173,11 +167,10 @@ class A3CWorker(threading.Thread):
             discounted_rewards.append(reward_sum)
         discounted_rewards.reverse()
 
-        logits, values = self.local_model(
-            tf.convert_to_tensor(
-                value=np.vstack(replay_buffer.states), dtype=tf.float32
-            )
-        )
+        inputs = replay_buffer.to_features()
+        logits, values = self.local_model(inputs)
+        logits = tf.reshape(logits, [len(replay_buffer.actions), -1])
+
         # Get our advantages
         advantage = (
             tf.convert_to_tensor(
@@ -191,9 +184,13 @@ class A3CWorker(threading.Thread):
         # Calculate our policy loss
         policy = tf.nn.softmax(logits)
         entropy = tf.nn.softmax_cross_entropy_with_logits(labels=policy, logits=logits)
+        max_actions = logits.get_shape()[1]
+        action_labels = tf.convert_to_tensor(
+            [tf.one_hot(t, max_actions) for t in replay_buffer.actions]
+        )
 
-        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=logits
+        policy_loss = tf.nn.softmax_cross_entropy_with_logits(
+            labels=action_labels, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss -= 0.01 * entropy

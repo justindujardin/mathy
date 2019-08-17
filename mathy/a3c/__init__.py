@@ -17,15 +17,19 @@ def record(
     total_loss: The total loss accumualted over the current episode
     num_steps: The number of steps the episode took to complete
   """
+
+    def truncate(value):
+        return float("%.3f" % (float(value)))
+
     if global_ep_reward == 0:
         global_ep_reward = episode_reward
     else:
         global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
     print(
         f"Episode: {episode} | "
-        f"Moving Average Reward: {int(global_ep_reward)} | "
-        f"Episode Reward: {int(episode_reward)} | "
-        f"Loss: {int(total_loss / float(num_steps) * 1000) / 1000} | "
+        f"Moving Average Reward: {truncate(global_ep_reward)} | "
+        f"Episode Reward: {truncate(episode_reward)} | "
+        f"Loss: {truncate(total_loss)} | "
         f"Steps: {num_steps} | "
         f"Worker: {worker_idx}"
     )

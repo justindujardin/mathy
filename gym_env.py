@@ -71,7 +71,6 @@ class MathyGymEnv(gym.Env):
         self.last_action = -1
         self.last_change = None
         max_problem_types = 64
-        max_moves = 128
         max_nodes = 1024
         max_actions = self.mathy.action_size
         vector_width = 9  # two neighbor window extractions (1 -> 3 -> 9)
@@ -120,6 +119,12 @@ class MathyGymEnv(gym.Env):
             }
         )
 
+    @property
+    def action_size(self) -> int:
+        if self.state is not None:
+            return self.mathy.get_agent_actions_count(self.state)
+        return self.mathy.action_size
+
     def step(self, action):
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         observation = self._observe(self.state)
@@ -139,7 +144,7 @@ class MathyGymEnv(gym.Env):
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
         action_mask = self.mathy.get_valid_moves(state)
-        observation = state.to_input_features(action_mask)
+        observation = state.to_input_features(action_mask, True)
         # Update masked action space
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask

@@ -22,25 +22,14 @@ from .random_agent import RandomAgent
 
 
 class A3CAgent:
-    def __init__(self, args, units=128):
+    def __init__(self, args, units=1024):
         self.args = args
+        self.units = units
         self.game_name = "mathy-poly-v0"
         self.save_dir = self.args.save_dir
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
         env = gym.make(self.game_name)
-        env = FlattenDictWrapper(
-            env,
-            dict_keys=[
-                FEATURE_FWD_VECTORS,
-                FEATURE_BWD_VECTORS,
-                FEATURE_LAST_BWD_VECTORS,
-                FEATURE_LAST_FWD_VECTORS,
-                FEATURE_LAST_RULE,
-                FEATURE_NODE_COUNT,
-            ],
-        )
-        self.state_size = env.observation_space.shape[0]
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
         self.shared_network = tf.keras.layers.Dense(
@@ -51,11 +40,8 @@ class A3CAgent:
             predictions=self.action_size,
             shared_layers=[self.shared_network],
         )
-        self.global_model(
-            tf.convert_to_tensor(
-                value=np.random.random((1, self.state_size)), dtype=tf.float32
-            )
-        )
+        # Initialize the global model with a random observation
+        self.global_model(env.reset())
 
     def train(self):
         if self.args.algorithm == "random":
@@ -64,10 +50,10 @@ class A3CAgent:
             return
 
         res_queue = Queue()
+        num_workers = multiprocessing.cpu_count()
 
         workers = [
             A3CWorker(
-                self.state_size,
                 self.action_size,
                 self.global_model,
                 self.optimizer,
@@ -77,8 +63,9 @@ class A3CAgent:
                 save_dir=self.save_dir,
                 args=self.args,
                 shared_layers=[self.shared_network],
+                shared_units=self.units,
             )
-            for i in range(multiprocessing.cpu_count())
+            for i in range(num_workers)
         ]
 
         for i, worker in enumerate(workers):

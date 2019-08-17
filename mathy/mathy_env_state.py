@@ -177,7 +177,6 @@ class MathyEnvState(object):
         When return_batch is true, the outputs will have an array of features for each
         so the result can be directly passed to the predictor.
         """
-
         expression = self.parser.parse(self.agent.problem)
         # Padding value is a result tuple with empty values for prev/current/next
         pad_value = (
