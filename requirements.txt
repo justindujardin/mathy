@@ -6,11 +6,14 @@ pytest-cov
 plac
 ujson
 tensorflow_estimator
-tf-nightly-2.0-preview
+tensorflow==2.0.0-beta1
 tf-agents-nightly
 tb-nightly
 colr
 pydantic
+
+# Custom envs
+gym
 
 
 # dev 

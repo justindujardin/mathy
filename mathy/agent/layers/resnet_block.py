@@ -18,6 +18,7 @@ def ResNetBlock(name="residual_block", units=128, use_shared=False):
         with tf.compat.v1.variable_scope(name, auxiliary_name_scope=False):
             normalize, dense, activate, combine = build()
 
+    @tf.function
     def func(input_layer):
         with tf.compat.v1.variable_scope(name):
             return combine([normalize(activate(dense(input_layer))), input_layer])

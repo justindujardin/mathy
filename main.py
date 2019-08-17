@@ -69,7 +69,7 @@ def main(
     turns_per_complexity=4,
     difficulty=3,
     # Learning rate found via some hyperparam exploration.
-    learning_rate=2e-4,
+    learning_rate=3e-5,
 ):
 
     environments = {
@@ -85,13 +85,13 @@ def main(
     if env not in environments:
         raise EnvironmentError(f"Invalid env, must be one of: {environments.keys()}")
     # How many observations to gather between training sessions.
-    iter_experience = 128
+    iter_episodes = 10
     min_train_experience = 128
     eval_interval = 2
     short_term_size = 2048
     long_term_size = 8192 * 3
     counter = 0
-    training_epochs = 4
+    training_epochs = 10
     action_size = len(mathy_core_rules())
     mathy = MathModel(
         action_size,
@@ -137,7 +137,7 @@ def main(
         # Fill up a certain amount of experience per problem type
         lesson_experience_count = 0
         lesson_problem_count = 0
-        while lesson_experience_count < iter_experience:
+        while lesson_problem_count < iter_episodes:
             env_classes: List[Type[MathyEnv]] = environments[env]  # type: ignore
             env_class = env_classes[0]
             for i, clazz in enumerate(reversed(env_classes)):
@@ -195,8 +195,8 @@ def main(
                 color(
                     "{} [{}/{}] -- duration({}) outcome({})".format(
                         env_name,
-                        lesson_experience_count,
-                        iter_experience,
+                        lesson_problem_count,
+                        iter_episodes,
                         str(timedelta(seconds=elapsed)),
                         outcome,
                     ),
@@ -213,6 +213,7 @@ def main(
                 experience.short_term,
                 experience.long_term,
                 sampling_fn=balanced_reward_experience_samples,
+                train_all=True,
             )
         else:
             print(

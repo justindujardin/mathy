@@ -1,26 +1,45 @@
-import os
-import gym
 import multiprocessing
-import numpy as np
+import os
 from queue import Queue
+
+import gym
 import matplotlib.pyplot as plt
-
+import numpy as np
 import tensorflow as tf
+from gym.wrappers import FlattenDictWrapper
 
+from ..agent.features import (
+    FEATURE_BWD_VECTORS,
+    FEATURE_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
+    FEATURE_NODE_COUNT,
+)
+from .a3c_worker import A3CWorker
 from .actor_critic_model import ActorCriticModel
 from .random_agent import RandomAgent
-from .a3c_worker import A3CWorker
 
 
 class A3CAgent:
     def __init__(self, args, units=128):
         self.args = args
-        self.game_name = "Acrobot-v1"
+        self.game_name = "mathy-poly-v0"
         self.save_dir = self.args.save_dir
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
-
         env = gym.make(self.game_name)
+        env = FlattenDictWrapper(
+            env,
+            dict_keys=[
+                FEATURE_FWD_VECTORS,
+                FEATURE_BWD_VECTORS,
+                FEATURE_LAST_BWD_VECTORS,
+                FEATURE_LAST_FWD_VECTORS,
+                FEATURE_LAST_RULE,
+                FEATURE_NODE_COUNT,
+            ],
+        )
         self.state_size = env.observation_space.shape[0]
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
@@ -78,9 +97,7 @@ class A3CAgent:
         plt.plot(moving_average_rewards)
         plt.ylabel("Moving average ep reward")
         plt.xlabel("Step")
-        plt.savefig(
-            os.path.join(self.save_dir, "{} Moving Average.png".format(self.game_name))
-        )
+        plt.savefig(os.path.join(self.save_dir, f"{self.game_name} Moving Average.png"))
         plt.show()
 
     def play(self):

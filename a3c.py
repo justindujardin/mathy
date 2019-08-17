@@ -1,6 +1,6 @@
 import argparse
 
-from .a3c_agent import A3CAgent
+from mathy.a3c.a3c_agent import A3CAgent
 
 parser = argparse.ArgumentParser(
     description="Run A3C algorithm on the game " "Cartpole."
@@ -33,6 +33,12 @@ parser.add_argument(
 args = parser.parse_args()
 
 if __name__ == "__main__":
+    import gym
+
+    gym.envs.registration.register(id="mathy-v0", entry_point="gym_env:MathyGymEnv")
+    gym.envs.registration.register(
+        id="mathy-poly-v0", entry_point="gym_env:MathyGymPolyEnv"
+    )
     agent = A3CAgent(args)
     if args.train:
         agent.train()

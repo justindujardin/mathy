@@ -1,5 +1,10 @@
 {
   "valid": [
+    { 
+      "input": "2 * (2 * x)", 
+      "output": "4x", 
+      "why":"support this form" 
+    },
     { "input": "10 + 17", "output": "27" },
     { "input": "2.5 - 1.5", "output": "1.0" },
     { "input": "7 + 4", "output": "11" },

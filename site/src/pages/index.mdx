@@ -1,12 +1,12 @@
-import Page from '../components/Page'
-import Container from '../components/Container'
-import IndexLayout from '../layouts'
-import { MathTree } from '../components/MathTree'
-import { MathText } from '../components/MathText'
-const input = '2x + 4x'
-const alternate = '4x + 2x'
+import Page from "../components/Page"
+import Container from "../components/Container"
+import IndexLayout from "../layouts"
+import { MathTree } from "../components/MathTree"
+import { MathText } from "../components/MathText"
+const input = "2x + 4x"
+const alternate = "4x + 2x"
 const current = 0
-const example = '4 * p * p * 12'
+const example = "4 * p * p * 12"
 
 Mathy really wants to help you with your homework. It is limited to only a few types of problems currently, but it's open source and
 extensible, so you can add support for solving new types of problems!
@@ -15,16 +15,16 @@ extensible, so you can add support for solving new types of problems!
 
 # How it works
 
-
-<MathText input="p * p" />
-<MathTree input="p * p" />
-<MathText input="4p * 4p" />
-<MathTree input="4p * 4p" />
-<MathText input="p^2 * p^3" />
-<MathTree input="p^2 * p^3" />
-<MathText input="4p^2 * p^3" />
-<MathTree input="4p^2 * p^3" />
-
+<MathText input="23f + (5f + 5d)" />
+<MathTree input="23f + (5f + 5d)" />
+<MathText input="(23f + 5f) + 5d" />
+<MathTree input="(23f + 5f) + 5d" />
+<MathText input="2y^3 + 5f + 3f" />
+<MathTree input="2y^3 + 5f + 3f" />
+<MathText input="9 * (23f + 5f + 5d)" />
+<MathTree input="9 * (23f + 5f + 5d)" />
+<MathText input="(23f + 5f + 5d) * 9" />
+<MathTree input="(23f + 5f + 5d) * 9" />
 
 Let's say you have an input: <MathText input={example}/>.
 
@@ -46,15 +46,6 @@ PLUS(
 Now that the expression is represented in binary tree[link] form we can manipulate it in interesting ways to produce different trees that have the same value as the input.
 
 If you're starting to doze off, stay with me a bit longer, this is where things start to get cool. Let's render our tree structure to get a better sense of what it looks like:
-
-<MathText input="4x * p * p * 12x^2" />
-<MathTree input="4x * p * p * 12x^2" />
-<MathText input="4x * 4p * 4p * 12x^2" />
-<MathTree input="4x * 4p * 4p * 12x^2" />
-<MathText input="4x * p^2 * p^3 * 12x^2" />
-<MathTree input="4x * p^2 * p^3 * 12x^2" />
-<MathText input="4x * 4p^2 * p^3 * 12x^2" />
-<MathTree input="4x * 4p^2 * p^3 * 12x^2" />
 
 While it's great to have a pretty tree visualization and know that expressions are valid math, that's not itself very useful. What we'd like is to "output" a new tree from an "input" using some kind of "rules" that ensure that the transformations don't change the meaning of the input expression. Said another way, we want to change the expressions so that "4 _ 5" can be changed to "5 _ 4" but not "4 + 5". Enter the Mathy rules system...
 
@@ -94,20 +85,6 @@ When working with Arithmetic the Order of Operations is crucial, and when workin
 Mathy side-steps the arithmetic and order of operations concerns by using Mathtastic to sanitize the inputs and ensure that they're valid. By ignoring this concern, the agent can focus on the properties of numbers and how they can be used to coerce an expression into a desired target state.
 
 --
-
-# Experiment: Needle in a Haystack
-
-One of the first challenges with training a math agent using Monte Carlo Tree Search (MCTS - http://mcts.ai/) is that as the expressions get larger, the tree search takes more and more time to run rollout simulations. This is not so much of a concern if you're Google and are running an experiment at massive scale, but if you're training a math agent on your laptop it can be a deal breaker.
-
-This experiment tries to force the model to learn how to apply desired properties of numbers transformations to large sequences of nodes without paying for the cost of running rollouts over hundreds of moves and nodes. The key insight here is that the model needs observations of correct "useful" moves performed on very large trees in order to correctly predict an action policy when those nodes are seen in the wild.
-
-The setup is fairly simple, we generate a long string of terms and randomly place a target set of nodes amongst them. From there we set the move limit of the self-play to the minimum number required to perform the operation we want the model to learn.
-
-Let's say we want the agent to learn about how to combine like terms in 3 term polynomials, but we also want it to understand how to apply the same set of rules in 24 term problems.
-
-```
-16j^6 + 2g^22 + 20k + 24h + 18f^5 + 19a^22 + b + 11e^7 + 21l^2 + 9x^19 + n^7 + 2i + 3y + 6m^19 + 24o^4 + 10c^12 + 10r^13 + q^17 + p^3 + 24z + z + 5t
-```
 
 Why it works
 The intuition behind constructing these types of problems has to do with the methods we use for finding optimal answers. Because we use a Tree search that has to traverse until a terminal (end) state, the more moves in a game, the longer the simulations will take to complete. By reducing the number of moves to a very small number it's possible for the MCTS search to find good solutions to the first few moves, regardless of the initial tree complexity. That is, even though there may be 500 nodes to simulate actions on, if the simulation ends after 2 turns, the total complexity is relatively low compared to 500 nodes simulated for 100 or more turns. The other reason for success I suspect has to do with the first few moves being significant in the problem set up. We use Dirichlet noise in the root tree search node that causes the root actions to be explored thoroughly during training. If there is only 1 viable root action in each small problem, the noise will ensure that a tree search finds it quite often. Noisy root search combined with constrained move limit problems is a cheap way to gather positive examples of desired behaviors in variable length sequences.

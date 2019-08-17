@@ -92,7 +92,7 @@ class MathyEnv:
         of parameters to control problem generation. This is implemented
         per environment such that each environment can generate its own
         dataset with no required configuration. """
-        return MathyEnv.INVALID_PROBLEM
+        raise NotImplementedError("This must be implemented in a subclass")
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for completing the episode. This is done

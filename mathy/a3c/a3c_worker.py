@@ -1,12 +1,22 @@
 import os
 import threading
+
 import gym
 import numpy as np
-
 import tensorflow as tf
+from gym.wrappers import FlattenDictWrapper
+
+from ..agent.features import (
+    FEATURE_BWD_VECTORS,
+    FEATURE_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
+    FEATURE_NODE_COUNT,
+)
 from . import record
-from .replay_buffer import ReplayBuffer
 from .actor_critic_model import ActorCriticModel
+from .replay_buffer import ReplayBuffer
 
 
 class A3CWorker(threading.Thread):
@@ -47,7 +57,19 @@ class A3CWorker(threading.Thread):
         )
         self.worker_idx = idx
         self.game_name = game_name
-        self.env = gym.make(self.game_name).unwrapped
+        self.env = gym.make(self.game_name)
+        self.env = FlattenDictWrapper(
+            self.env,
+            dict_keys=[
+                FEATURE_FWD_VECTORS,
+                FEATURE_BWD_VECTORS,
+                FEATURE_LAST_BWD_VECTORS,
+                FEATURE_LAST_FWD_VECTORS,
+                FEATURE_LAST_RULE,
+                FEATURE_NODE_COUNT,
+            ],
+        )
+
         self.save_dir = save_dir
         self.ep_loss = 0.0
 
@@ -62,6 +84,7 @@ class A3CWorker(threading.Thread):
 
     def run_episode(self, replay_buffer: ReplayBuffer):
         current_state = self.env.reset()
+        print(current_state)
         replay_buffer.clear()
         ep_reward = 0.0
         ep_steps = 0
@@ -71,7 +94,7 @@ class A3CWorker(threading.Thread):
         done = False
         while not done:
             logits, _ = self.local_model(
-                tf.convert_to_tensor(value=current_state[None, :], dtype=tf.float32)
+                tf.convert_to_tensor(value=current_state, dtype=tf.float32)
             )
             probs = tf.nn.softmax(logits)
             action = np.random.choice(self.action_size, p=probs.numpy()[0])
@@ -176,4 +199,3 @@ class A3CWorker(threading.Thread):
         policy_loss -= 0.01 * entropy
         total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
         return total_loss
-

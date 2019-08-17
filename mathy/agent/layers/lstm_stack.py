@@ -20,6 +20,7 @@ class LSTMStack(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
+    @tf.function
     def call(self, input_tensor, initial_states):
         # Prepare initial state as transformations from contextual features
         hidden_states = [self.dense_h(initial_states), self.dense_c(initial_states)]

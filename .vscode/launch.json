@@ -8,17 +8,37 @@
       "justMyCode": false,
       "module": "main",
       "args": [
-        "binomial",
-        "agents/mt_07_15_19",
-        "-v"
+        "mixed",
+        "agents/ablated",
+        "-d",
+        "4"
       ]
     },
     {
-      "name": "mathy:parallel",
+      "name": "mathy:to_features",
       "type": "python",
       "request": "launch",
       "justMyCode": false,
-      "module": "parallel",
+      "module": "to_features",
+      "args": [
+        "agents/mt_07_15_19",
+        "4x + 2x",
+        "2x + 4x"
+      ]
+    },
+    {
+      "name": "mathy:env:gym",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "gym_env"
+    },
+    {
+      "name": "mathy:runner",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "runner",
       "args": [
         "agents/dev/",
         "-l",
@@ -48,8 +68,10 @@
       "type": "python",
       "request": "launch",
       "justMyCode": false,
-      "module": "mathy.a3c",
-      "args": ["--train"]
+      "module": "a3c",
+      "args": [
+        "--train"
+      ]
     },
     {
       "name": "mathy:tests",
@@ -69,7 +91,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_distributive_factor_out"
+        "test_gym_env"
       ]
     },
     {

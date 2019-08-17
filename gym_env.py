@@ -1,24 +1,32 @@
 from typing import Optional, Type
 
 import gym
+import numpy as np
 import plac
 import tensorflow as tf
-import numpy as np
 from gym import error, spaces, utils
 from gym.envs.registration import register
 from gym.utils import seeding
 
-
+from mathy.agent.controller import MathModel
+from mathy.agent.features import (
+    FEATURE_BWD_VECTORS,
+    FEATURE_FWD_VECTORS,
+    FEATURE_LAST_BWD_VECTORS,
+    FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
+    FEATURE_NODE_COUNT,
+    FEATURE_PROBLEM_TYPE,
+    FEATURE_MOVE_MASK,
+)
+from mathy.agent.training.mcts import MCTS
+from mathy.core.expressions import MathTypeKeysMax
+from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
+from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from mathy.mathy_env import MathyEnv, MathyEnvTimeStep
 from mathy.mathy_env_state import MathyEnvState
-from mathy.util import is_terminal_transition
-from mathy.core.expressions import MathTypeKeysMax
 from mathy.rules.rule import ExpressionChangeRule
-from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
-from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
-
-from mathy.agent.training.mcts import MCTS
-from mathy.agent.controller import MathModel
+from mathy.util import is_terminal_transition
 
 
 class MaskedDiscrete(spaces.Discrete):
@@ -73,36 +81,42 @@ class MathyGymEnv(gym.Env):
         self.action_space = MaskedDiscrete(max_actions, [1] * max_actions)
         self.observation_space = spaces.Dict(
             {
-                "moves_remaining": spaces.Discrete(max_moves),
-                "move_counter": spaces.Discrete(max_moves),
-                "last_action": spaces.Discrete(max_actions),
-                "node_count": spaces.Discrete(max_nodes),
-                "problem_type": spaces.Discrete(max_problem_types),
-                "fwd_vectors": spaces.Box(
+                FEATURE_LAST_RULE: spaces.Box(
+                    low=0, high=max_actions, shape=(1,), dtype=np.int16
+                ),
+                FEATURE_NODE_COUNT: spaces.Box(
+                    low=0, high=max_nodes, shape=(1,), dtype=np.int16
+                ),
+                FEATURE_PROBLEM_TYPE: spaces.Box(
+                    low=0, high=max_problem_types, shape=(1,), dtype=np.int16
+                ),
+                FEATURE_FWD_VECTORS: spaces.Box(
                     low=0,
                     high=MathTypeKeysMax,
                     shape=self.vectors_shape,
                     dtype=np.int16,
                 ),
-                "bwd_vectors": spaces.Box(
+                FEATURE_BWD_VECTORS: spaces.Box(
                     low=0,
                     high=MathTypeKeysMax,
                     shape=self.vectors_shape,
                     dtype=np.int16,
                 ),
-                "fwd_vectors_last": spaces.Box(
+                FEATURE_LAST_FWD_VECTORS: spaces.Box(
                     low=0,
                     high=MathTypeKeysMax,
                     shape=self.vectors_shape,
                     dtype=np.int16,
                 ),
-                "bwd_vectors_last": spaces.Box(
+                FEATURE_LAST_BWD_VECTORS: spaces.Box(
                     low=0,
                     high=MathTypeKeysMax,
                     shape=self.vectors_shape,
                     dtype=np.int16,
                 ),
-                "policy_mask": spaces.Box(low=0, high=1, shape=(2, 2), dtype=np.int16),
+                FEATURE_MOVE_MASK: spaces.Box(
+                    low=0, high=1, shape=(2, 2), dtype=np.int16
+                ),
             }
         )
 
@@ -144,6 +158,14 @@ class MathyGymEnv(gym.Env):
         )
 
 
+class MathyGymPolyEnv(MathyGymEnv):
+    def __init__(self):
+        super(MathyGymPolyEnv, self).__init__(
+            env_class=MathyPolynomialSimplificationEnv,
+            env_problem_args={"difficulty": 3},
+        )
+
+
 __mcts: Optional[MCTS] = None
 __model: Optional[MathModel] = None
 
@@ -155,7 +177,7 @@ def mathy_load_model(gym_env: MathyGymEnv):
 
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
         tf.compat.v1.logging.set_verbosity("CRITICAL")
-        __model = MathModel(gym_env.mathy.action_size, "agents/latest")
+        __model = MathModel(gym_env.mathy.action_size, "agents/ablated")
         __model.start()
 
 
@@ -237,15 +259,15 @@ def main():
     env = gym.make(
         "mathy-v0",
         env_class=MathyPolynomialSimplificationEnv,
-        env_problem_args={"difficulty": 3},
+        env_problem_args={"difficulty": 5},
     )
     episodes = 10
-    print_every = 1
+    print_every = 2
     solved = 0
     failed = 0
     agent = "model"
-    # agent = "mcts"
-    # agent = "random"
+    agent = "random"
+    agent = "mcts"
     for i_episode in range(episodes):
 
         if agent == "mcts":
@@ -254,7 +276,6 @@ def main():
             mathy_load_model(env)
         print_problem = i_episode % print_every == 0
         observation = env.reset()
-
         if print_problem:
             env.render()
         for t in range(100):

@@ -21,6 +21,7 @@ def LSTM(units=32, name="lstm", use_shared=False, use_mask=False):
         with tf.compat.v1.variable_scope(name, auxiliary_name_scope=False):
             lstm, combine, mask = build()
 
+    @tf.function
     def func(input_layer, initial_state=None):
         with tf.compat.v1.variable_scope(name):
             if use_mask is True:

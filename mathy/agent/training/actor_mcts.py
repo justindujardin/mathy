@@ -47,7 +47,7 @@ class ActorMCTS:
         # print("step - {} - {}".format(pi, action))
 
         # Calculate the next state based on the selected action
-        next_state, transition = env.get_next_state(state, action)
+        next_state, transition, _ = env.get_next_state(state, action)
         r = transition.reward
         is_term = is_terminal_transition(transition)
         is_win = True if is_term and r > 0 else False

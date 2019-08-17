@@ -54,8 +54,8 @@ resource "google_compute_instance" "mathtastic-worker" {
     preemptible = true
     automatic_restart = false
   }
-  guest_accelerator {
-    count = 1
-    type = "nvidia-tesla-k80"
-  }
+  // guest_accelerator {
+  //   count = 1
+  //   type = "nvidia-tesla-k80"
+  // }
 }
