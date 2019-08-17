@@ -76,18 +76,9 @@ class A3CWorker(threading.Thread):
         time_count = 0
         done = False
         while not done:
-            logits, _ = self.local_model(current_state)
-            probs = tf.nn.softmax(tf.squeeze(logits))
-            if self.env.action_space.mask is not None:
-                # Flatten for action selection and masking
-                probs = tf.reshape(probs, [-1]).numpy()
-                mask = self.env.action_space.mask[:]
-                while len(mask) < len(probs):
-                    mask.append(0.0)
-                probs *= mask
-                pi_sum = np.sum(probs)
-                if pi_sum > 0:
-                    probs /= pi_sum
+            logits, _, probs = self.local_model.call_masked(
+                current_state, self.env.action_space.mask
+            )
 
             # Select a random action from the distribution with the given probabilities
             action = np.random.choice(len(probs), p=probs)
@@ -106,7 +97,6 @@ class A3CWorker(threading.Thread):
             ep_steps += 1
             time_count += 1
             current_state = new_state
-
 
     def update_global_network(self, done, new_state, replay_buffer: ReplayBuffer):
         # Calculate gradient wrt to local model. We do so by tracking the

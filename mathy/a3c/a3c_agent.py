@@ -87,32 +87,30 @@ class A3CAgent:
         plt.savefig(os.path.join(self.save_dir, f"{self.game_name} Moving Average.png"))
         plt.show()
 
-    def play(self):
-        env = gym.make(self.game_name).unwrapped
-        state = env.reset()
+    def play(self, loop=False):
+        env = gym.make(self.game_name, difficulty=5).unwrapped
         model = self.global_model
         model_path = os.path.join(self.save_dir, "model_{}.h5".format(self.game_name))
         print("Loading model from: {}".format(model_path))
         model.load_weights(model_path)
+
+        try:
+            while loop is True:
+                state = env.reset()
         done = False
         step_counter = 0
         reward_sum = 0
-
-        try:
             while not done:
-                env.render(mode="rgb_array")
-                policy, value = model(
-                    tf.convert_to_tensor(value=state[None, :], dtype=tf.float32)
+                    # env.render(mode="terminal")
+                    policy, value, masked_policy = model.call_masked(
+                        state, env.action_space.mask
                 )
-                policy = tf.nn.softmax(policy)
+                    policy = tf.nn.softmax(masked_policy)
                 action = np.argmax(policy)
                 state, reward, done, _ = env.step(action)
                 reward_sum += reward
-                print(
-                    "{}. Reward: {}, action: {}".format(
-                        step_counter, reward_sum, action
-                    )
-                )
+                    if done and reward > 0.0:
+                        env.render(mode="terminal")
                 step_counter += 1
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")

@@ -43,4 +43,4 @@ if __name__ == "__main__":
     if args.train:
         agent.train()
     else:
-        agent.play()
+        agent.play(True)

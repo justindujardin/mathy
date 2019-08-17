@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from ..agent.layers.math_embedding import MathEmbedding
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
@@ -30,4 +31,18 @@ class ActorCriticModel(tf.keras.Model):
         logits = self.pi_sequence(sequence_inputs)
         values = self.value_logits(self.value_dense(inputs))
         return logits, values
+
+    def call_masked(self, inputs, mask):
+        logits, values = self.call(inputs)
+        probs = tf.nn.softmax(tf.squeeze(logits))
+        # Flatten for action selection and masking
+        probs = tf.reshape(probs, [-1]).numpy()
+        mask = mask[:]
+        while len(mask) < len(probs):
+            mask.append(0.0)
+        probs *= mask
+        pi_sum = np.sum(probs)
+        if pi_sum > 0:
+            probs /= pi_sum
+        return logits, values, probs
 

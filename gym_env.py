@@ -164,10 +164,10 @@ class MathyGymEnv(gym.Env):
 
 
 class MathyGymPolyEnv(MathyGymEnv):
-    def __init__(self):
+    def __init__(self, difficulty: int = 3):
         super(MathyGymPolyEnv, self).__init__(
             env_class=MathyPolynomialSimplificationEnv,
-            env_problem_args={"difficulty": 3},
+            env_problem_args={"difficulty": difficulty},
         )
 
 
