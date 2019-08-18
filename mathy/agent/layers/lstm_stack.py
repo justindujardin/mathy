@@ -18,7 +18,7 @@ class LSTMStack(tf.keras.layers.Layer):
         super(LSTMStack, self).__init__(**kwargs)
 
     def compute_output_shape(self, input_shape):
-        return tf.TensorShape([input_shape[0], self.num_predictions])
+        return tf.TensorShape([input_shape[0], None])
 
     def call(self, input_tensor, initial_states):
         # Prepare initial state as transformations from contextual features

@@ -137,7 +137,7 @@ class BinaryTreeNode:
             return STOP
 
     # Return the root element of this tree
-    def get_root(self) -> "BinaryTreeNode":
+    def get_root(self):
         result = self
         while result.parent:
             result = result.parent

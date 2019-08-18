@@ -1,6 +1,6 @@
 import os
 import threading
-
+import datetime
 import gym
 import numpy as np
 import tensorflow as tf
@@ -64,6 +64,13 @@ class A3CWorker(threading.Thread):
         self.local_model.maybe_load(self.env.reset())
         self.save_dir = save_dir
         self.ep_loss = 0.0
+        # Set up logging
+        # current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        # train_log_dir = f"{self.save_dir}/logs/gradient_tape/{current_time}/train"
+        # test_log_dir = f"{self.save_dir}/logs/gradient_tape/{current_time}/test"
+        # self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+        # self.test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
         print(f"[Worker {idx}] using env: {self.game_name}")
 
     def run(self):

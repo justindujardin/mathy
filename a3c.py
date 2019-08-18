@@ -13,7 +13,7 @@ parser.add_argument(
     "--lr", default=3e-4, help="Learning rate for the shared optimizer."
 )
 parser.add_argument(
-    "--update-freq", default=20, type=int, help="How often to update the global model."
+    "--update-freq", default=50, type=int, help="How often to update the global model."
 )
 parser.add_argument(
     "--max-eps",

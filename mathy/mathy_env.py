@@ -222,6 +222,16 @@ class MathyEnv:
         change: ExpressionChangeRule = None,
     ):
         """Render the given state to stdout for visualization"""
+        print(self.render_state(env_state, action_name, token_index, change))
+
+    def render_state(
+        self,
+        env_state: MathyEnvState,
+        action_name: str,
+        token_index: int = -1,
+        change: ExpressionChangeRule = None,
+    ):
+        """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
         if change is not None:
             changed_problem = change.result.get_root().colored
@@ -239,7 +249,7 @@ class MathyEnv:
         valid_moves = self.get_valid_rules(env_state)
         move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
         moves = " ".join(move_codes)
-        print("{} | {} | {} | {}".format(moves, moves_left, token_idx, output))
+        return f"{moves} | {moves_left} | {token_idx} | {output}"
 
     def get_initial_state(
         self, params: Dict[str, Any] = None, print_problem: bool = True
@@ -248,13 +258,15 @@ class MathyEnv:
         prob = self.problem_fn(params)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
+        default_turns = 4
         turns_preference = (
-            None if params is None else params.get("turns_per_complexity", None)
+            default_turns
+            if params is None
+            else params.get("turns_per_complexity", default_turns)
         )
-        # If a turns per complexity value is passed, adjust max moves for
-        # the problem output
-        if turns_preference is not None:
-            self.max_moves = turns_preference * prob.complexity
+        # Max moves is (n) turns per complexity unit returned from the problem function.
+        # TODO: Something better than this? :(
+        self.max_moves = turns_preference * prob.complexity
 
         # Build and return the initial state
         env_state = MathyEnvState(

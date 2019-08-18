@@ -38,9 +38,7 @@ class ActorCriticModel(tf.keras.Model):
         # Extract features into a contextual inputs layer, and a sequence
         # inputs layer with the total sequence length.
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
-
         hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
-
         inputs = self.in_dense(hidden_states)
         if self.shared_layers is not None:
             for layer in self.shared_layers:
