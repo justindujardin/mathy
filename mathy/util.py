@@ -9,8 +9,8 @@ class GameRewards:
     WIN = 1.0
     HELPFUL_MOVE = 0.01
     TIMESTEP = -0.01
-    PREVIOUS_LOCATION = -0.02
-    INVALID_ACTION = -0.03
+    PREVIOUS_LOCATION = -0.2
+    INVALID_ACTION = -0.3
 
 
 def is_terminal_transition(transition: time_step.TimeStep):

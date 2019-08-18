@@ -22,6 +22,7 @@ from mathy.agent.features import (
 from mathy.agent.training.mcts import MCTS
 from mathy.core.expressions import MathTypeKeysMax
 from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
+from mathy.envs.binomial_distribution import MathyBinomialDistributionEnv
 from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from mathy.mathy_env import MathyEnv, MathyEnvTimeStep
 from mathy.mathy_env_state import MathyEnvState
@@ -164,9 +165,25 @@ class MathyGymEnv(gym.Env):
 
 
 class MathyGymPolyEnv(MathyGymEnv):
-    def __init__(self, difficulty: int = 3):
+    def __init__(self, difficulty: int = 4):
         super(MathyGymPolyEnv, self).__init__(
             env_class=MathyPolynomialSimplificationEnv,
+            env_problem_args={"difficulty": difficulty},
+        )
+
+
+class MathyGymBinomialEnv(MathyGymEnv):
+    def __init__(self, difficulty: int = 2):
+        super(MathyGymBinomialEnv, self).__init__(
+            env_class=MathyBinomialDistributionEnv,
+            env_problem_args={"difficulty": difficulty},
+        )
+
+
+class MathyGymComplexEnv(MathyGymEnv):
+    def __init__(self, difficulty: int = 2):
+        super(MathyGymComplexEnv, self).__init__(
+            env_class=MathyComplexTermSimplificationEnv,
             env_problem_args={"difficulty": difficulty},
         )
 

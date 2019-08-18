@@ -19,12 +19,14 @@ from ..agent.features import (
 from .a3c_worker import A3CWorker
 from .actor_critic_model import ActorCriticModel
 from .random_agent import RandomAgent
+from . import game_for_worker_index
 
 
 class A3CAgent:
-    def __init__(self, args, units=1024):
+    def __init__(self, args, units=512, model_name="mathy-poly"):
         self.args = args
         self.units = units
+        self.model_name = model_name
         self.game_name = "mathy-poly-v0"
         self.save_dir = self.args.save_dir
         if not os.path.exists(self.save_dir):
@@ -39,9 +41,11 @@ class A3CAgent:
             units=units,
             predictions=self.action_size,
             shared_layers=[self.shared_network],
+            save_dir=self.save_dir,
+            load_model=self.model_name,
         )
         # Initialize the global model with a random observation
-        self.global_model(env.reset())
+        self.global_model.maybe_load(env.reset())
 
     def train(self):
         if self.args.algorithm == "random":
@@ -59,8 +63,9 @@ class A3CAgent:
                 self.optimizer,
                 res_queue,
                 i,
-                game_name=self.game_name,
+                game_name=game_for_worker_index(i),
                 save_dir=self.save_dir,
+                model_name=self.model_name,
                 args=self.args,
                 shared_layers=[self.shared_network],
                 shared_units=self.units,
@@ -88,30 +93,27 @@ class A3CAgent:
         plt.show()
 
     def play(self, loop=False):
-        env = gym.make(self.game_name, difficulty=5).unwrapped
+        env = gym.make(self.game_name, difficulty=4).unwrapped
         model = self.global_model
-        model_path = os.path.join(self.save_dir, "model_{}.h5".format(self.game_name))
-        print("Loading model from: {}".format(model_path))
-        model.load_weights(model_path)
-
+        model.maybe_load(env.reset())
         try:
             while loop is True:
                 state = env.reset()
-        done = False
-        step_counter = 0
-        reward_sum = 0
-            while not done:
-                    # env.render(mode="terminal")
+                done = False
+                step_counter = 0
+                reward_sum = 0
+                while not done:
+                    env.render(mode="terminal")
                     policy, value, masked_policy = model.call_masked(
                         state, env.action_space.mask
-                )
+                    )
                     policy = tf.nn.softmax(masked_policy)
-                action = np.argmax(policy)
-                state, reward, done, _ = env.step(action)
-                reward_sum += reward
+                    action = np.argmax(policy)
+                    state, reward, done, _ = env.step(action)
+                    reward_sum += reward
                     if done and reward > 0.0:
                         env.render(mode="terminal")
-                step_counter += 1
+                    step_counter += 1
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
         finally:

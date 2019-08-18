@@ -2,9 +2,7 @@ import argparse
 
 from mathy.a3c.a3c_agent import A3CAgent
 
-parser = argparse.ArgumentParser(
-    description="Run A3C algorithm on the game " "Cartpole."
-)
+parser = argparse.ArgumentParser(description="Mathy a3c agent")
 parser.add_argument(
     "--algorithm", default="a3c", type=str, help="Choose between 'a3c' and 'random'."
 )
@@ -19,7 +17,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--max-eps",
-    default=1000,
+    default=10000,
     type=int,
     help="Global maximum number of episodes to run.",
 )
@@ -38,6 +36,12 @@ if __name__ == "__main__":
     gym.envs.registration.register(id="mathy-v0", entry_point="gym_env:MathyGymEnv")
     gym.envs.registration.register(
         id="mathy-poly-v0", entry_point="gym_env:MathyGymPolyEnv"
+    )
+    gym.envs.registration.register(
+        id="mathy-complex-v0", entry_point="gym_env:MathyGymComplexEnv"
+    )
+    gym.envs.registration.register(
+        id="mathy-binomial-v0", entry_point="gym_env:MathyGymBinomialEnv"
     )
     agent = A3CAgent(args)
     if args.train:

@@ -25,6 +25,7 @@ class A3CWorker(threading.Thread):
     global_episode = 0
     # Moving average reward
     global_moving_average_reward = 0
+    save_every_n_episodes = 100
     best_score = None
     save_lock = threading.Lock()
 
@@ -37,6 +38,7 @@ class A3CWorker(threading.Thread):
         idx,
         game_name,
         save_dir="/tmp",
+        model_name="mathy_a3c",
         args=None,
         shared_units=128,
         shared_layers=None,
@@ -45,6 +47,7 @@ class A3CWorker(threading.Thread):
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
+        self.model_name = model_name
         self.shared_layers = shared_layers
         self.shared_units = shared_units
         self.optimizer = optimizer
@@ -53,12 +56,15 @@ class A3CWorker(threading.Thread):
             units=self.shared_units,
             predictions=self.action_size,
             shared_layers=shared_layers,
+            load_model=model_name,
         )
         self.worker_idx = idx
         self.game_name = game_name
         self.env = gym.make(self.game_name)
+        self.local_model.maybe_load(self.env.reset())
         self.save_dir = save_dir
         self.ep_loss = 0.0
+        print(f"[Worker {idx}] using env: {self.game_name}")
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -128,16 +134,13 @@ class A3CWorker(threading.Thread):
             episode_steps,
         )
         # We must use a lock to save our model and to print to prevent data races.
-        if A3CWorker.best_score is None or episode_reward > A3CWorker.best_score:
+        if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
             with A3CWorker.save_lock:
-                model_full_path = os.path.join(
-                    self.save_dir, "model_{}.h5".format(self.game_name)
-                )
+                out_model = os.path.join(self.save_dir, f"{self.model_name}.h5")
                 print(
-                    f" -- wrote best model {model_full_path}, score: {episode_reward}"
+                    f" -- checkpoint episode ({A3CWorker.global_episode}): {out_model}"
                 )
-                self.global_model.save_weights(model_full_path)
-                A3CWorker.best_score = episode_reward
+                self.global_model.save_weights(out_model)
         A3CWorker.global_episode += 1
 
     def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
