@@ -42,13 +42,7 @@ class MathyBinomialDistributionEnv(MathyEnv):
 
     def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
-        2 binomials expressions connected by a multiplication.
-
-        A few examples of the form: `f(n, m) = p`
-        - (3x^2 + 2y)(7x^2 + 3y)
-        - (6, 4) = "4x + v^3 + y + 5z + 12v^3 + x"
-        - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
-        """
+        2 binomials expressions connected by a multiplication."""
         config = params if params is not None else dict()
         if "difficulty" not in config:
             raise ValueError(
@@ -60,7 +54,13 @@ class MathyBinomialDistributionEnv(MathyEnv):
         difficulty = int(config["difficulty"])
         if difficulty < 4:
             text, complexity = simplify_distributive_binomial(min_vars=1, max_vars=2)
-        elif difficulty <= 6:
+        elif difficulty == 4:
+            text, complexity = simplify_distributive_binomial(min_vars=2, max_vars=2)
+        elif difficulty == 5:
+            text, complexity = simplify_distributive_binomial(
+                min_vars=2, max_vars=2, powers_proability=0.8
+            )
+        elif difficulty == 6:
             text, complexity = simplify_distributive_binomial(
                 simple_variables=False, min_vars=2, max_vars=3
             )

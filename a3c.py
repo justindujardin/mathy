@@ -43,7 +43,7 @@ if __name__ == "__main__":
     gym.envs.registration.register(
         id="mathy-binomial-v0", entry_point="gym_env:MathyGymBinomialEnv"
     )
-    agent = A3CAgent(args)
+    agent = A3CAgent(args, "mathy-test-lstm")
     if args.train:
         agent.train()
     else:

@@ -177,13 +177,8 @@ class A3CWorker(threading.Thread):
         # Calculate our policy loss
         policy = tf.nn.softmax(logits)
         entropy = tf.nn.softmax_cross_entropy_with_logits(labels=policy, logits=logits)
-        max_actions = logits.get_shape()[1]
-        action_labels = tf.convert_to_tensor(
-            [tf.one_hot(t, max_actions) for t in replay_buffer.actions]
-        )
-
-        policy_loss = tf.nn.softmax_cross_entropy_with_logits(
-            labels=action_labels, logits=logits
+        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=replay_buffer.actions, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss -= 0.01 * entropy

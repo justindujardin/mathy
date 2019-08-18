@@ -1,5 +1,5 @@
 def game_for_worker_index(index: int) -> str:
-    game_type = "binomial"
+    game_type = "poly"
     # if index % 3 == 0:
     #     game_type = "binomial"
     # elif index % 4 == 0:
@@ -33,7 +33,7 @@ def record(
     if global_ep_reward == 0:
         global_ep_reward = episode_reward
     else:
-        global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
+        global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
     print(
         f"Episode: {episode} | "
         f"Moving Average Reward: {truncate(global_ep_reward)} | "
