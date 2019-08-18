@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from typing import Optional, Any
 from ..agent.layers.math_embedding import MathEmbedding
+from ..agent.layers.lstm_stack import LSTMStack
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from tensorflow.keras.layers import TimeDistributed
 import os
@@ -28,6 +29,7 @@ class ActorCriticModel(tf.keras.Model):
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions, dropout=0.2), name="policy_head"
         )
+        self.lstm = LSTMStack(units=units, share_weights=True)
         self.value_logits = tf.keras.layers.Dense(1)
         self.embedding = MathEmbedding()
 
@@ -36,11 +38,14 @@ class ActorCriticModel(tf.keras.Model):
         # Extract features into a contextual inputs layer, and a sequence
         # inputs layer with the total sequence length.
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
-        inputs = self.in_dense(context_inputs)
+
+        hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
+
+        inputs = self.in_dense(hidden_states)
         if self.shared_layers is not None:
             for layer in self.shared_layers:
                 inputs = layer(inputs)
-        logits = self.pi_sequence(sequence_inputs)
+        logits = self.pi_sequence(lstm_vectors)
         values = self.value_logits(self.value_dense(inputs))
         return logits, values
 

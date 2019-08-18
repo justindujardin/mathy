@@ -23,7 +23,7 @@ from . import game_for_worker_index
 
 
 class A3CAgent:
-    def __init__(self, args, units=512, model_name="mathy-poly"):
+    def __init__(self, args, units=128, model_name="mathy-foil-lstm"):
         self.args = args
         self.units = units
         self.model_name = model_name
@@ -93,9 +93,13 @@ class A3CAgent:
         plt.show()
 
     def play(self, loop=False):
-        env = gym.make(self.game_name, difficulty=4).unwrapped
+        env = gym.make("mathy-binomial-v0").unwrapped
         model = self.global_model
         model.maybe_load(env.reset())
+        if self.args.algorithm == "random":
+            random_agent = RandomAgent(self.game_name, self.args.max_eps)
+            random_agent.run()
+            return
         try:
             while loop is True:
                 state = env.reset()

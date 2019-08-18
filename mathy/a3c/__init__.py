@@ -1,3 +1,12 @@
+def game_for_worker_index(index: int) -> str:
+    game_type = "binomial"
+    # if index % 3 == 0:
+    #     game_type = "binomial"
+    # elif index % 4 == 0:
+    #     game_type = "complex"
+    return f"mathy-{game_type}-v0"
+
+
 def record(
     episode,
     episode_reward,
@@ -31,7 +40,7 @@ def record(
         f"Episode Reward: {truncate(episode_reward)} | "
         f"Loss: {truncate(total_loss)} | "
         f"Steps: {num_steps} | "
-        f"Worker: {worker_idx}"
+        f"Worker: {game_for_worker_index(worker_idx)}"
     )
     result_queue.put(global_ep_reward)
     return global_ep_reward
