@@ -16,12 +16,14 @@ class ActorCriticModel(tf.keras.Model):
         shared_layers=None,
         save_dir: str = "/tmp",
         load_model: Optional[str] = None,
+        init_model: Optional[str] = None,
         initial_state: Any = None,
     ):
         super(ActorCriticModel, self).__init__()
         self.save_dir = save_dir
         self.load_model = load_model
         self.predictions = predictions
+        self.init_model = init_model
         self.shared_layers = shared_layers
         self.in_dense = tf.keras.layers.Dense(units)
         self.value_dense = tf.keras.layers.Dense(units)
@@ -50,8 +52,11 @@ class ActorCriticModel(tf.keras.Model):
     def maybe_load(self, initial_state=None):
         if initial_state is not None:
             self.call(initial_state)
-        if self.load_model is not None:
-            model_path = os.path.join(self.save_dir, f"{self.load_model}.h5")
+        model_name = self.init_model
+        if model_name is None:
+            model_name = self.load_model
+        if model_name is not None:
+            model_path = os.path.join(self.save_dir, f"{model_name}.h5")
             if os.path.exists(model_path):
                 print("Loading model from: {}".format(model_path))
                 self.load_weights(model_path)

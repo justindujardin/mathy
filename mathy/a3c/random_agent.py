@@ -1,7 +1,7 @@
 import gym
 from queue import Queue
 
-from . import record
+from .util import record
 
 
 class RandomAgent(object):
@@ -13,6 +13,7 @@ class RandomAgent(object):
 
     def __init__(self, env_name, max_eps):
         self.env = gym.make(env_name)
+        self.env_name = env_name
         self.max_episodes = max_eps
         self.global_moving_average_reward = 0
         self.res_queue = Queue()
@@ -38,6 +39,7 @@ class RandomAgent(object):
                 self.res_queue,
                 0,
                 steps,
+                env_name
             )
 
             reward_avg += reward_sum

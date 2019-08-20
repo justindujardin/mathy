@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any
 operators = list("+*")
 common_variables = list("xyz")
 variables = list("abcdefghijklmnopqrstuvwxyz")
-max_const = 24
+max_const = 12
 
 
 def rand_bool(percent_chance=None):

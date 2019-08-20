@@ -52,5 +52,5 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
                 " in this case it is the number of terms to generate"
             )
         num_terms = int(config["difficulty"])
-        text, complexity = simplify_multiple_terms(num_terms)
+        text, complexity = simplify_multiple_terms(num_terms, powers_proability=0.66)
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

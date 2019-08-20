@@ -1,195 +1,19 @@
-from typing import Optional, Type
+from typing import Optional
 
 import gym
 import numpy as np
 import plac
 import tensorflow as tf
-from gym import error, spaces, utils
 from gym.envs.registration import register
-from gym.utils import seeding
 
 from mathy.agent.controller import MathModel
-from mathy.agent.features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-    FEATURE_MOVE_MASK,
-)
 from mathy.agent.training.mcts import MCTS
-from mathy.core.expressions import MathTypeKeysMax
-from mathy.envs.complex_term_simplification import MathyComplexTermSimplificationEnv
-from mathy.envs.binomial_distribution import MathyBinomialDistributionEnv
-from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
-from mathy.mathy_env import MathyEnv, MathyEnvTimeStep
-from mathy.mathy_env_state import MathyEnvState
-from mathy.rules.rule import ExpressionChangeRule
-from mathy.util import is_terminal_transition
-
-
-class MaskedDiscrete(spaces.Discrete):
-    r"""A masked discrete space in :math:`\{ 0, 1, \\dots, n-1 \}`.
-    Example::
-        >>> MaskedDiscrete(3, mask=(1,1,0))
-    """
-    mask: np.array
-
-    def __init__(self, n, mask):
-        assert isinstance(mask, (tuple, list))
-        assert len(mask) == n
-        self.mask = np.array(mask)
-        super(MaskedDiscrete, self).__init__(n)
-
-    def sample(self):
-        probability = self.mask / np.sum(self.mask)
-        return self.np_random.choice(self.n, p=probability)
-
-
-class MathyGymEnv(gym.Env):
-    """"""
-
-    metadata = {"render.modes": ["terminal"]}
-    mathy: MathyEnv
-    state: Optional[MathyEnvState]
-    problem: Optional[str]
-    env_class: Type[MathyEnv]
-    env_problem_args: Optional[dict]
-    last_action: int
-    last_change: Optional[ExpressionChangeRule]
-
-    def __init__(
-        self,
-        env_class: Type[MathyEnv] = MathyEnv,
-        env_problem_args: Optional[dict] = None,
-        **env_kwargs,
-    ):
-        self.mathy = env_class(*env_kwargs)
-        self.env_class = env_class
-        self.env_problem_args = env_problem_args
-        self.last_action = -1
-        self.last_change = None
-        max_problem_types = 64
-        max_nodes = 1024
-        max_actions = self.mathy.action_size
-        vector_width = 9  # two neighbor window extractions (1 -> 3 -> 9)
-        self.state = None
-        self.problem = None
-        self.vectors_shape = (max_nodes, vector_width)
-        self.action_space = MaskedDiscrete(max_actions, [1] * max_actions)
-        self.observation_space = spaces.Dict(
-            {
-                FEATURE_LAST_RULE: spaces.Box(
-                    low=0, high=max_actions, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_NODE_COUNT: spaces.Box(
-                    low=0, high=max_nodes, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_PROBLEM_TYPE: spaces.Box(
-                    low=0, high=max_problem_types, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_FWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_BWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_LAST_FWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_LAST_BWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_MOVE_MASK: spaces.Box(
-                    low=0, high=1, shape=(2, 2), dtype=np.int16
-                ),
-            }
-        )
-
-    @property
-    def action_size(self) -> int:
-        if self.state is not None:
-            return self.mathy.get_agent_actions_count(self.state)
-        return self.mathy.action_size
-
-    def step(self, action):
-        self.state, transition, change = self.mathy.get_next_state(self.state, action)
-        observation = self._observe(self.state)
-        info = {"transition": transition}
-        done = is_terminal_transition(transition)
-        self.last_action = action
-        self.last_change = change
-        return observation, transition.reward, done, info
-
-    def reset(self):
-        self.last_action = -1
-        self.last_change = None
-        self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
-        return self._observe(self.state)
-
-    def _observe(self, state: MathyEnvState) -> MathyEnvTimeStep:
-        """Observe the environment at the given state, updating the observation
-        space and action space for the given state."""
-        action_mask = self.mathy.get_valid_moves(state)
-        observation = state.to_input_features(action_mask, True)
-        # Update masked action space
-        self.action_space.n = self.mathy.get_agent_actions_count(state)
-        self.action_space.mask = action_mask
-        return observation
-
-    def render(self, mode="terminal"):
-        action_name = "initial"
-        token_index = -1
-        if self.last_action != -1 and self.last_change is not None:
-            action_index, token_index = self.mathy.get_action_indices(self.last_action)
-            action_name = self.mathy.actions[action_index].name
-        else:
-            print(f"Problem: {self.state.agent.problem}")
-        self.mathy.print_state(
-            self.state, action_name[:25].lower(), token_index, change=self.last_change
-        )
-
-
-class MathyGymPolyEnv(MathyGymEnv):
-    def __init__(self, difficulty: int = 7):
-        super(MathyGymPolyEnv, self).__init__(
-            env_class=MathyPolynomialSimplificationEnv,
-            env_problem_args={"difficulty": difficulty},
-        )
-
-
-class MathyGymBinomialEnv(MathyGymEnv):
-    def __init__(self, difficulty: int = 4):
-        super(MathyGymBinomialEnv, self).__init__(
-            env_class=MathyBinomialDistributionEnv,
-            env_problem_args={"difficulty": difficulty},
-        )
-
-
-class MathyGymComplexEnv(MathyGymEnv):
-    def __init__(self, difficulty: int = 2):
-        super(MathyGymComplexEnv, self).__init__(
-            env_class=MathyComplexTermSimplificationEnv,
-            env_problem_args={"difficulty": difficulty},
-        )
-
+from mathy.gym import MathyGymEnv
+from mathy.a3c import A3CAgent, A3CArgs
 
 __mcts: Optional[MCTS] = None
 __model: Optional[MathModel] = None
+__agent: Optional[A3CAgent] = None
 
 
 def mathy_load_model(gym_env: MathyGymEnv):
@@ -208,6 +32,45 @@ def mathy_free_model():
     if __model is not None:
         __model.stop()
         __model = None
+
+
+def mathy_load_a3c(gym_env: MathyGymEnv):
+    global __agent
+    if __agent is None:
+        import os
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
+        tf.compat.v1.logging.set_verbosity("CRITICAL")
+        args = A3CArgs(
+            algorithm="a3c",
+            train=False,
+            lr=3e-4,
+            update_freq=50,
+            max_eps=10000,
+            gamma=0.99,
+            save_dir="training/a3c/",
+        )
+        __agent = A3CAgent(args, "mathy-poly-lstm-solved")
+
+
+def mathy_free_a3c():
+    global __model
+    if __model is not None:
+        __model.stop()
+        __model = None
+
+
+def a3c_choose_action(gym_env: MathyGymEnv):
+    global __agent
+    assert (
+        __agent is not None
+    ), "A3C agent must be initialized with: `mathy_load_a3c`"
+    assert (
+        gym_env.mathy is not None and gym_env.state is not None
+    ), "MathyGymEnv has invalid MathyEnv or MathyEnvState members"
+    pi = __agent.choose_action(gym_env, gym_env.state)
+    action = gym_env.action_space.np_random.choice(len(pi), p=pi)
+    return action
 
 
 def mcts_cleanup(gym_env: MathyGymEnv):
@@ -278,11 +141,7 @@ def nn_choose_action(gym_env: MathyGymEnv) -> int:
 
 
 def main():
-    env = gym.make(
-        "mathy-v0",
-        env_class=MathyPolynomialSimplificationEnv,
-        env_problem_args={"difficulty": 5},
-    )
+    env = gym.make("mathy-poly-03-v0")
     episodes = 10
     print_every = 2
     solved = 0
@@ -290,12 +149,15 @@ def main():
     agent = "model"
     agent = "random"
     agent = "mcts"
+    agent = "a3c"
     for i_episode in range(episodes):
 
         if agent == "mcts":
             mcts_start_problem(env)
         elif agent == "model":
             mathy_load_model(env)
+        elif agent == "a3c":
+            mathy_load_a3c(env)
         print_problem = i_episode % print_every == 0
         observation = env.reset()
         if print_problem:
@@ -307,6 +169,10 @@ def main():
                 action = env.action_space.sample()
             elif agent == "model":
                 action = nn_choose_action(env)
+            elif agent == "a3c":
+                action = a3c_choose_action(env)
+            else:
+                raise EnvironmentError(f"unknown agent: {agent}")
             observation, reward, done, info = env.step(action)
             if print_problem:
                 env.render()
@@ -326,6 +192,8 @@ def main():
         mcts_cleanup(env)
     elif agent == "model":
         mathy_free_model()
+    elif agent == "a3c":
+        mathy_free_a3c(env)
     env.close()
 
 

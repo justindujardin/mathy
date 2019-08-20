@@ -15,7 +15,7 @@ from ..agent.features import (
     FEATURE_LAST_RULE,
     FEATURE_NODE_COUNT,
 )
-from . import record
+from .util import record
 from .actor_critic_model import ActorCriticModel
 from .replay_buffer import ReplayBuffer
 
@@ -36,9 +36,8 @@ class A3CWorker(threading.Thread):
         optimizer,
         result_queue: Queue,
         idx,
-        game_name,
+        env_name,
         save_dir="/tmp",
-        model_name="mathy_a3c",
         args=None,
         shared_units=128,
         shared_layers=None,
@@ -47,20 +46,19 @@ class A3CWorker(threading.Thread):
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
-        self.model_name = model_name
         self.shared_layers = shared_layers
         self.shared_units = shared_units
         self.optimizer = optimizer
         self.args = args
+        self.env_name = env_name
         self.local_model = ActorCriticModel(
             units=self.shared_units,
             predictions=self.action_size,
             shared_layers=shared_layers,
-            load_model=model_name,
+            load_model=env_name,
         )
         self.worker_idx = idx
-        self.game_name = game_name
-        self.env = gym.make(self.game_name)
+        self.env = gym.make(self.env_name)
         self.local_model.maybe_load(self.env.reset())
         self.save_dir = save_dir
         self.ep_loss = 0.0
@@ -71,7 +69,7 @@ class A3CWorker(threading.Thread):
         # self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
         # self.test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-        print(f"[Worker {idx}] using env: {self.game_name}")
+        print(f"[Worker {idx}] using env: {self.env_name}")
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -139,11 +137,12 @@ class A3CWorker(threading.Thread):
             self.result_queue,
             self.ep_loss,
             episode_steps,
+            self.env_name,
         )
         # We must use a lock to save our model and to print to prevent data races.
         if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
             with A3CWorker.save_lock:
-                out_model = os.path.join(self.save_dir, f"{self.model_name}.h5")
+                out_model = os.path.join(self.save_dir, f"{self.env_name}.h5")
                 print(
                     f" -- checkpoint episode ({A3CWorker.global_episode}): {out_model}"
                 )
