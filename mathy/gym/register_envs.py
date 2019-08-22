@@ -9,6 +9,8 @@ register(id="mathy-poly-08-v0", entry_point="mathy.gym.polynomials:Polynomials08
 register(id="mathy-poly-09-v0", entry_point="mathy.gym.polynomials:Polynomials09")
 register(id="mathy-poly-10-v0", entry_point="mathy.gym.polynomials:Polynomials10")
 
-register(id="mathy-complex-v0", entry_point="mathy.envs.gym_env:MathyGymComplexEnv")
-
-register(id="mathy-binomial-v0", entry_point="mathy.envs.gym_env:MathyGymBinomialEnv")
+register(id="mathy-binomial-easy-v0", entry_point="mathy.gym.binomials:BinomialsEasy")
+register(
+    id="mathy-binomial-normal-v0", entry_point="mathy.gym.binomials:BinomialsNormal"
+)
+register(id="mathy-binomial-hard-v0", entry_point="mathy.gym.binomials:BinomialsHard")
