@@ -1,65 +1,51 @@
 import os
 import threading
-import datetime
+from multiprocessing import Queue
+
 import gym
 import numpy as np
 import tensorflow as tf
-from multiprocessing import Queue
-from gym.wrappers import FlattenDictWrapper
 
-from ..agent.features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_NODE_COUNT,
-)
-from .util import record
 from .actor_critic_model import ActorCriticModel
+from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
+from .util import record
 
 
 class A3CWorker(threading.Thread):
-    # Set up global variables across different threads
+
+    args: A3CArgs
+
+    # <GLOBAL_VARS>
     global_episode = 0
-    # Moving average reward
     global_moving_average_reward = 0
     save_every_n_episodes = 25
     save_lock = threading.Lock()
+    # </GLOBAL_VARS>
 
     def __init__(
         self,
-        units,
-        action_size,
-        global_model,
+        args: A3CArgs,
+        action_size: int,
+        global_model: ActorCriticModel,
         optimizer,
         result_queue: Queue,
-        worker_idx,
-        env_name,
-        save_dir="/tmp",
-        args=None,
+        worker_idx: int,
         shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
+        self.args = args
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
         self.shared_layers = shared_layers
-        self.units = units
         self.optimizer = optimizer
-        self.args = args
-        self.env_name = env_name
         self.local_model = ActorCriticModel(
-            units=self.units,
-            predictions=self.action_size,
-            shared_layers=shared_layers,
-            load_model=env_name,
+            args=args, predictions=self.action_size, shared_layers=shared_layers
         )
         self.worker_idx = worker_idx
-        self.env = gym.make(self.env_name)
+        self.env = gym.make(self.args.env_name)
         self.local_model.maybe_load(self.env.reset())
-        self.save_dir = save_dir
         self.ep_loss = 0.0
         # Set up logging
         # current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -68,7 +54,7 @@ class A3CWorker(threading.Thread):
         # self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
         # self.test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-        print(f"[Worker {worker_idx}] using env: {self.env_name}")
+        print(f"[Worker {worker_idx}] using env: {self.args.env_name}")
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -136,17 +122,18 @@ class A3CWorker(threading.Thread):
             self.result_queue,
             self.ep_loss,
             episode_steps,
-            self.env_name,
+            self.args.env_name,
         )
         # We must use a lock to save our model and to print to prevent data races.
         if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
             with A3CWorker.save_lock:
-                out_model = os.path.join(self.save_dir, f"{self.env_name}.h5")
-                print(
-                    f" -- checkpoint episode ({A3CWorker.global_episode}): {out_model}"
-                )
-                self.global_model.save_weights(out_model)
-        A3CWorker.global_episode += 1
+                # Do this inside the lock so other threads can't also acquire the
+                # lock in the time between when it's released and assigned outside
+                # of the if conditional.
+                A3CWorker.global_episode += 1
+                self.global_model.save()
+        else:
+            A3CWorker.global_episode += 1
 
     def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
         if done:

@@ -70,7 +70,10 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "--train"
+        "mathy-poly-03-v0",
+        "training/m3c-binomial",
+        "training/m3c",
+        "-train"
       ]
     },
     {

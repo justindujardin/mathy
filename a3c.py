@@ -12,8 +12,14 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 @plac.annotations(
     env_name=("Initial environment name", "positional", None, str),
+    model_dir=(
+        "The folder to save the model at, e.g. 'training/polynomials'",
+        "positional",
+        None,
+        str,
+    ),
     transfer_from=(
-        "Transfer weights from another model by its folder path",
+        "Transfer weights from another model by its model path",
         "positional",
         None,
         str,
@@ -21,12 +27,19 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
     train=("Set when training is desired", "flag", False, bool),
 )
 def main(
-    env_name="mathy-poly-03-v0",
+    env_name: str,
+    model_dir: str,
     transfer_from: Optional[str] = None,
     train: bool = False,
 ):
-    args = A3CArgs(train=train, update_freq=10)
-    agent = A3CAgent(args, env_name=env_name, init_model=transfer_from)
+    args = A3CArgs(
+        env_name=env_name,
+        train=train,
+        update_freq=10,
+        model_dir=model_dir,
+        init_model_from=transfer_from,
+    )
+    agent = A3CAgent(args)
     if train:
         agent.train()
     else:
