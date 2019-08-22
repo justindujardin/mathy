@@ -4,7 +4,7 @@ import datetime
 import gym
 import numpy as np
 import tensorflow as tf
-from multiprocessing.queues import Queue
+from multiprocessing import Queue
 from gym.wrappers import FlattenDictWrapper
 
 from ..agent.features import (
@@ -25,21 +25,20 @@ class A3CWorker(threading.Thread):
     global_episode = 0
     # Moving average reward
     global_moving_average_reward = 0
-    save_every_n_episodes = 100
-    best_score = None
+    save_every_n_episodes = 25
     save_lock = threading.Lock()
 
     def __init__(
         self,
+        units,
         action_size,
         global_model,
         optimizer,
         result_queue: Queue,
-        idx,
+        worker_idx,
         env_name,
         save_dir="/tmp",
         args=None,
-        shared_units=128,
         shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
@@ -47,17 +46,17 @@ class A3CWorker(threading.Thread):
         self.result_queue = result_queue
         self.global_model = global_model
         self.shared_layers = shared_layers
-        self.shared_units = shared_units
+        self.units = units
         self.optimizer = optimizer
         self.args = args
         self.env_name = env_name
         self.local_model = ActorCriticModel(
-            units=self.shared_units,
+            units=self.units,
             predictions=self.action_size,
             shared_layers=shared_layers,
             load_model=env_name,
         )
-        self.worker_idx = idx
+        self.worker_idx = worker_idx
         self.env = gym.make(self.env_name)
         self.local_model.maybe_load(self.env.reset())
         self.save_dir = save_dir
@@ -69,7 +68,7 @@ class A3CWorker(threading.Thread):
         # self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
         # self.test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-        print(f"[Worker {idx}] using env: {self.env_name}")
+        print(f"[Worker {worker_idx}] using env: {self.env_name}")
 
     def run(self):
         replay_buffer = ReplayBuffer()
@@ -154,9 +153,7 @@ class A3CWorker(threading.Thread):
             reward_sum = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values = self.local_model(
-                tf.convert_to_tensor(value=new_state[None, :], dtype=tf.float32)
-            )
+            _, values = self.local_model(new_state)
             reward_sum = tf.squeeze(values).numpy()
 
         # Get discounted rewards

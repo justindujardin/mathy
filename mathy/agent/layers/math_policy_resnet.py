@@ -6,14 +6,22 @@ class MathPolicyResNet(tf.keras.layers.Layer):
     """Policy that passes inputs through a ResNet tower for feature extraction before
     applying Dropout and Softmax"""
 
-    def __init__(self, num_predictions=2, dropout=0.1, random_seed=1337, **kwargs):
+    def __init__(
+        self,
+        num_predictions=2,
+        dropout=0.1,
+        random_seed=1337,
+        num_layers=4,
+        units=128,
+        **kwargs
+    ):
         self.num_predictions = num_predictions
         self.activate = tf.keras.layers.Dense(num_predictions, activation="softmax")
         self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
-        self.stack_height = 4
-        self.dense_stack = [ResNetBlock()]
+        self.stack_height = num_layers
+        self.dense_stack = [ResNetBlock(units=units)]
         for i in range(self.stack_height - 1):
-            self.dense_stack.append(ResNetBlock())
+            self.dense_stack.append(ResNetBlock(units=units))
         super(MathPolicyResNet, self).__init__(**kwargs)
 
     def compute_output_shape(self, input_shape):

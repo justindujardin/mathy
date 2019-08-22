@@ -56,7 +56,7 @@ class ReplayBuffer(object):
         for key, backward in sequence_feature_keys:
             lengths = [len(s[key][0]) for s in self.states]
             max_sequence = max(lengths)
-            pad_value = tuple([MathTypeKeys["empty"]] * 9)
+            pad_value = tuple([MathTypeKeys["empty"]] * 3)
             for state in self.states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")

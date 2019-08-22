@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from .actor_critic_model import ActorCriticModel
 from .random_agent import RandomAgent
 from .worker import A3CWorker
+from ..mathy_env_state import MathyEnvState
 
 
 class A3CArgs(BaseModel):
@@ -30,6 +31,7 @@ class A3CAgent:
     ):
         self.args = args
         self.units = units
+        print(f"Agent using {units} dimensional dense layers")
         self.env_name = env_name
         # Model to load weights from when initializing the agent model
         self.init_model = init_model
@@ -61,19 +63,31 @@ class A3CAgent:
 
         res_queue = Queue()
         num_workers = multiprocessing.cpu_count()
+        # num_workers = 1
+
+        def poly_name_for_worker(idx: int):
+            if idx == 0:
+                return "mathy-binomial-easy-v0"
+            elif idx == 1:
+                return "mathy-binomial-easy-v0"
+            elif idx == 2:
+                return "mathy-binomial-easy-v0"
+            elif idx == 3:
+                return "mathy-binomial-easy-v0"
+            return f"mathy-poly-0{idx + 6}-v0"
 
         workers = [
             A3CWorker(
-                self.action_size,
-                self.global_model,
-                self.optimizer,
-                res_queue,
-                i,
+                units=self.units,
+                action_size=self.action_size,
+                global_model=self.global_model,
+                optimizer=self.optimizer,
+                result_queue=res_queue,
+                worker_idx=i,
+                shared_layers=[self.shared_network],
                 env_name=self.env_name,
                 save_dir=self.save_dir,
                 args=self.args,
-                shared_layers=[self.shared_network],
-                shared_units=self.units,
             )
             for i in range(num_workers)
         ]
@@ -96,9 +110,10 @@ class A3CAgent:
         plt.savefig(os.path.join(self.save_dir, f"{self.env_name} Moving Average.png"))
         plt.show()
 
-    def choose_action(self, env, state):
+    def choose_action(self, env, state: MathyEnvState):
+        obs = state.to_input_features(env.action_space.mask, return_batch=True)
         policy, value, masked_policy = self.global_model.call_masked(
-            state, env.action_space.mask
+            obs, env.action_space.mask
         )
         policy = tf.nn.softmax(masked_policy)
         action = np.argmax(policy)

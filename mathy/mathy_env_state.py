@@ -151,7 +151,6 @@ class MathyEnvState(object):
         vectors = []
         nodes_len = len(nodes)
         pad_value = MathTypeKeys["empty"]
-        context_pad_value = (pad_value, pad_value, pad_value)
         # Add context before/current/after node values  (thanks @honnibal for
         # this trick.)
         for i, t in enumerate(nodes):
@@ -159,16 +158,18 @@ class MathyEnvState(object):
             next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
             vectors.append((last, t.type_id, next))
 
-        vectors_len = len(vectors)
+        return vectors
+        # context_pad_value = (pad_value, pad_value, pad_value)
+        # vectors_len = len(vectors)
 
-        # Do it again which expands the reach of the vectors.
-        context_vectors = []
-        for i, v in enumerate(vectors):
-            last = context_pad_value if i == 0 else vectors[i - 1]
-            next = context_pad_value if i > vectors_len - 2 else vectors[i + 1]
-            context_vectors.append(last + v + next)
+        # # Do it again which expands the reach of the vectors.
+        # context_vectors = []
+        # for i, v in enumerate(vectors):
+        #     last = context_pad_value if i == 0 else vectors[i - 1]
+        #     next = context_pad_value if i > vectors_len - 2 else vectors[i + 1]
+        #     context_vectors.append(last + v + next)
 
-        return context_vectors
+        # return context_vectors
 
     def to_input_features(self, move_mask, return_batch=False):
         """Output Dict of integer features that can be fed to the
@@ -183,12 +184,12 @@ class MathyEnvState(object):
             MathTypeKeys["empty"],
             MathTypeKeys["empty"],
             MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
-            MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
+            # MathTypeKeys["empty"],
         )
 
         # Generate context vectors for the current state's expression tree

@@ -68,7 +68,7 @@ class MathyGymEnv(gym.Env):
         self.last_change = None
         max_problem_types = 64
         max_nodes = 1024
-        max_actions = self...action_size
+        max_actions = self.mathy.action_size
         vector_width = 9  # two neighbor window extractions (1 -> 3 -> 9)
         self.state = None
         self.problem = None
@@ -118,11 +118,11 @@ class MathyGymEnv(gym.Env):
     @property
     def action_size(self) -> int:
         if self.state is not None:
-            return self...get_agent_actions_count(self.state)
-        return self...action_size
+            return self.mathy.get_agent_actions_count(self.state)
+        return self.mathy.action_size
 
     def step(self, action):
-        self.state, transition, change = self...get_next_state(self.state, action)
+        self.state, transition, change = self.mathy.get_next_state(self.state, action)
         observation = self._observe(self.state)
         info = {"transition": transition}
         done = is_terminal_transition(transition)
@@ -133,16 +133,16 @@ class MathyGymEnv(gym.Env):
     def reset(self):
         self.last_action = -1
         self.last_change = None
-        self.state, self.problem = self...get_initial_state(self.env_problem_args)
+        self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
     def _observe(self, state: MathyEnvState) -> MathyEnvTimeStep:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
-        action_mask = self...get_valid_moves(state)
+        action_mask = self.mathy.get_valid_moves(state)
         observation = state.to_input_features(action_mask, True)
         # Update masked action space
-        self.action_space.n = self...get_agent_actions_count(state)
+        self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
         return observation
 
@@ -150,11 +150,11 @@ class MathyGymEnv(gym.Env):
         action_name = "initial"
         token_index = -1
         if self.last_action != -1 and self.last_change is not None:
-            action_index, token_index = self...get_action_indices(self.last_action)
-            action_name = self...actions[action_index].name
+            action_index, token_index = self.mathy.get_action_indices(self.last_action)
+            action_name = self.mathy.actions[action_index].name
         else:
             print(f"Problem: {self.state.agent.problem}")
-        self...print_state(
+        self.mathy.print_state(
             self.state, action_name[:25].lower(), token_index, change=self.last_change
         )
 
@@ -194,7 +194,7 @@ def mathy_load_model(gym_env: MathyGymEnv):
 
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
         tf.compat.v1.logging.set_verbosity("CRITICAL")
-        __model = MathModel(gym_env...action_size, "agents/ablated")
+        __model = MathModel(gym_env.mathy.action_size, "agents/ablated")
         __model.start()
 
 

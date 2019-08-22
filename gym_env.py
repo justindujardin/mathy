@@ -34,7 +34,7 @@ def mathy_free_model():
         __model = None
 
 
-def mathy_load_a3c(gym_env: MathyGymEnv):
+def mathy_load_a3c(env_name: str, gym_env: MathyGymEnv):
     global __agent
     if __agent is None:
         import os
@@ -50,27 +50,22 @@ def mathy_load_a3c(gym_env: MathyGymEnv):
             gamma=0.99,
             save_dir="training/a3c/",
         )
-        __agent = A3CAgent(args, "mathy-poly-lstm-solved")
+        __agent = A3CAgent(args, env_name=env_name, init_model="mathy-poly-lstm-solved")
 
 
 def mathy_free_a3c():
-    global __model
-    if __model is not None:
-        __model.stop()
-        __model = None
+    global __agent
+    if __agent is not None:
+        __agent = None
 
 
 def a3c_choose_action(gym_env: MathyGymEnv):
     global __agent
-    assert (
-        __agent is not None
-    ), "A3C agent must be initialized with: `mathy_load_a3c`"
+    assert __agent is not None, "A3C agent must be initialized with: `mathy_load_a3c`"
     assert (
         gym_env.mathy is not None and gym_env.state is not None
     ), "MathyGymEnv has invalid MathyEnv or MathyEnvState members"
-    pi = __agent.choose_action(gym_env, gym_env.state)
-    action = gym_env.action_space.np_random.choice(len(pi), p=pi)
-    return action
+    return __agent.choose_action(gym_env, gym_env.state)
 
 
 def mcts_cleanup(gym_env: MathyGymEnv):
@@ -141,14 +136,15 @@ def nn_choose_action(gym_env: MathyGymEnv) -> int:
 
 
 def main():
-    env = gym.make("mathy-poly-03-v0")
+    env_name = "mathy-poly-07-v0"
+    env = gym.make(env_name)
     episodes = 10
     print_every = 2
     solved = 0
     failed = 0
     agent = "model"
-    agent = "random"
     agent = "mcts"
+    agent = "random"
     agent = "a3c"
     for i_episode in range(episodes):
 
@@ -157,7 +153,7 @@ def main():
         elif agent == "model":
             mathy_load_model(env)
         elif agent == "a3c":
-            mathy_load_a3c(env)
+            mathy_load_a3c(env_name, env)
         print_problem = i_episode % print_every == 0
         observation = env.reset()
         if print_problem:
@@ -193,7 +189,7 @@ def main():
     elif agent == "model":
         mathy_free_model()
     elif agent == "a3c":
-        mathy_free_a3c(env)
+        mathy_free_a3c()
     env.close()
 
 

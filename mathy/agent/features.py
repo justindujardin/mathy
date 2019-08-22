@@ -245,8 +245,10 @@ def parse_example_for_training(
     num_actions = (
         6
     )  # TODO: This is hardcoded to the number of rules in math_game.py FIXIT!
-    # Two extract windows for context sensitivity (3 * 3) = 9
-    pad_value = tuple([MathTypeKeys["empty"]] * 9)
+    # # Two extract windows for context sensitivity (3 * 3) = 9
+    # pad_value = tuple([MathTypeKeys["empty"]] * 9)
+    # One extract window for context sensitivity
+    pad_value = tuple([MathTypeKeys["empty"]] * 3)
     # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
 
     inputs[FEATURE_FWD_VECTORS] = pad_array(

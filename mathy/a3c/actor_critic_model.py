@@ -25,11 +25,12 @@ class ActorCriticModel(tf.keras.Model):
         self.predictions = predictions
         self.init_model = init_model
         self.shared_layers = shared_layers
+        self.units = units
         self.in_dense = tf.keras.layers.Dense(units)
         self.value_dense = tf.keras.layers.Dense(units)
         self.pi_logits = tf.keras.layers.Dense(predictions)
         self.pi_sequence = TimeDistributed(
-            MathPolicyDropout(self.predictions, dropout=0.2), name="policy_head"
+            MathPolicyDropout(self.predictions), name="policy_head"
         )
         self.lstm = LSTMStack(units=units, share_weights=True)
         self.value_logits = tf.keras.layers.Dense(1)
@@ -74,4 +75,3 @@ class ActorCriticModel(tf.keras.Model):
         if pi_sum > 0:
             probs /= pi_sum
         return logits, values, probs
-
