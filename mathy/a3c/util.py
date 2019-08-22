@@ -1,3 +1,6 @@
+from colr import color
+
+
 def game_for_worker_index(index: int) -> str:
     game_type = "poly"
     # if index % 3 == 0:
@@ -35,13 +38,18 @@ def record(
         global_ep_reward = episode_reward
     else:
         global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
+
+    fore = "green" if episode_reward > 0.0 else "red"
     print(
-        f"ep: {episode} | "
-        f"moving avg reward: {truncate(global_ep_reward)} | "
-        f"ep reward: {truncate(episode_reward)} | "
-        f"loss: {truncate(total_loss)} | "
-        f"steps: {num_steps} | "
-        f"worker{worker_idx}: {env_name}"
+        color(
+            f"[ep{episode}] "
+            f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
+            f"loss({truncate(total_loss)}) "
+            f"steps({num_steps}) "
+            f"worker{worker_idx}: {env_name}",
+            fore=fore,
+            style="bright",
+        )
     )
     result_queue.put(global_ep_reward)
     return global_ep_reward
