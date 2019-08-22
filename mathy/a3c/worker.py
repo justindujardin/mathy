@@ -1,5 +1,6 @@
 import os
 import threading
+from datetime import datetime
 from multiprocessing import Queue
 
 import gym
@@ -40,11 +41,16 @@ class A3CWorker(threading.Thread):
         self.global_model = global_model
         self.shared_layers = shared_layers
         self.optimizer = optimizer
+        self.worker_idx = worker_idx
+        self.env = gym.make(self.args.env_name)
+        # Set up logging.
+
+        stamp = datetime.now().strftime("%Y%m%d-%H%M")
+        logdir = "%s/runs/%s/worker_%d" % (self.args.model_dir, stamp, worker_idx)
+        self.writer = tf.summary.create_file_writer(logdir)
         self.local_model = ActorCriticModel(
             args=args, predictions=self.action_size, shared_layers=shared_layers
         )
-        self.worker_idx = worker_idx
-        self.env = gym.make(self.args.env_name)
         self.local_model.maybe_load(self.env.reset())
         self.ep_loss = 0.0
         # Set up logging
@@ -124,6 +130,36 @@ class A3CWorker(threading.Thread):
             episode_steps,
             self.args.env_name,
         )
+        # Write episode stats to Tensorboard
+        with self.writer.as_default():
+            name = self.args.env_name
+            tf.summary.scalar(
+                f"episode_reward", data=episode_reward, step=A3CWorker.global_episode
+            )
+            tf.summary.scalar(
+                f"{name}/episode_reward",
+                data=episode_reward,
+                step=A3CWorker.global_episode,
+            )
+            tf.summary.scalar(
+                f"{name}/episode_steps",
+                data=episode_steps,
+                step=A3CWorker.global_episode,
+            )
+            agent_state = self.env.state.agent
+            p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
+            outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
+            out_text = f"{outcome}: {p_text}"
+            tf.summary.text(
+                f"{name}/episode_problems", data=out_text, step=A3CWorker.global_episode
+            )
+            if self.worker_idx == 0:
+                tf.summary.scalar(
+                    f"mean_episode_reward",
+                    data=A3CWorker.global_moving_average_reward,
+                    step=A3CWorker.global_episode,
+                )
+
         # We must use a lock to save our model and to print to prevent data races.
         if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
             with A3CWorker.save_lock:
@@ -132,6 +168,7 @@ class A3CWorker(threading.Thread):
                 # of the if conditional.
                 A3CWorker.global_episode += 1
                 self.global_model.save()
+                self.writer.flush()
         else:
             A3CWorker.global_episode += 1
 

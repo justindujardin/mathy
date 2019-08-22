@@ -97,11 +97,11 @@ class A3CAgent:
 
     def play(self, env=None, loop=False):
         if env is None:
-            env = gym.make(self.env_name).unwrapped
+            env = gym.make(self.args.env_name).unwrapped
         model = self.global_model
         model.maybe_load(env.reset())
         if self.args.algorithm == "random":
-            random_agent = RandomAgent(self.env_name, self.args.max_eps)
+            random_agent = RandomAgent(self.args.env_name, self.args.max_eps)
             random_agent.run()
             return
         try:
