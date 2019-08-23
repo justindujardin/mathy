@@ -1,9 +1,11 @@
+from typing import Tuple, Optional
 import numpy as np
 import tensorflow as tf
 from typing import Optional, Any
 from ..agent.layers.math_embedding import MathEmbedding
 from ..agent.layers.lstm_stack import LSTMStack
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
+from ..agent.layers.bahdanau_attention import BahdanauAttention
 from tensorflow.keras.layers import TimeDistributed
 import os
 from shutil import copyfile
@@ -22,34 +24,38 @@ class ActorCriticModel(tf.keras.Model):
         initial_state: Any = None,
     ):
         super(ActorCriticModel, self).__init__()
-        self.global_step = tf.compat.v1.train.get_or_create_global_step()
+        self.global_step = tf.Variable(
+            0, trainable=False, name="global_step", dtype=tf.int64
+        )
         self.args = args
         self.predictions = predictions
         self.shared_layers = shared_layers
-        self.in_dense = tf.keras.layers.Dense(args.units)
-        self.value_dense = tf.keras.layers.Dense(args.units)
-        self.pi_logits = tf.keras.layers.Dense(predictions)
+        self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
         self.pi_sequence = TimeDistributed(
-            MathPolicyDropout(self.predictions), name="policy_head"
+            MathPolicyDropout(self.predictions), name="pi_head"
         )
         self.lstm = LSTMStack(units=args.units, share_weights=True)
         self.value_logits = tf.keras.layers.Dense(1)
         self.embedding = MathEmbedding()
+        self.attention = BahdanauAttention(self.args.units)
 
     def call(self, batch_features):
         inputs = batch_features
-        # Extract features into contextual inputs, sequence inputs.
-        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
-        hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
-        inputs = self.in_dense(hidden_states)
         if self.shared_layers is not None:
             for layer in self.shared_layers:
                 inputs = layer(inputs)
-        logits = self.pi_sequence(lstm_vectors)
+        # Extract features into contextual inputs, sequence inputs.
+        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
+        hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
 
-        # Mask out invalid logits
-        logits = self.apply_pi_mask(logits, batch_features, sequence_length)
-        values = self.value_logits(self.value_dense(inputs))
+        attention_context, attention_weights = self.attention(
+            lstm_vectors, hidden_states
+        )
+
+        values = self.value_logits(attention_context)
+        logits = self.apply_pi_mask(
+            self.pi_sequence(lstm_vectors), batch_features, sequence_length
+        )
         return logits, values
 
     def apply_pi_mask(self, logits, batch_features, sequence_length):
@@ -60,16 +66,16 @@ class ActorCriticModel(tf.keras.Model):
             batch_features["policy_mask"],
             (sequence_length.shape[0], -1, self.predictions),
         )
-
-        # Convert 0s in mask to large negative values so
-        # they won't be selected by softmax
-        np_mask = batch_mask_flat.numpy().astype("float")
-        np_mask[np_mask == 0] = -1000000
-        features_mask = tf.cast(np_mask, dtype=tf.float32)
-
         # Trim the logits to match the feature mask
-        trim_logits = logits[:, : features_mask.shape[1], :]
+        trim_logits = logits[:, : batch_mask_flat.shape[1], :]
+        features_mask = tf.cast(batch_mask_flat, dtype=tf.float32)
         mask_logits = tf.multiply(trim_logits, features_mask)
+        mask_logits = tf.where(
+            tf.equal(mask_logits, tf.constant(0.0)),
+            tf.fill(trim_logits.shape, -1000000.0),
+            mask_logits,
+        ).numpy()
+
         return mask_logits
 
     def maybe_load(self, initial_state=None, do_init=False):
@@ -99,24 +105,10 @@ class ActorCriticModel(tf.keras.Model):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
         print("Save model: {}".format(model_path))
-        self.save_weights(model_path)
+        self.save_weights(model_path, save_format="tf")
 
-    def call_masked(self, inputs, mask):
+    def call_masked(self, inputs, mask) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         logits, values = self.call(inputs)
-        probs = tf.nn.softmax(tf.squeeze(logits), axis=0)
-        # Flatten for action selection and masking
-        probs = tf.reshape(probs, [-1]).numpy()
-
-        # Trim off any probs that don't match the mask size, which
-        # can happen when batch padding examples of different lengths.
-        probs = probs[: len(mask)]
-
-        # Multiply the probs by the mask to wipe out invalid actions.
-        probs = probs[: len(mask)] * mask
-
-        # Because we potentially masked out moves, we need to re-scale
-        # the probabilities so they sum to 1.0
-        pi_sum = np.sum(probs)
-        if pi_sum > 0:
-            probs /= pi_sum
+        flat_logits = tf.reshape(tf.squeeze(logits), [-1])
+        probs = tf.nn.softmax(flat_logits).numpy()
         return logits, values, probs
