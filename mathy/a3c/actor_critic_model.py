@@ -15,19 +15,20 @@ from mathy.a3c.config import A3CArgs
 
 class ActorCriticModel(tf.keras.Model):
     args: A3CArgs
+    optimizer: tf.optimizers.Optimizer
 
     def __init__(
         self,
         args: A3CArgs,
+        optimizer: tf.optimizers.Optimizer,
         predictions=2,
         shared_layers=None,
         initial_state: Any = None,
     ):
         super(ActorCriticModel, self).__init__()
-        self.global_step = tf.Variable(
-            0, trainable=False, name="global_step", dtype=tf.int64
-        )
         self.args = args
+        self.optimizer = optimizer
+        self.init_global_step()
         self.predictions = predictions
         self.shared_layers = shared_layers
         self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
@@ -100,12 +101,36 @@ class ActorCriticModel(tf.keras.Model):
                 print("Loading model from: {}".format(model_path))
             self.load_weights(model_path)
 
+    def init_global_step(self):
+        if not os.path.exists(self.args.model_dir):
+            os.makedirs(self.args.model_dir)
+        name = f"{self.args.model_name}.step"
+        step_path = os.path.join(self.args.model_dir, name)
+        step_num = 0
+        if os.path.exists(step_path):
+            with open(step_path, "r") as f:
+                step_num = int(f.readline())
+        self.global_step = tf.Variable(
+            step_num, trainable=False, name="global_step", dtype=tf.int64
+        )
+        self.save_global_step(step_num)
+
+    def save_global_step(self, step: int = 0):
+        if not os.path.exists(self.args.model_dir):
+            os.makedirs(self.args.model_dir)
+        name = f"{self.args.model_name}.step"
+        step_path = os.path.join(self.args.model_dir, name)
+        with open(step_path, "w") as f:
+            f.write(f"{step}")
+
     def save(self):
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
-        print("Save model: {}".format(model_path))
         self.save_weights(model_path, save_format="tf")
+        step = self.global_step.numpy()
+        print(f"[save] step({step}) model({model_path})")
+        self.save_global_step(step)
 
     def call_masked(self, inputs, mask) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         logits, values = self.call(inputs)

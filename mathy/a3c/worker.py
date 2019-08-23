@@ -20,7 +20,8 @@ class A3CWorker(threading.Thread):
     # <GLOBAL_VARS>
     global_episode = 0
     global_moving_average_reward = 0
-    save_every_n_episodes = 25
+    save_every_n_episodes = 5
+    request_quit = False
     save_lock = threading.Lock()
     # </GLOBAL_VARS>
 
@@ -48,7 +49,10 @@ class A3CWorker(threading.Thread):
             os.path.join(self.args.model_dir, f"worker_{worker_idx}")
         )
         self.local_model = ActorCriticModel(
-            args=args, predictions=self.action_size, shared_layers=shared_layers
+            args=args,
+            predictions=self.action_size,
+            shared_layers=shared_layers,
+            optimizer=self.optimizer,
         )
         self.local_model.maybe_load(self.env.reset())
         self.ep_loss = 0.0
@@ -56,7 +60,10 @@ class A3CWorker(threading.Thread):
 
     def run(self):
         replay_buffer = ReplayBuffer()
-        while A3CWorker.global_episode < self.args.max_eps:
+        while (
+            A3CWorker.global_episode < self.args.max_eps
+            and A3CWorker.request_quit is False
+        ):
             self.run_episode(replay_buffer)
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
@@ -125,6 +132,7 @@ class A3CWorker(threading.Thread):
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
+        self.optimizer.iterations = self.global_model.global_step
         self.optimizer.apply_gradients(
             zip(grads, self.global_model.trainable_weights),
             global_step=self.global_model.global_step,
@@ -177,16 +185,23 @@ class A3CWorker(threading.Thread):
                 )
 
         # We must use a lock to save our model and to print to prevent data races.
-        if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
-            with A3CWorker.save_lock:
-                # Do this inside the lock so other threads can't also acquire the
-                # lock in the time between when it's released and assigned outside
-                # of the if conditional.
+        if (
+            A3CWorker.global_episode > 0
+            and A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0
+        ):
+            self.write_global_model()
+        else:
+            A3CWorker.global_episode += 1
+
+    def write_global_model(self, increment_episode=True):
+        with A3CWorker.save_lock:
+            # Do this inside the lock so other threads can't also acquire the
+            # lock in the time between when it's released and assigned outside
+            # of the if conditional.
+            if increment_episode is True:
                 A3CWorker.global_episode += 1
                 self.global_model.save()
                 self.writer.flush()
-        else:
-            A3CWorker.global_episode += 1
 
     def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
         if done:

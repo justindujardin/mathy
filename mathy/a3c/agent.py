@@ -25,7 +25,9 @@ class A3CAgent:
         env = gym.make(self.args.env_name)
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
-        self.global_model = ActorCriticModel(args=args, predictions=self.action_size)
+        self.global_model = ActorCriticModel(
+            args=args, predictions=self.action_size, optimizer=self.optimizer
+        )
         # Initialize the global model with a random observation
         self.global_model.maybe_load(env.reset(), do_init=True)
 
@@ -70,18 +72,26 @@ class A3CAgent:
             worker.start()
 
         moving_average_rewards = []  # record episode reward to plot
-        while True:
-            reward = res_queue.get()
-            if reward is not None:
-                moving_average_rewards.append(reward)
-            else:
-                break
+        try:
+            while True:
+                reward = res_queue.get()
+                if reward is not None:
+                    moving_average_rewards.append(reward)
+                else:
+                    break
+        except KeyboardInterrupt:
+            print("Received Keyboard Interrupt. Shutting down.")
+            A3CWorker.request_quit = True
+            self.global_model.save()
+
         [w.join() for w in workers]
 
         plt.plot(moving_average_rewards)
-        plt.ylabel("Moving average ep reward")
-        plt.xlabel("Step")
-        plt.savefig(os.path.join(self.save_dir, f"{self.env_name} Moving Average.png"))
+        plt.ylabel("average episode reward")
+        plt.xlabel("episode")
+        plt.savefig(
+            os.path.join(self.args.model_dir, f"{self.args.env_name}_ep_avg_reward.png")
+        )
         plt.show()
 
     def choose_action(self, env, state: MathyEnvState):
