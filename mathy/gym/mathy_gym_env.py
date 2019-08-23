@@ -18,6 +18,7 @@ from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
 from ..mathy_env_state import MathyEnvState
 from ..rules.rule import ExpressionChangeRule
+from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
 
@@ -30,19 +31,24 @@ class MathyGymEnv(gym.Env):
     state: Optional[MathyEnvState]
     problem: Optional[str]
     env_class: Type[MathyEnv]
-    env_problem_args: Optional[dict]
+    env_problem_args: Optional[MathyEnvProblemArgs]
     last_action: int
     last_change: Optional[ExpressionChangeRule]
 
     def __init__(
         self,
         env_class: Type[MathyEnv] = MathyEnv,
-        env_problem_args: Optional[dict] = None,
+        env_problem_args: Optional[MathyEnvProblemArgs] = None,
         **env_kwargs,
     ):
         self.mathy = env_class(*env_kwargs)
         self.env_class = env_class
         self.env_problem_args = env_problem_args
+        if self.env_problem_args is not None and not isinstance(
+            self.env_problem_args, MathyEnvProblemArgs
+        ):
+            raise ValueError("Problem args must be a MathyEnvProblemArgs instance")
+
         self.last_action = -1
         self.last_change = None
         max_problem_types = 64

@@ -1,50 +1,57 @@
+from ..envs.polynomial_blockers import MathyPolynomialBlockersEnv
 from ..envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
 
 class MathyGymPolynomials(MathyGymEnv):
-    def __init__(self, difficulty: int = 3):
+    def __init__(self, difficulty: MathyEnvDifficulty):
         super(MathyGymPolynomials, self).__init__(
             env_class=MathyPolynomialSimplificationEnv,
-            env_problem_args={"difficulty": difficulty},
+            env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
         )
 
 
-class Polynomials03(MathyGymPolynomials):
+class PolynomialsEasy(MathyGymPolynomials):
     def __init__(self):
-        super(Polynomials03, self).__init__(difficulty=3)
+        super(PolynomialsEasy, self).__init__(difficulty=MathyEnvDifficulty.easy)
 
 
-class Polynomials04(MathyGymPolynomials):
+class PolynomialsNormal(MathyGymPolynomials):
     def __init__(self):
-        super(Polynomials04, self).__init__(difficulty=4)
+        super(PolynomialsNormal, self).__init__(difficulty=MathyEnvDifficulty.normal)
 
 
-class Polynomials05(MathyGymPolynomials):
+class PolynomialsHard(MathyGymPolynomials):
     def __init__(self):
-        super(Polynomials05, self).__init__(difficulty=5)
+        super(PolynomialsHard, self).__init__(difficulty=MathyEnvDifficulty.hard)
 
 
-class Polynomials06(MathyGymPolynomials):
+#
+# Commute blockers
+#
+
+
+class MathyGymPolynomialBlockers(MathyGymEnv):
+    def __init__(self, difficulty: MathyEnvDifficulty):
+        super(MathyGymPolynomialBlockers, self).__init__(
+            env_class=MathyPolynomialBlockersEnv,
+            env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
+        )
+
+
+class PolynomialBlockersEasy(MathyGymPolynomialBlockers):
     def __init__(self):
-        super(Polynomials06, self).__init__(difficulty=6)
+        super(PolynomialBlockersEasy, self).__init__(difficulty=MathyEnvDifficulty.easy)
 
 
-class Polynomials07(MathyGymPolynomials):
+class PolynomialBlockersNormal(MathyGymPolynomialBlockers):
     def __init__(self):
-        super(Polynomials07, self).__init__(difficulty=7)
+        super(PolynomialBlockersNormal, self).__init__(
+            difficulty=MathyEnvDifficulty.normal
+        )
 
 
-class Polynomials08(MathyGymPolynomials):
+class PolynomialBlockersHard(MathyGymPolynomialBlockers):
     def __init__(self):
-        super(Polynomials08, self).__init__(difficulty=8)
-
-
-class Polynomials09(MathyGymPolynomials):
-    def __init__(self):
-        super(Polynomials09, self).__init__(difficulty=9)
-
-
-class Polynomials10(MathyGymPolynomials):
-    def __init__(self):
-        super(Polynomials10, self).__init__(difficulty=10)
+        super(PolynomialBlockersHard, self).__init__(difficulty=MathyEnvDifficulty.hard)

@@ -1,13 +1,15 @@
-from typing import Any, Dict, Optional, List, Type
+from typing import Any, Dict, List, Optional, Type
+from numpy.random import randint
 
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..rules import ConstantsSimplifyRule, DistributiveFactorOutRule, BaseRule
-from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..mathy_env_state import MathyEnvState
+from ..rules import BaseRule, ConstantsSimplifyRule, DistributiveFactorOutRule
+from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
+from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
 from .problems import simplify_multiple_terms
 
 
@@ -36,7 +38,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
                 return time_step.termination(features, self.get_win_signal(env_state))
         return None
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
+    def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
         a polynomial problem with (n) total terms divided among (m) groups
         of like terms. A few examples of the form: `f(n, m) = p`
@@ -44,15 +46,21 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         - (6, 4) = "4x + v^3 + y + 5z + 12v^3 + x"
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
-        config = params if params is not None else dict()
-        if "difficulty" not in config:
-            raise ValueError(
-                "problem 'difficulty' must be provided as an integer value. "
-                "The value is to represent the relative difficulty of the problem"
-                " in this case it is the number of terms to generate"
+        if params.difficulty == MathyEnvDifficulty.easy:
+            num_terms = randint(3, 6)
+            text, complexity = simplify_multiple_terms(
+                num_terms, powers_proability=0.66, shuffle_probability=0.5
             )
-        num_terms = int(config["difficulty"])
-        text, complexity = simplify_multiple_terms(
-            num_terms, powers_proability=0.66, shuffle_probability=0.5
-        )
+        elif params.difficulty == MathyEnvDifficulty.normal:
+            num_terms = randint(4, 8)
+            text, complexity = simplify_multiple_terms(
+                num_terms, powers_proability=0.66, shuffle_probability=0.5
+            )
+        elif params.difficulty == MathyEnvDifficulty.hard:
+            num_terms = randint(6, 12)
+            text, complexity = simplify_multiple_terms(
+                num_terms, powers_proability=0.66, shuffle_probability=0.5
+            )
+        else:
+            raise ValueError(f"Unknown difficulty: {params.difficulty}")
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

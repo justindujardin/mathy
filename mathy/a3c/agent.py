@@ -39,15 +39,15 @@ class A3CAgent:
 
         def many_workers(idx: int):
             items = [
-                "mathy-poly-03-v0",
-                "mathy-poly-04-v0",
-                "mathy-poly-05-v0",
+                "mathy-poly-easy-v0",
+                "mathy-poly-normal-v0",
+                "mathy-poly-hard-v0",
                 "mathy-binomial-easy-v0",
                 "mathy-binomial-normal-v0",
                 "mathy-binomial-hard-v0",
-                # "mathy-binomial-easy-v0",
-                # "mathy-binomial-normal-v0",
-                # "mathy-binomial-hard-v0",
+                "mathy-poly-blockers-easy-v0",
+                "mathy-poly-blockers-normal-v0",
+                "mathy-poly-blockers-hard-v0",
             ]
             if idx > len(items):
                 raise ValueError("not enough workers to satisfy")

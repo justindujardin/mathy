@@ -43,10 +43,10 @@ class MathEmbedding(tf.keras.layers.Layer):
             )
         )
         self.feature_columns = [
-            # self.f_problem_type,
+            self.f_problem_type,
             self.f_last_rule,
             self.f_node_count,
-            # self.f_move_count,
+            self.f_move_count,
             # self.f_moves_remaining,
         ]
 
@@ -96,10 +96,11 @@ class MathEmbedding(tf.keras.layers.Layer):
             self.feature_columns, name="ctx_features"
         )
 
-    # def compute_output_shape(self, input_shape):
-    #     return tf.TensorShape([input_shape[0], self.num_predictions])
-
     def call(self, features):
+        #
+        # TODO: Verify that we're one-hot encoding the vectors here...
+        # I suspect we need to be for the context vecotrs to be most efficient.
+        #
         sequence_features = {
             FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
             FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],

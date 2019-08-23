@@ -10,7 +10,7 @@ def LSTM(units=32, name="lstm", use_shared=False, use_mask=False):
         lstm = tf.keras.layers.LSTM(
             units, return_sequences=True, return_state=True, name="lstm"
         )
-        mask = tf.keras.layers.Masking()
+        mask = tf.keras.layers.Masking(mask_value=0.0)
         combine = tf.keras.layers.Add(name="add")
         return lstm, combine, mask
 

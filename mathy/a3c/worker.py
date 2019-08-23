@@ -1,6 +1,5 @@
 import os
 import threading
-from datetime import datetime
 from multiprocessing import Queue
 import time
 
@@ -87,10 +86,10 @@ class A3CWorker(threading.Thread):
 
             # The global step is incremented when the optimizer is applied, so check
             # and print summary data here.
-            summary_interval = 100
+            summary_interval = 25
             with tf.summary.record_if(
                 lambda: tf.math.equal(
-                    self.local_model.global_step % summary_interval, 0
+                    self.global_model.global_step % summary_interval, 0
                 )
             ):
                 with self.writer.as_default():
@@ -98,7 +97,7 @@ class A3CWorker(threading.Thread):
                         tf.summary.histogram(
                             f"worker_{self.worker_idx}/{var.name}",
                             var,
-                            step=self.local_model.global_step,
+                            step=self.global_model.global_step,
                         )
 
             if time_count == self.args.update_freq or done:
@@ -126,7 +125,10 @@ class A3CWorker(threading.Thread):
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
-        self.optimizer.apply_gradients(zip(grads, self.global_model.trainable_weights))
+        self.optimizer.apply_gradients(
+            zip(grads, self.global_model.trainable_weights),
+            global_step=self.global_model.global_step,
+        )
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
         replay_buffer.clear()
@@ -146,26 +148,32 @@ class A3CWorker(threading.Thread):
         with self.writer.as_default():
             name = self.args.env_name
             tf.summary.scalar(
-                f"episode_reward", data=episode_reward, step=A3CWorker.global_episode
+                f"episode_reward",
+                data=episode_reward,
+                step=self.global_model.global_step,
             )
             tf.summary.scalar(
-                f"{name}/ep_reward", data=episode_reward, step=A3CWorker.global_episode
+                f"{name}/ep_reward",
+                data=episode_reward,
+                step=self.global_model.global_step,
             )
             tf.summary.scalar(
-                f"{name}/ep_steps", data=episode_steps, step=A3CWorker.global_episode
+                f"{name}/ep_steps",
+                data=episode_steps,
+                step=self.global_model.global_step,
             )
             agent_state = self.env.state.agent
             p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
             outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
             out_text = f"{outcome}: {p_text}"
             tf.summary.text(
-                f"{name}/ep_problems", data=out_text, step=A3CWorker.global_episode
+                f"{name}/ep_problems", data=out_text, step=self.global_model.global_step
             )
             if self.worker_idx == 0:
                 tf.summary.scalar(
                     f"mean_episode_reward",
                     data=A3CWorker.global_moving_average_reward,
-                    step=A3CWorker.global_episode,
+                    step=self.global_model.global_step,
                 )
 
         # We must use a lock to save our model and to print to prevent data races.

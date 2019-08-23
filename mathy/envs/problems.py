@@ -1,5 +1,5 @@
 import random
-from typing import Tuple, Dict, Any
+from typing import Tuple
 
 operators = list("+*")
 common_variables = list("xyz")
@@ -44,7 +44,6 @@ def rand_op():
 
 def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     """Get a list of random variables, excluding the given list of hold-out variables"""
-    var = rand_var()
     if num_vars > 25:
         raise ValueError("out of range: there are only twenty-six variables")
     rand_vars = set()
@@ -162,7 +161,7 @@ def solve_for_variable(terms=4):
     for _ in range(terms - 3):
         num = rand_int()
         op = rand_op()
-        var = optional_var()
+        var = maybe_var()
         result = result + " {} {}{}".format(op, num, var)
     return result + suffix
 
@@ -195,7 +194,7 @@ def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
 
     total_terms = random.randint(min_terms, max_terms)
     var = rand_var()
-    power_chance = 80 if powers == True else 0
+    power_chance = 80 if powers is True else 0
     power = maybe_power(power_chance)
     focus_chunk = f"{maybe_int()}{var}{power} + {maybe_int()}{var}{power}"
     if easy:
@@ -247,7 +246,8 @@ def combine_terms_after_commuting(
         current = noise_vars.pop()
         blockers.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
 
-    focus_chunk = f"{maybe_int()}{var}{power} + {' + '.join(blockers)} + {maybe_int()}{var}{power}"
+    blocks = " + ".join(blockers)
+    focus_chunk = f"{maybe_int()}{var}{power} + {blocks} + {maybe_int()}{var}{power}"
     # About half of the time focus the agent by grouping the subtree for them
     if rand_bool(50 if easy else 10):
         focus_chunk = f"({focus_chunk})"

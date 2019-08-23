@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import Optional, List, Type, Dict, Any, Tuple
 from tf_agents.trajectories import time_step
-from .types import MathyEnvProblem
+from .types import MathyEnvProblem, MathyEnvProblemArgs
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
 from .rules import (
@@ -16,11 +16,6 @@ from .rules import (
 )
 from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
 from .util import GameRewards
-from pydantic import BaseModel, Schema, conint
-
-
-class MathEnvParameters(BaseModel):
-    difficulty: int = conint(gt=0, lt=4)
 
 
 def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
@@ -87,11 +82,12 @@ class MathyEnv:
         """Provide environment-specific transitions per timestep."""
         return None
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
-        """Return a problem for the environment given an optional set
-        of parameters to control problem generation. This is implemented
-        per environment such that each environment can generate its own
-        dataset with no required configuration. """
+    def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
+        """Return a problem for the environment given a set of parameters
+        to control problem generation.
+
+        This is implemented per environment such that each environment can
+        generate its own dataset with no required configuration."""
         raise NotImplementedError("This must be implemented in a subclass")
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:
@@ -252,17 +248,16 @@ class MathyEnv:
         return f"{moves} | {moves_left} | {token_idx} | {output}"
 
     def get_initial_state(
-        self, params: Dict[str, Any] = None, print_problem: bool = True
+        self, params: Optional[MathyEnvProblemArgs] = None, print_problem: bool = True
     ) -> Tuple[MathyEnvState, MathyEnvProblem]:
         """Generate an initial MathyEnvState with the game's configuration"""
-        prob = self.problem_fn(params)
+        config = params if params is not None else MathyEnvProblemArgs()
+        prob = self.problem_fn(config)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
         default_turns = 4
         turns_preference = (
-            default_turns
-            if params is None
-            else params.get("turns_per_complexity", default_turns)
+            default_turns if params is None else params.turns_per_complexity
         )
         # Max moves is (n) turns per complexity unit returned from the problem function.
         # TODO: Something better than this? :(

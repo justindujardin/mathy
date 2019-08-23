@@ -4,14 +4,13 @@ from enum import Enum
 
 
 class MathyGymEnvTypes(str, Enum):
-    poly03 = "mathy-poly-03-v0"
-    poly04 = "mathy-poly-04-v0"
-    poly05 = "mathy-poly-05-v0"
-    poly06 = "mathy-poly-06-v0"
-    poly07 = "mathy-poly-07-v0"
-    poly8 = "mathy-poly-08-v0"
-    poly9 = "mathy-poly-09-v0"
-    poly10 = "mathy-poly-10-v0"
+    poly_easy = "mathy-poly-easy-v0"
+    poly_normal = "mathy-poly-normal-v0"
+    poly_hard = "mathy-poly-hard-v0"
+
+    poly_blockers_easy = "mathy-poly-blockers-easy-v0"
+    poly_blockers_normal = "mathy-poly-blockers-normal-v0"
+    poly_blockers_hard = "mathy-poly-blockers-hard-v0"
 
     binomial_easy = "mathy-binomial-easy-v0"
     binomial_normal = "mathy-binomial-normal-v0"
@@ -24,10 +23,10 @@ class A3CAgentTypes(str, Enum):
 
 
 class A3CArgs(BaseModel):
-    env_name: MathyGymEnvTypes = MathyGymEnvTypes.poly03
+    env_name: MathyGymEnvTypes = MathyGymEnvTypes.poly_blockers_easy
     algorithm: A3CAgentTypes = A3CAgentTypes.a3c
     model_dir: str = "/tmp/a3c-training/"
-    model_name: str = "model.h5"
+    model_name: str = "model"
     units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False
@@ -40,3 +39,5 @@ class A3CArgs(BaseModel):
     # running more threads than you have processors to
     # get a better diversity of experience.
     worker_wait: float = 0.01
+    # The number of worker agents to create.
+    num_workers: int = 3
