@@ -92,7 +92,7 @@ class A3CAgent:
         plt.savefig(
             os.path.join(self.args.model_dir, f"{self.args.env_name}_ep_avg_reward.png")
         )
-        plt.show()
+        # plt.show()
 
     def choose_action(self, env, state: MathyEnvState):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)
