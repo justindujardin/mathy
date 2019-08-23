@@ -34,10 +34,7 @@ def record(
     def truncate(value):
         return float("%.3f" % (float(value)))
 
-    if global_ep_reward == 0:
-        global_ep_reward = episode_reward
-    else:
-        global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
+    global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
 
     fore = "green" if episode_reward > 0.0 else "red"
     print(
