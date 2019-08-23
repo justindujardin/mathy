@@ -10,6 +10,9 @@ from ..agent.features import (
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_MOVE_MASK,
+    FEATURE_MOVE_COUNTER,
+    FEATURE_MOVES_REMAINING,
+    FEATURE_PROBLEM_TYPE,
 )
 
 
@@ -34,7 +37,13 @@ class ReplayBuffer(object):
         self.rewards = []
 
     def to_features(self):
-        context_feature_keys: List[str] = [FEATURE_LAST_RULE, FEATURE_NODE_COUNT]
+        context_feature_keys: List[str] = [
+            FEATURE_LAST_RULE,
+            FEATURE_NODE_COUNT,
+            FEATURE_MOVE_COUNTER,
+            FEATURE_MOVES_REMAINING,
+            FEATURE_PROBLEM_TYPE,
+        ]
         sequence_feature_keys: List[Tuple[str, bool]] = [
             (FEATURE_FWD_VECTORS, False),
             (FEATURE_BWD_VECTORS, True),
@@ -49,13 +58,12 @@ class ReplayBuffer(object):
             FEATURE_LAST_FWD_VECTORS: [],
             FEATURE_LAST_BWD_VECTORS: [],
             FEATURE_MOVE_MASK: [],
+            FEATURE_MOVE_COUNTER: [],
+            FEATURE_MOVES_REMAINING: [],
+            FEATURE_PROBLEM_TYPE: [],
         }
         lengths = [len(s[FEATURE_BWD_VECTORS][0]) for s in self.states]
         max_sequence = max(lengths)
-        first_state = self.states[0]
-        num_actions = len(first_state[FEATURE_MOVE_MASK][0]) // len(
-            first_state[FEATURE_BWD_VECTORS][0]
-        )
         for key in context_feature_keys:
             for state in self.states:
                 if key not in state:
