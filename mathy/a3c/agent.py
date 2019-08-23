@@ -42,24 +42,30 @@ class A3CAgent:
 
         res_queue = Queue()
         num_workers = multiprocessing.cpu_count()
-        # num_workers = 1
+        num_workers = 6
 
-        def poly_name_for_worker(idx: int):
-            if idx == 0:
-                return "mathy-binomial-easy-v0"
-            elif idx == 1:
-                return "mathy-binomial-easy-v0"
-            elif idx == 2:
-                return "mathy-binomial-easy-v0"
-            elif idx == 3:
-                return "mathy-binomial-easy-v0"
-            return f"mathy-poly-0{idx + 6}-v0"
+        def many_workers(idx: int):
+            items = [
+                # "mathy-poly-03-v0",
+                # "mathy-poly-04-v0",
+                # "mathy-poly-05-v0",
+                "mathy-binomial-easy-v0",
+                "mathy-binomial-normal-v0",
+                "mathy-binomial-hard-v0",
+                "mathy-binomial-easy-v0",
+                "mathy-binomial-normal-v0",
+                "mathy-binomial-hard-v0",
+            ]
+            if idx > len(items):
+                raise ValueError("not enough workers to satisfy")
+            return items[idx]
 
         workers = [
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
                 args=self.args,
+                # args=self.args.copy(update={"env_name": many_workers(i)}),
                 worker_idx=i,
                 optimizer=self.optimizer,
                 result_queue=res_queue,

@@ -22,6 +22,7 @@ class ActorCriticModel(tf.keras.Model):
         initial_state: Any = None,
     ):
         super(ActorCriticModel, self).__init__()
+        self.global_step = tf.compat.v1.train.get_or_create_global_step()
         self.args = args
         self.predictions = predictions
         self.shared_layers = shared_layers
@@ -35,7 +36,8 @@ class ActorCriticModel(tf.keras.Model):
         self.value_logits = tf.keras.layers.Dense(1)
         self.embedding = MathEmbedding()
 
-    def call(self, inputs):
+    def call(self, batch_features):
+        inputs = batch_features
         # Extract features into contextual inputs, sequence inputs.
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
         hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
@@ -44,8 +46,19 @@ class ActorCriticModel(tf.keras.Model):
             for layer in self.shared_layers:
                 inputs = layer(inputs)
         logits = self.pi_sequence(lstm_vectors)
+
+        # Mask out invalid logits
+        features_mask = tf.cast(
+            tf.reshape(
+                batch_features["policy_mask"],
+                (sequence_length.shape[0], -1, self.predictions),
+            ),
+            dtype=tf.float32,
+        )
+        trim_logits = logits[:, : features_mask.shape[1], :]
+        mask_logits = tf.multiply(trim_logits, features_mask)
         values = self.value_logits(self.value_dense(inputs))
-        return logits, values
+        return mask_logits, values
 
     def maybe_load(self, initial_state=None, do_init=False):
         if initial_state is not None:
@@ -81,10 +94,16 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(tf.squeeze(logits))
         # Flatten for action selection and masking
         probs = tf.reshape(probs, [-1]).numpy()
-        mask = mask[:]
-        while len(mask) < len(probs):
-            mask.append(0.0)
-        probs *= mask
+
+        # Trim off any probs that don't match the mask size, which
+        # can happen when batch padding examples of different lengths.
+        probs = probs[: len(mask)]
+
+        # Multiply the probs by the mask to wipe out invalid actions.
+        probs = probs[: len(mask)] * mask
+
+        # Because we potentially masked out moves, we need to re-scale
+        # the probabilities so they sum to 1.0
         pi_sum = np.sum(probs)
         if pi_sum > 0:
             probs /= pi_sum

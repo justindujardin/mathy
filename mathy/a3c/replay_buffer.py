@@ -9,6 +9,7 @@ from ..agent.features import (
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_MOVE_MASK,
 )
 
 
@@ -47,15 +48,20 @@ class ReplayBuffer(object):
             FEATURE_BWD_VECTORS: [],
             FEATURE_LAST_FWD_VECTORS: [],
             FEATURE_LAST_BWD_VECTORS: [],
+            FEATURE_MOVE_MASK: [],
         }
+        lengths = [len(s[FEATURE_BWD_VECTORS][0]) for s in self.states]
+        max_sequence = max(lengths)
+        first_state = self.states[0]
+        num_actions = len(first_state[FEATURE_MOVE_MASK][0]) // len(
+            first_state[FEATURE_BWD_VECTORS][0]
+        )
         for key in context_feature_keys:
             for state in self.states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
         for key, backward in sequence_feature_keys:
-            lengths = [len(s[key][0]) for s in self.states]
-            max_sequence = max(lengths)
             pad_value = tuple([MathTypeKeys["empty"]] * 3)
             for state in self.states:
                 if key not in state:
@@ -66,5 +72,21 @@ class ReplayBuffer(object):
                     )
                 )
 
+        max_sequence = max([len(s[FEATURE_MOVE_MASK][0]) for s in self.states])
+        for state in self.states:
+            # Max length of move masks in batch
+            padded = pad_array(state[FEATURE_MOVE_MASK][0], max_sequence, 0.0)
+            out[FEATURE_MOVE_MASK].append(
+                tf.convert_to_tensor(padded, dtype=tf.float32)
+            )
+
+        # assert batch length in move masks
+        _check_mask = -1
+        for mask in out[FEATURE_MOVE_MASK]:
+            if _check_mask == -1:
+                _check_mask = len(mask)
+            assert (
+                len(mask) == _check_mask
+            ), f"Expected same length, but for {len(mask)} and {_check_mask}"
         return out
 

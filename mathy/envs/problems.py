@@ -89,14 +89,19 @@ def simplify_distributive_binomial(
             var = f"{var}{maybe_power(power_prob_percent * 2)}"
         for i in range(num_vars):
             terms[i] = var
-    random.shuffle(terms)
+    # random.shuffle(terms)
 
     # Conditionally attach coefficients to each term
     for i in range(4):
         if simple_variables is True and terms[i] != "":
             continue
         terms[i] = f"{rand_int()}{terms[i]}"
-    return f"({terms[0]} + {terms[1]})({terms[2]} + {terms[3]})", num_terms
+
+    first = [terms[0], terms[2]]
+    second = [terms[1], terms[3]]
+    random.shuffle(first)
+    random.shuffle(second)
+    return f"({first[0]} + {first[1]})({second[0]} + {second[1]})", num_terms
 
 
 def combine_multiple_like_add_terms(num_terms, optional_var=False):

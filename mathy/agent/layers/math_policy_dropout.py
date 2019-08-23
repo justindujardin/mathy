@@ -22,8 +22,7 @@ class MathPolicyDropout(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
-    
-    @tf.function
+
     def call(self, input_tensor):
         for layer in self.feature_layers:
             input_tensor = layer(input_tensor)
@@ -34,4 +33,3 @@ class MathPolicyDropout(tf.keras.layers.Layer):
         input_tensor = self.dropout(input_tensor)
         input_tensor = self.logits(input_tensor)
         return tf.keras.activations.relu(input_tensor, alpha=0.0001)
-

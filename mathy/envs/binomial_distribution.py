@@ -61,12 +61,10 @@ class MathyBinomialDistributionEnv(MathyEnv):
                 min_vars=2, max_vars=2, powers_proability=0.8
             )
         elif difficulty == 6:
-            text, complexity = simplify_distributive_binomial(
-                simple_variables=False, min_vars=2, max_vars=3
-            )
+            text, complexity = simplify_distributive_binomial(min_vars=3, max_vars=3)
         else:
             text, complexity = simplify_distributive_binomial(
                 min_vars=3, max_vars=4, simple_variables=False
             )
 
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity + 3, MODE_SIMPLIFY_POLYNOMIAL)

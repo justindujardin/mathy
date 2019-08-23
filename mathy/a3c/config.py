@@ -35,3 +35,8 @@ class A3CArgs(BaseModel):
     update_freq: int = 50
     max_eps: int = 10000
     gamma: float = 0.99
+    # Worker's sleep this long between steps to allow
+    # other threads time to process. This is useful for
+    # running more threads than you have processors to
+    # get a better diversity of experience.
+    worker_wait: float = 0.01
