@@ -25,12 +25,7 @@ class A3CAgent:
         env = gym.make(self.args.env_name)
         self.action_size = env.action_space.n
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
-        self.shared_network = tf.keras.layers.Dense(
-            args.units, activation="relu", name="shared_network"
-        )
-        self.global_model = ActorCriticModel(
-            args=args, predictions=self.action_size, shared_layers=[self.shared_network]
-        )
+        self.global_model = ActorCriticModel(args=args, predictions=self.action_size)
         # Initialize the global model with a random observation
         self.global_model.maybe_load(env.reset(), do_init=True)
 
@@ -41,20 +36,18 @@ class A3CAgent:
             return
 
         res_queue = Queue()
-        num_workers = multiprocessing.cpu_count()
-        num_workers = 6
 
         def many_workers(idx: int):
             items = [
-                # "mathy-poly-03-v0",
-                # "mathy-poly-04-v0",
-                # "mathy-poly-05-v0",
+                "mathy-poly-03-v0",
+                "mathy-poly-04-v0",
+                "mathy-poly-05-v0",
                 "mathy-binomial-easy-v0",
                 "mathy-binomial-normal-v0",
                 "mathy-binomial-hard-v0",
-                "mathy-binomial-easy-v0",
-                "mathy-binomial-normal-v0",
-                "mathy-binomial-hard-v0",
+                # "mathy-binomial-easy-v0",
+                # "mathy-binomial-normal-v0",
+                # "mathy-binomial-hard-v0",
             ]
             if idx > len(items):
                 raise ValueError("not enough workers to satisfy")
@@ -69,9 +62,8 @@ class A3CAgent:
                 worker_idx=i,
                 optimizer=self.optimizer,
                 result_queue=res_queue,
-                shared_layers=[self.shared_network],
             )
-            for i in range(num_workers)
+            for i in range(self.args.num_workers)
         ]
 
         for i, worker in enumerate(workers):
