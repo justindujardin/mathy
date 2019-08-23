@@ -48,17 +48,29 @@ class ActorCriticModel(tf.keras.Model):
         logits = self.pi_sequence(lstm_vectors)
 
         # Mask out invalid logits
-        features_mask = tf.cast(
-            tf.reshape(
-                batch_features["policy_mask"],
-                (sequence_length.shape[0], -1, self.predictions),
-            ),
-            dtype=tf.float32,
+        logits = self.apply_pi_mask(logits, batch_features, sequence_length)
+        values = self.value_logits(self.value_dense(inputs))
+        return logits, values
+
+    def apply_pi_mask(self, logits, batch_features, sequence_length):
+        """Take the policy_mask from a batch of features and multiply
+        the policy logits by it to remove any invalid moves from
+        selection """
+        batch_mask_flat = tf.reshape(
+            batch_features["policy_mask"],
+            (sequence_length.shape[0], -1, self.predictions),
         )
+
+        # Convert 0s in mask to large negative values so
+        # they won't be selected by softmax
+        np_mask = batch_mask_flat.numpy().astype("float")
+        np_mask[np_mask == 0] = -1000000
+        features_mask = tf.cast(np_mask, dtype=tf.float32)
+
+        # Trim the logits to match the feature mask
         trim_logits = logits[:, : features_mask.shape[1], :]
         mask_logits = tf.multiply(trim_logits, features_mask)
-        values = self.value_logits(self.value_dense(inputs))
-        return mask_logits, values
+        return mask_logits
 
     def maybe_load(self, initial_state=None, do_init=False):
         if initial_state is not None:
@@ -91,7 +103,7 @@ class ActorCriticModel(tf.keras.Model):
 
     def call_masked(self, inputs, mask):
         logits, values = self.call(inputs)
-        probs = tf.nn.softmax(tf.squeeze(logits))
+        probs = tf.nn.softmax(tf.squeeze(logits), axis=0)
         # Flatten for action selection and masking
         probs = tf.reshape(probs, [-1]).numpy()
 
