@@ -27,7 +27,7 @@ class A3CArgs(BaseModel):
     env_name: MathyGymEnvTypes = MathyGymEnvTypes.poly_blockers_easy
     algorithm: A3CAgentTypes = A3CAgentTypes.a3c
     model_dir: str = "/tmp/a3c-training/"
-    model_name: str = "model"
+    model_name: str = "model.h5"
     units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False

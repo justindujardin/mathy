@@ -4,6 +4,7 @@ import tensorflow as tf
 from typing import Optional, Any
 from ..agent.layers.math_embedding import MathEmbedding
 from ..agent.layers.lstm_stack import LSTMStack
+from ..agent.layers.resnet_stack import ResNetStack
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from tensorflow.keras.layers import TimeDistributed
@@ -32,6 +33,7 @@ class ActorCriticModel(tf.keras.Model):
         self.predictions = predictions
         self.shared_layers = shared_layers
         self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
+        self.resnet = ResNetStack(units=args.units, name="resnet", num_layers=4)
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions), name="pi_head"
         )
@@ -49,15 +51,15 @@ class ActorCriticModel(tf.keras.Model):
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
         hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
 
+        feature_vectors = self.resnet(lstm_vectors)
         attention_context, attention_weights = self.attention(
-            lstm_vectors, hidden_states
+            feature_vectors, hidden_states
         )
 
         values = self.value_logits(attention_context)
-        logits = self.apply_pi_mask(
-            self.pi_sequence(lstm_vectors), batch_features, sequence_length
-        )
-        return logits, values
+        logits = self.pi_sequence(feature_vectors)
+        masked_logits = self.apply_pi_mask(logits, batch_features, sequence_length)
+        return logits, values, masked_logits
 
     def apply_pi_mask(self, logits, batch_features, sequence_length):
         """Take the policy_mask from a batch of features and multiply
@@ -127,13 +129,13 @@ class ActorCriticModel(tf.keras.Model):
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
-        self.save_weights(model_path, save_format="tf")
+        self.save_weights(model_path)
         step = self.global_step.numpy()
         print(f"[save] step({step}) model({model_path})")
         self.save_global_step(step)
 
     def call_masked(self, inputs, mask) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        logits, values = self.call(inputs)
-        flat_logits = tf.reshape(tf.squeeze(logits), [-1])
+        logits, values, masked = self.call(inputs)
+        flat_logits = tf.reshape(tf.squeeze(masked), [-1])
         probs = tf.nn.softmax(flat_logits).numpy()
         return logits, values, probs

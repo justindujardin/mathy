@@ -21,9 +21,9 @@ class ResNetStack(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
-    @tf.function
     def call(self, input_tensor):
-        for layer in self.dense_stack:
-            input_tensor = layer(input_tensor)
-        return input_tensor
+        with tf.compat.v1.variable_scope(self.name):
+            for layer in self.dense_stack:
+                input_tensor = layer(input_tensor)
+            return input_tensor
 

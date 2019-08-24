@@ -80,6 +80,7 @@ class A3CAgent:
             self.global_model.save()
 
         [w.join() for w in workers]
+        print("Done. Bye!")
 
     def choose_action(self, env, state: MathyEnvState):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)

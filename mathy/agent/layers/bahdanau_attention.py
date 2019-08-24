@@ -11,7 +11,6 @@ class BahdanauAttention(tf.keras.layers.Layer):
             self.W2 = tf.keras.layers.Dense(units, name=f"{name}/w2")
             self.V = tf.keras.layers.Dense(1, name=f"{name}/v")
 
-    @tf.function
     def call(self, features, hidden):
         # features(CNN_encoder output) shape == (batch_size, 64, embedding_dim)
 

@@ -95,6 +95,7 @@ class A3CWorker(threading.Thread):
 
             if time_count == self.args.update_freq or done:
                 self.update_global_network(done, new_state, replay_buffer)
+                self.writer.flush()
                 time_count = 0
                 if done:
                     self.finish_episode(ep_reward, ep_steps)
@@ -198,10 +199,7 @@ class A3CWorker(threading.Thread):
         self.maybe_write_episode_summaries(episode_reward, episode_steps)
 
         # We must use a lock to save our model and to print to prevent data races.
-        if (
-            A3CWorker.global_episode > 0
-            and A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0
-        ):
+        if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
             self.write_global_model()
         else:
             A3CWorker.global_episode += 1
@@ -220,7 +218,7 @@ class A3CWorker(threading.Thread):
             reward_sum = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values = self.local_model(new_state)
+            _, values, _ = self.local_model(new_state)
             reward_sum = tf.squeeze(values).numpy()
 
         # Get discounted rewards
@@ -231,7 +229,7 @@ class A3CWorker(threading.Thread):
         discounted_rewards.reverse()
 
         inputs = replay_buffer.to_features()
-        logits, values = self.local_model(inputs)
+        logits, values, masked = self.local_model(inputs)
         logits = tf.reshape(logits, [len(replay_buffer.actions), -1])
 
         # Get our advantages
@@ -251,6 +249,6 @@ class A3CWorker(threading.Thread):
             labels=replay_buffer.actions, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
-        policy_loss -= 0.01 * entropy
+        policy_loss -= 0.1 * entropy
         total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
         return total_loss

@@ -48,10 +48,12 @@ class MathyBinomialDistributionEnv(MathyEnv):
             text, complexity = simplify_distributive_binomial(min_vars=1, max_vars=2)
         elif params.difficulty == MathyEnvDifficulty.normal:
             text, complexity = simplify_distributive_binomial(
-                min_vars=2, max_vars=2, powers_proability=0.8
+                min_vars=2, max_vars=2, simple_variables=False
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            text, complexity = simplify_distributive_binomial(min_vars=3, max_vars=3)
+            text, complexity = simplify_distributive_binomial(
+                min_vars=3, max_vars=3, simple_variables=False, powers_proability=0.8
+            )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity + 3, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity + 2, MODE_SIMPLIFY_POLYNOMIAL)
