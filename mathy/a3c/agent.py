@@ -1,10 +1,8 @@
-import multiprocessing
 import os
 from queue import Queue
 from typing import Optional
 
 import gym
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -71,13 +69,10 @@ class A3CAgent:
         for i, worker in enumerate(workers):
             worker.start()
 
-        moving_average_rewards = []  # record episode reward to plot
         try:
             while True:
                 reward = res_queue.get()
-                if reward is not None:
-                    moving_average_rewards.append(reward)
-                else:
+                if reward is None:
                     break
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
@@ -85,14 +80,6 @@ class A3CAgent:
             self.global_model.save()
 
         [w.join() for w in workers]
-
-        plt.plot(moving_average_rewards)
-        plt.ylabel("average episode reward")
-        plt.xlabel("episode")
-        plt.savefig(
-            os.path.join(self.args.model_dir, f"{self.args.env_name}_ep_avg_reward.png")
-        )
-        # plt.show()
 
     def choose_action(self, env, state: MathyEnvState):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)

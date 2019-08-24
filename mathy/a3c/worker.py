@@ -46,7 +46,7 @@ class A3CWorker(threading.Thread):
         self.env = gym.make(self.args.env_name)
         # Set up logging.
         self.writer = tf.summary.create_file_writer(
-            os.path.join(self.args.model_dir, f"worker_{worker_idx}")
+            os.path.join(self.args.model_dir, "tensorboard")
         )
         self.local_model = ActorCriticModel(
             args=args,
@@ -91,21 +91,7 @@ class A3CWorker(threading.Thread):
             ep_reward += reward
             replay_buffer.store(current_state, action, reward)
 
-            # The global step is incremented when the optimizer is applied, so check
-            # and print summary data here.
-            summary_interval = 25
-            with tf.summary.record_if(
-                lambda: tf.math.equal(
-                    self.global_model.global_step % summary_interval, 0
-                )
-            ):
-                with self.writer.as_default():
-                    for var in self.local_model.trainable_variables:
-                        tf.summary.histogram(
-                            f"worker_{self.worker_idx}/{var.name}",
-                            var,
-                            step=self.global_model.global_step,
-                        )
+            self.maybe_write_histograms()
 
             if time_count == self.args.update_freq or done:
                 self.update_global_network(done, new_state, replay_buffer)
@@ -120,6 +106,63 @@ class A3CWorker(threading.Thread):
             # Workers wait between each step so that it's possible
             # to run more workers than there are CPUs available.
             time.sleep(self.args.worker_wait)
+
+    def maybe_write_episode_summaries(self, episode_reward: float, episode_steps: int):
+        # Write episode stats to Tensorboard
+        with self.writer.as_default():
+            # Track metrics for all workers
+            name = self.args.env_name
+            tf.summary.scalar(
+                f"rewards/worker_{self.worker_idx}/episodes",
+                data=episode_reward,
+                step=self.global_model.global_step,
+            )
+            tf.summary.scalar(
+                f"steps/worker_{self.worker_idx}/ep_steps",
+                data=episode_steps,
+                step=self.global_model.global_step,
+            )
+
+            # TODO: track per-worker averages and log them
+            # tf.summary.scalar(
+            #     f"rewards/worker_{self.worker_idx}/mean_episode_reward",
+            #     data=episode_reward,
+            #     step=self.global_model.global_step,
+            # )
+
+            agent_state = self.env.state.agent
+            p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
+            outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
+            out_text = f"{outcome}: {p_text}"
+            tf.summary.text(
+                f"{name}/worker_{self.worker_idx}/summary",
+                data=out_text,
+                step=self.global_model.global_step,
+            )
+
+            # Track global model metrics
+            if self.worker_idx == 0:
+                tf.summary.scalar(
+                    f"rewards/mean_episode_reward",
+                    data=A3CWorker.global_moving_average_reward,
+                    step=self.global_model.global_step,
+                )
+
+    def maybe_write_histograms(self):
+        if self.worker_idx != 0:
+            return
+        # The global step is incremented when the optimizer is applied, so check
+        # and print summary data here.
+        summary_interval = 25
+        with tf.summary.record_if(
+            lambda: tf.math.equal(self.global_model.global_step % summary_interval, 0)
+        ):
+            with self.writer.as_default():
+                for var in self.local_model.trainable_variables:
+                    tf.summary.histogram(
+                        var.name, var, step=self.global_model.global_step
+                    )
+                self.writer.flush()
 
     def update_global_network(self, done, new_state, replay_buffer: ReplayBuffer):
         # Calculate gradient wrt to local model. We do so by tracking the
@@ -152,37 +195,7 @@ class A3CWorker(threading.Thread):
             episode_steps,
             self.args.env_name,
         )
-        # Write episode stats to Tensorboard
-        with self.writer.as_default():
-            name = self.args.env_name
-            tf.summary.scalar(
-                f"episode_reward",
-                data=episode_reward,
-                step=self.global_model.global_step,
-            )
-            tf.summary.scalar(
-                f"{name}/ep_reward",
-                data=episode_reward,
-                step=self.global_model.global_step,
-            )
-            tf.summary.scalar(
-                f"{name}/ep_steps",
-                data=episode_steps,
-                step=self.global_model.global_step,
-            )
-            agent_state = self.env.state.agent
-            p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
-            outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
-            out_text = f"{outcome}: {p_text}"
-            tf.summary.text(
-                f"{name}/ep_problems", data=out_text, step=self.global_model.global_step
-            )
-            if self.worker_idx == 0:
-                tf.summary.scalar(
-                    f"mean_episode_reward",
-                    data=A3CWorker.global_moving_average_reward,
-                    step=self.global_model.global_step,
-                )
+        self.maybe_write_episode_summaries(episode_reward, episode_steps)
 
         # We must use a lock to save our model and to print to prevent data races.
         if (
@@ -201,7 +214,6 @@ class A3CWorker(threading.Thread):
             if increment_episode is True:
                 A3CWorker.global_episode += 1
                 self.global_model.save()
-                self.writer.flush()
 
     def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
         if done:
