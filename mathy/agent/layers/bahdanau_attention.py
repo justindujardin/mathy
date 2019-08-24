@@ -7,9 +7,9 @@ class BahdanauAttention(tf.keras.layers.Layer):
     def __init__(self, units, name="attention"):
         super(BahdanauAttention, self).__init__()
         with tf.compat.v1.variable_scope(name):
-            self.W1 = tf.keras.layers.Dense(units)
-            self.W2 = tf.keras.layers.Dense(units)
-            self.V = tf.keras.layers.Dense(1)
+            self.W1 = tf.keras.layers.Dense(units, name=f"{name}/w1")
+            self.W2 = tf.keras.layers.Dense(units, name=f"{name}/w2")
+            self.V = tf.keras.layers.Dense(1, name=f"{name}/v")
 
     @tf.function
     def call(self, features, hidden):

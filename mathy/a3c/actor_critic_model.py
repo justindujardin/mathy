@@ -36,7 +36,7 @@ class ActorCriticModel(tf.keras.Model):
             MathPolicyDropout(self.predictions), name="pi_head"
         )
         self.lstm = LSTMStack(units=args.units, share_weights=True)
-        self.value_logits = tf.keras.layers.Dense(1)
+        self.value_logits = tf.keras.layers.Dense(1, name="value_logits")
         self.embedding = MathEmbedding()
         self.attention = BahdanauAttention(self.args.units)
 
