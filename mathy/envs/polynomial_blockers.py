@@ -40,4 +40,4 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
             text, complexity = move_around_blockers_two(blockers)
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity - 1, MODE_SIMPLIFY_POLYNOMIAL)

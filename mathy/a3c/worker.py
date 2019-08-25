@@ -64,7 +64,8 @@ class A3CWorker(threading.Thread):
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
-            self.run_episode(replay_buffer)
+            with self.writer.as_default():
+                self.run_episode(replay_buffer)
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
         self.result_queue.put(None)
@@ -80,10 +81,12 @@ class A3CWorker(threading.Thread):
         time_count = 0
         done = False
         while not done:
-            logits, _, probs = self.local_model.call_masked(current_state, state_mask)
-
             # Select a random action from the distribution with the given probabilities
-            action = np.random.choice(len(probs), p=probs)
+            if np.random.random() < 0.1:
+                action = self.env.action_space.sample()
+            else:
+                _, _, probs = self.local_model.call_masked(current_state, state_mask)
+                action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = self.env.step(action)
@@ -109,61 +112,55 @@ class A3CWorker(threading.Thread):
             time.sleep(self.args.worker_wait)
 
     def maybe_write_episode_summaries(self, episode_reward: float, episode_steps: int):
-        # Write episode stats to Tensorboard
-        with self.writer.as_default():
-            # Track metrics for all workers
-            name = self.args.env_name
-            tf.summary.scalar(
-                f"rewards/worker_{self.worker_idx}/episodes",
-                data=episode_reward,
-                step=self.global_model.global_step,
-            )
-            tf.summary.scalar(
-                f"steps/worker_{self.worker_idx}/ep_steps",
-                data=episode_steps,
-                step=self.global_model.global_step,
-            )
+        # Track metrics for all workers
+        name = self.args.env_name
+        tf.summary.scalar(
+            f"rewards/worker_{self.worker_idx}/episodes",
+            data=episode_reward,
+            step=self.global_model.global_step,
+        )
+        tf.summary.scalar(
+            f"steps/worker_{self.worker_idx}/ep_steps",
+            data=episode_steps,
+            step=self.global_model.global_step,
+        )
 
-            # TODO: track per-worker averages and log them
-            # tf.summary.scalar(
-            #     f"rewards/worker_{self.worker_idx}/mean_episode_reward",
-            #     data=episode_reward,
-            #     step=self.global_model.global_step,
-            # )
+        # TODO: track per-worker averages and log them
+        # tf.summary.scalar(
+        #     f"rewards/worker_{self.worker_idx}/mean_episode_reward",
+        #     data=episode_reward,
+        #     step=self.global_model.global_step,
+        # )
 
-            agent_state = self.env.state.agent
-            p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
-            outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
-            out_text = f"{outcome}: {p_text}"
-            tf.summary.text(
-                f"{name}/worker_{self.worker_idx}/summary",
-                data=out_text,
-                step=self.global_model.global_step,
-            )
+        agent_state = self.env.state.agent
+        p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
+        outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
+        out_text = f"{outcome}: {p_text}"
+        tf.summary.text(
+            f"{name}/worker_{self.worker_idx}/summary",
+            data=out_text,
+            step=self.global_model.global_step,
+        )
 
+        if self.worker_idx == 0:
             # Track global model metrics
-            if self.worker_idx == 0:
-                tf.summary.scalar(
-                    f"rewards/mean_episode_reward",
-                    data=A3CWorker.global_moving_average_reward,
-                    step=self.global_model.global_step,
-                )
+            tf.summary.scalar(
+                f"rewards/mean_episode_reward",
+                data=A3CWorker.global_moving_average_reward,
+                step=self.global_model.global_step,
+            )
 
     def maybe_write_histograms(self):
         if self.worker_idx != 0:
             return
         # The global step is incremented when the optimizer is applied, so check
         # and print summary data here.
-        summary_interval = 25
+        summary_interval = 10
         with tf.summary.record_if(
             lambda: tf.math.equal(self.global_model.global_step % summary_interval, 0)
         ):
-            with self.writer.as_default():
-                for var in self.local_model.trainable_variables:
-                    tf.summary.histogram(
-                        var.name, var, step=self.global_model.global_step
-                    )
-                self.writer.flush()
+            for var in self.local_model.trainable_variables:
+                tf.summary.histogram(var.name, var, step=self.global_model.global_step)
 
     def update_global_network(self, done, new_state, replay_buffer: ReplayBuffer):
         # Calculate gradient wrt to local model. We do so by tracking the
@@ -214,6 +211,7 @@ class A3CWorker(threading.Thread):
                 self.global_model.save()
 
     def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
+        step = self.global_model.global_step
         if done:
             reward_sum = 0.0  # terminal
         else:
@@ -239,16 +237,48 @@ class A3CWorker(threading.Thread):
             )
             - values
         )
+
         # Value loss
         value_loss = advantage ** 2
 
-        # Calculate our policy loss
+        # Policy Loss
         policy = tf.nn.softmax(logits)
-        entropy = tf.nn.softmax_cross_entropy_with_logits(labels=policy, logits=logits)
+        entropy = tf.reduce_sum(policy * tf.math.log(policy + 1e-20), axis=1)
+
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=logits
+            labels=replay_buffer.actions, logits=policy
         )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss -= 0.1 * entropy
+
         total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
+        tf.summary.scalar(
+            f"losses/worker_{self.worker_idx}/loss", data=total_loss, step=step
+        )
+        tf.summary.scalar(
+            f"losses/worker_{self.worker_idx}/policy_loss",
+            data=tf.reduce_mean(policy_loss),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"losses/worker_{self.worker_idx}/value_loss",
+            data=tf.reduce_mean(value_loss),
+            step=step,
+        )
+
+        tf.summary.scalar(
+            f"values/worker_{self.worker_idx}/advantage",
+            data=tf.reduce_sum(advantage),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"values/worker_{self.worker_idx}/entropy",
+            data=tf.reduce_sum(entropy),
+            step=step,
+        )
+        tf.summary.histogram(
+            f"values/worker_{self.worker_idx}/policy",
+            data=tf.reduce_mean(policy, axis=1),
+            step=step,
+        )
         return total_loss
