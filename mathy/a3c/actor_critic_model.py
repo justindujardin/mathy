@@ -48,12 +48,13 @@ class ActorCriticModel(tf.keras.Model):
             for layer in self.shared_layers:
                 inputs = layer(inputs)
         # Extract features into contextual inputs, sequence inputs.
-        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
-        hidden_states, lstm_vectors = self.lstm(sequence_inputs, context_inputs)
+        context_inputs, lstm_vectors, hidden_states, sequence_length = self.embedding(
+            inputs
+        )
 
         feature_vectors = self.resnet(lstm_vectors)
         attention_context, attention_weights = self.attention(
-            feature_vectors, hidden_states
+            lstm_vectors, context_inputs
         )
 
         values = self.value_logits(attention_context)
@@ -61,13 +62,12 @@ class ActorCriticModel(tf.keras.Model):
         masked_logits = self.apply_pi_mask(logits, batch_features, sequence_length)
         return logits, values, masked_logits
 
-    def apply_pi_mask(self, logits, batch_features, sequence_length):
+    def apply_pi_mask(self, logits, batch_features, sequence_length: int):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves from
         selection """
         batch_mask_flat = tf.reshape(
-            batch_features["policy_mask"],
-            (sequence_length.shape[0], -1, self.predictions),
+            batch_features["policy_mask"], (logits.shape[0], -1, self.predictions)
         )
         # Trim the logits to match the feature mask
         trim_logits = logits[:, : batch_mask_flat.shape[1], :]

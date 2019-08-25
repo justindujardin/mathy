@@ -8,9 +8,7 @@ class LSTMStack(tf.keras.layers.Layer):
 
     def __init__(self, units=64, num_layers=2, share_weights=False, **kwargs):
         self.stack_height = num_layers
-        self.stack = [
-            LSTM(name=f"lstm_0", units=units, use_shared=share_weights, use_mask=True)
-        ]
+        self.stack = [LSTM(name=f"lstm_0", units=units, use_shared=share_weights)]
         self.dense_h = tf.keras.layers.Dense(units, name=f"initial_h")
         self.dense_c = tf.keras.layers.Dense(units, name=f"initial_c")
         for i in range(self.stack_height - 1):
