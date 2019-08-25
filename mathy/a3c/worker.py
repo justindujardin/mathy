@@ -10,7 +10,7 @@ import tensorflow as tf
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
-from .util import record, cat_entropy
+from .util import record, cat_entropy, entropy_beta_for_training_step
 
 
 class A3CWorker(threading.Thread):
@@ -114,22 +114,19 @@ class A3CWorker(threading.Thread):
     def maybe_write_episode_summaries(self, episode_reward: float, episode_steps: int):
         # Track metrics for all workers
         name = self.args.env_name
+        step = self.global_model.global_step
         tf.summary.scalar(
-            f"rewards/worker_{self.worker_idx}/episodes",
-            data=episode_reward,
-            step=self.global_model.global_step,
+            f"rewards/worker_{self.worker_idx}/episodes", data=episode_reward, step=step
         )
         tf.summary.scalar(
-            f"steps/worker_{self.worker_idx}/ep_steps",
-            data=episode_steps,
-            step=self.global_model.global_step,
+            f"steps/worker_{self.worker_idx}/ep_steps", data=episode_steps, step=step
         )
 
         # TODO: track per-worker averages and log them
         # tf.summary.scalar(
         #     f"rewards/worker_{self.worker_idx}/mean_episode_reward",
         #     data=episode_reward,
-        #     step=self.global_model.global_step,
+        #     step=step,
         # )
 
         agent_state = self.env.state.agent
@@ -137,9 +134,7 @@ class A3CWorker(threading.Thread):
         outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
         out_text = f"{outcome}: {p_text}"
         tf.summary.text(
-            f"{name}/worker_{self.worker_idx}/summary",
-            data=out_text,
-            step=self.global_model.global_step,
+            f"{name}/worker_{self.worker_idx}/summary", data=out_text, step=step
         )
 
         if self.worker_idx == 0:
@@ -147,7 +142,13 @@ class A3CWorker(threading.Thread):
             tf.summary.scalar(
                 f"rewards/mean_episode_reward",
                 data=A3CWorker.global_moving_average_reward,
-                step=self.global_model.global_step,
+                step=step,
+            )
+            # Track global model metrics
+            tf.summary.scalar(
+                f"params/policy_entropy_beta",
+                data=entropy_beta_for_training_step(self.args, step.numpy()),
+                step=step,
             )
 
     def maybe_write_histograms(self):
@@ -250,7 +251,7 @@ class A3CWorker(threading.Thread):
             labels=replay_buffer.actions, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
-        policy_loss -= self.args.entropy_beta * entropy
+        policy_loss -= entropy_beta_for_training_step(self.args, step) * entropy
 
         total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
         tf.summary.scalar(

@@ -1,4 +1,5 @@
 from colr import color
+from .config import A3CArgs
 
 
 def game_for_worker_index(index: int) -> str:
@@ -8,6 +9,16 @@ def game_for_worker_index(index: int) -> str:
     # elif index % 4 == 0:
     #     game_type = "complex"
     return f"mathy-{game_type}-v0"
+
+
+def entropy_beta_for_training_step(args: A3CArgs, step: int) -> float:
+    """Calculate decaying beta for policy entropy scaling"""
+    beta = args.entropy_beta_max * args.entropy_beta_decay ** (
+        step / args.entropy_beta_decay_steps
+    )
+    if beta < args.entropy_beta_min:
+        return float(args.entropy_beta_min)
+    return float(beta)
 
 
 # From openai baselines: https://bit.ly/30EvCzy
