@@ -50,10 +50,12 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
             num_terms = randint(3, 6)
             text, complexity = simplify_multiple_terms(num_terms)
         elif params.difficulty == MathyEnvDifficulty.normal:
-            num_terms = randint(3, 7, shuffle_probability=0.45)
-            text, complexity = simplify_multiple_terms(num_terms)
+            num_terms = randint(3, 7)
+            text, complexity = simplify_multiple_terms(
+                num_terms, shuffle_probability=0.45
+            )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            num_terms = randint(4, 8)
+            num_terms = randint(5, 12)
             text, complexity = simplify_multiple_terms(
                 num_terms, shuffle_probability=0.5, powers_proability=0.8
             )
