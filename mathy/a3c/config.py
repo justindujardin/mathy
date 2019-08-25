@@ -47,3 +47,7 @@ class A3CArgs(BaseModel):
     # use the predicted policy. e.g. 0.1 would choose random actions
     # 10% of the time.
     exploration_greedy_epsilon: float = 0.05
+    # `H` term from the A3C paper, controls the scaling of the entroy
+    # of the policy before adding to the total loss. This encourages
+    # exploration.
+    entropy_beta: float = 0.01

@@ -10,6 +10,17 @@ def game_for_worker_index(index: int) -> str:
     return f"mathy-{game_type}-v0"
 
 
+# From openai baselines: https://bit.ly/30EvCzy
+def cat_entropy(logits):
+    import tensorflow as tf
+
+    a0 = logits - tf.reduce_max(logits, 1, keepdims=True)
+    ea0 = tf.exp(a0)
+    z0 = tf.reduce_sum(ea0, 1, keepdims=True)
+    p0 = ea0 / z0
+    return tf.reduce_sum(p0 * (tf.math.log(z0) - a0), 1)
+
+
 def record(
     episode,
     episode_reward,

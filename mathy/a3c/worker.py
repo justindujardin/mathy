@@ -10,7 +10,7 @@ import tensorflow as tf
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
-from .util import record
+from .util import record, cat_entropy
 
 
 class A3CWorker(threading.Thread):
@@ -225,31 +225,32 @@ class A3CWorker(threading.Thread):
             reward_sum = reward + gamma * reward_sum
             discounted_rewards.append(reward_sum)
         discounted_rewards.reverse()
+        discounted_rewards = tf.convert_to_tensor(
+            value=np.array(discounted_rewards)[:, None], dtype=tf.float32
+        )
+
+        batch_size = len(replay_buffer.actions)
 
         inputs = replay_buffer.to_features()
         logits, values, masked = self.local_model(inputs)
-        logits = tf.reshape(logits, [len(replay_buffer.actions), -1])
+        logits = tf.reshape(logits, [batch_size, -1])
 
-        # Get our advantages
-        advantage = (
-            tf.convert_to_tensor(
-                value=np.array(discounted_rewards)[:, None], dtype=tf.float32
-            )
-            - values
-        )
+        # Advantage is the difference between the final calculated discount
+        # rewards, and the current Value function prediction of the rewards
+        advantage = discounted_rewards - values
 
         # Value loss
         value_loss = advantage ** 2
 
         # Policy Loss
         policy = tf.nn.softmax(logits)
-        entropy = tf.reduce_sum(policy * tf.math.log(policy + 1e-20), axis=1)
+        entropy = cat_entropy(logits)
 
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=policy
+            labels=replay_buffer.actions, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
-        policy_loss -= 0.1 * entropy
+        policy_loss -= self.args.entropy_beta * entropy
 
         total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
         tf.summary.scalar(
