@@ -45,10 +45,12 @@ class MathyBinomialDistributionEnv(MathyEnv):
         """Given a set of parameters to control term generation, produce
         2 binomials expressions connected by a multiplication. """
         if params.difficulty == MathyEnvDifficulty.easy:
-            text, complexity = simplify_distributive_binomial(min_vars=1, max_vars=2)
+            text, complexity = simplify_distributive_binomial(
+                min_vars=2, max_vars=2, powers_proability=0.1
+            )
         elif params.difficulty == MathyEnvDifficulty.normal:
             text, complexity = simplify_distributive_binomial(
-                min_vars=2, max_vars=2, simple_variables=False
+                min_vars=2, max_vars=3, simple_variables=False
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             text, complexity = simplify_distributive_binomial(
