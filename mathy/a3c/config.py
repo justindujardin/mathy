@@ -42,3 +42,8 @@ class A3CArgs(BaseModel):
     worker_wait: float = 0.01
     # The number of worker agents to create.
     num_workers: int = 3
+
+    # 0-1 controlling how often to choose a random action rather than
+    # use the predicted policy. e.g. 0.1 would choose random actions
+    # 10% of the time.
+    exploration_greedy_epsilon: float = 0.05

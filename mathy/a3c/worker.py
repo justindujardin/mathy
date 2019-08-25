@@ -82,7 +82,7 @@ class A3CWorker(threading.Thread):
         done = False
         while not done:
             # Select a random action from the distribution with the given probabilities
-            if np.random.random() < 0.1:
+            if np.random.random() < self.args.exploration_greedy_epsilon:
                 action = self.env.action_space.sample()
             else:
                 _, _, probs = self.local_model.call_masked(current_state, state_mask)
