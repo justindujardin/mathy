@@ -242,6 +242,7 @@ class A3CWorker(threading.Thread):
         inputs = replay_buffer.to_features()
         logits, values, masked = self.local_model(inputs)
         logits = tf.reshape(logits, [batch_size, -1])
+        masked_flat = tf.nn.softmax(tf.reshape(masked, [batch_size, -1]))
 
         # Advantage is the difference between the final calculated discount
         # rewards, and the current Value function prediction of the rewards
@@ -254,8 +255,13 @@ class A3CWorker(threading.Thread):
         policy = tf.nn.softmax(logits)
         entropy = cat_entropy(logits)
 
+        # We calculate policy loss from the masked logits to keep 
+        # the error from exploding when irrelevant (masked) logits
+        # have large values. Because we apply a mask for all operations
+        # we don't care what those logits are, unless they're part of
+        # the mask.
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=logits
+            labels=replay_buffer.actions, logits=masked_flat
         )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss -= entropy_beta_for_training_step(self.args, step) * entropy

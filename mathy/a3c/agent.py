@@ -112,11 +112,13 @@ class A3CAgent:
                 reward_sum = 0
                 while not done:
                     env.render(mode="terminal")
-                    policy, value, masked_policy = model.call_masked(
+                    policy, value, probs = model.call_masked(
                         state, env.action_space.mask
                     )
-                    policy = tf.nn.softmax(masked_policy)
-                    action = np.argmax(policy)
+                    action = np.random.choice(len(probs), p=probs)
+                    # NOTE: performance on greedy is terrible. Acting according
+                    #       to policy probs solves many more problems.
+                    # action = np.argmax(probs)
                     state, reward, done, _ = env.step(action)
                     reward_sum += reward
                     if done and reward > 0.0:
