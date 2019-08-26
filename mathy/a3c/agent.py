@@ -22,6 +22,9 @@ class A3CAgent:
         print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
         env = gym.make(self.args.env_name)
         self.action_size = env.action_space.n
+        self.writer = tf.summary.create_file_writer(
+            os.path.join(self.args.model_dir, "tensorboard")
+        )
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
         self.global_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
@@ -62,6 +65,7 @@ class A3CAgent:
                 worker_idx=i,
                 optimizer=self.optimizer,
                 result_queue=res_queue,
+                writer=self.writer,
             )
             for i in range(self.args.num_workers)
         ]
