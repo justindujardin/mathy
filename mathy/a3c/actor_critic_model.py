@@ -4,7 +4,6 @@ import tensorflow as tf
 from typing import Optional, Any
 from ..agent.layers.math_embedding import MathEmbedding
 from ..agent.layers.lstm_stack import LSTMStack
-from ..agent.layers.resnet_stack import ResNetStack
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from tensorflow.keras.layers import TimeDistributed
@@ -33,7 +32,6 @@ class ActorCriticModel(tf.keras.Model):
         self.predictions = predictions
         self.shared_layers = shared_layers
         self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
-        self.resnet = ResNetStack(units=args.units, name="resnet", num_layers=4)
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions), name="pi_head"
         )
@@ -52,13 +50,12 @@ class ActorCriticModel(tf.keras.Model):
             inputs
         )
 
-        feature_vectors = self.resnet(lstm_vectors)
         attention_context, attention_weights = self.attention(
             lstm_vectors, context_inputs
         )
 
         values = self.value_logits(attention_context)
-        logits = self.pi_sequence(feature_vectors)
+        logits = self.pi_sequence(lstm_vectors)
         masked_logits = self.apply_pi_mask(logits, batch_features, sequence_length)
         return logits, values, masked_logits
 

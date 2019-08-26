@@ -13,19 +13,23 @@ from ..features import (
     FEATURE_PROBLEM_TYPE,
 )
 from .lstm import LSTM
+from .resnet_stack import ResNetStack
 
 
 class MathEmbedding(tf.keras.layers.Layer):
     def __init__(self, units: int = 128, **kwargs):
         self.units = units
         self.flatten = tf.keras.layers.Flatten()
-        self.input_dense = tf.keras.layers.Dense(self.units)
-        self.out_dense = tf.keras.layers.Dense(
-            units=units, name=f"embedding_out", activation="relu"
-        )
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
+        self.input_dense = tf.keras.layers.Dense(
+            self.units, name="embedding_input", use_bias=False
+        )
+        self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
+        self.lstm = LSTM(units, name="embedding_lstm")
+        self.embedding = tf.keras.layers.Dense(
+            units=self.units, name="embedding", activation="relu"
+        )
         self.build_feature_columns()
-        self.lstm = LSTM(units)
         super(MathEmbedding, self).__init__(**kwargs)
 
     def build_feature_columns(self):
@@ -83,7 +87,7 @@ class MathEmbedding(tf.keras.layers.Layer):
         outputs = []
         # Convert one-hot to dense layer representations
         for sequence_inputs in batch_sequence_features:
-            example = self.input_dense(self.flatten(sequence_inputs))
+            example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
             outputs.append(tf.reshape(example, [sequence_length, -1]))
 
         outputs = tf.convert_to_tensor(outputs)
