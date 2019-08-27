@@ -1,5 +1,6 @@
 from colr import color
 from .config import A3CArgs
+import datetime
 
 
 def game_for_worker_index(index: int) -> str:
@@ -54,6 +55,8 @@ def record(
     num_steps: The number of steps the episode took to complete
   """
 
+    now = datetime.datetime.now().strftime("%H:%M:%S")
+
     def truncate(value):
         return float("%.3f" % (float(value)))
 
@@ -62,7 +65,7 @@ def record(
     fore = "green" if episode_reward > 0.0 else "red"
     print(
         color(
-            f"[ep{episode}] "
+            f"{now} ep{episode} "
             f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
             f"loss(total: {truncate(total_loss)} "
             f"pi: {truncate(pi_loss)} "
