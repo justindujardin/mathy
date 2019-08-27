@@ -36,6 +36,9 @@ def record(
     worker_idx,
     global_ep_reward,
     result_queue,
+    pi_loss,
+    value_loss,
+    entropy_loss,
     total_loss,
     num_steps,
     env_name,
@@ -61,7 +64,10 @@ def record(
         color(
             f"[ep{episode}] "
             f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
-            f"loss({truncate(total_loss)}) "
+            f"loss(total: {truncate(total_loss)} "
+            f"pi: {truncate(pi_loss)} "
+            f"value: {truncate(value_loss)} "
+            f"entropy: {truncate(entropy_loss)}) "
             f"steps({num_steps}) "
             f"worker{worker_idx}: {env_name}",
             fore=fore,

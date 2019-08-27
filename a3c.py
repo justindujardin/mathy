@@ -43,7 +43,7 @@ def main(
     args = A3CArgs(
         env_name=env_name,
         train=train,
-        update_freq=10,
+        update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
         num_workers=workers,

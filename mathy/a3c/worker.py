@@ -7,10 +7,12 @@ import gym
 import numpy as np
 import tensorflow as tf
 
+from ..core.expressions import MathTypeKeysMax
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
 from .util import record, cat_entropy, entropy_beta_for_training_step
+from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 
 class A3CWorker(threading.Thread):
@@ -54,6 +56,10 @@ class A3CWorker(threading.Thread):
         )
         self.local_model.maybe_load(self.env.reset())
         self.ep_loss = 0.0
+        self.ep_pi_loss = 0.0
+        self.ep_value_loss = 0.0
+        self.ep_entropy_loss = 0.0
+
         print(f"[Worker {worker_idx}] using env: {self.args.env_name}")
 
     def run(self):
@@ -79,11 +85,11 @@ class A3CWorker(threading.Thread):
         done = False
         while not done:
             # Select a random action from the distribution with the given probabilities
-            if np.random.random() < self.args.exploration_greedy_epsilon:
-                action = self.env.action_space.sample()
-            else:
-                _, _, probs = self.local_model.call_masked(current_state, state_mask)
-                action = np.random.choice(len(probs), p=probs)
+            # if np.random.random() < self.args.exploration_greedy_epsilon:
+            #     action = self.env.action_space.sample()
+            # else:
+            _, _, probs = self.local_model.call_masked(current_state, state_mask)
+            action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = self.env.step(action)
@@ -174,10 +180,13 @@ class A3CWorker(threading.Thread):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
         with tf.GradientTape() as tape:
-            total_loss = self.compute_loss(
+            pi_loss, value_loss, entropy_loss, total_loss = self.compute_loss(
                 done, new_state, replay_buffer, self.args.gamma
             )
         self.ep_loss += total_loss
+        self.ep_pi_loss += pi_loss
+        self.ep_value_loss += value_loss
+        self.ep_entropy_loss += entropy_loss
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
@@ -197,6 +206,9 @@ class A3CWorker(threading.Thread):
             self.worker_idx,
             A3CWorker.global_moving_average_reward,
             self.result_queue,
+            self.ep_pi_loss,
+            self.ep_value_loss,
+            self.ep_entropy_loss,
             self.ep_loss,
             episode_steps,
             self.args.env_name,
@@ -240,9 +252,23 @@ class A3CWorker(threading.Thread):
         batch_size = len(replay_buffer.actions)
 
         inputs = replay_buffer.to_features()
-        logits, values, masked = self.local_model(inputs)
+        logits, values, masked = self.local_model(inputs, apply_mask=False)
         logits = tf.reshape(logits, [batch_size, -1])
-        masked_flat = tf.nn.softmax(tf.reshape(masked, [batch_size, -1]))
+        masked_flat = tf.reshape(masked, [batch_size, -1])
+
+        # # reshape to the logits dimensions
+        # action_labels = tf.convert_to_tensor(replay_buffer.actions, dtype=tf.int32)
+        # reward_values = tf.convert_to_tensor(replay_buffer.rewards, dtype=tf.float32)
+
+        # # TODO: An extra dimension is needed, so expand the dims.. this feels wrong?
+        # logits = tf.expand_dims(logits, axis=1)
+        # # logits = tf.expand_dims(masked, axis=1)
+        # action_labels = tf.expand_dims(action_labels, axis=1)
+        # reward_values = tf.expand_dims(reward_values, axis=1)
+
+        # Calculate entropy and policy loss
+        h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
 
         # Advantage is the difference between the final calculated discount
         # rewards, and the current Value function prediction of the rewards
@@ -252,8 +278,6 @@ class A3CWorker(threading.Thread):
         value_loss = advantage ** 2
 
         # Policy Loss
-        policy = tf.nn.softmax(logits)
-        entropy = cat_entropy(logits)
 
         # We calculate policy loss from the masked logits to keep
         # the error from exploding when irrelevant (masked) logits
@@ -264,9 +288,10 @@ class A3CWorker(threading.Thread):
             labels=replay_buffer.actions, logits=masked_flat
         )
         policy_loss *= tf.stop_gradient(advantage)
-        policy_loss -= entropy_beta_for_training_step(self.args, step) * entropy
 
-        total_loss = tf.reduce_mean(input_tensor=(0.5 * value_loss + policy_loss))
+        value_loss *= 0.5
+
+        total_loss = tf.reduce_mean(value_loss + policy_loss + h_loss.loss)
         with self.writer.as_default():
             tf.summary.scalar(
                 f"losses/worker_{self.worker_idx}/loss", data=total_loss, step=step
@@ -281,7 +306,11 @@ class A3CWorker(threading.Thread):
                 data=tf.reduce_mean(value_loss),
                 step=step,
             )
-
+            tf.summary.scalar(
+                f"values/worker_{self.worker_idx}/entropy_loss",
+                data=tf.reduce_mean(h_loss.loss),
+                step=step,
+            )
             tf.summary.scalar(
                 f"values/worker_{self.worker_idx}/advantage",
                 data=tf.reduce_sum(advantage),
@@ -289,12 +318,13 @@ class A3CWorker(threading.Thread):
             )
             tf.summary.scalar(
                 f"values/worker_{self.worker_idx}/entropy",
-                data=tf.reduce_sum(entropy),
+                data=tf.reduce_mean(h_loss.extra.entropy),
                 step=step,
             )
-            tf.summary.histogram(
-                f"values/worker_{self.worker_idx}/policy",
-                data=tf.reduce_sum(policy, axis=1),
-                step=step,
-            )
-        return total_loss
+
+        return (
+            tf.reduce_mean(policy_loss),
+            tf.reduce_mean(value_loss),
+            tf.reduce_mean(h_loss.loss),
+            total_loss,
+        )

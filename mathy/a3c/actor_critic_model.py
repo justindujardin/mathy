@@ -40,7 +40,7 @@ class ActorCriticModel(tf.keras.Model):
         self.embedding = MathEmbedding()
         self.attention = BahdanauAttention(self.args.units)
 
-    def call(self, batch_features):
+    def call(self, batch_features, apply_mask=True):
         inputs = batch_features
         if self.shared_layers is not None:
             for layer in self.shared_layers:
@@ -56,8 +56,11 @@ class ActorCriticModel(tf.keras.Model):
 
         values = self.value_logits(attention_context)
         logits = self.pi_sequence(lstm_vectors)
-        masked_logits = self.apply_pi_mask(logits, batch_features, sequence_length)
-        return logits, values, masked_logits
+        trimmed_logits, mask_logits = self.apply_pi_mask(
+            logits, batch_features, sequence_length
+        )
+        mask_result = trimmed_logits if not apply_mask else mask_logits
+        return logits, values, mask_result
 
     def apply_pi_mask(self, logits, batch_features, sequence_length: int):
         """Take the policy_mask from a batch of features and multiply
@@ -70,13 +73,13 @@ class ActorCriticModel(tf.keras.Model):
         trim_logits = logits[:, : batch_mask_flat.shape[1], :]
         features_mask = tf.cast(batch_mask_flat, dtype=tf.float32)
         mask_logits = tf.multiply(trim_logits, features_mask)
-        mask_logits = tf.where(
+        negative_mask_logits = tf.where(
             tf.equal(mask_logits, tf.constant(0.0)),
             tf.fill(trim_logits.shape, -1000000.0),
             mask_logits,
         ).numpy()
 
-        return mask_logits
+        return trim_logits, negative_mask_logits
 
     def maybe_load(self, initial_state=None, do_init=False):
         if initial_state is not None:

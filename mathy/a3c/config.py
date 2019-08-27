@@ -32,7 +32,7 @@ class A3CArgs(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     lr: float = 3e-4
-    update_freq: int = 50
+    update_freq: int = 25
     max_eps: int = 10000
     gamma: float = 0.99
     # Worker's sleep this long between steps to allow
