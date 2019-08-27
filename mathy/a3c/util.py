@@ -16,9 +16,7 @@ def entropy_beta_for_training_step(args: A3CArgs, step: int) -> float:
     beta = args.entropy_beta_max * args.entropy_beta_decay ** (
         step / args.entropy_beta_decay_steps
     )
-    if beta < args.entropy_beta_min:
-        return float(args.entropy_beta_min)
-    return float(beta)
+    return float(beta) + float(args.entropy_beta_min)
 
 
 # From openai baselines: https://bit.ly/30EvCzy
