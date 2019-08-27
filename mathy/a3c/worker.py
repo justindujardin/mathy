@@ -255,7 +255,7 @@ class A3CWorker(threading.Thread):
         policy = tf.nn.softmax(logits)
         entropy = cat_entropy(logits)
 
-        # We calculate policy loss from the masked logits to keep 
+        # We calculate policy loss from the masked logits to keep
         # the error from exploding when irrelevant (masked) logits
         # have large values. Because we apply a mask for all operations
         # we don't care what those logits are, unless they're part of
