@@ -254,20 +254,10 @@ class A3CWorker(threading.Thread):
         inputs = replay_buffer.to_features()
         logits, values, masked = self.local_model(inputs, apply_mask=False)
         logits = tf.reshape(logits, [batch_size, -1])
-        masked_flat = tf.reshape(masked, [batch_size, -1])
-
-        # # reshape to the logits dimensions
-        # action_labels = tf.convert_to_tensor(replay_buffer.actions, dtype=tf.int32)
-        # reward_values = tf.convert_to_tensor(replay_buffer.rewards, dtype=tf.float32)
-
-        # # TODO: An extra dimension is needed, so expand the dims.. this feels wrong?
-        # logits = tf.expand_dims(logits, axis=1)
-        # # logits = tf.expand_dims(masked, axis=1)
-        # action_labels = tf.expand_dims(action_labels, axis=1)
-        # reward_values = tf.expand_dims(reward_values, axis=1)
+        num_actions = masked.shape[1] * masked.shape[2]
 
         # Calculate entropy and policy loss
-        h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        h_loss = discrete_policy_entropy_loss(masked, normalise=True)
         # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
 
         # Advantage is the difference between the final calculated discount
@@ -278,20 +268,18 @@ class A3CWorker(threading.Thread):
         value_loss = advantage ** 2
 
         # Policy Loss
-
-        # We calculate policy loss from the masked logits to keep
-        # the error from exploding when irrelevant (masked) logits
-        # have large values. Because we apply a mask for all operations
-        # we don't care what those logits are, unless they're part of
-        # the mask.
-        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=masked_flat
+        action_labels = tf.one_hot(replay_buffer.actions, depth=num_actions)
+        policy_loss = tf.nn.softmax_cross_entropy_with_logits(
+            labels=tf.reshape(action_labels, masked.shape), logits=masked
         )
+
+        # Apply advantage
         policy_loss *= tf.stop_gradient(advantage)
 
         value_loss *= 0.5
 
-        total_loss = tf.reduce_mean(value_loss + policy_loss + h_loss.loss)
+        entropy_loss = h_loss.loss * entropy_beta_for_training_step(self.args, step)
+        total_loss = tf.reduce_mean(value_loss + policy_loss + entropy_loss)
         with self.writer.as_default():
             tf.summary.scalar(
                 f"losses/worker_{self.worker_idx}/loss", data=total_loss, step=step
@@ -325,6 +313,6 @@ class A3CWorker(threading.Thread):
         return (
             tf.reduce_mean(policy_loss),
             tf.reduce_mean(value_loss),
-            tf.reduce_mean(h_loss.loss),
+            tf.reduce_mean(entropy_loss),
             total_loss,
         )
