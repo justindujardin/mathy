@@ -6,7 +6,7 @@ from ..mathy_env_state import MathyEnvState
 from ..rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
 from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
-from .problems import simplify_multiple_terms
+from ..problems import simplify_multiple_terms
 
 
 class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):

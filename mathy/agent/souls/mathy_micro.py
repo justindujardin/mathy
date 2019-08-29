@@ -4,7 +4,7 @@ from tensorflow.keras.layers import Dense, DenseFeatures, TimeDistributed
 from tensorflow.python.training import adam
 from tensorflow_estimator.contrib.estimator.python import estimator
 
-from ..features import (
+from ...features import (
     FEATURE_BWD_VECTORS,  # FEATURE_MOVE_MASK,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,

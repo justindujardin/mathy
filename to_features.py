@@ -4,7 +4,7 @@ import plac
 import tensorflow as tf
 import numpy as np
 
-from mathy.mathy_env import MathyEnv
+from mathy import MathyEnv
 from mathy.agent.layers.math_embedding import MathEmbedding
 from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from mathy.envs.binomial_distribution import MathyBinomialDistributionEnv

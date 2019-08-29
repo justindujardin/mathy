@@ -1,7 +1,7 @@
 import tensorflow as tf
 from typing import List, Any, Tuple
 from ..core.expressions import MathTypeKeys
-from ..agent.features import (
+from ..features import (
     pad_array,
     FEATURE_LAST_RULE,
     FEATURE_NODE_COUNT,

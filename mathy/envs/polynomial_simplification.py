@@ -8,9 +8,9 @@ from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..mathy_env_state import MathyEnvState
 from ..rules import BaseRule, ConstantsSimplifyRule, DistributiveFactorOutRule
-from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
+from ..rules.helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
-from .problems import simplify_multiple_terms
+from ..problems import simplify_multiple_terms
 
 
 class MathyPolynomialSimplificationEnv(MathyEnv):

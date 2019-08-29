@@ -1,16 +1,16 @@
-from multiprocessing import Pool, Array, Process, Queue, cpu_count
 import time
-from random import shuffle
+from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from pickle import Pickler
+from random import shuffle
+from typing import Any, List, Optional, Tuple
+
 from pydantic import BaseModel
-from typing import List, Optional, Tuple, Any
+
+from mathy import MathyEnv, MathyEnvEpisodeResult, MathyEnvObservation, MathyEnvState
 from mathy.agent.controller import MathModel
-from mathy.mathy_env import MathyEnv
-from mathy.types import MathyEnvObservation, MathyEnvEpisodeResult
-from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
-from mathy.mathy_env_state import MathyEnvState
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.mcts import MCTS
+from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 
 
 class RunnerConfig(BaseModel):

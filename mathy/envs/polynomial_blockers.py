@@ -13,7 +13,7 @@ from ..rules import (
 )
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
-from .problems import move_around_blockers_one, move_around_blockers_two
+from ..problems import move_around_blockers_one, move_around_blockers_two
 
 
 class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):

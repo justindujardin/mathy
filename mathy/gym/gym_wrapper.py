@@ -9,7 +9,7 @@ from gym.envs.registration import register
 from gym.utils import seeding
 
 from ..agent.controller import MathModel
-from ..agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,

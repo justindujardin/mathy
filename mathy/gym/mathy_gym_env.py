@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from gym import spaces
 
-from ..agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,

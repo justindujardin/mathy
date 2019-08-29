@@ -6,7 +6,7 @@ from typing import NamedTuple, List
 import numpy
 import tensorflow as tf
 
-from .agent.features import (
+from .features import (
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,

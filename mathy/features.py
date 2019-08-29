@@ -1,8 +1,8 @@
 import re
 import numpy
 from typing import Tuple, Any, List, Dict
-from mathy.types import MathyEnvObservation
-from mathy.core.expressions import MathTypeKeys
+from .types import MathyEnvObservation
+from .core import MathTypeKeys
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
 FEATURE_LAST_RULE = "last_action"

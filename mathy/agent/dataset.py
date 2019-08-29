@@ -1,27 +1,28 @@
+from typing import List
+
 import numpy
 import tensorflow as tf
 
-from ..types import MathyEnvObservation
-from typing import List
-from ..agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
     FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
+    FEATURE_MOVE_MASK,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
-    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
-    TENSOR_KEY_NODE_CTRL,
-    TENSOR_KEY_GROUPING_CTRL,
     TENSOR_KEY_GROUP_PREDICT,
-    TENSOR_KEY_REWARD_PREDICT,
+    TENSOR_KEY_GROUPING_CTRL,
+    TENSOR_KEY_NODE_CTRL,
     TENSOR_KEY_PI,
+    TENSOR_KEY_REWARD_PREDICT,
     TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
+from ..types import MathyEnvObservation
 
 
 def make_training_input_fn(examples: List[MathyEnvObservation], batch_size: int):

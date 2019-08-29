@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from ...core.expressions import MathTypeKeysMax
-from ..features import (
+from ...features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,

@@ -12,9 +12,9 @@ from ..rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
+from ..rules.helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
-from .problems import simplify_distributive_binomial
+from ..problems import simplify_distributive_binomial
 
 
 class MathyBinomialDistributionEnv(MathyEnv):
