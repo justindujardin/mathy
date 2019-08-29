@@ -54,12 +54,12 @@ class A3CArgs(BaseModel):
     # exploration.
     #
     # The maximum (starting) entropy beta
-    entropy_beta_max: float = 1.2
+    entropy_beta_max: float = 0.2
     # The minimum entropy beta
-    entropy_beta_min: float = 0.2
+    entropy_beta_min: float = 0.01
     # The decay rate per step
     entropy_beta_decay: float = 0.001
     # The total number of steps to take
-    entropy_beta_decay_steps: int = 5000
+    entropy_beta_decay_steps: int = 500
     #
     # ---------------------------------------------------------------
