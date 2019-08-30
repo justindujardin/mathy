@@ -22,7 +22,6 @@ class ActorCriticModel(tf.keras.Model):
         args: A3CArgs,
         optimizer: tf.optimizers.Optimizer,
         predictions=2,
-        shared_layers=None,
         initial_state: Any = None,
     ):
         super(ActorCriticModel, self).__init__()
@@ -30,7 +29,6 @@ class ActorCriticModel(tf.keras.Model):
         self.optimizer = optimizer
         self.init_global_step()
         self.predictions = predictions
-        self.shared_layers = shared_layers
         self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions), name="pi_head"
@@ -42,9 +40,6 @@ class ActorCriticModel(tf.keras.Model):
 
     def call(self, batch_features, apply_mask=True):
         inputs = batch_features
-        if self.shared_layers is not None:
-            for layer in self.shared_layers:
-                inputs = layer(inputs)
         # Extract features into contextual inputs, sequence inputs.
         context_inputs, lstm_vectors, hidden_states, sequence_length = self.embedding(
             inputs

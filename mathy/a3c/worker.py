@@ -36,23 +36,18 @@ class A3CWorker(threading.Thread):
         result_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
-        shared_layers=None,
     ):
         super(A3CWorker, self).__init__()
         self.args = args
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
-        self.shared_layers = shared_layers
         self.optimizer = optimizer
         self.worker_idx = worker_idx
         self.env = gym.make(self.args.env_name)
         self.writer = writer
         self.local_model = ActorCriticModel(
-            args=args,
-            predictions=self.action_size,
-            shared_layers=shared_layers,
-            optimizer=self.optimizer,
+            args=args, predictions=self.action_size, optimizer=self.optimizer
         )
         self.local_model.maybe_load(self.env.reset())
         self.ep_loss = 0.0
