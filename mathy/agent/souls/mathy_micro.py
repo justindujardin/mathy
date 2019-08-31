@@ -4,7 +4,7 @@ from tensorflow.keras.layers import Dense, DenseFeatures, TimeDistributed
 from tensorflow.python.training import adam
 from tensorflow_estimator.contrib.estimator.python import estimator
 
-from ..features import (
+from ...features import (
     FEATURE_BWD_VECTORS,  # FEATURE_MOVE_MASK,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -50,7 +50,7 @@ def math_estimator(features, labels, mode, params):
     # where we want to know what the probability of each action is for
     # each node in the expression tree. This is key to allow the model
     # to select which node to apply which action to.
-    policy_head = TimeDistributed(
+    policy_head = tf.keras.layers.TimeDistributed(
         MathPolicyDropout(action_size, dropout=dropout_rate, feature_layers=[]),
         name="policy_head",
     )
@@ -121,12 +121,12 @@ def math_estimator(features, labels, mode, params):
             name="policy", label_dimension=action_size
         )
         value_head = estimator.head.regression_head(name="value", label_dimension=1)
-        aux_node_ctrl_head = estimator.head.regression_head(
-            name="node_ctrl", label_dimension=1
-        )
-        aux_grouping_ctrl_head = estimator.head.regression_head(
-            name="grouping_ctrl", label_dimension=1
-        )
+        # aux_node_ctrl_head = estimator.head.regression_head(
+        #     name="node_ctrl", label_dimension=1
+        # )
+        # aux_grouping_ctrl_head = estimator.head.regression_head(
+        #     name="grouping_ctrl", label_dimension=1
+        # )
         aux_group_prediction_head = estimator.head.regression_head(
             name="group_prediction", label_dimension=1
         )
@@ -136,12 +136,19 @@ def math_estimator(features, labels, mode, params):
         heads = [
             policy_head,
             value_head,
-            aux_node_ctrl_head,
-            aux_grouping_ctrl_head,
+            # aux_node_ctrl_head,
+            # aux_grouping_ctrl_head,
             aux_group_prediction_head,
             aux_reward_prediction_head,
         ]
-        # The first two (policy/value) heads get full weight, and the aux tasks get whatever...
-        head_weights = [1.0, 1.0, 0.25, 0.25, 0.25, 0.25]
+        # The first two (policy/value) heads get full weight, and the aux tasks
+        # get whatever...
+        head_weights = [
+            1.0,
+            1.0,
+            # 0.25, 0.25,
+            0.25,
+            0.25,
+        ]
         multi_head = estimator.multi_head.multi_head(heads, head_weights=head_weights)
     return multi_head.create_estimator_spec(features, mode, logits, labels, optimizer)

@@ -41,7 +41,7 @@ class CommutativeSwapRule(BaseRule):
     def code(self):
         return "CS"
 
-    def can_apply_to(self, node):
+    def can_apply_to(self, node: MathExpression):
         # Must be an add/multiply
         if isinstance(node, AddExpression):
             return True
@@ -54,7 +54,13 @@ class CommutativeSwapRule(BaseRule):
             left_const = isinstance(node.left, ConstantExpression)
             right_var = isinstance(node.right, VariableExpression)
             if left_const and right_var:
+                # UNLESS it is within a more complex term that spans multiple nodes.
+                if node.parent and isinstance(node.parent, MultiplyExpression):
+                    sibling = node.get_sibling()
+                    return sibling and isinstance(sibling, MultiplyExpression)
+                # Nope
                 return False
+
             # 8y^4 won't commute to y^4 * 8
             if isinstance(node.right, PowerExpression):
                 right_left_var = isinstance(node.right.left, VariableExpression)

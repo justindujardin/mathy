@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.estimator.export import build_parsing_serving_input_receiver_fn
 from colr import color
 
-from ..agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,

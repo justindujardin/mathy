@@ -6,7 +6,7 @@ from typing import NamedTuple, List
 import numpy
 import tensorflow as tf
 
-from .agent.features import (
+from .features import (
     FEATURE_BWD_VECTORS,
     FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
@@ -75,7 +75,9 @@ class MathAgentState:
         self.last_action = last_action
         self.reward = reward
         self.problem_type = problem_type
-        self.history = history[:] if history is not None else []
+        self.history = (
+            history[:] if history is not None else [MathyEnvTimeStep(problem, -1, -1)]
+        )
 
     @classmethod
     def copy(cls, from_state):

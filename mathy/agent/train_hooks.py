@@ -5,7 +5,7 @@ from datetime import datetime
 from tensorflow.python.training import training
 from tensorflow_estimator.python.estimator.hooks.session_run_hook import SessionRunHook
 
-from mathy.agent.features import (
+from ..features import (
     TENSOR_KEY_GROUP_PREDICT,
     TENSOR_KEY_GROUPING_CTRL,
     TENSOR_KEY_NODE_CTRL,

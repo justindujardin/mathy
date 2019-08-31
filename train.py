@@ -12,8 +12,8 @@ from mathy.agent.training.math_experience import (
     MathExperience,
     balanced_reward_experience_samples,
 )
-from mathy.mathy_env_state import INPUT_EXAMPLES_FILE_NAME
-from mathy.mathy_env import MathyEnv
+from mathy import INPUT_EXAMPLES_FILE_NAME
+from mathy import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")

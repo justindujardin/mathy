@@ -1,6 +1,7 @@
 import time
 import curses
 import uuid
+from typing import Optional
 
 # ## Constants
 
@@ -203,7 +204,7 @@ class BinaryTreeNode:
 
     # Get the sibling node of this node.  If there is no parent, or the node has no
     # sibling, the return value will be None.
-    def get_sibling(self) -> "BinaryTreeNode":
+    def get_sibling(self) -> Optional["BinaryTreeNode"]:
         if not self.parent:
             return None
 

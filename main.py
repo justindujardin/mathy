@@ -20,9 +20,9 @@ from mathy.envs import (
     MathyComplexTermSimplificationEnv,
     MathyPolynomialSimplificationEnv,
 )
-from mathy.mathy_env import mathy_core_rules
-from mathy.mathy_env import MathyEnv
-from mathy.types import MathyEnvObservation
+from mathy import mathy_core_rules
+from mathy import MathyEnv
+from mathy import MathyEnvObservation
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")

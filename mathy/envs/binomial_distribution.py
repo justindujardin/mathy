@@ -3,17 +3,18 @@ from typing import Any, Dict, List, Optional, Type
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
+from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
+from ..mathy_env import MathyEnv, MathyEnvProblem
+from ..mathy_env_state import MathyEnvState
 from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..rules.util import get_terms, has_like_terms, is_preferred_term_form
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
-from .problems import simplify_distributive_binomial
-from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..mathy_env_state import MathyEnvState
+from ..rules.helpers import get_terms, has_like_terms, is_preferred_term_form
+from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
+from ..problems import binomial_times_binomial, binomial_times_monomial
 
 
 class MathyBinomialDistributionEnv(MathyEnv):
@@ -40,33 +41,26 @@ class MathyBinomialDistributionEnv(MathyEnv):
                 return time_step.termination(features, self.get_win_signal(env_state))
         return None
 
-    def problem_fn(self, params: Dict[str, Any] = None) -> MathyEnvProblem:
+    def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
-        2 binomials expressions connected by a multiplication."""
-        config = params if params is not None else dict()
-        if "difficulty" not in config:
-            raise ValueError(
-                "problem 'difficulty' must be provided as an integer value. "
-                "The value is to represent the relative difficulty of the problem"
-                " in this case it is the number of terms to generate"
+        2 binomials expressions connected by a multiplication. """
+        if params.difficulty == MathyEnvDifficulty.easy:
+            text, complexity = binomial_times_monomial(min_vars=2, max_vars=3)
+        elif params.difficulty == MathyEnvDifficulty.normal:
+            text, complexity = binomial_times_binomial(
+                min_vars=1,
+                max_vars=2,
+                powers_proability=0.1,
+                like_variables_probability=0.0,
             )
-
-        difficulty = int(config["difficulty"])
-        if difficulty < 4:
-            text, complexity = simplify_distributive_binomial(min_vars=1, max_vars=2)
-        elif difficulty == 4:
-            text, complexity = simplify_distributive_binomial(min_vars=2, max_vars=2)
-        elif difficulty == 5:
-            text, complexity = simplify_distributive_binomial(
-                min_vars=2, max_vars=2, powers_proability=0.8
-            )
-        elif difficulty == 6:
-            text, complexity = simplify_distributive_binomial(
-                simple_variables=False, min_vars=2, max_vars=3
+        elif params.difficulty == MathyEnvDifficulty.hard:
+            text, complexity = binomial_times_binomial(
+                min_vars=2,
+                max_vars=3,
+                simple_variables=False,
+                powers_proability=0.8,
+                like_variables_probability=0.8,
             )
         else:
-            text, complexity = simplify_distributive_binomial(
-                min_vars=3, max_vars=4, simple_variables=False
-            )
-
+            raise ValueError(f"Unknown difficulty: {params.difficulty}")
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

@@ -4,7 +4,7 @@ from threading import Thread
 
 import tensorflow as tf
 
-from mathy.agent.features import (
+from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_MOVE_MASK,
     FEATURE_LAST_RULE,

@@ -1,5 +1,5 @@
 from ..core.parser import ExpressionParser
-from ..rules.util import get_terms, terms_are_like, load_rule_tests
+from ..rules.helpers import get_terms, terms_are_like, load_rule_tests
 from ..rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,

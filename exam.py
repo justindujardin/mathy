@@ -12,14 +12,14 @@ from mathy.agent.training.math_experience import MathExperience
 from mathy.agent.training.mcts import MCTS
 from mathy.agent.training.practice_runner import ParallelPracticeRunner, PracticeRunner
 from mathy.agent.training.practice_session import PracticeSession
-from mathy.envs.problems import (
+from mathy import (
     get_rand_vars,
     maybe_int,
     rand_var,
     simplify_multiple_terms,
 )
-from mathy.core.parser import ExpressionParser, ParserException
-from mathy.mathy_env import MathyEnv
+from mathy import ExpressionParser, ParserException
+from mathy import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")

@@ -7,7 +7,7 @@ from ..core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..rules.util import (
+from ..rules.helpers import (
     is_preferred_term_form,
     has_like_terms,
     TermEx,

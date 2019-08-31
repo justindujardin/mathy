@@ -1,5 +1,5 @@
 import random
-from typing import Tuple, Dict, Any
+from typing import Tuple
 
 operators = list("+*")
 common_variables = list("xyz")
@@ -44,7 +44,6 @@ def rand_op():
 
 def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     """Get a list of random variables, excluding the given list of hold-out variables"""
-    var = rand_var()
     if num_vars > 25:
         raise ValueError("out of range: there are only twenty-six variables")
     rand_vars = set()
@@ -57,7 +56,7 @@ def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     return out
 
 
-def simplify_distributive_binomial(
+def binomial_times_binomial(
     *,
     op="+",
     min_vars=1,
@@ -66,7 +65,6 @@ def simplify_distributive_binomial(
     powers_proability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
-    """FOIL problems"""
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
@@ -89,14 +87,64 @@ def simplify_distributive_binomial(
             var = f"{var}{maybe_power(power_prob_percent * 2)}"
         for i in range(num_vars):
             terms[i] = var
-    random.shuffle(terms)
+    # random.shuffle(terms)
 
     # Conditionally attach coefficients to each term
     for i in range(4):
         if simple_variables is True and terms[i] != "":
             continue
         terms[i] = f"{rand_int()}{terms[i]}"
-    return f"({terms[0]} + {terms[1]})({terms[2]} + {terms[3]})", num_terms
+
+    first = [terms[0], terms[2]]
+    second = [terms[1], terms[3]]
+    random.shuffle(first)
+    random.shuffle(second)
+    return f"({first[0]} + {first[1]})({second[0]} + {second[1]})", num_terms + 2
+
+
+def binomial_times_monomial(
+    *,
+    op="+",
+    min_vars=1,
+    max_vars=2,
+    simple_variables=True,
+    powers_proability=0.33,
+    like_variables_probability=1.0,
+) -> Tuple[str, int]:
+    power_prob_percent = powers_proability * 100
+    powers = rand_bool(power_prob_percent)
+    like_vars = rand_bool(like_variables_probability * 100)
+
+    num_terms: int = 3
+
+    num_vars: int = random.randint(min_vars, max_vars)
+    terms = [""] * num_terms
+
+    # Build variables (with optional exponents)
+    if like_vars is False:
+        for i, var in enumerate(get_rand_vars(num_vars)):
+            if powers is not False:
+                terms[i] = f"{var}{maybe_power(power_prob_percent * 2)}"
+            else:
+                terms[i] = var
+    else:
+        var = rand_var()
+        if powers is not False:
+            var = f"{var}{maybe_power(power_prob_percent * 2)}"
+        for i in range(num_vars):
+            terms[i] = var
+    # random.shuffle(terms)
+
+    # Conditionally attach coefficients to each term
+    for i in range(num_terms):
+        if simple_variables is True and terms[i] != "":
+            continue
+        terms[i] = f"{rand_int()}{terms[i]}"
+
+    first = [terms[0], terms[2]]
+    second = terms[1]
+    random.shuffle(first)
+    return f"({first[0]} + {first[1]}) * {second}", num_terms
 
 
 def combine_multiple_like_add_terms(num_terms, optional_var=False):
@@ -145,7 +193,7 @@ def simplify_multiple_terms(
         result = result + " {} {}{}".format(
             rand_op() if op is None else op, rand_int(), other_var
         )
-    return result, num_terms
+    return result, num_terms + 2
 
 
 def solve_for_variable(terms=4):
@@ -157,7 +205,7 @@ def solve_for_variable(terms=4):
     for _ in range(terms - 3):
         num = rand_int()
         op = rand_op()
-        var = optional_var()
+        var = maybe_var()
         result = result + " {} {}{}".format(op, num, var)
     return result + suffix
 
@@ -190,7 +238,7 @@ def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
 
     total_terms = random.randint(min_terms, max_terms)
     var = rand_var()
-    power_chance = 80 if powers == True else 0
+    power_chance = 80 if powers is True else 0
     power = maybe_power(power_chance)
     focus_chunk = f"{maybe_int()}{var}{power} + {maybe_int()}{var}{power}"
     if easy:
@@ -242,7 +290,8 @@ def combine_terms_after_commuting(
         current = noise_vars.pop()
         blockers.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
 
-    focus_chunk = f"{maybe_int()}{var}{power} + {' + '.join(blockers)} + {maybe_int()}{var}{power}"
+    blocks = " + ".join(blockers)
+    focus_chunk = f"{maybe_int()}{var}{power} + {blocks} + {maybe_int()}{var}{power}"
     # About half of the time focus the agent by grouping the subtree for them
     if rand_bool(50 if easy else 10):
         focus_chunk = f"({focus_chunk})"

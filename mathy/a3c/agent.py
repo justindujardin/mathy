@@ -1,59 +1,36 @@
-import multiprocessing
 import os
 from queue import Queue
 from typing import Optional
 
 import gym
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from pydantic import BaseModel
 
+from ..mathy_env_state import MathyEnvState
 from .actor_critic_model import ActorCriticModel
+from .config import A3CArgs
 from .random_agent import RandomAgent
 from .worker import A3CWorker
-from ..mathy_env_state import MathyEnvState
-
-
-class A3CArgs(BaseModel):
-    algorithm: str = "a3c"
-    train: bool = False
-    lr: float = 3e-4
-    update_freq: int = 50
-    max_eps: int = 10000
-    gamma: float = 0.99
-    save_dir: str = "training/a3c/"
 
 
 class A3CAgent:
-    def __init__(
-        self, args: A3CArgs, env_name, units=128, init_model: Optional[str] = None
-    ):
+
+    args: A3CArgs
+
+    def __init__(self, args: A3CArgs, init_model: Optional[str] = None):
         self.args = args
-        self.units = units
-        print(f"Agent using {units} dimensional dense layers")
-        self.env_name = env_name
-        # Model to load weights from when initializing the agent model
-        self.init_model = init_model
-        self.save_dir = self.args.save_dir
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
-        env = gym.make(self.env_name)
+        print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
+        env = gym.make(self.args.env_name)
         self.action_size = env.action_space.n
-        self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
-        self.shared_network = tf.keras.layers.Dense(
-            units, activation="relu", name="shared_network"
+        self.writer = tf.summary.create_file_writer(
+            os.path.join(self.args.model_dir, "tensorboard")
         )
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
         self.global_model = ActorCriticModel(
-            units=units,
-            predictions=self.action_size,
-            shared_layers=[self.shared_network],
-            save_dir=self.save_dir,
-            load_model=self.env_name,
-            init_model=self.init_model,
+            args=args, predictions=self.action_size, optimizer=self.optimizer
         )
         # Initialize the global model with a random observation
-        self.global_model.maybe_load(env.reset())
+        self.global_model.maybe_load(env.reset(), do_init=True)
 
     def train(self):
         if self.args.algorithm == "random":
@@ -62,53 +39,52 @@ class A3CAgent:
             return
 
         res_queue = Queue()
-        num_workers = multiprocessing.cpu_count()
-        # num_workers = 1
 
-        def poly_name_for_worker(idx: int):
-            if idx == 0:
-                return "mathy-binomial-easy-v0"
-            elif idx == 1:
-                return "mathy-binomial-easy-v0"
-            elif idx == 2:
-                return "mathy-binomial-easy-v0"
-            elif idx == 3:
-                return "mathy-binomial-easy-v0"
-            return f"mathy-poly-0{idx + 6}-v0"
+        def many_workers(idx: int):
+            items = [
+                "mathy-poly-easy-v0",
+                "mathy-poly-normal-v0",
+                "mathy-poly-hard-v0",
+                "mathy-binomial-easy-v0",
+                "mathy-binomial-normal-v0",
+                "mathy-binomial-hard-v0",
+                "mathy-poly-blockers-easy-v0",
+                "mathy-poly-blockers-normal-v0",
+                "mathy-poly-blockers-hard-v0",
+            ]
+            if idx > len(items):
+                raise ValueError("not enough workers to satisfy")
+            return items[idx]
 
         workers = [
             A3CWorker(
-                units=self.units,
-                action_size=self.action_size,
                 global_model=self.global_model,
+                action_size=self.action_size,
+                args=self.args,
+                # args=self.args.copy(update={"env_name": many_workers(i)}),
+                worker_idx=i,
                 optimizer=self.optimizer,
                 result_queue=res_queue,
-                worker_idx=i,
-                shared_layers=[self.shared_network],
-                env_name=self.env_name,
-                save_dir=self.save_dir,
-                args=self.args,
+                writer=self.writer,
             )
-            for i in range(num_workers)
+            for i in range(self.args.num_workers)
         ]
 
         for i, worker in enumerate(workers):
             worker.start()
 
-        moving_average_rewards = []  # record episode reward to plot
-        while True:
-            reward = res_queue.get()
-            if reward is not None:
-                moving_average_rewards.append(reward)
-            else:
-                break
-        [w.join() for w in workers]
+        try:
+            while True:
+                reward = res_queue.get()
+                if reward is None:
+                    break
+        except KeyboardInterrupt:
+            print("Received Keyboard Interrupt. Shutting down.")
+            A3CWorker.request_quit = True
+            self.global_model.save()
 
-        plt.plot(moving_average_rewards)
-        plt.ylabel("Moving average ep reward")
-        plt.xlabel("Step")
-        plt.savefig(os.path.join(self.save_dir, f"{self.env_name} Moving Average.png"))
-        plt.show()
+        [w.join() for w in workers]
+        print("Done. Bye!")
 
     def choose_action(self, env, state: MathyEnvState):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)
@@ -121,11 +97,11 @@ class A3CAgent:
 
     def play(self, env=None, loop=False):
         if env is None:
-            env = gym.make(self.env_name).unwrapped
+            env = gym.make(self.args.env_name).unwrapped
         model = self.global_model
         model.maybe_load(env.reset())
         if self.args.algorithm == "random":
-            random_agent = RandomAgent(self.env_name, self.args.max_eps)
+            random_agent = RandomAgent(self.args.env_name, self.args.max_eps)
             random_agent.run()
             return
         try:
@@ -136,11 +112,11 @@ class A3CAgent:
                 reward_sum = 0
                 while not done:
                     env.render(mode="terminal")
-                    policy, value, masked_policy = model.call_masked(
-                        state, env.action_space.mask
-                    )
-                    policy = tf.nn.softmax(masked_policy)
-                    action = np.argmax(policy)
+                    policy, value, probs = model.call_masked(state)
+                    action = np.random.choice(len(probs), p=probs)
+                    # NOTE: performance on greedy is terrible. Acting according
+                    #       to policy probs solves many more problems.
+                    # action = np.argmax(probs)
                     state, reward, done, _ = env.step(action)
                     reward_sum += reward
                     if done and reward > 0.0:

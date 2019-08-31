@@ -3,15 +3,15 @@ from ..mathy_env import MathyEnv
 from ..envs import MathyPolynomialSimplificationEnv
 from ..util import is_terminal_transition
 import random
+import pytest
 
 
 def test_mathy_env_init():
     env = MathyEnv()
     assert env is not None
-    state, prob = env.get_initial_state()
-    assert prob == MathyEnv.INVALID_PROBLEM
-    assert state is not None
-    assert state.agent is not None
+    # Default env is abstract and cannot be directly used for problem solving
+    with pytest.raises(NotImplementedError):
+        env.get_initial_state()
 
 
 def test_mathy_env_jd():
@@ -23,7 +23,7 @@ def test_mathy_env_jd():
         actions = env.get_valid_moves(env_state)
         indices = [i for i, value in enumerate(actions) if value == 1]
         random.shuffle(indices)
-        env_state, value = env.get_next_state(env_state, indices[0])
+        env_state, value, changed = env.get_next_state(env_state, indices[0])
     assert env_state.to_input_features([]) is not None
 
 

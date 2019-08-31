@@ -1,26 +1,47 @@
 import tensorflow as tf
 
-from ..features import (
+from ...core.expressions import MathTypeKeysMax
+from ...features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_MOVE_COUNTER,
-    FEATURE_MOVES_REMAINING,
-    FEATURE_LAST_RULE,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
+    FEATURE_MOVE_COUNTER,
+    FEATURE_MOVES_REMAINING,
+    FEATURE_NODE_COUNT,
+    FEATURE_PROBLEM_TYPE,
 )
-from ...core.expressions import MathTypeKeysMax
+from .bahdanau_attention import BahdanauAttention
+from .resnet_stack import ResNetStack
+from .lstm import LSTM
+from .keras_self_attention.seq_self_attention import SeqSelfAttention
 
 
 class MathEmbedding(tf.keras.layers.Layer):
-    """Layer that takes in Tensorflow feature columns, and outputs a tuple of
-    (context_embedding, sequence_embedding, sequence_length)"""
-
-    def __init__(self, **kwargs):
-        self.build_feature_columns()
+    def __init__(self, units: int = 128, **kwargs):
         super(MathEmbedding, self).__init__(**kwargs)
+        self.units = units
+        self.attention = BahdanauAttention(self.units)
+        self.flatten = tf.keras.layers.Flatten(name="flatten")
+        self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
+        self.input_dense = tf.keras.layers.Dense(
+            self.units, name="embedding_input", use_bias=False
+        )
+        self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
+        self.lstm = tf.keras.layers.LSTM(
+            units,
+            name="embedding_lstm",
+            return_sequences=True,
+            time_major=True,
+            return_state=True,
+        )
+
+        self.embedding = tf.keras.layers.Dense(
+            units=self.units, name="embedding", activation="relu"
+        )
+        self.build_feature_columns()
+        # self.self_attention = SeqSelfAttention()
 
     def build_feature_columns(self):
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
@@ -43,69 +64,65 @@ class MathEmbedding(tf.keras.layers.Layer):
             )
         )
         self.feature_columns = [
-            # self.f_problem_type,
+            self.f_problem_type,
             self.f_last_rule,
             self.f_node_count,
-            # self.f_move_count,
+            self.f_move_count,
             # self.f_moves_remaining,
         ]
 
-        vocab_buckets = MathTypeKeysMax + 1
-
-        #
-        # Sequence features
-        #
-        # self.feat_policy_mask = tf.feature_column.sequence_numeric_column(
-        #     key=FEATURE_MOVE_MASK, dtype=tf.int64, shape=self.action_size
-        # )
-        self.feat_bwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_identity(
-                key=FEATURE_BWD_VECTORS, num_buckets=vocab_buckets
-            ),
-            dimension=32,
-        )
-        self.feat_fwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_identity(
-                key=FEATURE_FWD_VECTORS, num_buckets=vocab_buckets
-            ),
-            dimension=32,
-        )
-        self.feat_last_bwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_identity(
-                key=FEATURE_LAST_BWD_VECTORS, num_buckets=vocab_buckets
-            ),
-            dimension=32,
-        )
-        self.feat_last_fwd_vectors = tf.feature_column.embedding_column(
-            tf.feature_column.sequence_categorical_column_with_identity(
-                key=FEATURE_LAST_FWD_VECTORS, num_buckets=vocab_buckets
-            ),
-            dimension=32,
-        )
-        self.sequence_columns = [
-            self.feat_fwd_vectors,
-            self.feat_bwd_vectors,
-            self.feat_last_fwd_vectors,
-            self.feat_last_bwd_vectors,
-        ]
-
-        self.seq_extractor = tf.keras.experimental.SequenceFeatures(
-            self.sequence_columns, name="seq_features"
-        )
         self.ctx_extractor = tf.keras.layers.DenseFeatures(
             self.feature_columns, name="ctx_features"
         )
 
-    # def compute_output_shape(self, input_shape):
-    #     return tf.TensorShape([input_shape[0], self.num_predictions])
-
     def call(self, features):
-        sequence_features = {
-            FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
-            FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
-            FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
-            FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
-        }
-        sequence_inputs, sequence_length = self.seq_extractor(sequence_features)
         context_inputs = self.ctx_extractor(features)
-        return context_inputs, sequence_inputs, sequence_length
+        batch_size = len(features[FEATURE_BWD_VECTORS])
+        sequence_length = len(features[FEATURE_BWD_VECTORS][0])
+        max_depth = MathTypeKeysMax
+        batch_seq_one_hots = [
+            tf.one_hot(
+                features[FEATURE_BWD_VECTORS], dtype=tf.float32, depth=max_depth
+            ),
+            tf.one_hot(
+                features[FEATURE_FWD_VECTORS], dtype=tf.float32, depth=max_depth
+            ),
+            tf.one_hot(
+                features[FEATURE_LAST_BWD_VECTORS], dtype=tf.float32, depth=max_depth
+            ),
+            tf.one_hot(
+                features[FEATURE_LAST_FWD_VECTORS], dtype=tf.float32, depth=max_depth
+            ),
+        ]
+        batch_sequence_features = self.concat(batch_seq_one_hots)
+
+        outputs = []
+        # Convert one-hot to dense layer representations while
+        # preserving the batch[0] and time[1] dimensions
+        for sequence_inputs in batch_sequence_features:
+            example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
+            outputs.append(tf.reshape(example, [sequence_length, -1]))
+
+        # Process the sequence embeddings with a RNN to capture temporal
+        # features. NOTE: this relies on the batches of observations being
+        # passed to this function to be in chronological order of the batch
+        # axis.
+        # outputs is a tensor that's a sequence of observations at timesteps
+        # where each observation has a sequence of nodes.
+        #
+        # shape = [Observations, ObservationNodeVectors, self.units]
+        outputs = tf.convert_to_tensor(outputs)
+
+        if batch_size > 1:
+            # print("cool beans")
+            pass
+
+        # Apply LSTM to the output sequences to capture context across timesteps
+        # in the batch.
+        #
+        # NOTE: This does process the observation timesteps across the batch axis with
+        #
+        # shape = [Observations, ObservationNodeVectors, self.units]
+        time_out, state_c, state_h = self.lstm(outputs)
+        attention_context, attention_weights = self.attention(time_out, context_inputs)
+        return (attention_context, time_out, sequence_length)

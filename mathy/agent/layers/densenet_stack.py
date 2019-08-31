@@ -1,14 +1,17 @@
 import tensorflow as tf
 from .densenet_block import DenseNetBlock
-from .bahdanau_attention import BahdanauAttention
+from typing import List, Optional
 
 
 class DenseNetStack(tf.keras.layers.Layer):
-    """DenseNet like stack of residually connected layers where the input and all of the previous
-    outputs are provided as the input to each layer: https://arxiv.org/pdf/1608.06993.pdf
-    
-    From the paper: "Crucially, in contrast to ResNets, we never combine features through summation
-    before they are passed into a layer; instead, we combine features by concatenating them"
+    """DenseNet like stack of residually connected layers where the input and all
+    of the previous outputs are provided as the input to each layer:
+
+        https://arxiv.org/pdf/1608.06993.pdf
+
+    From the paper: "Crucially, in contrast to ResNets, we never combine features
+    through summation before they are passed into a layer; instead, we combine features
+    by concatenating them"
     """
 
     def __init__(
@@ -19,11 +22,13 @@ class DenseNetStack(tf.keras.layers.Layer):
         layer_scaling_factor=0.75,
         share_weights=False,
         activation="relu",
+        output_transform: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         self.units = units
         self.layer_scaling_factor = layer_scaling_factor
         self.num_layers = num_layers
+        self.output_transform = output_transform
         if activation is not None:
             self.activate = tf.keras.layers.Activation(activation)
         else:
@@ -42,8 +47,8 @@ class DenseNetStack(tf.keras.layers.Layer):
             )
         super(DenseNetStack, self).__init__(**kwargs)
 
-    def call(self, input_tensor):
-        stack_inputs = []
+    def call(self, input_tensor: tf.Tensor):
+        stack_inputs: List[tf.Tensor] = []
         root_input = input_tensor
         # Iterate the stack and call each layer, also inputting a list
         # of all the previous stack layers outputs.
@@ -55,4 +60,6 @@ class DenseNetStack(tf.keras.layers.Layer):
             # Append the current input to the list of previous input tensors
             stack_inputs.append(prev_tensor)
         output = self.concat([input_tensor, root_input])
+        if self.output_transform is not None:
+            output = self.output_transform(output)
         return self.activate(output) if self.activate is not None else output

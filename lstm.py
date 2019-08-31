@@ -3,16 +3,16 @@ from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.layers import (
     LSTM,
     Embedding,
+    GlobalAveragePooling1D,
     Input,
     TimeDistributed,
-    GlobalAveragePooling1D,
 )
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import plot_model
 
-from mathy.core.expressions import MathTypeKeysMax
-from mathy.agent.features import (
+from mathy import (
     FEATURE_FWD_VECTORS,
+    MathTypeKeysMax,
     get_max_lengths,
     parse_example_for_training,
 )

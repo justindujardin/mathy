@@ -4,7 +4,7 @@ import plac
 import tensorflow as tf
 from pathlib import Path
 from mathy.agent.controller import MathModel
-from mathy.mathy_env import MathyEnv
+from mathy import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
