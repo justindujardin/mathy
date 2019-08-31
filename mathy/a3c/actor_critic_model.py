@@ -35,7 +35,7 @@ class ActorCriticModel(tf.keras.Model):
             MathPolicyDropout(self.predictions), name="pi_head"
         )
         self.value_logits = tf.keras.layers.Dense(1, name="value_logits")
-        self.embedding = MathEmbedding()
+        self.embedding = MathEmbedding(self.args.units)
 
     def call(self, batch_features, apply_mask=True):
         inputs = batch_features

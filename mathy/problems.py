@@ -149,7 +149,7 @@ def simplify_multiple_terms(
         result = result + " {} {}{}".format(
             rand_op() if op is None else op, rand_int(), other_var
         )
-    return result, num_terms
+    return result, num_terms + 2
 
 
 def solve_for_variable(terms=4):
