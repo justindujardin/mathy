@@ -36,25 +36,28 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         int,
     ),
-    train=("Set when training is desired", "flag", False, bool),
+    profile=("Set to gather profiler outputs for the A3C workers", "flag", False, bool),
+    evaluate=("Set when evaluation is desired", "flag", False, bool),
 )
 def main(
     env_name: str,
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
-    train: bool = False,
+    profile: bool = False,
+    evaluate: bool = False,
 ):
     args = A3CArgs(
         env_name=env_name,
-        train=train,
+        train=not evaluate,
         update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
         num_workers=workers,
+        profile=profile,
     )
     agent = A3CAgent(args)
-    if train:
+    if not evaluate:
         agent.train()
     else:
         agent.play(loop=True)

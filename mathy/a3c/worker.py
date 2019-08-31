@@ -58,6 +58,11 @@ class A3CWorker(threading.Thread):
         print(f"[Worker {worker_idx}] using env: {self.args.env_name}")
 
     def run(self):
+        if self.args.profile:
+            import cProfile
+
+            pr = cProfile.Profile()
+            pr.enable()
         replay_buffer = ReplayBuffer()
         while (
             A3CWorker.global_episode < self.args.max_eps
@@ -66,6 +71,13 @@ class A3CWorker(threading.Thread):
             self.run_episode(replay_buffer)
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
+
+        if self.args.profile:
+            profile_name = f"worker_{self.worker_idx}.profile"
+            profile_path = os.path.join(self.args.model_dir, profile_name)
+            pr.disable()
+            pr.dump_stats(profile_path)
+            print(f"PROFILER: saved {profile_path}")
         self.result_queue.put(None)
 
     def run_episode(self, replay_buffer: ReplayBuffer):
@@ -87,7 +99,6 @@ class A3CWorker(threading.Thread):
             new_state, reward, done, _ = self.env.step(action)
             ep_reward += reward
             replay_buffer.store(current_state, action, reward)
-
             self.maybe_write_histograms()
 
             if replay_buffer.ready and (time_count == self.args.update_freq or done):
@@ -149,7 +160,7 @@ class A3CWorker(threading.Thread):
             return
         # The global step is incremented when the optimizer is applied, so check
         # and print summary data here.
-        summary_interval = 10
+        summary_interval = 100
         with self.writer.as_default():
             with tf.summary.record_if(
                 lambda: tf.math.equal(
@@ -242,16 +253,6 @@ class A3CWorker(threading.Thread):
         logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
         logits = tf.reshape(logits, [batch_size, -1])
         masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
-
-        # # reshape to the logits dimensions
-        # action_labels = tf.convert_to_tensor(replay_buffer.actions, dtype=tf.int32)
-        # reward_values = tf.convert_to_tensor(replay_buffer.rewards, dtype=tf.float32)
-
-        # # TODO: An extra dimension is needed, so expand the dims.. this feels wrong?
-        # logits = tf.expand_dims(logits, axis=1)
-        # # logits = tf.expand_dims(masked, axis=1)
-        # action_labels = tf.expand_dims(action_labels, axis=1)
-        # reward_values = tf.expand_dims(reward_values, axis=1)
 
         # Calculate entropy and policy loss
         h_loss = discrete_policy_entropy_loss(logits, normalise=True)

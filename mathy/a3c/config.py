@@ -43,23 +43,6 @@ class A3CArgs(BaseModel):
     # The number of worker agents to create.
     num_workers: int = 3
 
-    # 0-1 controlling how often to choose a random action rather than
-    # use the predicted policy. e.g. 0.1 would choose random actions
-    # 10% of the time.
-    exploration_greedy_epsilon: float = 0.05
-
-    # ---------------------------------------------------------------
-    # `H` term from the A3C paper, controls the scaling of the entroy
-    # of the policy before adding to the total loss. This encourages
-    # exploration.
-    #
-    # The maximum (starting) entropy beta
-    entropy_beta_max: float = 0.2
-    # The minimum entropy beta
-    entropy_beta_min: float = 0.01
-    # The decay rate per step
-    entropy_beta_decay: float = 0.001
-    # The total number of steps to take
-    entropy_beta_decay_steps: int = 500
-    #
-    # ---------------------------------------------------------------
+    # When profile is true, each A3C worker thread will output a .profile
+    # file in the model save path when it exits.
+    profile: bool = False
