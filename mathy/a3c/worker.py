@@ -79,12 +79,9 @@ class A3CWorker(threading.Thread):
         done = False
         while not done:
             # Select a random action from the distribution with the given probabilities
-            if not replay_buffer.ready:
-                action = self.env.action_space.sample()
-            else:
-                sample = replay_buffer.get_current_window(current_state)
-                probs = self.local_model.predict_one(sample)
-                action = np.random.choice(len(probs), p=probs)
+            sample = replay_buffer.get_current_window(current_state)
+            probs = self.local_model.predict_one(sample)
+            action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = self.env.step(action)
@@ -225,6 +222,8 @@ class A3CWorker(threading.Thread):
         else:
             # Predict the reward using the local network
             _, values, _ = self.local_model(replay_buffer.get_current_window(new_state))
+            # Select the last timestep
+            values = values[-1]
             reward_sum = tf.squeeze(values).numpy()
 
         # Get discounted rewards
