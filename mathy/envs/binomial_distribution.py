@@ -14,7 +14,7 @@ from ..rules import (
 )
 from ..rules.helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
-from ..problems import simplify_distributive_binomial
+from ..problems import binomial_times_binomial, binomial_times_monomial
 
 
 class MathyBinomialDistributionEnv(MathyEnv):
@@ -45,17 +45,22 @@ class MathyBinomialDistributionEnv(MathyEnv):
         """Given a set of parameters to control term generation, produce
         2 binomials expressions connected by a multiplication. """
         if params.difficulty == MathyEnvDifficulty.easy:
-            text, complexity = simplify_distributive_binomial(
-                min_vars=2, max_vars=2, powers_proability=0.1
-            )
+            text, complexity = binomial_times_monomial(min_vars=2, max_vars=3)
         elif params.difficulty == MathyEnvDifficulty.normal:
-            text, complexity = simplify_distributive_binomial(
-                min_vars=2, max_vars=3, simple_variables=False
+            text, complexity = binomial_times_binomial(
+                min_vars=1,
+                max_vars=2,
+                powers_proability=0.1,
+                like_variables_probability=0.0,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            text, complexity = simplify_distributive_binomial(
-                min_vars=3, max_vars=3, simple_variables=False, powers_proability=0.8
+            text, complexity = binomial_times_binomial(
+                min_vars=2,
+                max_vars=3,
+                simple_variables=False,
+                powers_proability=0.8,
+                like_variables_probability=0.8,
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity + 2, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

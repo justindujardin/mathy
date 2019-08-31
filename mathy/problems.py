@@ -56,7 +56,7 @@ def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     return out
 
 
-def simplify_distributive_binomial(
+def binomial_times_binomial(
     *,
     op="+",
     min_vars=1,
@@ -65,7 +65,6 @@ def simplify_distributive_binomial(
     powers_proability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
-    """FOIL problems"""
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
@@ -100,7 +99,52 @@ def simplify_distributive_binomial(
     second = [terms[1], terms[3]]
     random.shuffle(first)
     random.shuffle(second)
-    return f"({first[0]} + {first[1]})({second[0]} + {second[1]})", num_terms
+    return f"({first[0]} + {first[1]})({second[0]} + {second[1]})", num_terms + 2
+
+
+def binomial_times_monomial(
+    *,
+    op="+",
+    min_vars=1,
+    max_vars=2,
+    simple_variables=True,
+    powers_proability=0.33,
+    like_variables_probability=1.0,
+) -> Tuple[str, int]:
+    power_prob_percent = powers_proability * 100
+    powers = rand_bool(power_prob_percent)
+    like_vars = rand_bool(like_variables_probability * 100)
+
+    num_terms: int = 3
+
+    num_vars: int = random.randint(min_vars, max_vars)
+    terms = [""] * num_terms
+
+    # Build variables (with optional exponents)
+    if like_vars is False:
+        for i, var in enumerate(get_rand_vars(num_vars)):
+            if powers is not False:
+                terms[i] = f"{var}{maybe_power(power_prob_percent * 2)}"
+            else:
+                terms[i] = var
+    else:
+        var = rand_var()
+        if powers is not False:
+            var = f"{var}{maybe_power(power_prob_percent * 2)}"
+        for i in range(num_vars):
+            terms[i] = var
+    # random.shuffle(terms)
+
+    # Conditionally attach coefficients to each term
+    for i in range(num_terms):
+        if simple_variables is True and terms[i] != "":
+            continue
+        terms[i] = f"{rand_int()}{terms[i]}"
+
+    first = [terms[0], terms[2]]
+    second = terms[1]
+    random.shuffle(first)
+    return f"({first[0]} + {first[1]}) * {second}", num_terms
 
 
 def combine_multiple_like_add_terms(num_terms, optional_var=False):
