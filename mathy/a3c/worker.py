@@ -255,7 +255,7 @@ class A3CWorker(threading.Thread):
         masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
-        h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        h_loss = discrete_policy_entropy_loss(logits)
         # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
 
         # Advantage is the difference between the final calculated discount

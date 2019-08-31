@@ -1,5 +1,6 @@
 {
   "valid": [
+    { "input": "144 * (1o) * s", "output": "144o * s" },
     { "input": "2y * 5 * (8h * t) + 2x", "output": "2y * (40h * t) + 2x" },
     { "input": "5 * (8h * t)", "output": "40h * t" },
     { "input": "5 * (8h * t) + 2x", "output": "40h * t + 2x" },

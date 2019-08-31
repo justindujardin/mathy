@@ -1,6 +1,13 @@
 {
   "valid": [
     {
+      "input": "12x * 10y",
+      "output": "x * 12 * (10y)",
+      "args": {
+        "preferred": false
+      }
+    },
+    {
       "input": "4 + 17",
       "output": "17 + 4"
     },
