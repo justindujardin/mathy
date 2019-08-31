@@ -50,6 +50,7 @@ def main(
     args = A3CArgs(
         env_name=env_name,
         train=not evaluate,
+        units=256,
         update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
