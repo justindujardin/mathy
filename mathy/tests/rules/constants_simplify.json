@@ -1,5 +1,8 @@
 {
   "valid": [
+    { "input": "2y * 5 * (8h * t) + 2x", "output": "2y * (40h * t) + 2x" },
+    { "input": "5 * (8h * t)", "output": "40h * t" },
+    { "input": "5 * (8h * t) + 2x", "output": "40h * t + 2x" },
     { 
       "input": "2 * (2 * x)", 
       "output": "4x", 
