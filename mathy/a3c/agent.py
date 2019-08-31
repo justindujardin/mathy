@@ -112,9 +112,7 @@ class A3CAgent:
                 reward_sum = 0
                 while not done:
                     env.render(mode="terminal")
-                    policy, value, probs = model.call_masked(
-                        state, env.action_space.mask
-                    )
+                    policy, value, probs = model.call_masked(state)
                     action = np.random.choice(len(probs), p=probs)
                     # NOTE: performance on greedy is terrible. Acting according
                     #       to policy probs solves many more problems.

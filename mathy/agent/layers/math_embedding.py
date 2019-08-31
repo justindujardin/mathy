@@ -12,25 +12,36 @@ from ...features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from .lstm import LSTM
+from .bahdanau_attention import BahdanauAttention
 from .resnet_stack import ResNetStack
+from .lstm import LSTM
+from .keras_self_attention.seq_self_attention import SeqSelfAttention
 
 
 class MathEmbedding(tf.keras.layers.Layer):
     def __init__(self, units: int = 128, **kwargs):
+        super(MathEmbedding, self).__init__(**kwargs)
         self.units = units
-        self.flatten = tf.keras.layers.Flatten()
+        self.attention = BahdanauAttention(self.units)
+        self.flatten = tf.keras.layers.Flatten(name="flatten")
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
         self.input_dense = tf.keras.layers.Dense(
             self.units, name="embedding_input", use_bias=False
         )
         self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
-        self.lstm = LSTM(units, name="embedding_lstm")
+        self.lstm = tf.keras.layers.LSTM(
+            units,
+            name="embedding_lstm",
+            return_sequences=True,
+            time_major=True,
+            return_state=True,
+        )
+
         self.embedding = tf.keras.layers.Dense(
             units=self.units, name="embedding", activation="relu"
         )
         self.build_feature_columns()
-        super(MathEmbedding, self).__init__(**kwargs)
+        # self.self_attention = SeqSelfAttention()
 
     def build_feature_columns(self):
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
@@ -66,6 +77,7 @@ class MathEmbedding(tf.keras.layers.Layer):
 
     def call(self, features):
         context_inputs = self.ctx_extractor(features)
+        batch_size = len(features[FEATURE_BWD_VECTORS])
         sequence_length = len(features[FEATURE_BWD_VECTORS][0])
         max_depth = MathTypeKeysMax
         batch_seq_one_hots = [
@@ -85,12 +97,32 @@ class MathEmbedding(tf.keras.layers.Layer):
         batch_sequence_features = self.concat(batch_seq_one_hots)
 
         outputs = []
-        # Convert one-hot to dense layer representations
+        # Convert one-hot to dense layer representations while
+        # preserving the batch[0] and time[1] dimensions
         for sequence_inputs in batch_sequence_features:
             example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
             outputs.append(tf.reshape(example, [sequence_length, -1]))
 
+        # Process the sequence embeddings with a RNN to capture temporal
+        # features. NOTE: this relies on the batches of observations being
+        # passed to this function to be in chronological order of the batch
+        # axis.
+        # outputs is a tensor that's a sequence of observations at timesteps
+        # where each observation has a sequence of nodes.
+        #
+        # shape = [Observations, ObservationNodeVectors, self.units]
         outputs = tf.convert_to_tensor(outputs)
 
-        hidden_states, lstm_vectors = self.lstm(outputs)
-        return (context_inputs, lstm_vectors, hidden_states, sequence_length)
+        if batch_size > 1:
+            # print("cool beans")
+            pass
+
+        # Apply LSTM to the output sequences to capture context across timesteps
+        # in the batch.
+        #
+        # NOTE: This does process the observation timesteps across the batch axis with
+        #
+        # shape = [Observations, ObservationNodeVectors, self.units]
+        time_out, state_c, state_h = self.lstm(outputs)
+        attention_context, attention_weights = self.attention(time_out, context_inputs)
+        return (attention_context, time_out, sequence_length)

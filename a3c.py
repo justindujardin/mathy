@@ -1,10 +1,15 @@
+import numpy as np
+import tensorflow as tf
+
+np.random.seed(1337)
+tf.random.set_seed(1337)
+
 from mathy.a3c import A3CAgent, A3CArgs
 from mathy import gym  # noqa
 from typing import Optional
 import plac
 from multiprocessing import cpu_count
 
-import tensorflow as tf
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"

@@ -11,13 +11,16 @@ class MathPolicyResNet(tf.keras.layers.Layer):
         num_predictions=2,
         dropout=0.1,
         random_seed=1337,
-        num_layers=4,
+        num_layers=2,
         units=128,
         **kwargs
     ):
         self.num_predictions = num_predictions
-        self.activate = tf.keras.layers.Dense(num_predictions, activation="softmax")
+        self.activate = tf.keras.layers.Dense(num_predictions, activation="relu")
         self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
+        self.logits = tf.keras.layers.Dense(
+            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
+        )
         self.stack_height = num_layers
         self.dense_stack = [ResNetBlock(units=units)]
         for i in range(self.stack_height - 1):
@@ -33,5 +36,7 @@ class MathPolicyResNet(tf.keras.layers.Layer):
         # NOTE: Apply dropout AFTER ALL batch norms in the resnet:
         #       see: https://arxiv.org/pdf/1801.05134.pdf
         input_tensor = self.dropout(input_tensor)
-        return self.activate(input_tensor)
+        input_tensor = self.logits(input_tensor)
+        return tf.keras.activations.relu(input_tensor, alpha=0.0001)
+        # return self.activate(input_tensor)
 

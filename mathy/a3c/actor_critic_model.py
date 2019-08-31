@@ -4,6 +4,7 @@ import tensorflow as tf
 from typing import Optional, Any
 from ..agent.layers.math_embedding import MathEmbedding
 from ..agent.layers.lstm_stack import LSTMStack
+from ..agent.layers.math_policy_resnet import MathPolicyResNet
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from tensorflow.keras.layers import TimeDistributed
@@ -33,24 +34,16 @@ class ActorCriticModel(tf.keras.Model):
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions), name="pi_head"
         )
-        self.lstm = LSTMStack(units=args.units, share_weights=True)
         self.value_logits = tf.keras.layers.Dense(1, name="value_logits")
         self.embedding = MathEmbedding()
-        self.attention = BahdanauAttention(self.args.units)
 
     def call(self, batch_features, apply_mask=True):
         inputs = batch_features
         # Extract features into contextual inputs, sequence inputs.
-        context_inputs, lstm_vectors, hidden_states, sequence_length = self.embedding(
-            inputs
-        )
+        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
 
-        attention_context, attention_weights = self.attention(
-            lstm_vectors, context_inputs
-        )
-
-        values = self.value_logits(attention_context)
-        logits = self.pi_sequence(lstm_vectors)
+        values = self.value_logits(context_inputs)
+        logits = self.pi_sequence(sequence_inputs)
         trimmed_logits, mask_logits = self.apply_pi_mask(
             logits, batch_features, sequence_length
         )
@@ -87,7 +80,7 @@ class ActorCriticModel(tf.keras.Model):
             init_model_path = os.path.join(
                 self.args.init_model_from, self.args.model_name
             )
-            if os.path.exists(init_model_path):
+            if os.path.exists(init_model_path) and not os.path.exists(model_path):
                 print(f"initialize model weights from: {init_model_path}")
                 copyfile(init_model_path, model_path)
             else:
@@ -96,7 +89,8 @@ class ActorCriticModel(tf.keras.Model):
         if os.path.exists(model_path):
             if do_init:
                 print("Loading model from: {}".format(model_path))
-            self.load_weights(model_path)
+            if os.path.exists(model_path):
+                self.load_weights(model_path)
 
     def init_global_step(self):
         if not os.path.exists(self.args.model_dir):
@@ -129,8 +123,16 @@ class ActorCriticModel(tf.keras.Model):
         print(f"[save] step({step}) model({model_path})")
         self.save_global_step(step)
 
-    def call_masked(self, inputs, mask) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    def call_masked(self, inputs) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         logits, values, masked = self.call(inputs)
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
         probs = tf.nn.softmax(flat_logits).numpy()
         return logits, values, probs
+
+    def predict_one(self, inputs) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        logits, values, masked = self.call(inputs)
+        # take the last timestep
+        masked = masked[-1]
+        flat_logits = tf.reshape(tf.squeeze(masked), [-1])
+        probs = tf.nn.softmax(flat_logits).numpy()
+        return probs

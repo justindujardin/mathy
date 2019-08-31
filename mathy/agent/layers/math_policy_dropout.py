@@ -15,7 +15,7 @@ class MathPolicyDropout(tf.keras.layers.Layer):
         self.num_predictions = num_predictions
         self.feature_layers = feature_layers
         self.logits = tf.keras.layers.Dense(
-            num_predictions, name="pi_logits", kernel_initializer="he_uniform"
+            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
         )
         self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
         super(MathPolicyDropout, self).__init__(**kwargs)

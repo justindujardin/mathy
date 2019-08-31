@@ -3,23 +3,6 @@ from .config import A3CArgs
 import datetime
 
 
-def game_for_worker_index(index: int) -> str:
-    game_type = "poly"
-    # if index % 3 == 0:
-    #     game_type = "binomial"
-    # elif index % 4 == 0:
-    #     game_type = "complex"
-    return f"mathy-{game_type}-v0"
-
-
-def entropy_beta_for_training_step(args: A3CArgs, step: int) -> float:
-    """Calculate decaying beta for policy entropy scaling"""
-    beta = args.entropy_beta_max * args.entropy_beta_decay ** (
-        step / args.entropy_beta_decay_steps
-    )
-    return float(beta) + float(args.entropy_beta_min)
-
-
 # From openai baselines: https://bit.ly/30EvCzy
 def cat_entropy(logits):
     import tensorflow as tf

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Optional
 from ..core.expressions import MathTypeKeys
 from ..features import (
     pad_array,
@@ -22,9 +22,17 @@ class ReplayBuffer(object):
     rewards: List[float] = []
 
     def __init__(self):
-        self.states = [True]
+        self.states = []
         self.actions = []
         self.rewards = []
+
+    @property
+    def ready(self) -> bool:
+        return len(self.states) > 3
+
+    def get_current_window(self, current_state):
+        window_states = self.states[-2:] + [current_state]
+        return self.to_features(window_states)
 
     def store(self, state, action, reward):
         self.states.append(state)
@@ -36,7 +44,9 @@ class ReplayBuffer(object):
         self.actions = []
         self.rewards = []
 
-    def to_features(self):
+    def to_features(self, feature_states: Optional[List[Any]] = None) -> List[Any]:
+        if feature_states is None:
+            feature_states = self.states
         context_feature_keys: List[str] = [
             FEATURE_LAST_RULE,
             FEATURE_NODE_COUNT,
@@ -62,16 +72,16 @@ class ReplayBuffer(object):
             FEATURE_MOVES_REMAINING: [],
             FEATURE_PROBLEM_TYPE: [],
         }
-        lengths = [len(s[FEATURE_BWD_VECTORS][0]) for s in self.states]
+        lengths = [len(s[FEATURE_BWD_VECTORS][0]) for s in feature_states]
         max_sequence = max(lengths)
         for key in context_feature_keys:
-            for state in self.states:
+            for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
         for key, backward in sequence_feature_keys:
             pad_value = tuple([MathTypeKeys["empty"]] * 3)
-            for state in self.states:
+            for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(
@@ -80,8 +90,8 @@ class ReplayBuffer(object):
                     )
                 )
 
-        max_sequence = max([len(s[FEATURE_MOVE_MASK][0]) for s in self.states])
-        for state in self.states:
+        max_sequence = max([len(s[FEATURE_MOVE_MASK][0]) for s in feature_states])
+        for state in feature_states:
             # Max length of move masks in batch
             padded = pad_array(state[FEATURE_MOVE_MASK][0], max_sequence, 0.0)
             out[FEATURE_MOVE_MASK].append(

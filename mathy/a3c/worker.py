@@ -11,7 +11,7 @@ from ..core.expressions import MathTypeKeysMax
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
-from .util import record, cat_entropy, entropy_beta_for_training_step
+from .util import record
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 
@@ -71,7 +71,6 @@ class A3CWorker(threading.Thread):
     def run_episode(self, replay_buffer: ReplayBuffer):
         current_state = self.env.reset()
         replay_buffer.clear()
-        state_mask = self.env.action_space.mask
         ep_reward = 0.0
         ep_steps = 0
         self.ep_loss = 0
@@ -80,21 +79,21 @@ class A3CWorker(threading.Thread):
         done = False
         while not done:
             # Select a random action from the distribution with the given probabilities
-            # if np.random.random() < self.args.exploration_greedy_epsilon:
-            #     action = self.env.action_space.sample()
-            # else:
-            _, _, probs = self.local_model.call_masked(current_state, state_mask)
-            action = np.random.choice(len(probs), p=probs)
+            if not replay_buffer.ready:
+                action = self.env.action_space.sample()
+            else:
+                sample = replay_buffer.get_current_window(current_state)
+                probs = self.local_model.predict_one(sample)
+                action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = self.env.step(action)
-            state_mask = self.env.action_space.mask
             ep_reward += reward
             replay_buffer.store(current_state, action, reward)
 
             self.maybe_write_histograms()
 
-            if time_count == self.args.update_freq or done:
+            if replay_buffer.ready and (time_count == self.args.update_freq or done):
                 self.update_global_network(done, new_state, replay_buffer)
                 time_count = 0
                 if done:
@@ -145,12 +144,6 @@ class A3CWorker(threading.Thread):
                 tf.summary.scalar(
                     f"rewards/mean_episode_reward",
                     data=A3CWorker.global_moving_average_reward,
-                    step=step,
-                )
-                # Track global model metrics
-                tf.summary.scalar(
-                    f"params/policy_entropy_beta",
-                    data=entropy_beta_for_training_step(self.args, step.numpy()),
                     step=step,
                 )
 
@@ -231,7 +224,7 @@ class A3CWorker(threading.Thread):
             reward_sum = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model(new_state)
+            _, values, _ = self.local_model(replay_buffer.get_current_window(new_state))
             reward_sum = tf.squeeze(values).numpy()
 
         # Get discounted rewards
@@ -247,9 +240,9 @@ class A3CWorker(threading.Thread):
         batch_size = len(replay_buffer.actions)
 
         inputs = replay_buffer.to_features()
-        logits, values, masked = self.local_model(inputs, apply_mask=False)
+        logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
         logits = tf.reshape(logits, [batch_size, -1])
-        masked_flat = tf.reshape(masked, [batch_size, -1])
+        masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # # reshape to the logits dimensions
         # action_labels = tf.convert_to_tensor(replay_buffer.actions, dtype=tf.int32)
