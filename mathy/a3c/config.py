@@ -9,6 +9,10 @@ class MathyGymEnvTypes(str, Enum):
     poly_normal = "mathy-poly-normal-v0"
     poly_hard = "mathy-poly-hard-v0"
 
+    complex_easy = "mathy-complex-easy-v0"
+    complex_normal = "mathy-complex-normal-v0"
+    complex_hard = "mathy-complex-hard-v0"
+
     poly_blockers_easy = "mathy-poly-blockers-easy-v0"
     poly_blockers_normal = "mathy-poly-blockers-normal-v0"
     poly_blockers_hard = "mathy-poly-blockers-hard-v0"

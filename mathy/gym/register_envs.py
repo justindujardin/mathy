@@ -24,3 +24,16 @@ register(
     id="mathy-binomial-normal-v0", entry_point="mathy.gym.binomials:BinomialsNormal"
 )
 register(id="mathy-binomial-hard-v0", entry_point="mathy.gym.binomials:BinomialsHard")
+
+
+register(
+    id="mathy-complex-easy-v0", entry_point="mathy.gym.complex_terms:ComplexTermsEasy"
+)
+register(
+    id="mathy-complex-normal-v0",
+    entry_point="mathy.gym.complex_terms:ComplexTermsNormal",
+)
+register(
+    id="mathy-complex-hard-v0", entry_point="mathy.gym.complex_terms:ComplexTermsHard"
+)
+

@@ -27,7 +27,9 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
         """
 
         if params.difficulty == MathyEnvDifficulty.easy:
-            text, complexity = simplify_multiple_terms(2, op="*", optional_var=False)
+            text, complexity = simplify_multiple_terms(
+                2, op="*", optional_var=True, inner_terms_scaling=1.0
+            )
         elif params.difficulty == MathyEnvDifficulty.normal:
             text, complexity = simplify_multiple_terms(
                 4, op="*", optional_var=True, optional_var_probability=0.5
