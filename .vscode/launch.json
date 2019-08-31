@@ -73,8 +73,7 @@
         "mathy-poly-easy-v0",
         "training/dev",
         "-workers",
-        "1",
-        "-train"
+        "1"
       ]
     },
     {
@@ -95,7 +94,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_gym_env"
+        "test_commutative_property"
       ]
     },
     {
