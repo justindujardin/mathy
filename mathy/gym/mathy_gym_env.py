@@ -41,7 +41,7 @@ class MathyGymEnv(gym.Env):
         env_problem_args: Optional[MathyEnvProblemArgs] = None,
         **env_kwargs,
     ):
-        self.mathy = env_class(*env_kwargs)
+        self.mathy = env_class(**env_kwargs)
         self.env_class = env_class
         self.env_problem_args = env_problem_args
         if self.env_problem_args is not None and not isinstance(

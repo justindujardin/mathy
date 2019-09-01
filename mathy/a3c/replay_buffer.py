@@ -21,7 +21,8 @@ class ReplayBuffer(object):
     actions: List[int] = []
     rewards: List[float] = []
 
-    def __init__(self):
+    def __init__(self, vector_window_size: int = 1):
+        self.vector_window_size = vector_window_size
         self.states = []
         self.actions = []
         self.rewards = []
@@ -80,7 +81,7 @@ class ReplayBuffer(object):
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
         for key, backward in sequence_feature_keys:
-            pad_value = tuple([MathTypeKeys["empty"]] * 9)
+            pad_value = tuple([MathTypeKeys["empty"]] * self.vector_window_size)
             for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")

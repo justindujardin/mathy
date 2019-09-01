@@ -47,6 +47,12 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         int,
     ),
+    windows=(
+        "Number of extract windows to use for building nodes with context",
+        "option",
+        None,
+        int,
+    ),
     model_units=(
         "Number of dimensions to use for math vectors and model dimensions",
         "option",
@@ -61,6 +67,7 @@ def main(
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
+    windows: int = 0,
     model_units: int = 256,
     difficulty: Optional[str] = None,
     profile: bool = False,
@@ -75,6 +82,7 @@ def main(
         update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
+        windows=windows,
         num_workers=workers,
         profile=profile,
     )

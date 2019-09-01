@@ -21,12 +21,13 @@ class A3CAgent:
     def __init__(self, args: A3CArgs, init_model: Optional[str] = None):
         self.args = args
         print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
+        print(f"Config: {self.args.dict()}")
         self.teacher = Teacher(
             topic_names=self.args.topics,
             num_students=self.args.num_workers,
             difficulty=self.args.difficulty,
         )
-        env = gym.make(self.teacher.get_env(0, 0))
+        env = gym.make(self.teacher.get_env(0, 0), windows=self.args.windows)
         self.action_size = env.action_space.n
         self.writer = tf.summary.create_file_writer(
             os.path.join(self.args.model_dir, "tensorboard")
@@ -80,7 +81,7 @@ class A3CAgent:
 
     def play(self, env=None, loop=False):
         if env is None:
-            env = gym.make(self.args.env_name).unwrapped
+            env = gym.make(self.args.env_name, windows=self.args.windows).unwrapped
         model = self.global_model
         model.maybe_load(env.reset())
         try:

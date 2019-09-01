@@ -124,5 +124,11 @@ class MathEmbedding(tf.keras.layers.Layer):
         #
         # shape = [Observations, ObservationNodeVectors, self.units]
         time_out, state_c, state_h = self.lstm(outputs)
+
+        # Bahdanau Attn
         attention_context, attention_weights = self.attention(time_out, context_inputs)
         return (attention_context, time_out, sequence_length)
+
+        # # Self Attn
+        # time_out = self.self_attention(time_out)
+        # return (context_inputs, time_out, sequence_length)

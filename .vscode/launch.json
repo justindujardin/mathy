@@ -70,10 +70,12 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "mathy-poly-easy-v0",
+        "poly-blockers",
         "training/dev",
         "-workers",
-        "1"
+        "1",
+        "-windows",
+        "0"
       ]
     },
     {
@@ -94,7 +96,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_commutative_property"
+        "test_teacher"
       ]
     },
     {

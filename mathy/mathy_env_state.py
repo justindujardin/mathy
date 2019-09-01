@@ -1,21 +1,25 @@
 import json
 import random
 from collections import namedtuple
-from typing import NamedTuple, List
+from typing import List, NamedTuple, Optional, Tuple
 
 import numpy
 import tensorflow as tf
 
+from .core.expressions import MathExpression, MathTypeKeys
+from .core.parser import ExpressionParser
+from .core.tokenizer import TokenEOF
+from .core.tree import STOP
 from .features import (
     FEATURE_BWD_VECTORS,
-    FEATURE_LAST_RULE,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
+    FEATURE_MOVE_MASK,
     FEATURE_MOVES_REMAINING,
     FEATURE_NODE_COUNT,
-    FEATURE_MOVE_MASK,
     FEATURE_PROBLEM_TYPE,
     pad_array,
 )
@@ -24,10 +28,6 @@ from .game_modes import (
     MODE_SIMPLIFY_POLYNOMIAL,
     MODE_SOLVE_FOR_VARIABLE,
 )
-from .core.expressions import MathExpression, MathTypeKeys
-from .core.parser import ExpressionParser
-from .core.tokenizer import TokenEOF
-from .core.tree import STOP
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
@@ -107,20 +107,33 @@ class MathyEnvState(object):
     agent: MathAgentState
     parser: ExpressionParser
     max_moves: int
+    # The number of extract windows to apply to the node vectors.
+    # Must be one of:
+    #  0. No window extractions are performed and the vectors are just
+    #     their node types.
+    #  1. Extract before/after context for surrounding nodes once. The
+    #     output vectors are tuples of (prev_node, node, next_node) where
+    #     nodes that don't exist are padded by an empty value.
+    #  2. Extract two context windows from each node resulting in a tuple
+    #     of nine numbers. 1 -> 3 -> 9
+    windows: int
 
     def __init__(
         self,
-        state=None,
+        state: Optional["MathyEnvState"] = None,
         problem: str = None,
-        max_moves=10,
+        max_moves: int = 10,
+        windows: int = 0,
         problem_type: int = MODE_SIMPLIFY_POLYNOMIAL,
     ):
         self.parser = ExpressionParser()
+        self.windows = windows
         self.max_moves = max_moves
         if problem is not None:
             self.agent = MathAgentState(max_moves, problem, problem_type)
         elif state is not None:
             self.max_moves = state.max_moves
+            self.windows = state.windows
             self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
@@ -133,6 +146,16 @@ class MathyEnvState(object):
 
     def clone(self):
         return MathyEnvState(state=self)
+
+    @property
+    def window_size(self) -> int:
+        if self.windows == 0:
+            return 3
+        elif self.windows == 1:
+            return 6
+        elif self.windows == 2:
+            return 9
+        raise NotImplementedError("unknown windows count")
 
     def encode_player(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
@@ -147,14 +170,16 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
-    def get_node_vectors(self, expression: MathExpression) -> List[int]:
+    def get_node_vectors(self, expression: MathExpression) -> List[Tuple[int]]:
         """Get a set of context-sensitive vectors for a given expression"""
         nodes = expression.toList()
         vectors = []
         nodes_len = len(nodes)
         pad_value = MathTypeKeys["empty"]
 
-        # return [(t.type_id,) for t in nodes]
+        assert self.windows == 0 or self.windows == 1 or self.windows == 2
+        if self.windows == 0:
+            return [(t.type_id,) for t in nodes]
 
         # Add context before/current/after node values  (thanks @honnibal for
         # this trick.)
@@ -163,7 +188,9 @@ class MathyEnvState(object):
             next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
             vectors.append((last, t.type_id, next))
 
-        # return vectors
+        if self.windows == 1:
+            return vectors
+
         context_pad_value = (pad_value, pad_value, pad_value)
         vectors_len = len(vectors)
 
@@ -185,7 +212,7 @@ class MathyEnvState(object):
         """
         expression = self.parser.parse(self.agent.problem)
         # Padding value is a result tuple with empty values for prev/current/next
-        pad_value = tuple([MathTypeKeys["empty"]] * 9)
+        pad_value = tuple([MathTypeKeys["empty"]] * self.window_size)
 
         # Generate context vectors for the current state's expression tree
         vectors = self.get_node_vectors(expression)

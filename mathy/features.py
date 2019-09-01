@@ -232,7 +232,9 @@ def calculate_policy_target(observation: MathyEnvObservation, soft: bool = False
 def parse_example_for_training(
     example: MathyEnvObservation,
     max_sequence: int,
-    max_policy_sequence: int
+    max_policy_sequence: int,
+    num_rules: int = 6,
+    extract_window_size: int = 1
     # TODO: types for the outputs and labels
 ) -> Tuple[Any, Any]:
     """Prepare a gathered training example for input into the Policy/Value network.
@@ -242,14 +244,8 @@ def parse_example_for_training(
     """
     inputs = {}
     ex_input = example.features
-    num_actions = (
-        6
-    )  # TODO: This is hardcoded to the number of rules in math_game.py FIXIT!
-    # # Two extract windows for context sensitivity (3 * 3) = 9
-    pad_value = tuple([MathTypeKeys["empty"]] * 9)
-    # One extract window for context sensitivity
-    # pad_value = tuple([MathTypeKeys["empty"]] * 3)
-    # print(f"Seq={len(ex_input[FEATURE_FWD_VECTORS])}, Policy={len(policy_out)}")
+    num_actions = num_rules
+    pad_value = tuple([MathTypeKeys["empty"]] * extract_window_size)
 
     inputs[FEATURE_FWD_VECTORS] = pad_array(
         ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_value

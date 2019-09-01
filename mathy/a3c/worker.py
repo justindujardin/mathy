@@ -55,7 +55,7 @@ class A3CWorker(threading.Thread):
         self.teacher = teacher
         self.envs = {}
         first_env = self.teacher.get_env(self.worker_idx, self.iteration)
-        self.envs[first_env] = gym.make(first_env)
+        self.envs[first_env] = gym.make(first_env, windows=self.args.windows)
         self.writer = writer
         self.local_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
@@ -74,7 +74,7 @@ class A3CWorker(threading.Thread):
 
             pr = cProfile.Profile()
             pr.enable()
-        replay_buffer = ReplayBuffer()
+        replay_buffer = ReplayBuffer(self.args.windows * 3)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -118,7 +118,7 @@ class A3CWorker(threading.Thread):
     def run_episode(self, replay_buffer: ReplayBuffer):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         if env_name not in self.envs:
-            self.envs[env_name] = gym.make(env_name)
+            self.envs[env_name] = gym.make(env_name, windows=self.args.windows)
         env = self.envs[env_name]
         current_state = env.reset()
         replay_buffer.clear()

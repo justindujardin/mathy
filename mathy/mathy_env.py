@@ -44,8 +44,6 @@ class MathyEnv:
     valid_actions_mask_cache: Dict[str, List[int]]
     valid_rules_cache: Dict[str, List[int]]
 
-    INVALID_PROBLEM = MathyEnvProblem("invalid", -1, -1)
-
     def __init__(
         self,
         actions=None,
@@ -53,10 +51,12 @@ class MathyEnv:
         max_moves=20,
         verbose=False,
         reward_discount=0.99,
+        windows=0,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
+        self.windows = windows
         self.parser = ExpressionParser()
         self.actions = actions
         if self.actions is None:
@@ -265,7 +265,10 @@ class MathyEnv:
 
         # Build and return the initial state
         env_state = MathyEnvState(
-            problem=prob.text, problem_type=prob.type, max_moves=self.max_moves
+            problem=prob.text,
+            problem_type=prob.type,
+            max_moves=self.max_moves,
+            windows=self.windows,
         )
         if print_problem and self.verbose:
             self.print_state(env_state, "initial-state")

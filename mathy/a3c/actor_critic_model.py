@@ -1,17 +1,18 @@
-from typing import Tuple, Optional
-import numpy as np
-import tensorflow as tf
-from typing import Optional, Any
-from ..agent.layers.math_embedding import MathEmbedding
-from ..agent.layers.lstm_stack import LSTMStack
-from ..agent.layers.math_policy_resnet import MathPolicyResNet
-from ..agent.layers.math_policy_dropout import MathPolicyDropout
-from ..agent.layers.bahdanau_attention import BahdanauAttention
-from tensorflow.keras.layers import TimeDistributed
 import os
 from shutil import copyfile
+from typing import Any, Optional, Tuple
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.layers import TimeDistributed
 
 from mathy.a3c.config import A3CArgs
+
+from ..agent.layers.bahdanau_attention import BahdanauAttention
+from ..agent.layers.lstm_stack import LSTMStack
+from ..agent.layers.math_embedding import MathEmbedding
+from ..agent.layers.math_policy_dropout import MathPolicyDropout
+from ..agent.layers.math_policy_resnet import MathPolicyResNet
 
 
 class ActorCriticModel(tf.keras.Model):

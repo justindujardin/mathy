@@ -4,23 +4,30 @@ from .mathy_gym_env import MathyGymEnv
 
 
 class MathyGymBinomialDistribution(MathyGymEnv):
-    def __init__(self, difficulty: MathyEnvDifficulty):
+    def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(MathyGymBinomialDistribution, self).__init__(
             env_class=MathyBinomialDistributionEnv,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
+            **kwargs
         )
 
 
 class BinomialsEasy(MathyGymBinomialDistribution):
-    def __init__(self):
-        super(BinomialsEasy, self).__init__(difficulty=MathyEnvDifficulty.easy)
+    def __init__(self, **kwargs):
+        super(BinomialsEasy, self).__init__(
+            difficulty=MathyEnvDifficulty.easy, **kwargs
+        )
 
 
 class BinomialsNormal(MathyGymBinomialDistribution):
-    def __init__(self):
-        super(BinomialsNormal, self).__init__(difficulty=MathyEnvDifficulty.normal)
+    def __init__(self, **kwargs):
+        super(BinomialsNormal, self).__init__(
+            difficulty=MathyEnvDifficulty.normal, **kwargs
+        )
 
 
 class BinomialsHard(MathyGymBinomialDistribution):
-    def __init__(self):
-        super(BinomialsHard, self).__init__(difficulty=MathyEnvDifficulty.hard)
+    def __init__(self, **kwargs):
+        super(BinomialsHard, self).__init__(
+            difficulty=MathyEnvDifficulty.hard, **kwargs
+        )
