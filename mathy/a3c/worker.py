@@ -74,7 +74,7 @@ class A3CWorker(threading.Thread):
 
             pr = cProfile.Profile()
             pr.enable()
-        replay_buffer = ReplayBuffer(self.args.windows * 3)
+        replay_buffer = ReplayBuffer(max(self.args.windows * 3, 1))
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False

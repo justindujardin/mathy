@@ -35,10 +35,6 @@ class Student(BaseModel):
     topic: str
     # The current difficulty settings for each env
     topics: Dict[str, Topic]
-    # How many problems between each evaluation?
-    eval_window: int = 10
-    # Reported results
-    evaluations: List[StudentEvaluation] = []
 
 
 class Teacher:
@@ -48,9 +44,9 @@ class Teacher:
         self,
         topic_names: List[str],
         num_students: int = 1,
-        eval_window: int = 7,
+        eval_window: int = 2,
         win_threshold: float = 0.85,
-        lose_threshold: float = 0.50,
+        lose_threshold: float = 0.45,
         difficulty: Optional[str] = None,
     ):
         self.topic_names = topic_names
@@ -102,19 +98,13 @@ class Teacher:
 
         if topic.count >= self.eval_window:
             win_ratio = topic.positives / self.eval_window
-
-            def truncate(value):
-                return float("%.3f" % (float(value)))
-
-            print(f"{topic.name} evaluation... {truncate(win_ratio)}")
+            # If the difficulty is locked, don't adjust it.
             if self.difficulty is not None:
                 pass
             elif win_ratio >= self.win_threshold:
                 topic.difficulty = self.next_difficulty(topic.difficulty)
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)
-            else:
-                pass
             topic.reset_counts()
             return win_ratio
         return None

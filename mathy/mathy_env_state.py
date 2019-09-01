@@ -150,9 +150,9 @@ class MathyEnvState(object):
     @property
     def window_size(self) -> int:
         if self.windows == 0:
-            return 3
+            return 1
         elif self.windows == 1:
-            return 6
+            return 3
         elif self.windows == 2:
             return 9
         raise NotImplementedError("unknown windows count")

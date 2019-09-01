@@ -15,7 +15,7 @@ def test_teacher_env_rotation_by_iteration_modulus():
 
 
 def test_teacher_evaluation_window_win_loss_record():
-    teacher = Teacher(topic_names)
+    teacher = Teacher(topic_names, eval_window=10)
     # Report win/loss
     teacher.report_result(me, 1.0)
     teacher.report_result(me, -0.1)

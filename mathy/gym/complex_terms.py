@@ -27,5 +27,7 @@ class ComplexTermsNormal(MathyGymComplexTerms):
 
 
 class ComplexTermsHard(MathyGymComplexTerms):
-    def __init__(self):
-        super(ComplexTermsHard, self).__init__(difficulty=MathyEnvDifficulty.hard)
+    def __init__(self, **kwargs):
+        super(ComplexTermsHard, self).__init__(
+            difficulty=MathyEnvDifficulty.hard, **kwargs
+        )
