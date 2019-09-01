@@ -79,13 +79,19 @@ class A3CAgent:
         action = np.argmax(policy)
         return action
 
-    def play(self, env=None, loop=False):
-        if env is None:
-            env = gym.make(self.args.env_name, windows=self.args.windows).unwrapped
+    def play(self, loop=False):
         model = self.global_model
-        model.maybe_load(env.reset())
+        model.maybe_load()
+        envs = {}
         try:
+            episode_counter = 0
             while loop is True:
+                env_name = self.teacher.get_env(0, episode_counter)
+                if env_name not in envs:
+                    envs[env_name] = gym.make(
+                        env_name, windows=self.args.windows
+                    ).unwrapped
+                env = envs[env_name]
                 state = env.reset()
                 done = False
                 step_counter = 0
@@ -112,6 +118,9 @@ class A3CAgent:
                         )
 
                     step_counter += 1
+                # Episode counter
+                episode_counter += 1
+
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
         finally:
