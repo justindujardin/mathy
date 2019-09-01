@@ -17,6 +17,7 @@ from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
 from .util import record
+from ..util import window_vector_size
 
 
 class A3CWorker(threading.Thread):
@@ -74,7 +75,8 @@ class A3CWorker(threading.Thread):
 
             pr = cProfile.Profile()
             pr.enable()
-        replay_buffer = ReplayBuffer(max(self.args.windows * 3, 1))
+
+        replay_buffer = ReplayBuffer(window_vector_size(1, self.args.windows))
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False

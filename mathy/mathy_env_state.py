@@ -6,6 +6,7 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
+from .util import window_vector_size
 from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
@@ -149,13 +150,7 @@ class MathyEnvState(object):
 
     @property
     def window_size(self) -> int:
-        if self.windows == 0:
-            return 1
-        elif self.windows == 1:
-            return 3
-        elif self.windows == 2:
-            return 9
-        raise NotImplementedError("unknown windows count")
+        return window_vector_size(1, self.windows)
 
     def encode_player(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
