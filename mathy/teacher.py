@@ -48,9 +48,9 @@ class Teacher:
         self,
         topic_names: List[str],
         num_students: int = 1,
-        eval_window: int = 4,
-        win_threshold: float = 0.90,
-        lose_threshold: float = 0.40,
+        eval_window: int = 7,
+        win_threshold: float = 0.85,
+        lose_threshold: float = 0.50,
         difficulty: Optional[str] = None,
     ):
         self.topic_names = topic_names
