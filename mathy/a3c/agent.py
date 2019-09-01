@@ -1,6 +1,7 @@
 import os
 from queue import Queue
 from typing import Optional
+from colr import color
 
 import gym
 import numpy as np
@@ -11,6 +12,7 @@ from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .random_agent import RandomAgent
 from .worker import A3CWorker
+from ..teacher import Teacher, Student, Topic
 
 
 class A3CAgent:
@@ -22,6 +24,10 @@ class A3CAgent:
         print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
         env = gym.make(self.args.env_name)
         self.action_size = env.action_space.n
+        self.teacher = Teacher(
+            topic_names=self.args.topics, num_students=self.args.num_workers
+        )
+
         self.writer = tf.summary.create_file_writer(
             os.path.join(self.args.model_dir, "tensorboard")
         )
@@ -39,28 +45,12 @@ class A3CAgent:
             return
 
         res_queue = Queue()
-
-        def many_workers(idx: int):
-            items = [
-                "mathy-poly-easy-v0",
-                "mathy-poly-normal-v0",
-                "mathy-poly-hard-v0",
-                "mathy-binomial-easy-v0",
-                "mathy-binomial-normal-v0",
-                "mathy-binomial-hard-v0",
-                "mathy-poly-blockers-easy-v0",
-                "mathy-poly-blockers-normal-v0",
-                "mathy-poly-blockers-hard-v0",
-            ]
-            if idx > len(items):
-                raise ValueError("not enough workers to satisfy")
-            return items[idx]
-
         workers = [
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
                 args=self.args,
+                teacher=self.teacher,
                 # args=self.args.copy(update={"env_name": many_workers(i)}),
                 worker_idx=i,
                 optimizer=self.optimizer,
@@ -119,8 +109,18 @@ class A3CAgent:
                     # action = np.argmax(probs)
                     state, reward, done, _ = env.step(action)
                     reward_sum += reward
+                    win = False
                     if done and reward > 0.0:
+                        win = True
                         env.render(mode="terminal")
+                    if done:
+                        print(
+                            color(
+                                text="SOLVE" if win else "FAIL",
+                                fore="green" if win else "red",
+                            )
+                        )
+
                     step_counter += 1
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")

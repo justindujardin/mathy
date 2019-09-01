@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -29,6 +29,7 @@ class A3CAgentTypes(str, Enum):
 
 class A3CArgs(BaseModel):
     env_name: MathyGymEnvTypes = MathyGymEnvTypes.poly_blockers_easy
+    topics: List[str] = []
     algorithm: A3CAgentTypes = A3CAgentTypes.a3c
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
@@ -37,7 +38,7 @@ class A3CArgs(BaseModel):
     train: bool = False
     lr: float = 3e-4
     update_freq: int = 25
-    max_eps: int = 10000
+    max_eps: int = 25000
     gamma: float = 0.99
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for

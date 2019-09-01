@@ -47,8 +47,10 @@ def main(
     profile: bool = False,
     evaluate: bool = False,
 ):
+    topics = ["poly", "poly-blockers", "complex", "binomial"]
     args = A3CArgs(
         env_name=env_name,
+        topics=topics,
         train=not evaluate,
         units=256,
         update_freq=32,

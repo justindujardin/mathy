@@ -1,18 +1,22 @@
 import os
 import threading
-from multiprocessing import Queue
 import time
+from multiprocessing import Queue
+from typing import Any, Dict, Optional
 
 import gym
 import numpy as np
 import tensorflow as tf
 
+from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
+
 from ..core.expressions import MathTypeKeysMax
+from ..mathy_env_state import MathyEnvState
+from ..teacher import Student, Teacher, Topic
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .replay_buffer import ReplayBuffer
 from .util import record
-from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 
 class A3CWorker(threading.Thread):
@@ -27,6 +31,8 @@ class A3CWorker(threading.Thread):
     save_lock = threading.Lock()
     # </GLOBAL_VARS>
 
+    envs: Dict[str, Any]
+
     def __init__(
         self,
         args: A3CArgs,
@@ -36,26 +42,31 @@ class A3CWorker(threading.Thread):
         result_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
+        teacher: Teacher,
     ):
         super(A3CWorker, self).__init__()
         self.args = args
+        self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
-        self.env = gym.make(self.args.env_name)
+        self.teacher = teacher
+        self.envs = {}
+        first_env = self.teacher.get_env(self.worker_idx, self.iteration)
+        self.envs[first_env] = gym.make(first_env)
         self.writer = writer
         self.local_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )
-        self.local_model.maybe_load(self.env.reset())
+        self.local_model.maybe_load(self.envs[first_env].reset())
         self.ep_loss = 0.0
         self.ep_pi_loss = 0.0
         self.ep_value_loss = 0.0
         self.ep_entropy_loss = 0.0
 
-        print(f"[Worker {worker_idx}] using env: {self.args.env_name}")
+        print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
 
     def run(self):
         if self.args.profile:
@@ -68,7 +79,31 @@ class A3CWorker(threading.Thread):
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
-            self.run_episode(replay_buffer)
+            reward = self.run_episode(replay_buffer)
+            win_pct = self.teacher.report_result(self.worker_idx, reward)
+            if win_pct is not None:
+                with self.writer.as_default():
+                    student = self.teacher.get_student(self.worker_idx)
+                    difficulty = student.topics[student.topic].difficulty
+                    if difficulty == "easy":
+                        difficulty = 0.0
+                    elif difficulty == "normal":
+                        difficulty = 0.5
+                    elif difficulty == "hard":
+                        difficulty = 1.0
+                    step = self.global_model.global_step
+                    tf.summary.scalar(
+                        f"worker_{self.worker_idx}/{student.topic}/success_rate",
+                        data=win_pct,
+                        step=step,
+                    )
+                    tf.summary.scalar(
+                        f"worker_{self.worker_idx}/{student.topic}/difficulty",
+                        data=difficulty,
+                        step=step,
+                    )
+
+            self.iteration += 1
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
 
@@ -81,7 +116,11 @@ class A3CWorker(threading.Thread):
         self.result_queue.put(None)
 
     def run_episode(self, replay_buffer: ReplayBuffer):
-        current_state = self.env.reset()
+        env_name = self.teacher.get_env(self.worker_idx, self.iteration)
+        if env_name not in self.envs:
+            self.envs[env_name] = gym.make(env_name)
+        env = self.envs[env_name]
+        current_state = env.reset()
         replay_buffer.clear()
         ep_reward = 0.0
         ep_steps = 0
@@ -89,14 +128,14 @@ class A3CWorker(threading.Thread):
 
         time_count = 0
         done = False
-        while not done:
+        while not done and A3CWorker.request_quit is False:
             # Select a random action from the distribution with the given probabilities
             sample = replay_buffer.get_current_window(current_state)
             probs = self.local_model.predict_one(sample)
             action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
-            new_state, reward, done, _ = self.env.step(action)
+            new_state, reward, done, _ = env.step(action)
             ep_reward += reward
             replay_buffer.store(current_state, action, reward)
             self.maybe_write_histograms()
@@ -105,7 +144,7 @@ class A3CWorker(threading.Thread):
                 self.update_global_network(done, new_state, replay_buffer)
                 time_count = 0
                 if done:
-                    self.finish_episode(ep_reward, ep_steps)
+                    self.finish_episode(ep_reward, ep_steps, env.state)
 
             ep_steps += 1
             time_count += 1
@@ -115,9 +154,13 @@ class A3CWorker(threading.Thread):
             # to run more workers than there are CPUs available.
             time.sleep(self.args.worker_wait)
 
-    def maybe_write_episode_summaries(self, episode_reward: float, episode_steps: int):
+        return ep_reward
+
+    def maybe_write_episode_summaries(
+        self, episode_reward: float, episode_steps: int, last_state: MathyEnvState
+    ):
         # Track metrics for all workers
-        name = self.args.env_name
+        name = self.teacher.get_env(self.worker_idx, self.iteration)
         step = self.global_model.global_step
         with self.writer.as_default():
 
@@ -139,7 +182,7 @@ class A3CWorker(threading.Thread):
             #     step=step,
             # )
 
-            agent_state = self.env.state.agent
+            agent_state = last_state.agent
             p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
             outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
             out_text = f"{outcome}: {p_text}"
@@ -195,7 +238,8 @@ class A3CWorker(threading.Thread):
         self.local_model.set_weights(self.global_model.get_weights())
         replay_buffer.clear()
 
-    def finish_episode(self, episode_reward, episode_steps):
+    def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
+        env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         A3CWorker.global_moving_average_reward = record(
             A3CWorker.global_episode,
             episode_reward,
@@ -207,9 +251,9 @@ class A3CWorker(threading.Thread):
             self.ep_entropy_loss,
             self.ep_loss,
             episode_steps,
-            self.args.env_name,
+            env_name,
         )
-        self.maybe_write_episode_summaries(episode_reward, episode_steps)
+        self.maybe_write_episode_summaries(episode_reward, episode_steps, last_state)
 
         # We must use a lock to save our model and to print to prevent data races.
         if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
