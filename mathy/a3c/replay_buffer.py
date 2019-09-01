@@ -80,7 +80,7 @@ class ReplayBuffer(object):
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
         for key, backward in sequence_feature_keys:
-            pad_value = tuple([MathTypeKeys["empty"]] * 3)
+            pad_value = tuple([MathTypeKeys["empty"]] * 9)
             for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
