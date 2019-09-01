@@ -13,7 +13,7 @@ from ..rules import (
 )
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
-from ..problems import move_around_blockers_one, move_around_blockers_two
+from ..problems import move_around_blockers_one, move_around_blockers_two, rand_bool
 
 
 class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
@@ -29,15 +29,20 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
         return [ConstantsSimplifyRule, DistributiveFactorOutRule, CommutativeSwapRule]
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
+        hard_block = rand_bool()
         if params.difficulty == MathyEnvDifficulty.easy:
             blockers = randint(1, 3)
-            text, complexity = move_around_blockers_one(blockers)
+            hard_blockers = 1
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 5)
-            text, complexity = move_around_blockers_two(blockers)
+            hard_blockers = randint(2, 3)
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(3, 8)
-            text, complexity = move_around_blockers_two(blockers)
+            hard_blockers = randint(3, 5)
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
+        if hard_block:
+            text, complexity = move_around_blockers_two(hard_blockers)
+        else:
+            text, complexity = move_around_blockers_one(blockers)
         return MathyEnvProblem(text, complexity - 1, MODE_SIMPLIFY_POLYNOMIAL)
