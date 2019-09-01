@@ -51,11 +51,15 @@ class Teacher:
         eval_window: int = 4,
         win_threshold: float = 0.90,
         lose_threshold: float = 0.40,
+        difficulty: Optional[str] = None,
     ):
         self.topic_names = topic_names
         self.eval_window = eval_window
         self.win_threshold = win_threshold
         self.lose_threshold = lose_threshold
+        self.difficulty = difficulty
+        if self.difficulty is not None:
+            print(f"difficulty will not adjust and is fixed to: {self.difficulty}")
         self.initialize_students(num_students)
 
     def initialize_students(self, num_students: int):
@@ -64,7 +68,8 @@ class Teacher:
         for i in range(self.num_students):
             student_topics = {}
             for topic in self.topic_names:
-                student_topics[topic] = Topic(name=topic)
+                difficulty = self.difficulty if self.difficulty is not None else "easy"
+                student_topics[topic] = Topic(name=topic, difficulty=difficulty)
             self.students.append(Student(id=i, topic=topic, topics=student_topics))
 
     def get_student(self, student_id: int) -> Student:
@@ -102,7 +107,9 @@ class Teacher:
                 return float("%.3f" % (float(value)))
 
             print(f"{topic.name} evaluation... {truncate(win_ratio)}")
-            if win_ratio >= self.win_threshold:
+            if self.difficulty is not None:
+                pass
+            elif win_ratio >= self.win_threshold:
                 topic.difficulty = self.next_difficulty(topic.difficulty)
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)

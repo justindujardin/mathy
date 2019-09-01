@@ -17,7 +17,12 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 @plac.annotations(
-    env_name=("Initial environment name", "positional", None, str),
+    topics=(
+        "Comma separated topic names to work problems from",
+        "positional",
+        None,
+        str,
+    ),
     model_dir=(
         "The folder to save the model at, e.g. 'training/polynomials'",
         "positional",
@@ -30,8 +35,20 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         str,
     ),
+    difficulty=(
+        "Set to force a particular difficulty rather than adjusting by performance",
+        "option",
+        None,
+        str,
+    ),
     workers=(
         "Number of worker threads to use. More increases diversity of exp",
+        "option",
+        None,
+        int,
+    ),
+    model_units=(
+        "Number of dimensions to use for math vectors and model dimensions",
         "option",
         None,
         int,
@@ -40,19 +57,21 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
     evaluate=("Set when evaluation is desired", "flag", False, bool),
 )
 def main(
-    env_name: str,
+    topics: str,
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
+    model_units: int = 256,
+    difficulty: Optional[str] = None,
     profile: bool = False,
     evaluate: bool = False,
 ):
-    topics = ["poly", "poly-blockers", "complex", "binomial"]
+    topics_list = topics.split(",")
     args = A3CArgs(
-        env_name=env_name,
-        topics=topics,
+        difficulty=difficulty,
+        topics=topics_list,
         train=not evaluate,
-        units=256,
+        units=model_units,
         update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
