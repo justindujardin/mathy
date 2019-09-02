@@ -41,12 +41,12 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
             blockers = randint(2, 5)
             hard_blockers = randint(2, 3)
         elif params.difficulty == MathyEnvDifficulty.hard:
-            blockers = randint(3, 8)
-            hard_blockers = randint(3, 5)
+            blockers = randint(3, 7)
+            hard_blockers = randint(2, 4)
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         if hard_block:
             text, complexity = move_around_blockers_two(hard_blockers)
         else:
             text, complexity = move_around_blockers_one(blockers)
-        return MathyEnvProblem(text, complexity - 1, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

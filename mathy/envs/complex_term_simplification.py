@@ -35,7 +35,7 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
                 4, op="*", optional_var=True, optional_var_probability=0.5
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            text, complexity = simplify_multiple_terms(8, op="*", optional_var=False)
+            text, complexity = simplify_multiple_terms(6, op="*", optional_var=False)
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_COMPLEX_TERM)

@@ -55,7 +55,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
                 num_terms, shuffle_probability=0.45
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            num_terms = randint(5, 12)
+            num_terms = randint(5, 10)
             text, complexity = simplify_multiple_terms(
                 num_terms, shuffle_probability=0.5, powers_proability=0.8
             )
