@@ -1,4 +1,9 @@
-from ..core.expressions import AddExpression, MultiplyExpression
+from ..core.expressions import (
+    AddExpression,
+    MultiplyExpression,
+    ConstantExpression,
+    VariableExpression,
+)
 from .rule import BaseRule
 from .helpers import unlink
 
@@ -63,8 +68,21 @@ class DistributiveMultiplyRule(BaseRule):
             c = node.right.right
 
         a = unlink(a)
-        ab = MultiplyExpression(a.clone(), b.clone())
-        ac = MultiplyExpression(a.clone(), c.clone())
+
+        # If the operands for either multiplication can be expressed
+        # in a "natural" order, do so like a human would.
+        a_var: bool = isinstance(a, VariableExpression)
+        b_const: bool = isinstance(b, ConstantExpression)
+        c_const: bool = isinstance(c, ConstantExpression)
+        if a_var and b_const:
+            ab = MultiplyExpression(b.clone(), a.clone())
+        else:
+            ab = MultiplyExpression(a.clone(), b.clone())
+
+        if a_var and c_const:
+            ac = MultiplyExpression(c.clone(), a.clone())
+        else:
+            ac = MultiplyExpression(a.clone(), c.clone())
         result = AddExpression(ab, ac)
 
         [n.set_changed() for n in [node, a, ab, ac, result]]
