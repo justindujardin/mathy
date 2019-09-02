@@ -66,6 +66,11 @@ class CommutativeSwapRule(BaseRule):
                 right_left_var = isinstance(node.right.left, VariableExpression)
                 right_right_const = isinstance(node.right.right, ConstantExpression)
                 if right_left_var and right_right_const:
+                    # UNLESS it is within a more complex term that spans multiple nodes.
+                    if node.parent and isinstance(node.parent, MultiplyExpression):
+                        sibling = node.get_sibling()
+                        return sibling and isinstance(sibling, MultiplyExpression)
+                    # Nope
                     return False
         return True
 

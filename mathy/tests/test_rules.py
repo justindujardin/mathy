@@ -58,7 +58,13 @@ def run_rule_tests(name, rule_class, callback=None):
         rule = init_rule_for_test(ex, rule_class)
         expression = parser.parse(ex["input"]).clone()
         print(ex)
-        node = rule.find_node(expression)
+        if "target" in ex:
+            nodes = rule.find_nodes(expression)
+            node = [n for n in nodes if n.raw == ex["target"]][0]
+            assert node, "could not find node with target string"
+        else:
+            node = rule.find_node(expression)
+
         if node is None:
             assert "expected to find node but did not for" == str(expression)
         change = rule.apply_to(node)
