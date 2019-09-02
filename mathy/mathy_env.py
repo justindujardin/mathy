@@ -72,8 +72,12 @@ class MathyEnv:
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of rewarding action types. When these actions
-        are selected, the agent gets a positive reward as opposed to the
-        normal negative timestep reward."""
+        are selected, the agent gets a positive reward."""
+        return []
+
+    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
+        """Get the list of penalizing action types. When these actions
+        are selected, the agent gets a negative reward."""
         return []
 
     def transition_fn(
@@ -144,6 +148,16 @@ class MathyEnv:
                     return time_step.transition(
                         features,
                         reward=GameRewards.HELPFUL_MOVE,
+                        discount=self.discount,
+                    )
+
+            penalty_actions = self.get_penalizing_actions(env_state)
+            # The rewarding_actions can be user specified
+            for penalty_class in penalty_actions:
+                if isinstance(rule, penalty_class):
+                    return time_step.transition(
+                        features,
+                        reward=GameRewards.UNHELPFUL_MOVE,
                         discount=self.discount,
                     )
 
@@ -250,7 +264,7 @@ class MathyEnv:
     def get_initial_state(
         self, params: Optional[MathyEnvProblemArgs] = None, print_problem: bool = True
     ) -> Tuple[MathyEnvState, MathyEnvProblem]:
-        """Generate an initial MathyEnvState with the game's configuration"""
+        """Generate an initial MathyEnvState for an episode"""
         config = params if params is not None else MathyEnvProblemArgs()
         prob = self.problem_fn(config)
         self.valid_actions_mask_cache = dict()

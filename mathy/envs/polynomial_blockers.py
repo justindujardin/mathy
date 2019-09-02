@@ -10,6 +10,7 @@ from ..rules import (
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,
+    AssociativeSwapRule,
 )
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
@@ -27,6 +28,9 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveFactorOutRule, CommutativeSwapRule]
+
+    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
+        return [AssociativeSwapRule]
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         hard_block = rand_bool()
