@@ -53,7 +53,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         int,
     ),
-    model_units=(
+    units=(
         "Number of dimensions to use for math vectors and model dimensions",
         "option",
         None,
@@ -68,7 +68,7 @@ def main(
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
     windows: int = 0,
-    model_units: int = 256,
+    units: int = 256,
     difficulty: Optional[str] = None,
     profile: bool = False,
     evaluate: bool = False,
@@ -78,7 +78,7 @@ def main(
         difficulty=difficulty,
         topics=topics_list,
         train=not evaluate,
-        units=model_units,
+        units=units,
         update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
