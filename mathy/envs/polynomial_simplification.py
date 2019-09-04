@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Type
-from numpy.random import randint
+from numpy.random import randint, uniform
 
 from tf_agents.trajectories import time_step
 
@@ -48,16 +48,24 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         """
         if params.difficulty == MathyEnvDifficulty.easy:
             num_terms = randint(3, 6)
-            text, complexity = simplify_multiple_terms(num_terms)
-        elif params.difficulty == MathyEnvDifficulty.normal:
-            num_terms = randint(3, 7)
+            scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
-                num_terms, shuffle_probability=0.45
+                num_terms, inner_terms_scaling=scaling
+            )
+        elif params.difficulty == MathyEnvDifficulty.normal:
+            num_terms = randint(3, 8)
+            scaling = uniform(0.35, 0.65)
+            text, complexity = simplify_multiple_terms(
+                num_terms, shuffle_probability=0.45, inner_terms_scaling=scaling
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             num_terms = randint(5, 10)
+            scaling = uniform(0.25, 0.75)
             text, complexity = simplify_multiple_terms(
-                num_terms, shuffle_probability=0.5, powers_proability=0.8
+                num_terms,
+                shuffle_probability=0.5,
+                powers_proability=0.8,
+                inner_terms_scaling=scaling,
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")

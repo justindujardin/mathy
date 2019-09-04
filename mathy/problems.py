@@ -171,7 +171,7 @@ def simplify_multiple_terms(
 ) -> Tuple[str, int]:
     power_prob_percent = powers_proability * 100
     powers = rand_bool(power_prob_percent)
-    num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    num_like_terms = max(1, int(num_terms * inner_terms_scaling))
     term_templates = get_rand_vars(num_like_terms)
     if powers is not False:
         for i, var in enumerate(term_templates):
