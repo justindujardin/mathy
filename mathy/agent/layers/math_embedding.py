@@ -14,8 +14,6 @@ from ...features import (
 )
 from .bahdanau_attention import BahdanauAttention
 from .resnet_stack import ResNetStack
-from .lstm import LSTM
-from .keras_self_attention.seq_self_attention import SeqSelfAttention
 
 
 class MathEmbedding(tf.keras.layers.Layer):
@@ -29,17 +27,13 @@ class MathEmbedding(tf.keras.layers.Layer):
             self.units, name="embedding_input", use_bias=False
         )
         self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
-        self.lstm = tf.keras.layers.LSTM(
-            units,
-            name="embedding_lstm",
-            return_sequences=True,
-            time_major=True,
-            return_state=True,
+        self.time_lstm = tf.keras.layers.LSTM(
+            units, name="timestep_lstm", return_sequences=True, time_major=True
         )
-
-        self.embedding = tf.keras.layers.Dense(
-            units=self.units, name="embedding", activation="relu"
+        self.nodes_lstm = tf.keras.layers.LSTM(
+            units, name="nodes_lstm", return_sequences=True, time_major=False
         )
+        self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
         self.build_feature_columns()
         # self.self_attention = SeqSelfAttention()
 
@@ -68,7 +62,7 @@ class MathEmbedding(tf.keras.layers.Layer):
             self.f_last_rule,
             self.f_node_count,
             self.f_move_count,
-            # self.f_moves_remaining,
+            self.f_moves_remaining,
         ]
 
         self.ctx_extractor = tf.keras.layers.DenseFeatures(
@@ -117,13 +111,16 @@ class MathEmbedding(tf.keras.layers.Layer):
             # print("cool beans")
             pass
 
+        # Add context to each timesteps node vectors first
+        outputs = self.nodes_lstm(outputs)
+
         # Apply LSTM to the output sequences to capture context across timesteps
         # in the batch.
         #
         # NOTE: This does process the observation timesteps across the batch axis with
         #
         # shape = [Observations, ObservationNodeVectors, self.units]
-        time_out, state_c, state_h = self.lstm(outputs)
+        time_out = self.nodes_lstm(outputs)
 
         # Bahdanau Attn
         attention_context, attention_weights = self.attention(time_out, context_inputs)
