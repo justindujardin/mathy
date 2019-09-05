@@ -1,8 +1,9 @@
+import math
 import os
 import threading
 import time
 from multiprocessing import Queue
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import gym
 import numpy as np
@@ -11,13 +12,15 @@ import tensorflow as tf
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
+from ..features import FEATURE_FWD_VECTORS
 from ..mathy_env_state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
+from ..util import GameRewards, window_vector_size
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
+from .experience import Experience, ExperienceFrame
 from .replay_buffer import ReplayBuffer
 from .util import record
-from ..util import window_vector_size
 
 
 class A3CWorker(threading.Thread):
@@ -62,12 +65,17 @@ class A3CWorker(threading.Thread):
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )
         self.local_model.maybe_load(self.envs[first_env].reset())
+        self.reset_episode_loss()
+        self.agent_experience = Experience(6)
+
+        print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
+
+    def reset_episode_loss(self):
         self.ep_loss = 0.0
         self.ep_pi_loss = 0.0
         self.ep_value_loss = 0.0
+        self.ep_aux_loss: Dict[str, float] = {}
         self.ep_entropy_loss = 0.0
-
-        print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
 
     def run(self):
         if self.args.profile:
@@ -76,7 +84,9 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        replay_buffer = ReplayBuffer(window_vector_size(1, self.args.windows))
+        replay_buffer = ReplayBuffer(
+            self.agent_experience, window_vector_size(1, self.args.windows)
+        )
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -122,7 +132,7 @@ class A3CWorker(threading.Thread):
         if env_name not in self.envs:
             self.envs[env_name] = gym.make(env_name, windows=self.args.windows)
         env = self.envs[env_name]
-        current_state = env.reset()
+        last_state = env.reset()
         replay_buffer.clear()
         ep_reward = 0.0
         ep_steps = 0
@@ -130,17 +140,35 @@ class A3CWorker(threading.Thread):
 
         time_count = 0
         done = False
+        last_action = -1
+        last_reward = -1
         while not done and A3CWorker.request_quit is False:
+
             # Select a random action from the distribution with the given probabilities
-            sample = replay_buffer.get_current_window(current_state)
-            probs = self.local_model.predict_one(sample)
+            sample = replay_buffer.get_current_window(last_state)
+            probs, value = self.local_model.predict_one(sample)
             action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
             ep_reward += reward
-            replay_buffer.store(current_state, action, reward)
+            replay_buffer.store(last_state, action, reward, value)
+
+            frame = ExperienceFrame(
+                last_state,
+                reward=reward,
+                action=action,
+                terminal=done,
+                pixel_change=None,
+                last_action=last_action,
+                last_reward=last_reward,
+            )
+            self.agent_experience.add_frame(frame)
             self.maybe_write_histograms()
+
+            # If the agent has enough experience, train aux tasks
+            # if self.agent_experience.is_full() is True:
+            #     print("yay")
 
             if replay_buffer.ready and (time_count == self.args.update_freq or done):
                 self.update_global_network(done, new_state, replay_buffer)
@@ -150,12 +178,13 @@ class A3CWorker(threading.Thread):
 
             ep_steps += 1
             time_count += 1
-            current_state = new_state
+            last_state = new_state
+            last_action = action
+            last_reward = reward
 
             # Workers wait between each step so that it's possible
             # to run more workers than there are CPUs available.
             time.sleep(self.args.worker_wait)
-
         return ep_reward
 
     def maybe_write_episode_summaries(
@@ -221,13 +250,18 @@ class A3CWorker(threading.Thread):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
         with tf.GradientTape() as tape:
-            pi_loss, value_loss, entropy_loss, total_loss = self.compute_loss(
+            loss_tuple = self.compute_loss(
                 done, new_state, replay_buffer, self.args.gamma
             )
+            pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
         self.ep_loss += total_loss
         self.ep_pi_loss += pi_loss
         self.ep_value_loss += value_loss
         self.ep_entropy_loss += entropy_loss
+        for k in aux_losses.keys():
+            if k not in self.ep_aux_loss:
+                self.ep_aux_loss[k] = 0.0
+            self.ep_aux_loss[k] += aux_losses[k].numpy()
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
@@ -251,6 +285,7 @@ class A3CWorker(threading.Thread):
             self.ep_pi_loss,
             self.ep_value_loss,
             self.ep_entropy_loss,
+            self.ep_aux_loss,
             self.ep_loss,
             episode_steps,
             env_name,
@@ -263,6 +298,8 @@ class A3CWorker(threading.Thread):
         else:
             A3CWorker.global_episode += 1
 
+        self.reset_episode_loss()
+
     def write_global_model(self, increment_episode=True):
         with A3CWorker.save_lock:
             # Do this inside the lock so other threads can't also acquire the
@@ -272,7 +309,9 @@ class A3CWorker(threading.Thread):
                 A3CWorker.global_episode += 1
                 self.global_model.save()
 
-    def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
+    def compute_policy_value_loss(
+        self, done: bool, new_state, replay_buffer: ReplayBuffer, gamma=0.99
+    ):
         step = self.global_model.global_step
         if done:
             reward_sum = 0.0  # terminal
@@ -324,37 +363,32 @@ class A3CWorker(threading.Thread):
         policy_loss *= tf.stop_gradient(advantage)
 
         value_loss *= 0.5
-
         total_loss = tf.reduce_mean(value_loss + policy_loss + h_loss.loss)
-        with self.writer.as_default():
-            tf.summary.scalar(
-                f"losses/worker_{self.worker_idx}/loss", data=total_loss, step=step
-            )
-            tf.summary.scalar(
-                f"losses/worker_{self.worker_idx}/policy_loss",
-                data=tf.reduce_mean(policy_loss),
-                step=step,
-            )
-            tf.summary.scalar(
-                f"losses/worker_{self.worker_idx}/value_loss",
-                data=tf.reduce_mean(value_loss),
-                step=step,
-            )
-            tf.summary.scalar(
-                f"values/worker_{self.worker_idx}/entropy_loss",
-                data=tf.reduce_mean(h_loss.loss),
-                step=step,
-            )
-            tf.summary.scalar(
-                f"values/worker_{self.worker_idx}/advantage",
-                data=tf.reduce_sum(advantage),
-                step=step,
-            )
-            tf.summary.scalar(
-                f"values/worker_{self.worker_idx}/entropy",
-                data=tf.reduce_mean(h_loss.extra.entropy),
-                step=step,
-            )
+        tf.summary.scalar(
+            f"worker_{self.worker_idx}/policy_loss",
+            data=tf.reduce_mean(policy_loss),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"worker_{self.worker_idx}/value_loss",
+            data=tf.reduce_mean(value_loss),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"worker_{self.worker_idx}/entropy_loss",
+            data=tf.reduce_mean(h_loss.loss),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"worker_{self.worker_idx}/advantage",
+            data=tf.reduce_sum(advantage),
+            step=step,
+        )
+        tf.summary.scalar(
+            f"worker_{self.worker_idx}/entropy",
+            data=tf.reduce_mean(h_loss.extra.entropy),
+            step=step,
+        )
 
         return (
             tf.reduce_mean(policy_loss),
@@ -362,3 +396,62 @@ class A3CWorker(threading.Thread):
             tf.reduce_mean(h_loss.loss),
             total_loss,
         )
+
+    def compute_reward_prediction_loss(
+        self, done, new_state, replay_buffer: ReplayBuffer
+    ):
+        rp_inputs, rp_labels = replay_buffer.rp_samples()
+        rp_losses = []
+        for inputs, labels in zip(rp_inputs, rp_labels):
+            features = []
+            rp_outputs = self.local_model.predict_reward(inputs)
+            rp_losses.append(
+                tf.nn.sparse_softmax_cross_entropy_with_logits(
+                    logits=rp_outputs, labels=labels
+                )
+            )
+        return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
+
+    def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
+        with self.writer.as_default():
+            step = self.global_model.global_step
+            pi_loss, v_loss, h_loss, total_loss = self.compute_policy_value_loss(
+                done, new_state, replay_buffer
+            )
+            aux_losses = {}
+            if self.args.use_reward_prediction:
+                rp_loss = self.compute_reward_prediction_loss(
+                    done, new_state, replay_buffer
+                )
+                total_loss += rp_loss * 0.25
+                aux_losses["rp"] = rp_loss
+            tf.summary.scalar(
+                f"worker_{self.worker_idx}/total_loss", data=total_loss, step=step
+            )
+
+        return pi_loss, v_loss, h_loss, aux_losses, total_loss
+
+    # Auxiliary tasks
+    def get_rp_inputs_with_labels(
+        self, episode_buffer: ReplayBuffer
+    ) -> Tuple[List[Any], List[Any]]:
+        # [Reward prediction]
+        rp_experience_frames: List[
+            ExperienceFrame
+        ] = self.agent_experience.sample_rp_sequence()
+        # 4 frames
+        states = [frame.state for frame in rp_experience_frames[:-1]]
+        batch_rp_si = episode_buffer.to_features(states)
+        batch_rp_c = []
+
+        # one hot vector for target reward
+        r = rp_experience_frames[3].reward
+        rp_c = [0.0, 0.0, 0.0]
+        if math.isclose(r, GameRewards.TIMESTEP):
+            rp_c[0] = 1.0  # zero
+        elif r > 0:
+            rp_c[1] = 1.0  # positive
+        else:
+            rp_c[2] = 1.0  # negative
+        batch_rp_c.append(rp_c)
+        return batch_rp_si, batch_rp_c

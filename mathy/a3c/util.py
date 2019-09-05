@@ -23,6 +23,7 @@ def record(
     pi_loss,
     value_loss,
     entropy_loss,
+    aux_losses,
     total_loss,
     num_steps,
     env_name,
@@ -46,14 +47,23 @@ def record(
     global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
 
     fore = "green" if episode_reward > 0.0 else "red"
+
+    losses = [
+        f"total: {truncate(total_loss)} "
+        f"pi: {truncate(pi_loss)} "
+        f"value: {truncate(value_loss)} "
+        f"entropy: {truncate(entropy_loss)} "
+    ]
+    if isinstance(aux_losses, dict):
+        for k in aux_losses.keys():
+            losses.append(f"{k}: {truncate(aux_losses[k])} ")
+    loss_str = f"losses( {' '.join(losses)}) "
+
     print(
         color(
             f"{now} ep{episode} "
             f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
-            f"loss(total: {truncate(total_loss)} "
-            f"pi: {truncate(pi_loss)} "
-            f"value: {truncate(value_loss)} "
-            f"entropy: {truncate(entropy_loss)}) "
+            f"{loss_str}"
             f"steps({num_steps}) "
             f"worker{worker_idx}: {env_name}",
             fore=fore,

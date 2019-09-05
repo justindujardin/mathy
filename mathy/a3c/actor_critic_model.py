@@ -31,7 +31,9 @@ class ActorCriticModel(tf.keras.Model):
         self.optimizer = optimizer
         self.init_global_step()
         self.predictions = predictions
-        self.pi_logits = tf.keras.layers.Dense(predictions, name="pi_logits")
+        # negative/neutral/positive
+        self.reward_prediction = tf.keras.layers.Dense(3, name="rp_logits")
+        self.rp_attention = BahdanauAttention(self.args.units, "rp_attn")
         self.pi_sequence = TimeDistributed(
             MathPolicyDropout(self.predictions), name="pi_head"
         )
@@ -72,7 +74,13 @@ class ActorCriticModel(tf.keras.Model):
 
     def maybe_load(self, initial_state=None, do_init=False):
         if initial_state is not None:
+            # NOTE: This is needed to properly initialize the trainable vars
+            #       for the global model. Each prediction path must be called
+            #       here or you'll get gradient descent errors about variables
+            #       not matching gradients when the local_model tries to optimize
+            #       against the global_model.
             self.call(initial_state)
+            self.predict_reward(initial_state)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
@@ -130,10 +138,29 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(flat_logits).numpy()
         return logits, values, probs
 
-    def predict_one(self, inputs) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    def predict_one(self, inputs) -> Tuple[tf.Tensor, tf.Tensor]:
+        """Predict one probability distribution and value for the
+        given sequence of inputs"""
         logits, values, masked = self.call(inputs)
         # take the last timestep
         masked = masked[-1]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
         probs = tf.nn.softmax(flat_logits).numpy()
-        return probs
+        return probs, tf.squeeze(values[-1]).numpy()
+
+    def predict_reward(self, experience_frames) -> tf.Tensor:
+        """Reward prediction for auxiliary tasks. Given an input sequence
+        predict a class for positive, negative or neutral."""
+        inputs = experience_frames
+        # Extract features into contextual inputs, sequence inputs.
+        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
+
+        # seq_last = tf.expand_dims(tf.reshape(sequence_inputs[-1], [-1]), axis=0)
+        ctx_one = tf.expand_dims(context_inputs[-1], axis=0)
+        attn_out, attn_weights = self.rp_attention(sequence_inputs[-1], ctx_one)
+
+        # attn_out, attn_weights = self.rp_attention(sequence_inputs, context_inputs)
+        flat_attention = tf.reshape(attn_out, [1, -1])
+        predict_logits = self.reward_prediction(flat_attention)
+        values = tf.squeeze(predict_logits)
+        return tf.nn.softmax(values)

@@ -1,5 +1,6 @@
 import re
 import numpy
+import numpy as np
 from typing import Tuple, Any, List, Dict
 from .types import MathyEnvObservation
 from .core import MathTypeKeys
@@ -290,7 +291,7 @@ def parse_example_for_training(
     return inputs, outputs
 
 
-def pad_array(A, max_length, value=0, backwards=False):
+def pad_array(A, max_length, value=0, backwards=False, cleanup=False):
     """Pad a list to the given size with the given padding value
     
     If backwards=True the input will be reversed after padding, and 
@@ -303,6 +304,8 @@ def pad_array(A, max_length, value=0, backwards=False):
         A.append(value)
     if backwards:
         A.reverse()
+    if cleanup is True:
+        A = np.array(A).tolist()
     return A
 
 

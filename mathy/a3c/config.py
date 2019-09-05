@@ -29,3 +29,9 @@ class A3CArgs(BaseModel):
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.
     profile: bool = False
+
+    # Whether to use the reward prediction aux task
+    use_reward_prediction = True
+
+    # Whether to use the value replay aux task
+    use_value_replay = True
