@@ -66,7 +66,7 @@ class A3CWorker(threading.Thread):
         )
         self.local_model.maybe_load(self.envs[first_env].reset())
         self.reset_episode_loss()
-        self.agent_experience = Experience(6)
+        self.agent_experience = Experience(history_size=32, ready_at=12)
 
         print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
 
@@ -146,14 +146,12 @@ class A3CWorker(threading.Thread):
 
             # Select a random action from the distribution with the given probabilities
             sample = replay_buffer.get_current_window(last_state)
-            probs, value = self.local_model.predict_one(sample)
+            probs, value = self.local_model.predict_next(sample)
             action = np.random.choice(len(probs), p=probs)
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
             ep_reward += reward
-            replay_buffer.store(last_state, action, reward, value)
-
             frame = ExperienceFrame(
                 last_state,
                 reward=reward,
@@ -163,7 +161,9 @@ class A3CWorker(threading.Thread):
                 last_action=last_action,
                 last_reward=last_reward,
             )
-            self.agent_experience.add_frame(frame)
+            replay_buffer.store(last_state, action, reward, value, frame)
+
+            # self.agent_experience.add_frame(frame)
             self.maybe_write_histograms()
 
             # If the agent has enough experience, train aux tasks
@@ -322,9 +322,10 @@ class A3CWorker(threading.Thread):
             values = values[-1]
             reward_sum = tf.squeeze(values).numpy()
 
-        # Get discounted rewards
-        discounted_rewards = []
-        for reward in replay_buffer.rewards[::-1]:  # reverse buffer r
+        # figure out discounted rewards
+        discounted_rewards: List[float] = []
+        # iterate backwards
+        for reward in replay_buffer.rewards[::-1]:
             reward_sum = reward + gamma * reward_sum
             discounted_rewards.append(reward_sum)
         discounted_rewards.reverse()
@@ -395,6 +396,7 @@ class A3CWorker(threading.Thread):
             tf.reduce_mean(value_loss),
             tf.reduce_mean(h_loss.loss),
             total_loss,
+            discounted_rewards,
         )
 
     def compute_reward_prediction_loss(
@@ -403,8 +405,7 @@ class A3CWorker(threading.Thread):
         rp_inputs, rp_labels = replay_buffer.rp_samples()
         rp_losses = []
         for inputs, labels in zip(rp_inputs, rp_labels):
-            features = []
-            rp_outputs = self.local_model.predict_reward(inputs)
+            rp_outputs = self.local_model.predict_next_reward(inputs)
             rp_losses.append(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(
                     logits=rp_outputs, labels=labels
@@ -412,19 +413,53 @@ class A3CWorker(threading.Thread):
             )
         return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
 
-    def compute_loss(self, done, new_state, replay_buffer: ReplayBuffer, gamma=0.99):
+    def compute_value_replay_loss(
+        self,
+        done,
+        new_state,
+        replay_buffer: ReplayBuffer,
+        discounted_rewards: List[float],
+    ):
+        max_frames = 6
+        if not replay_buffer.experience.is_full():
+            return tf.constant(0.0)
+        frames: List[ExperienceFrame] = replay_buffer.experience.sample_sequence(
+            min(len(discounted_rewards), max_frames)
+        )
+        vr_losses = []
+        for i, frame in enumerate(frames):
+            states = [frame.state for frame in frames]
+            sample_features = replay_buffer.to_features(states)
+            vr_values = self.local_model.predict_value_replays(sample_features)
+            advantage = discounted_rewards[i] - vr_values
+            # Value loss
+            value_loss = advantage ** 2
+            vr_losses.append(value_loss)
+
+        return tf.reduce_mean(tf.convert_to_tensor(vr_losses))
+
+    def compute_loss(
+        self, done: bool, new_state, replay_buffer: ReplayBuffer, gamma=0.99
+    ):
         with self.writer.as_default():
             step = self.global_model.global_step
-            pi_loss, v_loss, h_loss, total_loss = self.compute_policy_value_loss(
-                done, new_state, replay_buffer
-            )
+            loss_tuple = self.compute_policy_value_loss(done, new_state, replay_buffer)
+            pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
-            if self.args.use_reward_prediction:
-                rp_loss = self.compute_reward_prediction_loss(
-                    done, new_state, replay_buffer
-                )
-                total_loss += rp_loss * 0.25
-                aux_losses["rp"] = rp_loss
+            replay_buffer.commit_frames(discounted_rewards)
+            if replay_buffer.experience.is_full():
+                if self.args.use_reward_prediction:
+                    rp_loss = self.compute_reward_prediction_loss(
+                        done, new_state, replay_buffer
+                    )
+                    total_loss += rp_loss * 0.25
+                    aux_losses["rp"] = rp_loss
+                if self.args.use_value_replay:
+                    vr_loss = self.compute_value_replay_loss(
+                        done, new_state, replay_buffer, discounted_rewards
+                    )
+                    total_loss += vr_loss * 0.25
+                    aux_losses["vr"] = vr_loss
             tf.summary.scalar(
                 f"worker_{self.worker_idx}/total_loss", data=total_loss, step=step
             )

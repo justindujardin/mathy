@@ -5,7 +5,7 @@ from typing import Any, List, NamedTuple, Optional, Tuple
 import numpy
 
 from ...mathy_env import MathyEnv
-from ...types import MathyEnvObservation, MathyEnvEpisodeResult
+from ...types import deprecated_MathyEnvObservation, deprecated_MathyEnvEpisodeResult
 from ...mathy_env_state import MathyEnvState
 from ...util import discount, is_terminal_transition
 from ..controller import MathModel
@@ -27,8 +27,8 @@ class ActorMCTS:
         env: MathyEnv,
         env_state: MathyEnvState,
         model: MathModel,
-        history: List[MathyEnvObservation],
-    ) -> Tuple[MathyEnvState, MathyEnvObservation, Optional[MathyEnvEpisodeResult]]:
+        history: List[deprecated_MathyEnvObservation],
+    ) -> Tuple[MathyEnvState, deprecated_MathyEnvObservation, Optional[deprecated_MathyEnvEpisodeResult]]:
         """Pick an action, take it, and return the next state.
 
         returns: A tuple of (new_env_state, train_example, terminal_results_or_none)
@@ -58,7 +58,7 @@ class ActorMCTS:
         # Output a single training example for per-step training
         train_features = copy.deepcopy(example_data)
         train_features["policy_mask"] = pi_mask
-        train_example = MathyEnvObservation(
+        train_example = deprecated_MathyEnvObservation(
             input=state.agent.problem,
             output=next_state.agent.problem,
             action=action_i,
@@ -87,7 +87,7 @@ class ActorMCTS:
         problem_id = uuid.uuid4().hex
         for i, x in enumerate(history):
             final_history.append(
-                MathyEnvObservation(
+                deprecated_MathyEnvObservation(
                     input=x.input,
                     output=x.output,
                     action=x.action,
@@ -103,5 +103,5 @@ class ActorMCTS:
         return (
             next_state,
             train_example,
-            MathyEnvEpisodeResult(final_history, episode_reward, is_win),
+            deprecated_MathyEnvEpisodeResult(final_history, episode_reward, is_win),
         )

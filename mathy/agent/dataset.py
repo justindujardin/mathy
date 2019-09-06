@@ -22,10 +22,10 @@ from ..features import (
     TENSOR_KEY_VALUE,
     parse_example_for_training,
 )
-from ..types import MathyEnvObservation
+from ..types import deprecated_MathyEnvObservation
 
 
-def make_training_input_fn(examples: List[MathyEnvObservation], batch_size: int):
+def make_training_input_fn(examples: List[deprecated_MathyEnvObservation], batch_size: int):
     """Return an input function that lazily loads self-play examples from
     the given file during training."""
 

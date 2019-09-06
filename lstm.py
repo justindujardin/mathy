@@ -22,7 +22,7 @@ from mathy.agent.layers.math_policy_dropout import MathPolicyDropout
 class MathExamples:
     """Load and save a list of training examples from the file system"""
 
-    _examples: List[MathyEnvObservation]
+    _examples: List[deprecated_MathyEnvObservation]
     file_path: str
 
     def __init__(self, file_path, initial_load=True):
@@ -32,11 +32,11 @@ class MathExamples:
             self.load()
 
     @property
-    def examples(self) -> List[MathyEnvObservation]:
+    def examples(self) -> List[deprecated_MathyEnvObservation]:
         """Get the entire list of examples"""
         return self._examples
 
-    def add(self, examples: List[MathyEnvObservation]):
+    def add(self, examples: List[deprecated_MathyEnvObservation]):
         self._examples += examples
 
     def load(self):
@@ -44,10 +44,10 @@ class MathExamples:
         file_path = Path(self.file_path)
         if not file_path.is_file():
             raise ValueError(f"file '{file_path}' does not exist!")
-        examples: List[MathyEnvObservation] = []
+        examples: List[deprecated_MathyEnvObservation] = []
         with file_path.open("r", encoding="utf8") as f:
             for line in f:
-                ex = MathyEnvObservation(**ujson.loads(line))
+                ex = deprecated_MathyEnvObservation(**ujson.loads(line))
                 examples.append(ex)
         self._examples = examples
         return True

@@ -2,14 +2,14 @@ import tensorflow as tf
 
 
 class BahdanauAttention(tf.keras.layers.Layer):
-    """Attention from: https://www.tensorflow.org/alpha/tutorials/sequences/image_captioning#model"""
+    """Attention from:
+    https://www.tensorflow.org/alpha/tutorials/sequences/image_captioning#model"""
 
     def __init__(self, units, name="attention"):
-        super(BahdanauAttention, self).__init__()
-        with tf.compat.v1.variable_scope(name):
-            self.W1 = tf.keras.layers.Dense(units, name=f"{name}/w1")
-            self.W2 = tf.keras.layers.Dense(units, name=f"{name}/w2")
-            self.V = tf.keras.layers.Dense(1, name=f"{name}/v")
+        super(BahdanauAttention, self).__init__(name=name)
+        self.W1 = tf.keras.layers.Dense(units, name=f"{name}/w1")
+        self.W2 = tf.keras.layers.Dense(units, name=f"{name}/w2")
+        self.V = tf.keras.layers.Dense(1, name=f"{name}/v")
 
     def call(self, features, hidden):
         # features(CNN_encoder output) shape == (batch_size, 64, embedding_dim)

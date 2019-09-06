@@ -35,7 +35,9 @@ class MathEmbedding(tf.keras.layers.Layer):
         )
         self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
         self.build_feature_columns()
-        # self.self_attention = SeqSelfAttention()
+        self.attention = BahdanauAttention(units, name="attention")
+        self.dense_h = tf.keras.layers.Dense(units, name=f"lstm_initial_h")
+        self.dense_c = tf.keras.layers.Dense(units, name=f"lstm_initial_c")
 
     def build_feature_columns(self):
         """Build out the Tensorflow Feature Columns that define the inputs from Mathy
@@ -81,12 +83,6 @@ class MathEmbedding(tf.keras.layers.Layer):
             tf.one_hot(
                 features[FEATURE_FWD_VECTORS], dtype=tf.float32, depth=max_depth
             ),
-            tf.one_hot(
-                features[FEATURE_LAST_BWD_VECTORS], dtype=tf.float32, depth=max_depth
-            ),
-            tf.one_hot(
-                features[FEATURE_LAST_FWD_VECTORS], dtype=tf.float32, depth=max_depth
-            ),
         ]
         batch_sequence_features = self.concat(batch_seq_one_hots)
 
@@ -96,6 +92,9 @@ class MathEmbedding(tf.keras.layers.Layer):
         for sequence_inputs in batch_sequence_features:
             example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
             outputs.append(tf.reshape(example, [sequence_length, -1]))
+
+        # Build initial LSTM state conditioned on the context features
+        initial_state = [self.dense_c(context_inputs), self.dense_h(context_inputs)]
 
         # Process the sequence embeddings with a RNN to capture temporal
         # features. NOTE: this relies on the batches of observations being
@@ -112,7 +111,7 @@ class MathEmbedding(tf.keras.layers.Layer):
             pass
 
         # Add context to each timesteps node vectors first
-        outputs = self.nodes_lstm(outputs)
+        outputs = self.nodes_lstm(outputs, initial_state=initial_state)
 
         # Apply LSTM to the output sequences to capture context across timesteps
         # in the batch.
@@ -122,10 +121,9 @@ class MathEmbedding(tf.keras.layers.Layer):
         # shape = [Observations, ObservationNodeVectors, self.units]
         time_out = self.time_lstm(outputs)
 
-        # Bahdanau Attn
-        attention_context, attention_weights = self.attention(time_out, context_inputs)
-        return (attention_context, time_out, sequence_length)
+        # Convert context features into unit-sized layer
+        context_vector, _ = self.attention(time_out, context_inputs)
 
-        # # Self Attn
-        # time_out = self.self_attention(time_out)
-        # return (context_inputs, time_out, sequence_length)
+        time_out = time_out + tf.expand_dims(context_vector, axis=1)
+
+        return (context_vector, time_out, sequence_length)

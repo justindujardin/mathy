@@ -22,7 +22,7 @@ class A3CArgs(BaseModel):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.01
+    worker_wait: float = 0.05
     # The number of worker agents to create.
     num_workers: int = 3
 

@@ -32,19 +32,44 @@ class ActorCriticModel(tf.keras.Model):
         self.init_global_step()
         self.predictions = predictions
         # negative/neutral/positive
-        self.reward_prediction = tf.keras.layers.Dense(3, name="rp_logits")
-        self.rp_attention = BahdanauAttention(self.args.units, "rp_attn")
+        self.build_shared_network()
+        self.build_policy_value()
+        self.build_reward_prediction()
+        self.build_value_replay()
+
+    def build_shared_network(self):
+        """The shared embedding network for all tasks"""
+        self.embedding = MathEmbedding(self.args.units, name="shared_network")
+
+    def build_policy_value(self):
+        """A3C policy/value network"""
         self.pi_sequence = TimeDistributed(
-            MathPolicyDropout(self.predictions), name="pi_head"
+            MathPolicyDropout(self.predictions), name="a3c/policy_logits"
         )
-        self.value_logits = tf.keras.layers.Dense(1, name="value_logits")
-        self.embedding = MathEmbedding(self.args.units)
+        self.attention = BahdanauAttention(self.args.units, "a3c/attention")
+        self.value_logits = tf.keras.layers.Dense(1, name="a3c/value_logits")
+
+    def build_reward_prediction(self):
+        if self.args.use_reward_prediction is False:
+            return
+        self.reward_prediction = tf.keras.layers.Dense(
+            3, name="reward_prediction/class_logits"
+        )
+        self.rp_prepare_values = tf.keras.layers.Dense(
+            self.args.units, name="reward_prediction/prepare_inputs"
+        )
+
+    def build_value_replay(self):
+        if self.args.use_value_replay is False:
+            return
+        self.vr_prepare_values = tf.keras.layers.Dense(
+            self.args.units, name="value_replay/prepare_values"
+        )
 
     def call(self, batch_features, apply_mask=True):
         inputs = batch_features
         # Extract features into contextual inputs, sequence inputs.
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
-
         values = self.value_logits(context_inputs)
         logits = self.pi_sequence(sequence_inputs)
         trimmed_logits, mask_logits = self.apply_pi_mask(
@@ -80,7 +105,8 @@ class ActorCriticModel(tf.keras.Model):
             #       not matching gradients when the local_model tries to optimize
             #       against the global_model.
             self.call(initial_state)
-            self.predict_reward(initial_state)
+            self.predict_next_reward(initial_state)
+            self.predict_value_replays(initial_state)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
@@ -138,7 +164,7 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(flat_logits).numpy()
         return logits, values, probs
 
-    def predict_one(self, inputs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(self, inputs) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs"""
         logits, values, masked = self.call(inputs)
@@ -148,19 +174,41 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(flat_logits).numpy()
         return probs, tf.squeeze(values[-1]).numpy()
 
-    def predict_reward(self, experience_frames) -> tf.Tensor:
-        """Reward prediction for auxiliary tasks. Given an input sequence
-        predict a class for positive, negative or neutral."""
-        inputs = experience_frames
-        # Extract features into contextual inputs, sequence inputs.
+    def predict_next_reward(self, inputs) -> tf.Tensor:
+        """Reward prediction for auxiliary tasks. Given an input sequence of
+        observations predict a class for positive, negative or neutral representing
+        the amount of reward that is received at the next state. """
+        if self.args.use_reward_prediction is False:
+            raise EnvironmentError(
+                "This model is not configured to use reward prediction. "
+                "To use reward prediction aux task, set 'use_reward_prediction=True'"
+            )
+
+        # Pass the sequence inputs through the shared embedding network
         context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
 
-        # seq_last = tf.expand_dims(tf.reshape(sequence_inputs[-1], [-1]), axis=0)
-        ctx_one = tf.expand_dims(context_inputs[-1], axis=0)
-        attn_out, attn_weights = self.rp_attention(sequence_inputs[-1], ctx_one)
+        combined_features = self.rp_prepare_values(
+            tf.reduce_sum(sequence_inputs, axis=1)
+        )
+        predict_logits = self.reward_prediction(
+            tf.expand_dims(combined_features[-1], axis=0)
+        )
+        # Output 3 class logits and convert to probabilities with softmax
+        return tf.nn.softmax(tf.squeeze(predict_logits))
 
-        # attn_out, attn_weights = self.rp_attention(sequence_inputs, context_inputs)
-        flat_attention = tf.reshape(attn_out, [1, -1])
-        predict_logits = self.reward_prediction(flat_attention)
-        values = tf.squeeze(predict_logits)
-        return tf.nn.softmax(values)
+    def predict_value_replays(self, inputs) -> tf.Tensor:
+        """Value replay aux task that replays historical observations
+        and makes new value predictions using the features learned from
+        the reward prediction task"""
+        if self.args.use_value_replay is False:
+            raise EnvironmentError(
+                "This model is not configured to use value replay. "
+                "To use the value replay aux task, set 'use_value_replay=True'"
+            )
+
+        # Pass the sequence inputs through the shared embedding network
+        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
+        vr_in = self.vr_prepare_values(tf.reduce_mean(sequence_inputs, axis=1))
+        vr_in = tf.expand_dims(vr_in, axis=0)
+        values = self.value_logits(vr_in)
+        return values

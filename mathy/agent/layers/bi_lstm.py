@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def BiLSTM(name="bi_lstm"):
+def BiLSTM(name="bi_lstm", time_major=False):
     """Bi-directional LSTM for processing input vectors, optionally seeded 
     with state from another input. Usually this would be something like
     non-sequential features that are associated with your sequence features"""
@@ -9,13 +9,18 @@ def BiLSTM(name="bi_lstm"):
     def func(input_layer, initial_state=None):
         units = input_layer.get_shape()[2]
         forward_layer = tf.keras.layers.LSTM(
-            units, return_sequences=True, return_state=True, name=f"{name}/forward"
+            units,
+            return_sequences=True,
+            return_state=True,
+            time_major=time_major,
+            name=f"{name}/forward",
         )
         backward_layer = tf.keras.layers.LSTM(
             units,
             return_sequences=True,
             go_backwards=True,
             return_state=True,
+            time_major=time_major,
             name=f"{name}/backward",
         )
 
@@ -44,7 +49,9 @@ def BiLSTM(name="bi_lstm"):
             tf.keras.layers.Add(name=f"{name}/hidden_states")(
                 [state_h_fwd, state_h_bwd]
             ),
-            tf.keras.layers.Add(name=f"{name}/add")([lstm_fwd, lstm_bwd, input_layer]),
+            tf.keras.layers.Add(name=f"{name}/add")(
+                [lstm_fwd, lstm_bwd, input_layer]
+            ),
         )
 
     return func
