@@ -120,7 +120,7 @@ class MathEmbedding(tf.keras.layers.Layer):
         # NOTE: This does process the observation timesteps across the batch axis with
         #
         # shape = [Observations, ObservationNodeVectors, self.units]
-        time_out = self.nodes_lstm(outputs)
+        time_out = self.time_lstm(outputs)
 
         # Bahdanau Attn
         attention_context, attention_weights = self.attention(time_out, context_inputs)
