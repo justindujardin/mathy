@@ -27,8 +27,7 @@ class ReplayBuffer(object):
     values: List[float]
     frames: List[ExperienceFrame]
 
-    def __init__(self, experience: Experience, vector_window_size: int = 1):
-        self.vector_window_size = vector_window_size
+    def __init__(self, experience: Experience):
         self.experience = experience
         self.states = []
         self.frames = []
@@ -130,7 +129,7 @@ class ReplayBuffer(object):
 
         # last_size = -1
         for key, backward in sequence_feature_keys:
-            pad_value = [MathTypeKeys["empty"]] * self.vector_window_size
+            pad_value = [MathTypeKeys["empty"]]
             for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")

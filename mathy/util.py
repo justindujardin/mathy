@@ -44,14 +44,3 @@ def normalize_rewards(r):
     """Normalize a set of rewards to values between -1 and 1"""
     d = 2 * (r - numpy.min(r)) / numpy.ptp(r) - 1
     return d
-
-
-def window_vector_size(item_size: int, num_windows: int) -> int:
-    if num_windows == 0:
-        return item_size
-    elif num_windows == 1:
-        return item_size * 3
-    elif num_windows == 2:
-        return item_size * 9
-    raise NotImplementedError("unknown windows count")
-

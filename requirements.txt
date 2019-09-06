@@ -21,6 +21,8 @@ matplotlib
 black
 flake8
 graphviz
+snakeviz
+
 pydot
 # Docs 
 mkdocs

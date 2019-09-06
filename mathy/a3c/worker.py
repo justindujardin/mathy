@@ -15,7 +15,7 @@ from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS
 from ..mathy_env_state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
-from ..util import GameRewards, window_vector_size
+from ..util import GameRewards
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .experience import Experience, ExperienceFrame
@@ -59,7 +59,7 @@ class A3CWorker(threading.Thread):
         self.teacher = teacher
         self.envs = {}
         first_env = self.teacher.get_env(self.worker_idx, self.iteration)
-        self.envs[first_env] = gym.make(first_env, windows=self.args.windows)
+        self.envs[first_env] = gym.make(first_env)
         self.writer = writer
         self.local_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
@@ -84,9 +84,7 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        replay_buffer = ReplayBuffer(
-            self.agent_experience, window_vector_size(1, self.args.windows)
-        )
+        replay_buffer = ReplayBuffer(self.agent_experience)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -130,7 +128,7 @@ class A3CWorker(threading.Thread):
     def run_episode(self, replay_buffer: ReplayBuffer):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         if env_name not in self.envs:
-            self.envs[env_name] = gym.make(env_name, windows=self.args.windows)
+            self.envs[env_name] = gym.make(env_name)
         env = self.envs[env_name]
         last_state = env.reset()
         replay_buffer.clear()

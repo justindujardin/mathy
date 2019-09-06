@@ -14,7 +14,6 @@ from ...features import (
 from ..layers.bahdanau_attention import BahdanauAttention
 from ..layers.math_policy_dropout import MathPolicyDropout
 from ..layers.resnet_stack import ResNetStack
-from ..layers.keras_self_attention import SeqSelfAttention
 from ..layers.bi_lstm import BiLSTM
 from ..layers.lstm_stack import LSTMStack
 

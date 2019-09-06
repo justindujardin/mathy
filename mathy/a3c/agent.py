@@ -27,7 +27,7 @@ class A3CAgent:
             num_students=self.args.num_workers,
             difficulty=self.args.difficulty,
         )
-        env = gym.make(self.teacher.get_env(0, 0), windows=self.args.windows)
+        env = gym.make(self.teacher.get_env(0, 0))
         self.action_size = env.action_space.n
         self.writer = tf.summary.create_file_writer(
             os.path.join(self.args.model_dir, "tensorboard")
@@ -88,9 +88,7 @@ class A3CAgent:
             while loop is True:
                 env_name = self.teacher.get_env(0, episode_counter)
                 if env_name not in envs:
-                    envs[env_name] = gym.make(
-                        env_name, windows=self.args.windows
-                    ).unwrapped
+                    envs[env_name] = gym.make(env_name).unwrapped
                 env = envs[env_name]
                 state = env.reset()
                 done = False

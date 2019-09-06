@@ -10,8 +10,6 @@ class A3CArgs(BaseModel):
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
     units: int = 128
-    # The number of extract windows to perform on math tree nodes
-    windows: int = 0
     init_model_from: Optional[str] = None
     train: bool = False
     lr: float = 3e-4

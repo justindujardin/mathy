@@ -6,7 +6,6 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
-from .util import window_vector_size
 from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
@@ -108,33 +107,20 @@ class MathyEnvState(object):
     agent: MathAgentState
     parser: ExpressionParser
     max_moves: int
-    # The number of extract windows to apply to the node vectors.
-    # Must be one of:
-    #  0. No window extractions are performed and the vectors are just
-    #     their node types.
-    #  1. Extract before/after context for surrounding nodes once. The
-    #     output vectors are tuples of (prev_node, node, next_node) where
-    #     nodes that don't exist are padded by an empty value.
-    #  2. Extract two context windows from each node resulting in a tuple
-    #     of nine numbers. 1 -> 3 -> 9
-    windows: int
 
     def __init__(
         self,
         state: Optional["MathyEnvState"] = None,
         problem: str = None,
         max_moves: int = 10,
-        windows: int = 0,
         problem_type: int = MODE_SIMPLIFY_POLYNOMIAL,
     ):
         self.parser = ExpressionParser()
-        self.windows = windows
         self.max_moves = max_moves
         if problem is not None:
             self.agent = MathAgentState(max_moves, problem, problem_type)
         elif state is not None:
             self.max_moves = state.max_moves
-            self.windows = state.windows
             self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
@@ -147,10 +133,6 @@ class MathyEnvState(object):
 
     def clone(self):
         return MathyEnvState(state=self)
-
-    @property
-    def window_size(self) -> int:
-        return window_vector_size(1, self.windows)
 
     def encode_player(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
@@ -199,7 +181,5 @@ class MathyEnvState(object):
             FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
-            # FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
-            # FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
             FEATURE_MOVE_MASK: maybe_wrap(move_mask),
         }

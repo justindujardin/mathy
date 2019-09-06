@@ -2,7 +2,6 @@ import re
 import numpy
 import numpy as np
 from typing import Tuple, Any, List, Dict
-from .types import MathyEnvObservation
 from .core import MathTypeKeys
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
