@@ -70,12 +70,11 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "poly-blockers",
+        "complex",
         "training/dev",
+        "-difficulty=easy",
         "-workers",
-        "1",
-        "-windows",
-        "0"
+        "1"
       ]
     },
     {
@@ -96,7 +95,7 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_teacher"
+        "test_distributive_factor_out"
       ]
     },
     {

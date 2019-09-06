@@ -71,7 +71,8 @@ class ExperienceFrame(object):
 
 
 class Experience(object):
-    def __init__(self, history_size: int):
+    def __init__(self, history_size: int, ready_at: int = None):
+        self._ready_at = history_size if ready_at is None else ready_at
         self._history_size = history_size
         self._frames: deque = deque(maxlen=history_size)
         # frame indices for zero rewards
@@ -80,10 +81,9 @@ class Experience(object):
         self._non_zero_reward_indices: deque = deque()
         self._top_frame_index = 0
 
-    def add_frame(self, frame):
+    def add_frame(self, frame: ExperienceFrame):
         if frame.terminal and len(self._frames) > 0 and self._frames[-1].terminal:
             # Discard if terminal frame continues
-            print("Terminal frames continued.")
             return
 
         frame_index = self._top_frame_index + len(self._frames)
@@ -119,12 +119,13 @@ class Experience(object):
                 self._non_zero_reward_indices.popleft()
 
     def is_full(self):
-        return len(self._frames) >= self._history_size
+        return len(self._frames) >= self._ready_at
 
-    def sample_sequence(self, sequence_size):
+    def sample_sequence(self, sequence_size: int):
         # -1 for the case if start pos is the terminated frame.
         # (Then +1 not to start from terminated frame.)
-        start_pos = np.random.randint(0, self._history_size - sequence_size - 1)
+        curr_size = len(self._frames)
+        start_pos = np.random.randint(0, curr_size - sequence_size - 1)
 
         if self._frames[start_pos].terminal:
             start_pos += 1

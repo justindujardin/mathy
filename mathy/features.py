@@ -2,7 +2,6 @@ import re
 import numpy
 import numpy as np
 from typing import Tuple, Any, List, Dict
-from .types import MathyEnvObservation
 from .core import MathTypeKeys
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
@@ -132,7 +131,7 @@ def calculate_term_grouping_distances(input: str):
     return signal / len(vars)
 
 
-def calculate_grouping_control_signal(observation: MathyEnvObservation):
+def calculate_grouping_control_signal(observation: MathyEnvObservation) -> float:
     """Calculate grouping_control signals as the sum of all distances between
     all like terms. Gather all the terms in an expression and add an error value
     whenever a like term is separated by another term.
@@ -254,12 +253,12 @@ def parse_example_for_training(
     inputs[FEATURE_BWD_VECTORS] = pad_array(
         ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
     )
-    inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
-        ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_value
-    )
-    inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
-        ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
-    )
+    # inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
+    #     ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_value
+    # )
+    # inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
+    #     ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
+    # )
 
     policy_out = numpy.array(calculate_policy_target(example)).flatten().tolist()
     policy_out = pad_array(policy_out, max_policy_sequence, 0.0)

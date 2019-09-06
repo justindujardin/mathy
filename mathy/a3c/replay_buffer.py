@@ -25,15 +25,15 @@ class ReplayBuffer(object):
     actions: List[int]
     rewards: List[float]
     values: List[float]
+    frames: List[ExperienceFrame]
 
-    def __init__(self, experience: Experience, vector_window_size: int = 1):
-        self.vector_window_size = vector_window_size
+    def __init__(self, experience: Experience):
         self.experience = experience
         self.states = []
+        self.frames = []
         self.actions = []
         self.rewards = []
         self.values = []
-        self.rp_steps = []
 
     @property
     def ready(self) -> bool:
@@ -43,19 +43,36 @@ class ReplayBuffer(object):
         window_states = self.states[-2:] + [current_state]
         return self.to_features(window_states)
 
-    def store(self, state, action: int, reward: float, value: float):
+    def store(
+        self, state, action: int, reward: float, value: float, frame: ExperienceFrame
+    ):
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.values.append(value)
+        self.frames.append(frame)
+
+    def commit_frames(self, ground_truth_discounted_rewards: List[float]):
+        """Commit frames to the replay buffer when a terminal state is reached
+        so that we have ground truth rewards rather than predictions for value
+        replay"""
+        # Ensure the data is the right shape
+        assert len(ground_truth_discounted_rewards) == len(
+            self.frames
+        ), "discounted rewards must be for all frames"
+        for frame, reward in zip(self.frames, ground_truth_discounted_rewards):
+            frame.reward = reward
+            self.experience.add_frame(frame)
+        self.frames = []
 
     def clear(self):
         self.states = []
         self.actions = []
         self.rewards = []
         self.values = []
+        self.frames = []
 
-    def rp_samples(self, max_samples=4) -> Tuple[List[Any], List[float]]:
+    def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
         outputs: List[List[ExperienceFrame]] = []
         rewards: List[float] = []
         if self.experience.is_full() is False:
@@ -89,8 +106,6 @@ class ReplayBuffer(object):
         sequence_feature_keys: List[Tuple[str, bool]] = [
             (FEATURE_FWD_VECTORS, False),
             (FEATURE_BWD_VECTORS, True),
-            (FEATURE_LAST_FWD_VECTORS, False),
-            (FEATURE_LAST_BWD_VECTORS, True),
         ]
         out = {
             FEATURE_LAST_RULE: [],
@@ -112,9 +127,9 @@ class ReplayBuffer(object):
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
 
-        last_size = -1
+        # last_size = -1
         for key, backward in sequence_feature_keys:
-            pad_value = [MathTypeKeys["empty"]] * self.vector_window_size
+            pad_value = [MathTypeKeys["empty"]]
             for state in feature_states:
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
@@ -122,12 +137,12 @@ class ReplayBuffer(object):
                 new_seq = pad_array(
                     src_seq, max_sequence, pad_value, backwards=backward, cleanup=True
                 )
-                new_size = np.array(new_seq).size
-                if last_size != -1 and new_size != last_size:
-                    # Print out the failing example states
-                    for s in feature_states:
-                        print(s)
-                    raise ValueError("Padded arrays have different sizes!")
+                # new_size = np.array(new_seq).size
+                # if last_size != -1 and new_size != last_size:
+                #     # Print out the failing example states
+                #     for s in feature_states:
+                #         print(s)
+                #     raise ValueError("Padded arrays have different sizes!")
                 out[key].append(new_seq)
 
         max_sequence = max([len(s[FEATURE_MOVE_MASK][0]) for s in feature_states])
@@ -140,13 +155,13 @@ class ReplayBuffer(object):
                 tf.convert_to_tensor(padded, dtype=tf.float32)
             )
 
-        # assert batch length in move masks
-        _check_mask = -1
-        for mask in out[FEATURE_MOVE_MASK]:
-            if _check_mask == -1:
-                _check_mask = len(mask)
-            assert (
-                len(mask) == _check_mask
-            ), f"Expected same length, but for {len(mask)} and {_check_mask}"
+        # # assert batch length in move masks
+        # _check_mask = -1
+        # for mask in out[FEATURE_MOVE_MASK]:
+        #     if _check_mask == -1:
+        #         _check_mask = len(mask)
+        #     assert (
+        #         len(mask) == _check_mask
+        #     ), f"Expected same length, but for {len(mask)} and {_check_mask}"
         return out
 

@@ -54,7 +54,7 @@ class MathyGymEnv(gym.Env):
         max_problem_types = 64
         max_nodes = 1024
         max_actions = self.mathy.action_size
-        vector_width = 9  # two neighbor window extractions (1 -> 3 -> 9)
+        vector_width = 1  # a single number
         self.state = None
         self.problem = None
         self.vectors_shape = (max_nodes, vector_width)

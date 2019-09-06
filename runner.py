@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from mathy import MathyEnv, MathyEnvEpisodeResult, MathyEnvObservation, MathyEnvState
+from mathy import MathyEnv, deprecated_MathyEnvEpisodeResult, deprecated_MathyEnvObservation, MathyEnvState
 from mathy.agent.controller import MathModel
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.mcts import MCTS
@@ -21,7 +21,7 @@ class RunnerConfig(BaseModel):
 
 # The tuple returned from ExecuteEpisode
 ExecuteEpisodeResult = Tuple[
-    MathyEnvState, MathyEnvObservation, Optional[MathyEnvEpisodeResult]
+    MathyEnvState, deprecated_MathyEnvObservation, Optional[deprecated_MathyEnvEpisodeResult]
 ]
 
 
@@ -86,7 +86,7 @@ class EpisodeRunner:
         mcts = MCTS(env, model, epsilon, num_rollouts)
         actor = ActorMCTS(mcts, num_exploration_moves)
         final_result = None
-        time_steps: List[MathyEnvObservation] = []
+        time_steps: List[deprecated_MathyEnvObservation] = []
         episode_steps = 0
         while final_result is None:
             episode_steps = episode_steps + 1

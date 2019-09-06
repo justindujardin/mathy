@@ -6,13 +6,13 @@ import sys
 import random
 import ujson
 from typing import List
-from ...types import MathyEnvObservation
+from ...types import deprecated_MathyEnvObservation
 from ...mathy_env_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
 
 
 def balanced_reward_experience_samples(
-    examples_pool: List[MathyEnvObservation], max_items: int
-) -> List[MathyEnvObservation]:
+    examples_pool: List[deprecated_MathyEnvObservation], max_items: int
+) -> List[deprecated_MathyEnvObservation]:
     """Long-term memory sampling function that tries to return a roughly
     equal distribution of positive/negative reward examples for training.
     If there are not enough examples of a particular type (i.e. positive/negative)
@@ -23,8 +23,8 @@ def balanced_reward_experience_samples(
     """
     overflow_examples = []
     epsilon = 0.01
-    positives: List[MathyEnvObservation] = []
-    negatives: List[MathyEnvObservation] = []
+    positives: List[deprecated_MathyEnvObservation] = []
+    negatives: List[deprecated_MathyEnvObservation] = []
     shuffled = examples_pool[:]
     half_examples = int(max_items / 2)
     random.shuffle(shuffled)
@@ -70,8 +70,8 @@ class MathExperience:
     #       model to maintain a balance of training inputs across everything it knows.
     #
     experience_folder: str
-    long_term: List[MathyEnvObservation]
-    short_term: List[MathyEnvObservation]
+    long_term: List[deprecated_MathyEnvObservation]
+    short_term: List[deprecated_MathyEnvObservation]
     short_term_size: int
 
     def __init__(self, experience_folder, short_term_size=64):
@@ -114,7 +114,7 @@ class MathExperience:
         examples = []
         with file_path.open("r", encoding="utf8") as f:
             for line in f:
-                ex = MathyEnvObservation(**ujson.loads(line))
+                ex = deprecated_MathyEnvObservation(**ujson.loads(line))
                 examples.append(ex)
         self.long_term = examples
         return True
@@ -124,7 +124,7 @@ class MathExperience:
         if not experience_folder.is_dir():
             experience_folder.mkdir(parents=True, exist_ok=True)
 
-        all_experience: List[MathyEnvObservation] = self.long_term + self.short_term
+        all_experience: List[deprecated_MathyEnvObservation] = self.long_term + self.short_term
 
         # Write to local file then copy over (don't thrash virtual file systems
         # like GCS)

@@ -22,7 +22,7 @@ from mathy.envs import (
 )
 from mathy import mathy_core_rules
 from mathy import MathyEnv
-from mathy import MathyEnvObservation
+from mathy import deprecated_MathyEnvObservation
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
 tf.compat.v1.logging.set_verbosity("CRITICAL")
@@ -170,7 +170,7 @@ def main(
             mcts = MCTS(mathy_env, model, epsilon, num_rollouts)
             actor = ActorMCTS(mcts, num_exploration_moves)
             final_result = None
-            time_steps: List[MathyEnvObservation] = []
+            time_steps: List[deprecated_MathyEnvObservation] = []
             episode_steps = 0
             start = time.time()
             while final_result is None:

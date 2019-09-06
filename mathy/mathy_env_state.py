@@ -6,7 +6,6 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
-from .util import window_vector_size
 from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
@@ -108,33 +107,20 @@ class MathyEnvState(object):
     agent: MathAgentState
     parser: ExpressionParser
     max_moves: int
-    # The number of extract windows to apply to the node vectors.
-    # Must be one of:
-    #  0. No window extractions are performed and the vectors are just
-    #     their node types.
-    #  1. Extract before/after context for surrounding nodes once. The
-    #     output vectors are tuples of (prev_node, node, next_node) where
-    #     nodes that don't exist are padded by an empty value.
-    #  2. Extract two context windows from each node resulting in a tuple
-    #     of nine numbers. 1 -> 3 -> 9
-    windows: int
 
     def __init__(
         self,
         state: Optional["MathyEnvState"] = None,
         problem: str = None,
         max_moves: int = 10,
-        windows: int = 0,
         problem_type: int = MODE_SIMPLIFY_POLYNOMIAL,
     ):
         self.parser = ExpressionParser()
-        self.windows = windows
         self.max_moves = max_moves
         if problem is not None:
             self.agent = MathAgentState(max_moves, problem, problem_type)
         elif state is not None:
             self.max_moves = state.max_moves
-            self.windows = state.windows
             self.agent = MathAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
@@ -147,10 +133,6 @@ class MathyEnvState(object):
 
     def clone(self):
         return MathyEnvState(state=self)
-
-    @property
-    def window_size(self) -> int:
-        return window_vector_size(1, self.windows)
 
     def encode_player(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
@@ -165,39 +147,6 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
-    def get_node_vectors(self, expression: MathExpression) -> List[Tuple[int]]:
-        """Get a set of context-sensitive vectors for a given expression"""
-        nodes = expression.toList()
-        vectors = []
-        nodes_len = len(nodes)
-        pad_value = MathTypeKeys["empty"]
-
-        assert self.windows == 0 or self.windows == 1 or self.windows == 2
-        if self.windows == 0:
-            return [(t.type_id,) for t in nodes]
-
-        # Add context before/current/after node values  (thanks @honnibal for
-        # this trick.)
-        for i, t in enumerate(nodes):
-            last = pad_value if i == 0 else nodes[i - 1].type_id
-            next = pad_value if i > nodes_len - 2 else nodes[i + 1].type_id
-            vectors.append((last, t.type_id, next))
-
-        if self.windows == 1:
-            return vectors
-
-        context_pad_value = (pad_value, pad_value, pad_value)
-        vectors_len = len(vectors)
-
-        # Do it again which expands the reach of the vectors.
-        context_vectors = []
-        for i, v in enumerate(vectors):
-            last = context_pad_value if i == 0 else vectors[i - 1]
-            next = context_pad_value if i > vectors_len - 2 else vectors[i + 1]
-            context_vectors.append(last + v + next)
-
-        return context_vectors
-
     def to_input_features(self, move_mask, return_batch=False):
         """Output Dict of integer features that can be fed to the
         neural network for prediction.
@@ -206,35 +155,17 @@ class MathyEnvState(object):
         so the result can be directly passed to the predictor.
         """
         expression = self.parser.parse(self.agent.problem)
-        # Padding value is a result tuple with empty values for prev/current/next
-        pad_value = tuple([MathTypeKeys["empty"]] * self.window_size)
-
         # Generate context vectors for the current state's expression tree
-        vectors = self.get_node_vectors(expression)
+        vectors = [[t.type_id] for t in expression.toList()]
 
-        # Provide context vectors for the previous state if there is one
-        last_vectors = [pad_value] * len(vectors)
+        # Encode the last action
         last_action = -1
         if len(self.agent.history) >= 1:
             last_action = self.agent.history[-1].action
 
-        if len(self.agent.history) > 1:
-            last_ts: MathyEnvTimeStep = self.agent.history[-2]
-            last_expression = self.parser.parse(last_ts.raw)
-            last_vectors = self.get_node_vectors(last_expression)
-
-            # If the sequences differ in length, pad to the longest one
-            if len(last_vectors) != len(vectors):
-                max_len = max(len(last_vectors), len(vectors))
-                last_vectors = pad_array(last_vectors, max_len, pad_value)
-                vectors = pad_array(vectors, max_len, pad_value)
-
         # After padding is done, generate reversed vectors for the bilstm
         vectors_reversed = vectors[:]
         vectors_reversed.reverse()
-
-        last_vectors_reversed = last_vectors[:]
-        last_vectors_reversed.reverse()
 
         def maybe_wrap(value):
             nonlocal return_batch
@@ -250,7 +181,5 @@ class MathyEnvState(object):
             FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
-            FEATURE_LAST_FWD_VECTORS: maybe_wrap(last_vectors),
-            FEATURE_LAST_BWD_VECTORS: maybe_wrap(last_vectors_reversed),
             FEATURE_MOVE_MASK: maybe_wrap(move_mask),
         }

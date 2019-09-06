@@ -41,7 +41,7 @@ class MathyEnvProblem(NamedTuple):
     type: int
 
 
-class MathyEnvObservation(NamedTuple):
+class deprecated_MathyEnvObservation(NamedTuple):
     """Summarize an environment observation in a named tuple."""
 
     input: str
@@ -55,9 +55,9 @@ class MathyEnvObservation(NamedTuple):
     problem: str
 
 
-class MathyEnvEpisodeResult(NamedTuple):
+class deprecated_MathyEnvEpisodeResult(NamedTuple):
     """Summarize episode history and final result."""
 
-    history: List[MathyEnvObservation]
+    history: List[deprecated_MathyEnvObservation]
     episode_reward: float
     is_win: bool
