@@ -364,17 +364,17 @@ class A3CWorker(threading.Thread):
         value_loss *= 0.5
         total_loss = tf.reduce_mean(value_loss + policy_loss + h_loss.loss)
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/policy_loss",
+            f"worker_{self.worker_idx}/losses/policy_loss",
             data=tf.reduce_mean(policy_loss),
             step=step,
         )
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/value_loss",
+            f"worker_{self.worker_idx}/losses/value_loss",
             data=tf.reduce_mean(value_loss),
             step=step,
         )
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/entropy_loss",
+            f"worker_{self.worker_idx}/losses/entropy_loss",
             data=tf.reduce_mean(h_loss.loss),
             step=step,
         )
@@ -450,16 +450,25 @@ class A3CWorker(threading.Thread):
                     rp_loss = self.compute_reward_prediction_loss(
                         done, new_state, replay_buffer
                     )
-                    total_loss += rp_loss * 0.25
+                    total_loss += rp_loss
                     aux_losses["rp"] = rp_loss
                 if self.args.use_value_replay:
                     vr_loss = self.compute_value_replay_loss(
                         done, new_state, replay_buffer, discounted_rewards
                     )
-                    total_loss += vr_loss * 0.25
+                    total_loss += vr_loss
                     aux_losses["vr"] = vr_loss
+                for key in aux_losses.keys():
+                    tf.summary.scalar(
+                        f"worker_{self.worker_idx}/losses/{key}_loss",
+                        data=aux_losses[key],
+                        step=step,
+                    )
+
             tf.summary.scalar(
-                f"worker_{self.worker_idx}/total_loss", data=total_loss, step=step
+                f"worker_{self.worker_idx}/losses/total_loss",
+                data=total_loss,
+                step=step,
             )
 
         return pi_loss, v_loss, h_loss, aux_losses, total_loss

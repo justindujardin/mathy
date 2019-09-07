@@ -49,12 +49,6 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         int,
     ),
     learning_rate=("The learning rate to use when training", "option", "lr", float),
-    turns_per_complexity=(
-        "The number of moves to allocate per unit of problem complexity",
-        "option",
-        "t",
-        int,
-    ),
     verbose=(
         "When true, print all problem moves rather than just during evaluation",
         "flag",
@@ -66,7 +60,6 @@ def main(
     model_dir: str,
     transfer_from=None,
     verbose=False,
-    turns_per_complexity=4,
     difficulty=3,
     # Learning rate found via some hyperparam exploration.
     learning_rate=3e-5,
@@ -105,7 +98,6 @@ def main(
     mathy.start()
     while True:
         print(f"Iteration: {counter}")
-        print(f"Moves/complexity: {turns_per_complexity}")
         print(f"Difficulty: {difficulty}")
         counter = counter + 1
         eval_run = (
@@ -151,7 +143,6 @@ def main(
             # generate a new problem
             options = {
                 "difficulty": difficulty,
-                "turns_per_complexity": turns_per_complexity,
             }
             env_state, prob = mathy_env.get_initial_state(options)
 

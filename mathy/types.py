@@ -23,7 +23,6 @@ class MathyEnvDifficulty(str, Enum):
 
 class MathyEnvProblemArgs(BaseModel):
     difficulty: MathyEnvDifficulty = MathyEnvDifficulty.easy
-    turns_per_complexity: int = 4
 
 
 class MathyEnvProblem(NamedTuple):

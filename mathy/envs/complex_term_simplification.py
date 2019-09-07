@@ -18,6 +18,11 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, VariableMultiplyRule]
 
+    def max_moves_fn(
+        self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
+    ) -> int:
+        return problem.complexity * 2
+
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
         a complex term that has a simple representation that must be found.

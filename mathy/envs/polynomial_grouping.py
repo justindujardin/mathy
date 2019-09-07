@@ -23,6 +23,11 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [CommutativeSwapRule, AssociativeSwapRule]
 
+    def max_moves_fn(
+        self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
+    ) -> int:
+        return problem.complexity
+
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any
     ) -> Optional[time_step.TimeStep]:

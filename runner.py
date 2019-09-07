@@ -6,7 +6,12 @@ from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from mathy import MathyEnv, deprecated_MathyEnvEpisodeResult, deprecated_MathyEnvObservation, MathyEnvState
+from mathy import (
+    MathyEnv,
+    deprecated_MathyEnvEpisodeResult,
+    deprecated_MathyEnvObservation,
+    MathyEnvState,
+)
 from mathy.agent.controller import MathModel
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.mcts import MCTS
@@ -21,7 +26,9 @@ class RunnerConfig(BaseModel):
 
 # The tuple returned from ExecuteEpisode
 ExecuteEpisodeResult = Tuple[
-    MathyEnvState, deprecated_MathyEnvObservation, Optional[deprecated_MathyEnvEpisodeResult]
+    MathyEnvState,
+    deprecated_MathyEnvObservation,
+    Optional[deprecated_MathyEnvEpisodeResult],
 ]
 
 
@@ -69,7 +76,7 @@ class EpisodeRunner:
         env_name = str(env.__class__.__name__)
         print(f"{env_name}")
         # generate a new problem
-        options = {"difficulty": 3, "turns_per_complexity": 4}
+        options = {"difficulty": 3}
         env_state, prob = env.get_initial_state(options)
 
         # Configure MCTS options for train/eval

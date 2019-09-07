@@ -51,12 +51,10 @@ class MathyEnv:
         max_moves=20,
         verbose=False,
         reward_discount=0.99,
-        windows=0,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
-        self.windows = windows
         self.parser = ExpressionParser()
         self.actions = actions
         if self.actions is None:
@@ -79,6 +77,10 @@ class MathyEnv:
         """Get the list of penalizing action types. When these actions
         are selected, the agent gets a negative reward."""
         return []
+
+    def max_moves_fn(self, problem: MathyEnvProblem, config: MathyEnvProblemArgs) -> int:
+        """Return the environment specific maximum move count for a given prolem."""
+        return problem.complexity * 3
 
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any
@@ -266,23 +268,14 @@ class MathyEnv:
     ) -> Tuple[MathyEnvState, MathyEnvProblem]:
         """Generate an initial MathyEnvState for an episode"""
         config = params if params is not None else MathyEnvProblemArgs()
-        prob = self.problem_fn(config)
+        prob: MathyEnvProblem = self.problem_fn(config)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
-        default_turns = 4
-        turns_preference = (
-            default_turns if params is None else params.turns_per_complexity
-        )
-        # Max moves is (n) turns per complexity unit returned from the problem function.
-        # TODO: Something better than this? :(
-        self.max_moves = turns_preference * prob.complexity
+        self.max_moves = self.max_moves_fn(prob, config)
 
         # Build and return the initial state
         env_state = MathyEnvState(
-            problem=prob.text,
-            problem_type=prob.type,
-            max_moves=self.max_moves,
-            windows=self.windows,
+            problem=prob.text, problem_type=prob.type, max_moves=self.max_moves
         )
         if print_problem and self.verbose:
             self.print_state(env_state, "initial-state")
