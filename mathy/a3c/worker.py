@@ -168,7 +168,7 @@ class A3CWorker(threading.Thread):
             # if self.agent_experience.is_full() is True:
             #     print("yay")
 
-            if replay_buffer.ready and (time_count == self.args.update_freq or done):
+            if time_count == self.args.update_freq or done:
                 self.update_global_network(done, new_state, replay_buffer)
                 time_count = 0
                 if done:
@@ -400,6 +400,8 @@ class A3CWorker(threading.Thread):
     def compute_reward_prediction_loss(
         self, done, new_state, replay_buffer: ReplayBuffer
     ):
+        if not replay_buffer.experience.is_full():
+            return tf.constant(0.0)
         rp_inputs, rp_labels = replay_buffer.rp_samples()
         rp_losses = []
         for inputs, labels in zip(rp_inputs, rp_labels):

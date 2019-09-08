@@ -122,7 +122,7 @@ class ActorCriticModel(tf.keras.Model):
                 raise ValueError(f"could not initialize model from: {init_model_path}")
 
         if os.path.exists(model_path):
-            if do_init:
+            if do_init and self.args.verbose:
                 print("Loading model from: {}".format(model_path))
             if os.path.exists(model_path):
                 self.load_weights(model_path)

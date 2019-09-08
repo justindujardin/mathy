@@ -1,3 +1,4 @@
+import random
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -63,10 +64,13 @@ class Teacher:
         self.students = []
         for i in range(self.num_students):
             student_topics = {}
+            start_topic = random.choice(self.topic_names)
             for topic in self.topic_names:
                 difficulty = self.difficulty if self.difficulty is not None else "easy"
                 student_topics[topic] = Topic(name=topic, difficulty=difficulty)
-            self.students.append(Student(id=i, topic=topic, topics=student_topics))
+            self.students.append(
+                Student(id=i, topic=start_topic, topics=student_topics)
+            )
 
     def get_student(self, student_id: int) -> Student:
         return self.students[student_id]

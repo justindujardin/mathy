@@ -5,13 +5,14 @@ from pydantic import BaseModel
 
 
 class A3CArgs(BaseModel):
-    topics: List[str] = []
+    topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
     units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False
+    verbose: bool = False
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 25000

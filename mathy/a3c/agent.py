@@ -18,10 +18,11 @@ class A3CAgent:
 
     args: A3CArgs
 
-    def __init__(self, args: A3CArgs, init_model: Optional[str] = None):
+    def __init__(self, args: A3CArgs):
         self.args = args
-        print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
-        print(f"Config: {self.args.dict()}")
+        if self.args.verbose:
+            print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
+            print(f"Config: {self.args.dict()}")
         self.teacher = Teacher(
             topic_names=self.args.topics,
             num_students=self.args.num_workers,
@@ -72,11 +73,15 @@ class A3CAgent:
         [w.join() for w in workers]
         print("Done. Bye!")
 
-    def choose_action(self, env, state: MathyEnvState):
+    def choose_action(self, env, state: MathyEnvState, greedy=False):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)
-        policy, value, masked_policy = self.global_model.call_masked(obs)
-        policy = tf.nn.softmax(masked_policy)
-        action = np.argmax(policy)
+        if greedy is True:
+            policy, value, masked_policy = self.global_model.call_masked(obs)
+            policy = tf.nn.softmax(masked_policy)
+            action = np.argmax(policy)
+        else:
+            probs, value = self.global_model.predict_next(obs)
+            action = np.random.choice(len(probs), p=probs)
         return action
 
     def play(self, loop=False):
