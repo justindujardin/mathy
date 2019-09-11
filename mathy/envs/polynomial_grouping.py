@@ -1,13 +1,12 @@
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, List, Optional, Type
 
-from numpy.random import randint
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..mathy_env_state import MathyEnvState
-from ..problems import move_around_blockers_one, move_around_blockers_two, rand_bool
+from ..problems import commute_haystack
 from ..rules import AssociativeSwapRule, BaseRule, CommutativeSwapRule
 from ..rules.helpers import TermEx, get_term_ex, get_terms
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
@@ -54,23 +53,19 @@ class MathyPolynomialGroupingEnv(MathyEnv):
         return time_step.termination(features, self.get_win_signal(env_state))
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
-        hard_block = rand_bool()
+        complexity = 2
         if params.difficulty == MathyEnvDifficulty.easy:
-            blockers = randint(1, 3)
-            hard_blockers = 1
-            complexity = 2
+            text, _ = commute_haystack(
+                min_terms=4, max_terms=12, easy=True, powers=True
+            )
         elif params.difficulty == MathyEnvDifficulty.normal:
-            blockers = randint(3, 7)
-            hard_blockers = randint(3, 5)
-            complexity = 4
+            text, _ = commute_haystack(
+                min_terms=8, max_terms=16, easy=False, powers=True
+            )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            blockers = randint(3, 10)
-            hard_blockers = randint(2, 6)
-            complexity = 5
+            text, _ = commute_haystack(
+                min_terms=12, max_terms=24, easy=False, powers=True
+            )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        if hard_block:
-            text, _ = move_around_blockers_two(hard_blockers)
-        else:
-            text, _ = move_around_blockers_one(blockers)
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

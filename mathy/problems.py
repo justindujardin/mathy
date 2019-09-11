@@ -266,16 +266,15 @@ def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
     return problem, complexity
 
 
-def combine_terms_after_commuting(
+def commute_haystack(
     min_terms=5, max_terms=8, commute_blockers=1, easy=True, powers=False
 ):
-    """A problem with a bunch of terms that have no matches, and a single 
+    """A problem with a bunch of terms that have no matches, and a single
     set of two terms that do match, but are separated by one other term.
-    The challenge is to commute the terms to each other and simplify in 
-    only a few moves. 
-    
+    The challenge is to commute the terms to each other in one move.
+
     Example:  "4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
-                                             ^-----------^  
+                                             ^-----------^
     """
     total_terms = random.randint(min_terms, max_terms)
     num_noise_terms = total_terms - 2
@@ -327,30 +326,42 @@ def get_blocker(num_blockers=1, exclude_vars=[]):
     return " + ".join(out_terms)
 
 
-def move_around_blockers_one(number_blockers):
+def move_around_blockers_one(number_blockers: int, powers_proability: float = 0.5):
     # two like terms separated by (n) blocker terms, e.g. 2 ~ "4x + (y + f) + x"
     var = rand_var()
+    power_chance = powers_proability * 100
+    exp = maybe_power(power_chance)
     complexity = 2 + number_blockers
     blockers = get_blocker(number_blockers, [var])
-    problem = "{}{} + {} + {}{}".format(maybe_int(), var, blockers, maybe_int(), var)
+    problem = "{}{}{} + {} + {}{}{}".format(
+        maybe_int(), var, exp, blockers, maybe_int(), var, exp
+    )
     return problem, complexity
 
 
-def move_around_blockers_two(number_blockers):
+def move_around_blockers_two(number_blockers: int, powers_proability: float = 0.5):
     # two like terms with three blockers: "7a + 4x + (2f + j) + x + 3d"
     rand_vars = get_rand_vars(3)
     [one_var, two_var, three_var] = rand_vars
     complexity = 4 + number_blockers
-    problem = "{}{} + {}{} + {} + {}{} + {}{}".format(
+    power_chance = powers_proability * 100
+    one_exp = maybe_power(power_chance)
+    two_exp = maybe_power(power_chance)
+    three_exp = maybe_power(power_chance)
+    problem = "{}{}{} + {}{}{} + {} + {}{}{} + {}{}{}".format(
         maybe_int(),
         one_var,
+        one_exp,
         maybe_int(),
         two_var,
+        two_exp,
         get_blocker(number_blockers, rand_vars),
         maybe_int(),
         two_var,
+        two_exp,
         maybe_int(),
         three_var,
+        three_exp,
     )
     return problem, complexity
 
