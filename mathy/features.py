@@ -150,13 +150,18 @@ def calculate_grouping_control_signal(observation: MathyEnvObservation) -> float
     # NOTE: this means that the signal is not correct when exponents or complex
     #       terms with multiple variables are in the expression. Perhaps it's a
     #       good improvement to make here.
-    in_signal = calculate_term_grouping_distances(observation.input)
-    out_signal = calculate_term_grouping_distances(observation.output)
+    in_signal = calculate_term_grouping_distances(input)
+    out_signal = calculate_term_grouping_distances(output)
+    # The grouping distance got larger
     if in_signal < out_signal:
-        return 1.0
+        # return the calculated group error
+        return out_signal
+    # The distance got smaller
     if in_signal > out_signal:
-        return 0.0
-    return 0.5
+        # hurray, no error for you!
+        return -out_signal
+    # It stayed the same, return the grouping error
+    return out_signal
 
 
 def calculate_group_prediction_signal(observation: MathyEnvObservation):

@@ -12,7 +12,7 @@ import tensorflow as tf
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
-from ..features import FEATURE_FWD_VECTORS
+from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
 from ..mathy_env_state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
@@ -130,14 +130,14 @@ class A3CWorker(threading.Thread):
         if env_name not in self.envs:
             self.envs[env_name] = gym.make(env_name)
         env = self.envs[env_name]
-        last_state = env.reset()
         replay_buffer.clear()
+        self.ep_loss = 0
         ep_reward = 0.0
         ep_steps = 0
-        self.ep_loss = 0
-
         time_count = 0
         done = False
+        last_state = env.reset()
+        last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
         while not done and A3CWorker.request_quit is False:
@@ -149,17 +149,21 @@ class A3CWorker(threading.Thread):
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
+            new_text = env.state.agent.problem
+            grouping_change = calculate_grouping_control_signal(last_text, new_text)
             ep_reward += reward
             frame = ExperienceFrame(
                 last_state,
                 reward=reward,
                 action=action,
                 terminal=done,
-                pixel_change=None,
+                grouping_change=grouping_change,
                 last_action=last_action,
                 last_reward=last_reward,
             )
-            replay_buffer.store(last_state, action, reward, value, frame)
+            replay_buffer.store(
+                last_state, action, reward, value, grouping_change, frame
+            )
 
             # self.agent_experience.add_frame(frame)
             self.maybe_write_histograms()
@@ -397,6 +401,19 @@ class A3CWorker(threading.Thread):
             discounted_rewards,
         )
 
+    def compute_grouping_change_loss(
+        self, done, new_state, replay_buffer: ReplayBuffer, samples=12
+    ):
+        # buffer = 3
+        # if replay_buffer.experience.frame_count <= (samples + buffer):
+        #     return tf.constant(0.0)
+        # frames: List[ExperienceFrame] = replay_buffer.experience.sample_sequence(
+        #     samples
+        # )
+        change_signals = [signal for signal in replay_buffer.grouping_changes]
+        loss = tf.reduce_mean(tf.convert_to_tensor(change_signals))
+        return loss
+
     def compute_reward_prediction_loss(
         self, done, new_state, replay_buffer: ReplayBuffer
     ):
@@ -448,16 +465,26 @@ class A3CWorker(threading.Thread):
             aux_losses = {}
             replay_buffer.commit_frames(discounted_rewards)
             if replay_buffer.experience.is_full():
+                aux_weight = 0.2
+                if self.args.use_grouping_change:
+                    gc_loss = self.compute_grouping_change_loss(
+                        done, new_state, replay_buffer
+                    )
+                    # gc_loss *= aux_weight
+                    total_loss += gc_loss
+                    aux_losses["gc"] = gc_loss
                 if self.args.use_reward_prediction:
                     rp_loss = self.compute_reward_prediction_loss(
                         done, new_state, replay_buffer
                     )
+                    rp_loss *= aux_weight
                     total_loss += rp_loss
                     aux_losses["rp"] = rp_loss
                 if self.args.use_value_replay:
                     vr_loss = self.compute_value_replay_loss(
                         done, new_state, replay_buffer, discounted_rewards
                     )
+                    vr_loss *= aux_weight
                     total_loss += vr_loss
                     aux_losses["vr"] = vr_loss
                 for key in aux_losses.keys():

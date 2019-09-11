@@ -19,8 +19,8 @@ class ExperienceFrame(object):
     reward: float
     # Whether or not the action resulted in a terminal state
     terminal: bool
-    # The pixel change aux signal (TODO: math signals)
-    pixel_change: Any
+    # The expression grouping change that occurred transitioning to "state"
+    grouping_change: float
     # The action taken that resulted in a transition to "state"
     last_action: int
     # The reward received for taking the action that transitioned to "state"
@@ -32,7 +32,7 @@ class ExperienceFrame(object):
         reward: float,
         action: int,
         terminal: bool,
-        pixel_change: Any,
+        grouping_change: float,
         last_action: int,
         last_reward: float,
     ):
@@ -43,7 +43,7 @@ class ExperienceFrame(object):
         self.reward = np.clip(reward, -1, 1)
         # (Whether terminated when 'state' was inputted)
         self.terminal = terminal
-        self.pixel_change = pixel_change
+        self.grouping_change = grouping_change
         # (After this last action was taken, agent move to the 'state')
         self.last_action = last_action
         # (After this last reward was received, agent move to the 'state') (Clipped)
@@ -117,6 +117,10 @@ class Experience(object):
                 and self._non_zero_reward_indices[0] < cut_frame_index
             ):
                 self._non_zero_reward_indices.popleft()
+
+    @property
+    def frame_count(self) -> int:
+        return len(self._frames)
 
     def is_full(self):
         return len(self._frames) >= self._ready_at

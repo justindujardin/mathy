@@ -30,7 +30,10 @@ class A3CArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = True
+    use_reward_prediction = False
 
     # Whether to use the value replay aux task
-    use_value_replay = True
+    use_value_replay = False
+
+    # Whether to use the grouping change aux task
+    use_grouping_change = False

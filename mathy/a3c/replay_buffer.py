@@ -26,6 +26,7 @@ class ReplayBuffer(object):
     rewards: List[float]
     values: List[float]
     frames: List[ExperienceFrame]
+    grouping_changes: List[float]
 
     def __init__(self, experience: Experience):
         self.experience = experience
@@ -34,6 +35,7 @@ class ReplayBuffer(object):
         self.actions = []
         self.rewards = []
         self.values = []
+        self.grouping_changes = []
 
     @property
     def ready(self) -> bool:
@@ -44,13 +46,20 @@ class ReplayBuffer(object):
         return self.to_features(window_states)
 
     def store(
-        self, state, action: int, reward: float, value: float, frame: ExperienceFrame
+        self,
+        state,
+        action: int,
+        reward: float,
+        value: float,
+        grouping_change: float,
+        frame: ExperienceFrame,
     ):
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.values.append(value)
         self.frames.append(frame)
+        self.grouping_changes.append(grouping_change)
 
     def commit_frames(self, ground_truth_discounted_rewards: List[float]):
         """Commit frames to the replay buffer when a terminal state is reached
@@ -71,6 +80,7 @@ class ReplayBuffer(object):
         self.rewards = []
         self.values = []
         self.frames = []
+        self.grouping_changes = []
 
     def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
         outputs: List[List[ExperienceFrame]] = []
