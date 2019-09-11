@@ -124,7 +124,9 @@ class MathExperience:
         if not experience_folder.is_dir():
             experience_folder.mkdir(parents=True, exist_ok=True)
 
-        all_experience: List[deprecated_MathyEnvObservation] = self.long_term + self.short_term
+        all_experience: List[
+            deprecated_MathyEnvObservation
+        ] = self.long_term + self.short_term
 
         # Write to local file then copy over (don't thrash virtual file systems
         # like GCS)

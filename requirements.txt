@@ -9,6 +9,7 @@ tensorflow_estimator
 tensorflow==2.0.0-beta1
 tf-agents-nightly
 tb-nightly
+tqdm
 colr
 pydantic
 

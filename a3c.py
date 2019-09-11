@@ -61,18 +61,19 @@ def main(
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
-    units: int = 256,
+    units: int = 128,
     difficulty: Optional[str] = None,
     profile: bool = False,
     evaluate: bool = False,
 ):
     topics_list = topics.split(",")
     args = A3CArgs(
+        verbose=True,
+        update_freq=8,
+        train=not evaluate,
         difficulty=difficulty,
         topics=topics_list,
-        train=not evaluate,
         units=units,
-        update_freq=32,
         model_dir=model_dir,
         init_model_from=transfer_from,
         num_workers=workers,

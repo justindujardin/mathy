@@ -105,8 +105,10 @@ class ActorCriticModel(tf.keras.Model):
             #       not matching gradients when the local_model tries to optimize
             #       against the global_model.
             self.call(initial_state)
-            self.predict_next_reward(initial_state)
-            self.predict_value_replays(initial_state)
+            if self.args.use_reward_prediction:
+                self.predict_next_reward(initial_state)
+            if self.args.use_value_replay:
+                self.predict_value_replays(initial_state)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
