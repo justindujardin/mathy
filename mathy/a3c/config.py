@@ -9,9 +9,9 @@ class A3CArgs(BaseModel):
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
-    units: int = 128
+    units: int = 64
     # Units for math embeddings
-    embedding_units: int = 256
+    embedding_units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False

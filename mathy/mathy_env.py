@@ -73,6 +73,11 @@ class MathyEnv:
         """Return the number of available actions"""
         return len(self.actions)
 
+    def get_env_namespace(self) -> str:
+        """Return a unique dot namespaced string representing the current
+        environment. e.g. mycompany.envs.differentiate"""
+        raise NotImplementedError("subclass must implement this")
+
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of rewarding action types. When these actions
         are selected, the agent gets a positive reward."""
@@ -83,7 +88,9 @@ class MathyEnv:
         are selected, the agent gets a negative reward."""
         return []
 
-    def max_moves_fn(self, problem: MathyEnvProblem, config: MathyEnvProblemArgs) -> int:
+    def max_moves_fn(
+        self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
+    ) -> int:
         """Return the environment specific maximum move count for a given prolem."""
         return problem.complexity * 3
 
@@ -280,7 +287,9 @@ class MathyEnv:
 
         # Build and return the initial state
         env_state = MathyEnvState(
-            problem=prob.text, problem_type=prob.type, max_moves=self.max_moves
+            problem=prob.text,
+            problem_type=self.get_env_namespace(),
+            max_moves=self.max_moves,
         )
         if print_problem and self.verbose:
             self.print_state(env_state, "initial-state")

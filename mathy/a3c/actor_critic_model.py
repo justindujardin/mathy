@@ -109,6 +109,7 @@ class ActorCriticModel(tf.keras.Model):
                 self.predict_next_reward(initial_state)
             if self.args.use_value_replay:
                 self.predict_value_replays(initial_state)
+            self.embedding.call(initial_state, initialize=True)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)

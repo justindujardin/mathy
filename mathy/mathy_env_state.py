@@ -53,7 +53,7 @@ class MathyEnvTimeStep(NamedTuple):
 class MathAgentState:
     moves_remaining: int
     problem: str
-    problem_type: int
+    problem_type: str
     reward: float
     history: List[MathyEnvTimeStep]
     focus_index: int
@@ -113,7 +113,7 @@ class MathyEnvState(object):
         state: Optional["MathyEnvState"] = None,
         problem: str = None,
         max_moves: int = 10,
-        problem_type: int = MODE_SIMPLIFY_POLYNOMIAL,
+        problem_type: str = "mathy.unknown",
     ):
         self.parser = ExpressionParser()
         self.max_moves = max_moves
@@ -178,7 +178,7 @@ class MathyEnvState(object):
             ),
             FEATURE_LAST_RULE: maybe_wrap(last_action),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(int(self.agent.problem_type)),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_MOVE_MASK: maybe_wrap(move_mask),

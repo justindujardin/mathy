@@ -14,18 +14,23 @@ from ...features import (
 )
 from .bahdanau_attention import BahdanauAttention
 from .resnet_stack import ResNetStack
+from .densenet_stack import DenseNetStack
 
 
 class MathEmbedding(tf.keras.layers.Layer):
-    def __init__(self, units: int = 128, **kwargs):
+    def __init__(self, units: int = 128, num_buckets: int = 6, **kwargs):
         super(MathEmbedding, self).__init__(**kwargs)
         self.units = units
+        self.num_buckets = num_buckets
         self.attention = BahdanauAttention(self.units)
         self.flatten = tf.keras.layers.Flatten(name="flatten")
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
         self.input_dense = tf.keras.layers.Dense(
             self.units, name="embedding_input", use_bias=False
         )
+        self.bucket_networks = [
+            DenseNetStack(units=32, num_layers=3) for i in range(num_buckets)
+        ]
         self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
         self.time_lstm = tf.keras.layers.LSTM(
             units, name="timestep_lstm", return_sequences=True, time_major=True
@@ -59,19 +64,13 @@ class MathEmbedding(tf.keras.layers.Layer):
                 key=FEATURE_PROBLEM_TYPE, num_buckets=32
             )
         )
-        self.feature_columns = [
-            self.f_problem_type,
-            self.f_last_rule,
-            self.f_node_count,
-            self.f_move_count,
-            self.f_moves_remaining,
-        ]
+        self.feature_columns = [self.f_last_rule, self.f_node_count, self.f_move_count]
 
         self.ctx_extractor = tf.keras.layers.DenseFeatures(
             self.feature_columns, name="ctx_features"
         )
 
-    def call(self, features):
+    def call(self, features, initialize=False):
         context_inputs = self.ctx_extractor(features)
         batch_size = len(features[FEATURE_BWD_VECTORS])
         sequence_length = len(features[FEATURE_BWD_VECTORS][0])
@@ -87,10 +86,33 @@ class MathEmbedding(tf.keras.layers.Layer):
         batch_sequence_features = self.concat(batch_seq_one_hots)
 
         outputs = []
+
         # Convert one-hot to dense layer representations while
-        # preserving the batch[0] and time[1] dimensions
-        for sequence_inputs in batch_sequence_features:
+        # preserving the 0 (batch) and 1 (time) dimensions
+        for i, sequence_inputs in enumerate(batch_sequence_features):
+            # Common resnet feature extraction
             example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
+
+            # Initially we run an observation through each densenet stack
+            # so that the gradients we sync with the global model will match
+            # up regardless of the bucket chosen on each worker/problem type.
+            if initialize is True:
+                for net in self.bucket_networks:
+                    # Note we don't use the result of this initialization
+                    net(example)
+
+            # Each env has a namespace string, and we bucketize them to
+            # choose one of a few networks to use for task-specific feature
+            # extraction. namespaces are of the form "mathy.foo.bar"
+            problem_namespace = features[FEATURE_PROBLEM_TYPE][i]
+            # convert to a bucket integer and use the densenet from that bucket
+            problem_bucket = int(
+                tf.strings.to_hash_bucket_fast(
+                    problem_namespace, self.num_buckets
+                ).numpy()
+            )
+            example = self.bucket_networks[problem_bucket](example)
+
             outputs.append(tf.reshape(example, [sequence_length, -1]))
 
         # Build initial LSTM state conditioned on the context features

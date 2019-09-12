@@ -34,14 +34,14 @@ def mathy_free_model():
         __model = None
 
 
-def mathy_load_a3c(env_name: str, gym_env: MathyGymEnv):
+def mathy_load_a3c(env_name: str, gym_env: MathyGymEnv, model: str):
     global __agent
     if __agent is None:
         import os
 
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
         tf.compat.v1.logging.set_verbosity("CRITICAL")
-        args = A3CArgs(model_dir="training/poly_complex_easy_ufreq_8")
+        args = A3CArgs(model_dir=model)
         __agent = A3CAgent(args)
 
 
@@ -131,6 +131,8 @@ def run():
     import numpy as np
     import matplotlib.pyplot as plt
 
+    a3c_agent = "training/mtask_densenet"
+
     agents = ["a3c", "a3c-greedy", "random"]
     topics = ["poly", "poly-blockers", "binomial", "complex", "poly-grouping"]
     # topics = ["complex"]
@@ -150,10 +152,14 @@ def run():
                 env_name = f"mathy-{topic}-{difficulty}-v0"
                 label = f"{label}"
                 if agent == "a3c":
-                    a3c_values.append(main(env_name, agent, label=label))
+                    a3c_values.append(
+                        main(env_name, agent, label=label, model=a3c_agent)
+                    )
                     pass
                 elif agent == "a3c-greedy":
-                    a3c_greedy_values.append(main(env_name, agent, label=label))
+                    a3c_greedy_values.append(
+                        main(env_name, agent, label=label, model=a3c_agent)
+                    )
                     pass
                 elif agent == "random":
                     random_values.append(main(env_name, agent, label=label))
@@ -220,6 +226,7 @@ def main(
     env_name: str,
     agent: str,
     label: Optional[str] = None,
+    model: Optional[str] = None,
     print_every: Optional[int] = None,
 ) -> float:
     """Evaluate an agent in an env and return the win percentage"""
@@ -239,9 +246,9 @@ def main(
             if agent == "mcts":
                 mcts_start_problem(env)
             elif agent == "model":
-                mathy_load_model(env)
+                mathy_load_model(env, model)
             elif agent in ["a3c", "a3c-greedy"]:
-                mathy_load_a3c(env_name, env)
+                mathy_load_a3c(env_name, env, model)
             print_problem = False
             if print_every is not None:
                 print_problem = i_episode % print_every == 0

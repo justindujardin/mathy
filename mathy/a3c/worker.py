@@ -402,14 +402,8 @@ class A3CWorker(threading.Thread):
         )
 
     def compute_grouping_change_loss(
-        self, done, new_state, replay_buffer: ReplayBuffer, samples=12
+        self, done, new_state, replay_buffer: ReplayBuffer
     ):
-        # buffer = 3
-        # if replay_buffer.experience.frame_count <= (samples + buffer):
-        #     return tf.constant(0.0)
-        # frames: List[ExperienceFrame] = replay_buffer.experience.sample_sequence(
-        #     samples
-        # )
         change_signals = [signal for signal in replay_buffer.grouping_changes]
         loss = tf.reduce_mean(tf.convert_to_tensor(change_signals))
         return loss

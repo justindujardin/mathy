@@ -26,6 +26,9 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
       2. Combine the sibling like terms
     """
 
+    def get_env_namespace(self) -> str:
+        return "mathy.envs.polynomials.simplify.commute"
+
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveFactorOutRule, CommutativeSwapRule]
 

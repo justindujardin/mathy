@@ -19,6 +19,9 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     possible.
     """
 
+    def get_env_namespace(self) -> str:
+        return "mathy.envs.polynomials.grouping.terms"
+
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [CommutativeSwapRule, AssociativeSwapRule]
 

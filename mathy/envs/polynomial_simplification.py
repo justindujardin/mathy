@@ -21,6 +21,9 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
      operators are excluded. This is a good area for improvement.
     """
 
+    def get_env_namespace(self) -> str:
+        return "mathy.envs.polynomials.simplify"
+
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
