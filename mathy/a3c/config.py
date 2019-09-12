@@ -38,4 +38,4 @@ class A3CArgs(BaseModel):
     use_value_replay = False
 
     # Whether to use the grouping change aux task
-    use_grouping_change = False
+    use_grouping_control = True

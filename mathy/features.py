@@ -3,6 +3,108 @@ import numpy
 import numpy as np
 from typing import Tuple, Any, List, Dict
 from .core import MathTypeKeys
+from enum import Enum
+
+from pydantic import BaseModel
+
+
+class MathyObservationFeatures(Enum):
+    """TODO: This is not used and speculative"""
+
+    steps_remaining = "steps_remaining"
+    step = "step"
+    last_action = "last_action"
+    problem_type = "problem_type"
+    vectors = "vectors"
+    vectors_bwd = "vectors_bwd"
+    mask = "mask"
+
+
+class MathyEnvObservation(BaseModel):
+    """TODO: This is not used and speculative"""
+
+    state: Any
+
+
+# A sequence of nodes representing the math tree for the
+# current environment state.
+MathyObservationNodes = List[int]
+
+
+class MathyObservationSignal(BaseModel):
+    """TODO: This is not used and speculative"""
+
+    # Unique ID for this environment signal
+    id: str
+
+    def get_value(self, observation: MathyEnvObservation):
+        raise NotImplementedError("subclass must implement")
+
+
+class MathyObsValueSignal(MathyObservationSignal):
+    """TODO: This is not used and speculative"""
+
+    id = "value"
+    value: float
+
+    def get_value(self, observation: MathyEnvObservation):
+        self.value = observation.value
+
+
+class MathyObsGroupingSignal(MathyObservationSignal):
+    """TODO: This is not used and speculative"""
+
+    id = "grouping"
+    value: float
+
+    def get_value(self, observation: MathyEnvObservation):
+        self.value = calculate_grouping_control_signal(observation)
+
+
+class MathyObservationFeatures(BaseModel):
+    """TODO: This is not used and speculative"""
+
+    # List of current env state node types in a sequence.
+    vectors: MathyObservationNodes = []
+    # Valid move mask for the associated vectors
+    mask: MathyObservationNodes = []
+    # The observed reward from the timestep before this observation
+    last_reward: float = 0.0
+    # The action taken at the timestep before this observation
+    last_action: int = -1
+    # A list of signals associated with this observation
+    signals: List[MathyObservationSignal] = []
+
+
+class MathyBatchObservationFeatures(BaseModel):
+    """TODO: This is not used and speculative"""
+
+    # List of current env state node types in a sequence.
+    vectors: List[MathyObservationNodes] = []
+    # Valid move mask for the associated vectors
+    mask: List[MathyObservationNodes] = []
+    # The observed reward from the timestep before this observation
+    last_reward: List[float] = []
+    # The action taken at the timestep before this observation
+    last_action: List[int] = []
+    # A list of signals associated with this observation
+    signals: List[List[MathyObservationSignal]] = []
+
+
+class MathyBatchWindowObservationFeatures(BaseModel):
+    """TODO: This is not used and speculative"""
+
+    # List of current env state node types in a sequence.
+    vectors: List[List[MathyObservationNodes]] = []
+    # Valid move mask for the associated vectors
+    mask: List[List[MathyObservationNodes]] = []
+    # The observed reward from the timestep before this observation
+    last_reward: List[List[float]] = []
+    # The action taken at the timestep before this observation
+    last_action: List[List[int]] = []
+    # A list of signals associated with this observation
+    signals: List[List[List[MathyObservationSignal]]] = []
+
 
 FEATURE_FWD_VECTORS = "fwd_vectors"
 FEATURE_LAST_RULE = "last_action"
@@ -131,7 +233,7 @@ def calculate_term_grouping_distances(input: str):
     return signal / len(vars)
 
 
-def calculate_grouping_control_signal(observation: MathyEnvObservation) -> float:
+def calculate_grouping_control_signal(input: str, output: str) -> float:
     """Calculate grouping_control signals as the sum of all distances between
     all like terms. Gather all the terms in an expression and add an error value
     whenever a like term is separated by another term.

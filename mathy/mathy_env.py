@@ -16,6 +16,11 @@ from .rules import (
 )
 from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
 from .util import GameRewards
+from .features import (
+    MathyObservationFeatures,
+    MathyBatchObservationFeatures,
+    MathyBatchWindowObservationFeatures,
+)
 
 
 def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
@@ -371,3 +376,40 @@ class MathyEnv:
     def to_hash_key(self, env_state: MathyEnvState) -> str:
         """Convert env_state to a string for MCTS cache"""
         return env_state.agent.problem
+
+    def state_to_features(
+        self, state: MathyEnvState, features: List[MathyObservationFeatures]
+    ) -> MathyObservationFeatures:
+        expression = self.parser.parse(state.agent.problem)
+        output: List[Union[float, int, List]] = []
+        # Generate context vectors for the current state's expression tree
+        vectors = [[t.type_id] for t in expression.toList()]
+
+        # Encode the last action
+        last_action = -1
+        if len(state.agent.history) >= 1:
+            last_action = state.agent.history[-1].action
+
+        # After padding is done, generate reversed vectors for the bilstm
+        vectors_reversed = vectors[:]
+        vectors_reversed.reverse()
+
+        return MathyObservationFeatures(
+            steps_remaining=[state.agent.moves_remaining],
+            step=[int(state.max_moves - state.agent.moves_remaining)],
+            last_action=[last_action],
+            problem_type=[state.agent.problem_type],
+            vectors=[vectors],
+            vectors_bwd=[vectors_reversed],
+            mask=self.get_valid_moves(state),
+        )
+
+    def state_to_batch_features(
+        self, states: List[MathyEnvState]
+    ) -> MathyBatchObservationFeatures:
+        return MathyBatchObservationFeatures()
+
+    def state_to_batch_window_features(
+        self, state_sequences: List[List[MathyEnvState]]
+    ) -> MathyBatchWindowObservationFeatures:
+        return MathyBatchWindowObservationFeatures()

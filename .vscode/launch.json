@@ -27,11 +27,11 @@
       ]
     },
     {
-      "name": "mathy:env:gym",
+      "name": "mathy:evaluate",
       "type": "python",
       "request": "launch",
       "justMyCode": false,
-      "module": "gym_env"
+      "module": "evaluate"
     },
     {
       "name": "mathy:runner",
@@ -70,9 +70,8 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "complex",
+        "poly",
         "training/dev",
-        "-difficulty=easy",
         "-workers",
         "1"
       ]

@@ -466,7 +466,7 @@ class A3CWorker(threading.Thread):
             replay_buffer.commit_frames(discounted_rewards)
             if replay_buffer.experience.is_full():
                 aux_weight = 0.2
-                if self.args.use_grouping_change:
+                if self.args.use_grouping_control:
                     gc_loss = self.compute_grouping_change_loss(
                         done, new_state, replay_buffer
                     )
