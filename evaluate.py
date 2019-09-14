@@ -1,15 +1,17 @@
-from typing import Optional, List
-from tqdm import trange
+from datetime import datetime
+from typing import List, Optional
+
 import gym
 import numpy as np
 import plac
 import tensorflow as tf
 from gym.envs.registration import register
+from tqdm import trange
 
+from mathy.a3c import A3CAgent, A3CArgs
 from mathy.agent.controller import MathModel
 from mathy.agent.training.mcts import MCTS
 from mathy.gym import MathyGymEnv
-from mathy.a3c import A3CAgent, A3CArgs
 
 __mcts: Optional[MCTS] = None
 __model: Optional[MathModel] = None
@@ -131,14 +133,14 @@ def run():
     import numpy as np
     import matplotlib.pyplot as plt
 
-    a3c_agent = "training/mtask_densenet"
+    a3c_agent = "training/mtl_one_bucket"
 
     agents = ["a3c", "a3c-greedy", "random"]
-    topics = ["poly", "poly-blockers", "binomial", "complex", "poly-grouping"]
+    topics = ["poly", "binomial", "complex", "poly-blockers", "poly-grouping"]
     # topics = ["complex"]
 
     difficulties = ["easy", "normal", "hard"]
-    difficulties = ["hard"]
+    # difficulties = ["hard"]
 
     a3c_values: List[float] = []
     a3c_greedy_values: List[float] = []
@@ -206,20 +208,11 @@ def run():
     plt.yticks(index + bar_width * 2, labels)
     plt.legend()
 
-    plt.savefig(f"{title}.png", bbox_inches="tight")
+    day_time = datetime.now().strftime("%Y_%m_%d_%H_%M")
+    plt.savefig(f"images/{day_time}{title}.png", bbox_inches="tight")
 
     plt.tight_layout()
     plt.show()
-
-    # plt.rcdefaults()
-    # x_range = np.arange(len(labels))
-    # plt.barh(x_range, values, align="center", alpha=0.5)
-    # y_ticks = np.arange(101, step=10)
-    # plt.yticks(x_range, labels)
-    # plt.xticks(y_ticks, y_ticks)
-    # plt.ylabel("Win Percent")
-    # plt.title("Agent")
-    # plt.show()
 
 
 def main(
@@ -246,8 +239,10 @@ def main(
             if agent == "mcts":
                 mcts_start_problem(env)
             elif agent == "model":
-                mathy_load_model(env, model)
+                mathy_load_model(env)
             elif agent in ["a3c", "a3c-greedy"]:
+                if model is None:
+                    raise ValueError("model must be specified")
                 mathy_load_a3c(env_name, env, model)
             print_problem = False
             if print_every is not None:

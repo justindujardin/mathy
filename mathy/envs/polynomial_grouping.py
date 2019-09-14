@@ -1,5 +1,6 @@
 from typing import Any, List, Optional, Type
 
+from numpy.random import randint
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
@@ -20,7 +21,7 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     """
 
     def get_env_namespace(self) -> str:
-        return "mathy.envs.polynomials.grouping.terms"
+        return "mathy.polynomials.group_like_terms"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [CommutativeSwapRule, AssociativeSwapRule]
@@ -56,19 +57,25 @@ class MathyPolynomialGroupingEnv(MathyEnv):
         return time_step.termination(features, self.get_win_signal(env_state))
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
-        complexity = 2
         if params.difficulty == MathyEnvDifficulty.easy:
+            blockers = randint(1, 4)
             text, _ = commute_haystack(
-                min_terms=4, max_terms=12, easy=True, powers=True
+                commute_blockers=blockers,
+                min_terms=6,
+                max_terms=12,
+                easy=True,
+                powers=True,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
+            blockers = randint(3, 6)
             text, _ = commute_haystack(
                 min_terms=8, max_terms=16, easy=False, powers=True
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
+            blockers = randint(5, 10)
             text, _ = commute_haystack(
                 min_terms=12, max_terms=24, easy=False, powers=True
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, blockers + 2, MODE_SIMPLIFY_POLYNOMIAL)

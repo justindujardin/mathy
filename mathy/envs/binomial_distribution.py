@@ -25,7 +25,7 @@ class MathyBinomialDistributionEnv(MathyEnv):
     with a multiplication."""
 
     def get_env_namespace(self) -> str:
-        return "mathy.envs.binomials.mulptiply"
+        return "mathy.binomials.mulptiply"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveMultiplyRule, VariableMultiplyRule]

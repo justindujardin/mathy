@@ -111,8 +111,8 @@ class ReplayBuffer(object):
             FEATURE_NODE_COUNT,
             FEATURE_MOVE_COUNTER,
             FEATURE_MOVES_REMAINING,
-            FEATURE_PROBLEM_TYPE,
         ]
+        text_feature_keys: List[str] = [FEATURE_PROBLEM_TYPE]
         sequence_feature_keys: List[Tuple[str, bool]] = [
             (FEATURE_FWD_VECTORS, False),
             (FEATURE_BWD_VECTORS, True),
@@ -136,6 +136,12 @@ class ReplayBuffer(object):
                 if key not in state:
                     raise ValueError(f"key '{key}' not found in state: {state}'")
                 out[key].append(tf.convert_to_tensor(state[key]))
+
+        for key in text_feature_keys:
+            for state in feature_states:
+                if key not in state:
+                    raise ValueError(f"key '{key}' not found in state: {state}'")
+                out[key].append(state[key][0])
 
         # last_size = -1
         for key, backward in sequence_feature_keys:

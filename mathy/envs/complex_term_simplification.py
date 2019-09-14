@@ -16,7 +16,7 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     """
 
     def get_env_namespace(self) -> str:
-        return "mathy.envs.monomials.complex"
+        return "mathy.monomials.complex_simplify"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, VariableMultiplyRule]

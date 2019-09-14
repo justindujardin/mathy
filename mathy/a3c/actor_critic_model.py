@@ -56,14 +56,14 @@ class ActorCriticModel(tf.keras.Model):
             3, name="reward_prediction/class_logits"
         )
         self.rp_prepare_values = tf.keras.layers.Dense(
-            self.args.units, name="reward_prediction/prepare_inputs"
+            self.args.embedding_units, name="reward_prediction/prepare_inputs"
         )
 
     def build_value_replay(self):
         if self.args.use_value_replay is False:
             return
         self.vr_prepare_values = tf.keras.layers.Dense(
-            self.args.units, name="value_replay/prepare_values"
+            self.args.embedding_units, name="value_replay/prepare_values"
         )
 
     def call(self, batch_features, apply_mask=True):

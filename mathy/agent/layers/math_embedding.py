@@ -1,3 +1,4 @@
+from typing import Dict
 import tensorflow as tf
 
 from ...core.expressions import MathTypeKeysMax
@@ -14,23 +15,18 @@ from ...features import (
 )
 from .bahdanau_attention import BahdanauAttention
 from .resnet_stack import ResNetStack
-from .densenet_stack import DenseNetStack
 
 
 class MathEmbedding(tf.keras.layers.Layer):
-    def __init__(self, units: int = 128, num_buckets: int = 6, **kwargs):
+    def __init__(self, units: int = 128, **kwargs):
         super(MathEmbedding, self).__init__(**kwargs)
         self.units = units
-        self.num_buckets = num_buckets
         self.attention = BahdanauAttention(self.units)
         self.flatten = tf.keras.layers.Flatten(name="flatten")
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
         self.input_dense = tf.keras.layers.Dense(
             self.units, name="embedding_input", use_bias=False
         )
-        self.bucket_networks = [
-            DenseNetStack(units=32, num_layers=3) for i in range(num_buckets)
-        ]
         self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
         self.time_lstm = tf.keras.layers.LSTM(
             units, name="timestep_lstm", return_sequences=True, time_major=True
@@ -92,27 +88,6 @@ class MathEmbedding(tf.keras.layers.Layer):
         for i, sequence_inputs in enumerate(batch_sequence_features):
             # Common resnet feature extraction
             example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
-
-            # Initially we run an observation through each densenet stack
-            # so that the gradients we sync with the global model will match
-            # up regardless of the bucket chosen on each worker/problem type.
-            if initialize is True:
-                for net in self.bucket_networks:
-                    # Note we don't use the result of this initialization
-                    net(example)
-
-            # Each env has a namespace string, and we bucketize them to
-            # choose one of a few networks to use for task-specific feature
-            # extraction. namespaces are of the form "mathy.foo.bar"
-            problem_namespace = features[FEATURE_PROBLEM_TYPE][i]
-            # convert to a bucket integer and use the densenet from that bucket
-            problem_bucket = int(
-                tf.strings.to_hash_bucket_fast(
-                    problem_namespace, self.num_buckets
-                ).numpy()
-            )
-            example = self.bucket_networks[problem_bucket](example)
-
             outputs.append(tf.reshape(example, [sequence_length, -1]))
 
         # Build initial LSTM state conditioned on the context features
@@ -142,7 +117,6 @@ class MathEmbedding(tf.keras.layers.Layer):
         #
         # shape = [Observations, ObservationNodeVectors, self.units]
         time_out = self.time_lstm(outputs)
-
         # Convert context features into unit-sized layer
         context_vector, _ = self.attention(time_out, context_inputs)
 
