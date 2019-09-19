@@ -29,3 +29,6 @@ agents/
 training.jsonl
 training_tiny.jsonl
 hoarding/
+
+# Images from eval experiments
+images/

@@ -6,7 +6,12 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
-from .core.expressions import MathExpression, MathTypeKeys
+from .core.expressions import (
+    MathExpression,
+    MathTypeKeys,
+    TokenTypeSequenceStart,
+    TokenTypeSequenceEnd,
+)
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
 from .core.tree import STOP
@@ -147,6 +152,45 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
+    def to_empty_state(self):
+        pad_value = MathTypeKeys["empty"]
+        return {
+            FEATURE_MOVE_COUNTER: [-1],
+            FEATURE_LAST_RULE: [-1],
+            FEATURE_NODE_COUNT: [-1],
+            FEATURE_PROBLEM_TYPE: [self.agent.problem_type],
+            FEATURE_FWD_VECTORS: [[[pad_value]]],
+            FEATURE_BWD_VECTORS: [[[pad_value]]],
+            FEATURE_MOVE_MASK: [[0, 0, 0, 0, 0, 0]],
+        }
+
+    def to_empty_window(self):
+        return {
+            FEATURE_MOVE_COUNTER: [[-1], [-1], [-1]],
+            FEATURE_LAST_RULE: [[-1], [-1], [-1]],
+            FEATURE_NODE_COUNT: [[-1], [-1], [-1]],
+            FEATURE_PROBLEM_TYPE: [
+                self.agent.problem_type,
+                self.agent.problem_type,
+                self.agent.problem_type,
+            ],
+            FEATURE_FWD_VECTORS: [
+                [MathTypeKeys["empty"]],
+                [MathTypeKeys["empty"]],
+                [MathTypeKeys["empty"]],
+            ],
+            FEATURE_BWD_VECTORS: [
+                [MathTypeKeys["empty"]],
+                [MathTypeKeys["empty"]],
+                [MathTypeKeys["empty"]],
+            ],
+            FEATURE_MOVE_MASK: [
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+            ],
+        }
+
     def to_input_features(self, move_mask, return_batch=False):
         """Output Dict of integer features that can be fed to the
         neural network for prediction.
@@ -157,6 +201,10 @@ class MathyEnvState(object):
         expression = self.parser.parse(self.agent.problem)
         # Generate context vectors for the current state's expression tree
         vectors = [[t.type_id] for t in expression.toList()]
+        # # Start each sequence with the start token
+        # vectors.insert(0, [TokenTypeSequenceStart])
+        # # End it with a specific end token
+        # vectors.append([TokenTypeSequenceEnd])
 
         # Encode the last action
         last_action = -1

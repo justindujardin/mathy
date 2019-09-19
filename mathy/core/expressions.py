@@ -12,14 +12,16 @@ OOO_INVALID = -1
 
 
 MathTypeKeys = {
-    "empty": 0,
-    "negate": 1,
-    "equal": 2,
-    "add": 3,
-    "subtract": 4,
-    "multiply": 5,
-    "divide": 6,
-    "power": 7,
+    "seq_start": 0,
+    "seq_end": 1,
+    "empty": 2,
+    "negate": 3,
+    "equal": 4,
+    "add": 5,
+    "subtract": 6,
+    "multiply": 7,
+    "divide": 8,
+    "power": 9,
     # NOTE: reserved 8-15 for future expression types (such as functions)
     "constant_0": 16,
     "constant_1": 17,
@@ -59,6 +61,11 @@ MathTypeKeys = {
     "variable_y": 51,
     "variable_z": 52,
 }
+
+# The token type that is inserted when a new input sequence begins
+TokenTypeSequenceStart = MathTypeKeys["seq_start"]
+# The token type that is inserted after an input sequence is complete
+TokenTypeSequenceEnd = MathTypeKeys["seq_end"]
 
 # The maximum value in type keys (for one-hot encoding)
 MathTypeKeysMax = max(MathTypeKeys.values())

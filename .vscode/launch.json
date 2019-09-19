@@ -64,13 +64,26 @@
       ]
     },
     {
+      "name": "mathy:r2d2",
+      "type": "python",
+      "request": "launch",
+      "justMyCode": false,
+      "module": "r2d2",
+      "args": [
+        "poly-grouping",
+        "training/dev-r2d2",
+        "-workers",
+        "1"
+      ]
+    },
+    {
       "name": "mathy:a3c",
       "type": "python",
       "request": "launch",
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "poly",
+        "poly-grouping",
         "training/dev",
         "-workers",
         "1"

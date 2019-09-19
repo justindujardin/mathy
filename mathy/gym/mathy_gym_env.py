@@ -121,6 +121,11 @@ class MathyGymEnv(gym.Env):
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
+    def initial_state(self):
+        """return an n-step set of observations for initializing the env"""
+        state, _ = self.mathy.get_initial_state(self.env_problem_args)
+        return state.to_empty_window()
+
     def _observe(self, state: MathyEnvState) -> MathyEnvTimeStep:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
