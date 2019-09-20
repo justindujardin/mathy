@@ -34,12 +34,14 @@ class MathyLearner(MPClass):
         self,
         args: MathyArgs,
         writer: tf.summary.SummaryWriter,
+        command_queues: List[Queue],
         experience: Experience,
         **kwargs,
     ):
         super(MathyLearner, self).__init__()
         self.args = args
         self.writer = writer
+        self.command_queues = command_queues
         self.experience = experience
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
@@ -59,6 +61,7 @@ class MathyLearner(MPClass):
         self.obs_converter = EpisodeMemory()
         # Initialize the model with a random observation
         self.model.maybe_load(self.env.initial_state(), do_init=True)
+        self.update_actors_in = self.args.actor_update_from_learner_every_n
 
     def choose_action(self, state: MathyEnvState, greedy=False):
         obs = state.to_input_features(self.env.action_space.mask, return_batch=True)
@@ -74,18 +77,29 @@ class MathyLearner(MPClass):
     def run(self):
         model = self.model
         model.maybe_load()
+
         try:
             while MathyLearner.request_quit is False:
                 if not self.experience.is_full():
                     time.sleep(1.5)
                     continue
                 self.update_global_network()
-                time.sleep(0.5)
+                self.maybe_update_actor_models()
 
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
         finally:
             pass
+
+    def maybe_update_actor_models(self):
+        """periodically send commands to each actor telling them to reload their
+        model from the latest weights."""
+        if self.update_actors_in == 0:
+            self.model.save()
+            [q.put("load_model") for q in self.command_queues]
+            self.update_actors_in = self.args.actor_update_from_learner_every_n
+        else:
+            self.update_actors_in -= 1
 
     def maybe_write_histograms(self):
         if self.worker_idx != 0:
@@ -145,7 +159,7 @@ class MathyLearner(MPClass):
         for k in aux_losses.keys():
             aux_losses[k] = aux_losses[k].numpy()
         step = self.model.global_step.numpy()
-        if step % 10:
+        if step % 10 == 0:
             record_losses(pi_loss, value_loss, entropy_loss, aux_losses, total_loss)
         return loss_tuple
 

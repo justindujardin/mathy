@@ -79,6 +79,14 @@ class MathyActor(MPClass):
 
         episode_memory = EpisodeMemory(experience_queue=self.result_queue)
         while MathyActor.request_quit is False:
+            try:
+                ctrl = self.command_queue.get_nowait()
+                if ctrl == "load_model":
+                    print(f"[Worker{self.worker_idx}] loading latest learner")
+                    self.model.maybe_load()
+            except BaseException:
+                pass
+
             reward = self.run_episode(episode_memory)
             win_pct = self.teacher.report_result(self.worker_idx, reward)
             if win_pct is not None:
@@ -106,9 +114,6 @@ class MathyActor(MPClass):
             self.iteration += 1
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
-            if self.experience.is_full() and self.iteration % 50 == 0:
-                print("updating model")
-                self.model.maybe_load()
 
         if self.args.profile:
             profile_name = f"worker_{self.worker_idx}.profile"
@@ -148,7 +153,7 @@ class MathyActor(MPClass):
                 # renormalize to softmax where all values are equal probability
                 actions = action_mask / np.sum(action_mask)
                 action = np.random.choice(len(actions), p=actions)
-                value = 0.0
+                value = np.random.random()
             else:
                 probs, value = self.model.predict_next(sample)
                 # action = np.random.choice(len(probs), p=probs)

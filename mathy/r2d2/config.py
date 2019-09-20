@@ -17,9 +17,10 @@ class MathyArgs(BaseModel):
     verbose: bool = False
     lr: float = 3e-4
 
+    actor_update_from_learner_every_n: int = 50
+
     replay_size: int = 8192
-    replay_ready: int = 8192
-    update_freq: int = 250
+    replay_ready: int = 4096
     max_eps: int = 25000
     gamma: float = 0.99
     exploration_greedy_epsilon: float = 0.01

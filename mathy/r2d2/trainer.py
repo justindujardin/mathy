@@ -1,6 +1,6 @@
 import os
 from queue import Queue
-from typing import Optional
+from typing import Optional, List
 from colr import color
 
 import gym
@@ -39,27 +39,34 @@ class MathyTrainer:
 
     def run(self):
         res_queue = Queue()
-        cmd_queue = Queue()
+        cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_actors)]
+
+        all_children = []
 
         # Create (n) actors for gathering trajectories
         actors = [
             MathyActor(
                 args=self.args,
-                teacher=self.teacher,
+                command_queue=cmd_queues[i],
                 experience=self.experience,
-                worker_idx=i,
                 result_queue=res_queue,
-                command_queue=cmd_queue,
+                teacher=self.teacher,
+                worker_idx=i,
                 writer=self.writer,
             )
             for i in range(self.args.num_actors)
         ]
+        all_children += actors
 
-        # Create (n) learners for training on replay data
+        # Create one learner for training on replay data
         learner = MathyLearner(
-            args=self.args, experience=self.experience, writer=self.writer
+            args=self.args,
+            command_queues=cmd_queues,
+            experience=self.experience,
+            writer=self.writer,
         )
-        for i, worker in enumerate(actors + [learner]):
+        all_children.append(learner)
+        for i, worker in enumerate(all_children):
             worker.start()
 
         try:
@@ -75,5 +82,5 @@ class MathyTrainer:
             MathyLearner.request_quit = True
             learner.model.save()
 
-        [w.join() for w in actors + [learner]]
+        [w.join() for w in all_children]
         print("Done. Bye!")
