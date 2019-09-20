@@ -13,7 +13,11 @@ from colr import color
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
-from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
+from ..features import (
+    FEATURE_FWD_VECTORS,
+    FEATURE_MOVE_MASK,
+    calculate_grouping_control_signal,
+)
 from ..mathy_env_state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
@@ -36,6 +40,7 @@ class MathyActor(MPClass):
         args: MathyArgs,
         result_queue: Queue,
         command_queue: Queue,
+        experience: Experience,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -43,6 +48,7 @@ class MathyActor(MPClass):
         super(MathyActor, self).__init__()
         self.args = args
         self.iteration = 0
+        self.experience = experience
         self.worker_step_count = 0
         self.result_queue = result_queue
         self.command_queue = command_queue
@@ -100,6 +106,9 @@ class MathyActor(MPClass):
             self.iteration += 1
             # TODO: Make this a subprocess? Python threads won't scale up well to
             #       many cores, I think.
+            if self.experience.is_full() and self.iteration % 50 == 0:
+                print("updating model")
+                self.model.maybe_load()
 
         if self.args.profile:
             profile_name = f"worker_{self.worker_idx}.profile"
@@ -128,11 +137,22 @@ class MathyActor(MPClass):
             rnn_state_h = self.model.embedding.state_h.numpy()
             rnn_state_c = self.model.embedding.state_c.numpy()
 
-            # Select a random action from the distribution with the given probabilities
             sample = episode_memory.get_current_window(last_state, env.state)
-            probs, value = self.model.predict_next(sample)
-            # action = np.random.choice(len(probs), p=probs)
-            action = np.argmax(probs)
+
+            if (
+                not self.experience.is_full()
+                or np.random.random() < self.args.exploration_greedy_epsilon
+            ):
+                # Select a random action from the distribution
+                action_mask = sample[FEATURE_MOVE_MASK][-1].numpy()
+                # renormalize to softmax where all values are equal probability
+                actions = action_mask / np.sum(action_mask)
+                action = np.random.choice(len(actions), p=actions)
+                value = 0.0
+            else:
+                probs, value = self.model.predict_next(sample)
+                # action = np.random.choice(len(probs), p=probs)
+                action = np.argmax(probs)
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
@@ -162,9 +182,10 @@ class MathyActor(MPClass):
             last_action = action
             last_reward = reward
 
-            # Workers wait between each step so that it's possible
-            # to run more workers than there are CPUs available.
-            time.sleep(self.args.worker_wait)
+            # If the experience buffer is ready to be played from, sleep between
+            # timesteps so that we can have more actors than processors
+            if self.experience.is_full():
+                time.sleep(self.args.actor_timestep_wait)
         return ep_reward
 
     def maybe_write_episode_summaries(

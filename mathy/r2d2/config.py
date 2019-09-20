@@ -17,15 +17,17 @@ class MathyArgs(BaseModel):
     verbose: bool = False
     lr: float = 3e-4
 
-    replay_size: int = 1024
+    replay_size: int = 8192
+    replay_ready: int = 4096
     update_freq: int = 250
     max_eps: int = 25000
     gamma: float = 0.99
+    exploration_greedy_epsilon: float = 0.01
     # Worker's sleep this long between steps to allow
     # other workers time to process. This is useful for
     # running more workers than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.5
+    actor_timestep_wait: float = 0.5
     # The number of worker agents to create.
     num_actors: int = 24
     num_learners: int = 1

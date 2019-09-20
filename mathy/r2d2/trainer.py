@@ -23,7 +23,7 @@ class MathyTrainer:
     def __init__(self, args: MathyArgs):
         self.args = args
         self.experience = Experience(
-            history_size=self.args.replay_size, ready_at=self.args.replay_size // 6
+            history_size=self.args.replay_size, ready_at=self.args.replay_ready
         )
         if self.args.verbose:
             print(f"Trainer: {os.path.join(args.model_dir, args.model_name)}")
@@ -46,6 +46,7 @@ class MathyTrainer:
             MathyActor(
                 args=self.args,
                 teacher=self.teacher,
+                experience=self.experience,
                 worker_idx=i,
                 result_queue=res_queue,
                 command_queue=cmd_queue,
