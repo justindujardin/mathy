@@ -89,27 +89,6 @@ class EpisodeMemory(object):
         self.frames = []
         self.grouping_changes = []
 
-    def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
-        outputs: List[List[ExperienceFrame]] = []
-        rewards: List[float] = []
-        if self.experience.is_full() is False:
-            return outputs, rewards
-        for i in range(max_samples):
-            frames = self.experience.sample_rp_sequence()
-            # 4 frames
-            states = [frame.state for frame in frames[:-1]]
-            sample_features = self.to_features(states)
-            target_reward = frames[-1].reward
-            if math.isclose(target_reward, GameRewards.TIMESTEP):
-                sample_label = 0  # zero
-            elif target_reward > 0:
-                sample_label = 1  # positive
-            else:
-                sample_label = 2  # negative
-            outputs.append(sample_features)
-            rewards.append(sample_label)
-        return outputs, rewards
-
     def to_features(self, feature_states: Optional[List[Any]] = None) -> List[Any]:
         if feature_states is None:
             feature_states = self.states

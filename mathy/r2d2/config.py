@@ -18,7 +18,7 @@ class MathyArgs(BaseModel):
     lr: float = 3e-4
 
     replay_size: int = 8192
-    replay_ready: int = 4096
+    replay_ready: int = 8192
     update_freq: int = 250
     max_eps: int = 25000
     gamma: float = 0.99
@@ -37,10 +37,10 @@ class MathyArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = False
+    use_reward_prediction = True
 
     # Whether to use the value replay aux task
-    use_value_replay = False
+    use_value_replay = True
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

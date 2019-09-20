@@ -152,6 +152,27 @@ class MathyLearner(MPClass):
     def write_global_model(self):
         self.model.save()
 
+    def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
+        outputs: List[List[ExperienceFrame]] = []
+        rewards: List[float] = []
+        if self.experience.is_full() is False:
+            return outputs, rewards
+        for i in range(max_samples):
+            frames = self.experience.sample_rp_sequence()
+            # 4 frames
+            states = [frame.state for frame in frames[:-1]]
+            sample_features = self.obs_converter.to_features(states)
+            target_reward = frames[-1].reward
+            if math.isclose(target_reward, GameRewards.TIMESTEP):
+                sample_label = 0  # zero
+            elif target_reward > 0:
+                sample_label = 1  # positive
+            else:
+                sample_label = 2  # negative
+            outputs.append(sample_features)
+            rewards.append(sample_label)
+        return outputs, rewards
+
     def compute_policy_value_loss(
         self,
         states: tf.Tensor,
@@ -221,7 +242,7 @@ class MathyLearner(MPClass):
     ):
         if not self.experience.is_full():
             return tf.constant(0.0)
-        rp_inputs, rp_labels = episode_memory.rp_samples()
+        rp_inputs, rp_labels = self.rp_samples()
         rp_losses = []
         for inputs, labels in zip(rp_inputs, rp_labels):
             rp_outputs = self.model.predict_next_reward(inputs)
@@ -238,15 +259,9 @@ class MathyLearner(MPClass):
         episode_memory: EpisodeMemory,
         discounted_rewards: List[float],
     ):
-        max_frames = 6
-        if not self.experience.is_full():
-            return tf.constant(0.0)
-        frames: List[ExperienceFrame] = self.experience.sample_sequence(
-            min(len(discounted_rewards), max_frames)
-        )
         vr_losses = []
-        for i, frame in enumerate(frames):
-            states = [frame.state for frame in frames]
+        for i, frame in enumerate(samples):
+            states = [frame.state for frame in samples]
             sample_features = episode_memory.to_features(states)
             vr_values = self.model.predict_value_replays(sample_features)
             advantage = discounted_rewards[i] - vr_values
