@@ -1,27 +1,30 @@
-import tensorflow as tf
 import math
-from ..util import GameRewards
-from typing import List, Any, Tuple, Optional
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+import tensorflow as tf
+
 from ..core.expressions import MathTypeKeys
 from ..features import (
-    pad_array,
-    FEATURE_LAST_RULE,
-    FEATURE_NODE_COUNT,
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
-    FEATURE_MOVE_MASK,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
+    FEATURE_MOVE_MASK,
     FEATURE_MOVES_REMAINING,
+    FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
+    pad_array,
 )
-from .experience import ExperienceFrame, Experience
-import numpy as np
+from ..state import MathyObservation, MathyBatchObservation, MathyWindowObservation
+from ..util import GameRewards
+from .experience import Experience, ExperienceFrame
 
 
 class ReplayBuffer(object):
-    states: List[Any]
+    states: List[MathyObservation]
     actions: List[int]
     rewards: List[float]
     values: List[float]
@@ -41,8 +44,8 @@ class ReplayBuffer(object):
     def ready(self) -> bool:
         return len(self.states) > 3
 
-    def get_current_window(self, current_state):
-        window_states = self.states[-2:] + [current_state]
+    def get_current_window(self, current_observation: MathyObservation):
+        window_states = self.states[-2:] + [current_observation]
         return self.to_features(window_states)
 
     def store(
@@ -82,16 +85,18 @@ class ReplayBuffer(object):
         self.frames = []
         self.grouping_changes = []
 
-    def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
-        outputs: List[List[ExperienceFrame]] = []
+    def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, List[float]]:
+        output: MathyWindowObservation = MathyWindowObservation([], [], [])
         rewards: List[float] = []
         if self.experience.is_full() is False:
-            return outputs, rewards
+            return output, rewards
+
+        frames = self.experience.sample_rp_sequence()
         for i in range(max_samples):
             frames = self.experience.sample_rp_sequence()
             # 4 frames
             states = [frame.state for frame in frames[:-1]]
-            sample_features = self.to_features(states)
+            sample_features = self.to_window_features(states)
             target_reward = frames[-1].reward
             if math.isclose(target_reward, GameRewards.TIMESTEP):
                 sample_label = 0  # zero
@@ -103,7 +108,9 @@ class ReplayBuffer(object):
             rewards.append(sample_label)
         return outputs, rewards
 
-    def to_features(self, feature_states: Optional[List[Any]] = None) -> List[Any]:
+    def to_features(
+        self, feature_states: Optional[List[MathyObservation]] = None
+    ) -> MathyWindowObservation:
         if feature_states is None:
             feature_states = self.states
         context_feature_keys: List[str] = [
@@ -180,4 +187,3 @@ class ReplayBuffer(object):
         #         len(mask) == _check_mask
         #     ), f"Expected same length, but for {len(mask)} and {_check_mask}"
         return out
-

@@ -6,7 +6,7 @@ import numpy
 
 from ...mathy_env import MathyEnv
 from ...types import deprecated_MathyEnvObservation, deprecated_MathyEnvEpisodeResult
-from ...mathy_env_state import MathyEnvState
+from ...state import MathyEnvState
 from ...util import discount, is_terminal_transition
 from ..controller import MathModel
 from .mcts import MCTS

@@ -22,7 +22,7 @@ from ..features import (
 from ..agent.training.mcts import MCTS
 from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..rules.rule import ExpressionChangeRule
 from ..util import is_terminal_transition
 from ..types import MathyEnvProblemArgs

@@ -16,14 +16,15 @@ class MathyArgs(BaseModel):
     train: bool = False
     verbose: bool = False
     lr: float = 3e-4
+    # Batch size of n-step observations per training increment
+    batch_size: float = 1
 
-    actor_update_from_learner_every_n: int = 50
+    actor_update_from_learner_every_n: int = 15
 
     replay_size: int = 8192
-    replay_ready: int = 4096
+    replay_ready: int = 2048
     max_eps: int = 25000
     gamma: float = 0.99
-    exploration_greedy_epsilon: float = 0.01
     # Worker's sleep this long between steps to allow
     # other workers time to process. This is useful for
     # running more workers than you have processors to
@@ -41,7 +42,7 @@ class MathyArgs(BaseModel):
     use_reward_prediction = True
 
     # Whether to use the value replay aux task
-    use_value_replay = True
+    use_value_replay = False
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

@@ -7,7 +7,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from .model import MathyModel
 from .config import MathyArgs
 from .actor import MathyActor
@@ -44,11 +44,13 @@ class MathyTrainer:
         all_children = []
 
         # Create (n) actors for gathering trajectories
+        actor_epsilons = np.linspace(0.001, 0.5, self.args.num_actors)
         actors = [
             MathyActor(
                 args=self.args,
                 command_queue=cmd_queues[i],
                 experience=self.experience,
+                greedy_epsilon=actor_epsilons[i],
                 result_queue=res_queue,
                 teacher=self.teacher,
                 worker_idx=i,

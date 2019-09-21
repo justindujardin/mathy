@@ -16,7 +16,7 @@ from ..features import (
 )
 from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState, MathyObservation
 from ..rules.rule import ExpressionChangeRule
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import is_terminal_transition
@@ -124,13 +124,13 @@ class MathyGymEnv(gym.Env):
     def initial_state(self):
         """return an n-step set of observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)
-        return state.to_empty_window()
+        return state.to_empty_batch()
 
-    def _observe(self, state: MathyEnvState) -> MathyEnvTimeStep:
+    def _observe(self, state: MathyEnvState) -> MathyObservation:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
         action_mask = self.mathy.get_valid_moves(state)
-        observation = state.to_input_features(action_mask, True)
+        observation = state.to_observation(action_mask)
         # Update masked action space
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask

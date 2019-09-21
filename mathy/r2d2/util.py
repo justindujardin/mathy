@@ -28,7 +28,7 @@ def truncate(value):
 global_ep_reward = 0.0
 
 
-def record(episode_reward, worker_idx, num_steps, env_name):
+def record(episode_reward, worker_idx, num_steps, env_name, exp_buffer_full: bool):
     global global_ep_reward
 
     now = datetime.datetime.now().strftime("%H:%M:%S")
@@ -37,20 +37,21 @@ def record(episode_reward, worker_idx, num_steps, env_name):
 
     fore = "green" if episode_reward > 0.0 else "red"
 
-    print(
-        color(
-            f"{now} "
-            f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
-            f"steps({num_steps}) "
-            f"worker{worker_idx}: {env_name}",
-            fore=fore,
-            style="bright",
+    if exp_buffer_full:
+        print(
+            color(
+                f"{now} "
+                f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
+                f"steps({num_steps}) "
+                f"worker{worker_idx}: {env_name}",
+                fore=fore,
+                style="bright",
+            )
         )
-    )
     return global_ep_reward
 
 
-def record_losses(pi_loss, value_loss, entropy_loss, aux_losses, total_loss):
+def record_losses(step, pi_loss, value_loss, entropy_loss, aux_losses, total_loss):
     now = datetime.datetime.now().strftime("%H:%M:%S")
 
     def truncate(value):
@@ -58,7 +59,7 @@ def record_losses(pi_loss, value_loss, entropy_loss, aux_losses, total_loss):
 
     fore = "blue"
     losses = [
-        f"total: {truncate(total_loss)} "
+        f"step: {step} total: {truncate(total_loss)} "
         f"pi: {truncate(pi_loss)} "
         f"value: {truncate(value_loss)} "
         f"entropy: {truncate(entropy_loss)} "

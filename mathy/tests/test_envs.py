@@ -1,4 +1,4 @@
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..mathy_env import MathyEnv
 from ..envs import MathyPolynomialSimplificationEnv
 from ..util import is_terminal_transition

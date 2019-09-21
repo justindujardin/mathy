@@ -7,7 +7,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .worker import A3CWorker

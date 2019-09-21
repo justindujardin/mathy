@@ -7,7 +7,7 @@ import random
 import ujson
 from typing import List
 from ...types import deprecated_MathyEnvObservation
-from ...mathy_env_state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
+from ...state import INPUT_EXAMPLES_FILE_NAME, TRAINING_SET_FILE_NAME
 
 
 def balanced_reward_experience_samples(

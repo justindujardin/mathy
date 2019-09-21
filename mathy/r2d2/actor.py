@@ -18,7 +18,7 @@ from ..features import (
     FEATURE_MOVE_MASK,
     calculate_grouping_control_signal,
 )
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .config import MathyArgs
@@ -42,6 +42,7 @@ class MathyActor(MPClass):
         command_queue: Queue,
         experience: Experience,
         worker_idx: int,
+        greedy_epsilon: float,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
     ):
@@ -49,6 +50,7 @@ class MathyActor(MPClass):
         self.args = args
         self.iteration = 0
         self.experience = experience
+        self.greedy_epsilon = greedy_epsilon
         self.worker_step_count = 0
         self.result_queue = result_queue
         self.command_queue = command_queue
@@ -61,14 +63,7 @@ class MathyActor(MPClass):
         self.writer = writer
         self.model = MathyModel(args=args, predictions=self.action_size)
         self.model.maybe_load(self.envs[env_name].initial_state())
-        print(f"[Actor {worker_idx}] using topics: {self.args.topics}")
-
-    def reset_episode_loss(self):
-        self.ep_loss = 0.0
-        self.ep_pi_loss = 0.0
-        self.ep_value_loss = 0.0
-        self.ep_aux_loss: Dict[str, float] = {}
-        self.ep_entropy_loss = 0.0
+        print(f"[actor{worker_idx}] e:{self.greedy_epsilon} t: {self.args.topics}")
 
     def run(self):
         if self.args.profile:
@@ -83,7 +78,7 @@ class MathyActor(MPClass):
                 ctrl = self.command_queue.get_nowait()
                 if ctrl == "load_model":
                     print(f"[Worker{self.worker_idx}] loading latest learner")
-                    self.model.maybe_load()
+                    self.model.maybe_load(print_load=True)
             except BaseException:
                 pass
 
@@ -144,16 +139,20 @@ class MathyActor(MPClass):
 
             sample = episode_memory.get_current_window(last_state, env.state)
 
-            if (
-                not self.experience.is_full()
-                or np.random.random() < self.args.exploration_greedy_epsilon
-            ):
-                # Select a random action from the distribution
-                action_mask = sample[FEATURE_MOVE_MASK][-1].numpy()
-                # renormalize to softmax where all values are equal probability
+            if not self.experience.is_full():
+                # Select a random action from the last timestep mask
+                action_mask = sample.mask[-1][-1][:]
+                # normalize all valid action to equal probability
                 actions = action_mask / np.sum(action_mask)
                 action = np.random.choice(len(actions), p=actions)
                 value = np.random.random()
+            elif np.random.random() < self.greedy_epsilon:
+                _, value = self.model.predict_next(sample)
+                # Select a random action from the last timestep mask
+                action_mask = sample.mask[-1][-1][:]
+                # normalize all valid action to equal probability
+                actions = action_mask / np.sum(action_mask)
+                action = np.random.choice(len(actions), p=actions)
             else:
                 probs, value = self.model.predict_next(sample)
                 # action = np.random.choice(len(probs), p=probs)
@@ -256,6 +255,10 @@ class MathyActor(MPClass):
         # reward values.
         episode_memory.commit_frames(discounted_rewards)
         MathyActor.global_moving_average_reward = record(
-            episode_reward, self.worker_idx, episode_steps, env_name
+            episode_reward,
+            self.worker_idx,
+            episode_steps,
+            env_name,
+            self.experience.is_full(),
         )
         self.maybe_write_episode_summaries(episode_reward, episode_steps, last_state)

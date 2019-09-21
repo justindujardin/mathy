@@ -18,7 +18,7 @@ from ..features import (
 )
 from ..agent.predictor import MathPredictor
 from ..core.expressions import MathTypeKeysMax
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from .dataset import make_training_input_fn
 from .souls.mathy_micro import math_estimator
 from .train_hooks import EpochTrainerHook

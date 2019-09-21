@@ -1,5 +1,5 @@
 from .mathy_env import *  # noqa
-from .mathy_env_state import *  # noqa
+from .state import *  # noqa
 from .game_modes import *  # noqa
 from .util import *  # noqa
 from .core import *  # noqa

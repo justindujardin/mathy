@@ -14,7 +14,7 @@ from .rules import (
     VariableMultiplyRule,
     ExpressionChangeRule,
 )
-from .mathy_env_state import MathyEnvTimeStep, MathyEnvState
+from .state import MathyEnvTimeStep, MathyEnvState
 from .util import GameRewards
 from .features import (
     MathyObservationFeatures,

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
 from ..mathy_env import MathyEnvProblem
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
 from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
 from .polynomial_simplification import MathyPolynomialSimplificationEnv

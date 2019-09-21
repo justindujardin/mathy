@@ -4,7 +4,7 @@ from numpy.random import randint
 
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnvProblem
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..rules import (
     BaseRule,
     CommutativeSwapRule,

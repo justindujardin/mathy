@@ -1,28 +1,37 @@
-import tensorflow as tf
 import math
-from ..util import GameRewards
-from typing import List, Any, Tuple, Optional
 from multiprocessing import Queue
-from ..mathy_env_state import MathyEnvState
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+import tensorflow as tf
+
 from ..core.expressions import MathTypeKeys
 from ..features import (
-    pad_array,
-    FEATURE_LAST_RULE,
-    FEATURE_NODE_COUNT,
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
     FEATURE_LAST_FWD_VECTORS,
-    FEATURE_MOVE_MASK,
+    FEATURE_LAST_RULE,
     FEATURE_MOVE_COUNTER,
+    FEATURE_MOVE_MASK,
+    FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
+    pad_array,
 )
-from .experience import ExperienceFrame, Experience
-import numpy as np
+from ..state import (
+    MathyEnvState,
+    MathyObservation,
+    MathyWindowObservation,
+    MathyBatchObservation,
+    observations_to_window,
+    windows_to_batch,
+)
+from ..util import GameRewards
+from .experience import Experience, ExperienceFrame
 
 
 class EpisodeMemory(object):
-    states: List[Any]
+    observations: List[MathyObservation]
     actions: List[int]
     rewards: List[float]
     values: List[float]
@@ -31,7 +40,7 @@ class EpisodeMemory(object):
 
     def __init__(self, experience_queue: Optional[Queue] = None):
         self.experience_queue = experience_queue
-        self.states = []
+        self.observations = []
         self.frames = []
         self.actions = []
         self.rewards = []
@@ -40,13 +49,15 @@ class EpisodeMemory(object):
 
     @property
     def ready(self) -> bool:
-        return len(self.states) > 3
+        return len(self.observations) > 3
 
-    def get_current_window(self, current_state, mathy_state: MathyEnvState):
-        window_states = self.states[-2:] + [current_state]
-        while len(window_states) < 3:
-            window_states.insert(0, mathy_state.to_empty_state())
-        return self.to_features(window_states)
+    def get_current_window(
+        self, current_observation: MathyObservation, mathy_state: MathyEnvState
+    ):
+        observations = self.observations[-2:] + [current_observation]
+        while len(observations) < 3:
+            observations.insert(0, mathy_state.to_empty_observation())
+        return windows_to_batch([observations_to_window(observations)])
 
     def store(
         self,
@@ -57,7 +68,7 @@ class EpisodeMemory(object):
         grouping_change: float,
         frame: ExperienceFrame,
     ):
-        self.states.append(state)
+        self.observations.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.values.append(value)
@@ -82,86 +93,9 @@ class EpisodeMemory(object):
         self.frames = []
 
     def clear(self):
-        self.states = []
+        self.observations = []
         self.actions = []
         self.rewards = []
         self.values = []
         self.frames = []
         self.grouping_changes = []
-
-    def to_features(self, feature_states: Optional[List[Any]] = None) -> List[Any]:
-        if feature_states is None:
-            feature_states = self.states
-        context_feature_keys: List[str] = [
-            FEATURE_LAST_RULE,
-            FEATURE_NODE_COUNT,
-            FEATURE_MOVE_COUNTER,
-        ]
-        text_feature_keys: List[str] = [FEATURE_PROBLEM_TYPE]
-        sequence_feature_keys: List[Tuple[str, bool]] = [
-            (FEATURE_FWD_VECTORS, False),
-            (FEATURE_BWD_VECTORS, True),
-        ]
-        out = {
-            FEATURE_LAST_RULE: [],
-            FEATURE_NODE_COUNT: [],
-            FEATURE_FWD_VECTORS: [],
-            FEATURE_BWD_VECTORS: [],
-            FEATURE_LAST_FWD_VECTORS: [],
-            FEATURE_LAST_BWD_VECTORS: [],
-            FEATURE_MOVE_MASK: [],
-            FEATURE_MOVE_COUNTER: [],
-            FEATURE_PROBLEM_TYPE: [],
-        }
-        lengths = [len(s[FEATURE_BWD_VECTORS][0]) for s in feature_states]
-        max_sequence = max(lengths)
-        for key in context_feature_keys:
-            for state in feature_states:
-                if key not in state:
-                    raise ValueError(f"key '{key}' not found in state: {state}'")
-                out[key].append(tf.convert_to_tensor(state[key]))
-
-        for key in text_feature_keys:
-            for state in feature_states:
-                if key not in state:
-                    raise ValueError(f"key '{key}' not found in state: {state}'")
-                out[key].append(state[key][0])
-
-        # last_size = -1
-        for key, backward in sequence_feature_keys:
-            pad_value = [MathTypeKeys["empty"]]
-            for state in feature_states:
-                if key not in state:
-                    raise ValueError(f"key '{key}' not found in state: {state}'")
-                src_seq = state[key][0][:]
-                new_seq = pad_array(
-                    src_seq, max_sequence, pad_value, backwards=backward, cleanup=True
-                )
-                # new_size = np.array(new_seq).size
-                # if last_size != -1 and new_size != last_size:
-                #     # Print out the failing example states
-                #     for s in feature_states:
-                #         print(s)
-                #     raise ValueError("Padded arrays have different sizes!")
-                out[key].append(new_seq)
-
-        max_sequence = max([len(s[FEATURE_MOVE_MASK][0]) for s in feature_states])
-        for state in feature_states:
-            # Max length of move masks in batch
-            padded = pad_array(
-                state[FEATURE_MOVE_MASK][0], max_sequence, 0.0, cleanup=True
-            )
-            out[FEATURE_MOVE_MASK].append(
-                tf.convert_to_tensor(padded, dtype=tf.float32)
-            )
-
-        # # assert batch length in move masks
-        # _check_mask = -1
-        # for mask in out[FEATURE_MOVE_MASK]:
-        #     if _check_mask == -1:
-        #         _check_mask = len(mask)
-        #     assert (
-        #         len(mask) == _check_mask
-        #     ), f"Expected same length, but for {len(mask)} and {_check_mask}"
-        return out
-

@@ -15,7 +15,14 @@ from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..mathy_env_state import MathyEnvState
+from ..state import (
+    MathyEnvState,
+    observations_to_window,
+    windows_to_batch,
+    MathyObservation,
+    MathyBatchObservation,
+    MathyWindowObservation,
+)
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .config import MathyArgs
@@ -83,7 +90,7 @@ class MathyLearner(MPClass):
                 if not self.experience.is_full():
                     time.sleep(1.5)
                     continue
-                self.update_global_network()
+                self.train_batch_samples()
                 self.maybe_update_actor_models()
 
         except KeyboardInterrupt:
@@ -114,40 +121,69 @@ class MathyLearner(MPClass):
                 for var in self.model.trainable_variables:
                     tf.summary.histogram(var.name, var, step=self.model.global_step)
 
-    def update_global_network(self):
+    def train_batch_samples(self):
         if not self.experience.is_full():
             return
+        obs_windows: List[MathyWindowObservation] = []
 
-        frames: List[ExperienceFrame] = self.experience.sample_sequence(3, self.env)
+        batch_frames: List[List[ExperienceFrame]] = []
+        batch_rnn_states: List[List[float]] = []
+        batch_discounted_rewards: List[float] = []
+        batch_action_labels: List[int] = []
 
-        states: List[Any] = []
-        action_labels: List[int] = []
-        rnn_states: List[List[float]] = [[], []]
-        discounted_rewards: List[float] = []
-        for frame in frames:
-            action_labels.append(frame.action)
-            states.append(frame.state)
-            rnn_states[0].append(frame.rnn_state[0][-1])
-            rnn_states[1].append(frame.rnn_state[1][-1])
-            discounted_rewards.append(frame.discounted)
-        rnn_states = [
-            tf.convert_to_tensor(rnn_states[0], dtype=tf.float32),
-            tf.convert_to_tensor(rnn_states[1], dtype=tf.float32),
-        ]
-        discounted_rewards = tf.convert_to_tensor(discounted_rewards, dtype=tf.float32)
-        action_labels = tf.convert_to_tensor(action_labels)
-        states = self.obs_converter.to_features(states)
+        for i in range(self.args.batch_size):
+            window: List[ExperienceFrame] = self.experience.sample_sequence(3, self.env)
+            batch_frames.append(window)
+            states: List[MathyObservation] = []
+            action_labels: List[int] = []
+            rnn_states: List[List[float]] = [[], []]
+            discounted_rewards: List[float] = []
+            for frame in window:
+                states.append(frame.state)
+                rnn_states[0].append(frame.rnn_state[0][-1])
+                rnn_states[1].append(frame.rnn_state[1][-1])
+                discounted_rewards.append(frame.discounted)
+            action_labels.append(window[-1].action)
+            rnn_states = [
+                tf.convert_to_tensor(rnn_states[0], dtype=tf.float32),
+                tf.convert_to_tensor(rnn_states[1], dtype=tf.float32),
+            ]
+            discounted_rewards = tf.convert_to_tensor(
+                discounted_rewards, dtype=tf.float32
+            )
+            action_labels = tf.convert_to_tensor(action_labels)
 
-        # Calculate gradient wrt to local model. We do so by tracking the
-        # variables involved in computing the loss by using tf.GradientTape
+            obs_windows.append(observations_to_window(states))
+            batch_rnn_states.append(rnn_states)
+            batch_discounted_rewards.append(discounted_rewards)
+            batch_action_labels.append(action_labels)
+        batch_observations: MathyBatchObservation = windows_to_batch(obs_windows)
+        return self.update_loss(
+            batch_frames,
+            batch_observations,
+            batch_rnn_states,
+            batch_discounted_rewards,
+            batch_action_labels,
+        )
+
+    def update_loss(
+        self,
+        batch_frames: List[List[ExperienceFrame]],
+        batch_observations: MathyBatchObservation,
+        batch_rnn_states: List[List[List[float]]],
+        batch_discounted_rewards: List[List[float]],
+        batch_action_labels: List[List[int]],
+    ):
+        # Calculate gradient by tracking the variables involved in computing the
+        # loss by using tf.GradientTape
         with tf.GradientTape() as tape:
             loss_tuple = self.compute_loss(
-                samples=frames,
                 episode_memory=self.obs_converter,
-                states=states,
-                rnn_states=rnn_states,
-                discounted_rewards=discounted_rewards,
-                action_labels=action_labels,
+                batch_frames=batch_frames,
+                batch_observations=batch_observations,
+                rnn_states=batch_rnn_states,
+                discounted_rewards=batch_discounted_rewards,
+                action_labels=batch_action_labels,
             )
             pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
         # Calculate local gradients
@@ -159,54 +195,37 @@ class MathyLearner(MPClass):
         for k in aux_losses.keys():
             aux_losses[k] = aux_losses[k].numpy()
         step = self.model.global_step.numpy()
-        if step % 10 == 0:
-            record_losses(pi_loss, value_loss, entropy_loss, aux_losses, total_loss)
+        # if step % 10 == 0:
+        record_losses(step, pi_loss, value_loss, entropy_loss, aux_losses, total_loss)
         return loss_tuple
 
     def write_global_model(self):
         self.model.save()
 
-    def rp_samples(self, max_samples=2) -> Tuple[List[Any], List[float]]:
-        outputs: List[List[ExperienceFrame]] = []
-        rewards: List[float] = []
-        if self.experience.is_full() is False:
-            return outputs, rewards
-        for i in range(max_samples):
-            frames = self.experience.sample_rp_sequence()
-            # 4 frames
-            states = [frame.state for frame in frames[:-1]]
-            sample_features = self.obs_converter.to_features(states)
-            target_reward = frames[-1].reward
-            if math.isclose(target_reward, GameRewards.TIMESTEP):
-                sample_label = 0  # zero
-            elif target_reward > 0:
-                sample_label = 1  # positive
-            else:
-                sample_label = 2  # negative
-            outputs.append(sample_features)
-            rewards.append(sample_label)
-        return outputs, rewards
-
     def compute_policy_value_loss(
         self,
-        states: tf.Tensor,
-        rnn_states: tf.Tensor,
-        discounted_rewards: tf.Tensor,
-        action_labels: tf.Tensor,
+        batch_observations: MathyBatchObservation,
+        rnn_states: List[tf.Tensor],
+        discounted_rewards: List[tf.Tensor],
+        action_labels: List[tf.Tensor],
     ):
-        batch_size = discounted_rewards.shape[0]
+        batch_size = len(discounted_rewards)
         step = self.model.global_step
-        logits, values, trimmed_logits = self.model(states, initial_state=rnn_states)
+        logits, values, trimmed_logits = self.model(
+            batch_observations, initial_state=rnn_states
+        )
+        n_step_size = logits.shape[1]
         logits = tf.reshape(logits, [batch_size, -1])
         masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
-        h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        h_loss = discrete_policy_entropy_loss(logits)
         # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
 
         # Advantage is the difference between the final calculated discounted
         # rewards, and the current Value function prediction of the rewards
-        advantage = discounted_rewards - values
+        last_t_discounts = tf.convert_to_tensor(discounted_rewards)[:, -1]
+        advantage = last_t_discounts - values
 
         # Value loss is the squared error (advantage is the prediction error for value)
         value_loss = advantage ** 2
@@ -218,8 +237,9 @@ class MathyLearner(MPClass):
         # have large values. Because we apply a mask for all operations
         # we don't care what those logits are, unless they're part of
         # the mask.
+        labels = tf.squeeze(tf.convert_to_tensor(action_labels), axis=1)
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=action_labels, logits=masked_flat
+            labels=labels, logits=logits
         )
         policy_loss *= tf.stop_gradient(advantage)
 
@@ -246,25 +266,26 @@ class MathyLearner(MPClass):
             total_loss,
         )
 
-    def compute_grouping_change_loss(self, samples: List[ExperienceFrame]):
-        change_signals = [signal.grouping_change for signal in samples]
+    def compute_grouping_change_loss(self, batch_frames: List[List[ExperienceFrame]]):
+        change_signals = []
+        for window in batch_frames:
+            change_signals.append([frame.grouping_change for frame in window])
         loss = tf.reduce_mean(tf.convert_to_tensor(change_signals))
         return loss
 
     def compute_reward_prediction_loss(
-        self, samples: List[ExperienceFrame], episode_memory: EpisodeMemory
+        self, batch_frames: List[List[ExperienceFrame]], episode_memory: EpisodeMemory
     ):
         if not self.experience.is_full():
             return tf.constant(0.0)
         rp_inputs, rp_labels = self.rp_samples()
         rp_losses = []
-        for inputs, labels in zip(rp_inputs, rp_labels):
-            rp_outputs = self.model.predict_next_reward(inputs)
-            rp_losses.append(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=rp_outputs, labels=labels
-                )
+        rp_outputs = self.model.predict_next_reward(rp_inputs)
+        rp_losses.append(
+            tf.nn.sparse_softmax_cross_entropy_with_logits(
+                logits=rp_outputs, labels=rp_labels
             )
+        )
         return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
 
     def compute_value_replay_loss(
@@ -287,10 +308,9 @@ class MathyLearner(MPClass):
 
     def compute_loss(
         self,
-        *,
-        samples: List[ExperienceFrame],
         episode_memory: EpisodeMemory,
-        states: tf.Tensor,
+        batch_frames: List[List[ExperienceFrame]],
+        batch_observations: MathyBatchObservation,
         rnn_states: List[tf.Tensor],
         discounted_rewards: tf.Tensor,
         action_labels: tf.Tensor,
@@ -298,41 +318,60 @@ class MathyLearner(MPClass):
         with self.writer.as_default():
             step = self.model.global_step
             loss_tuple = self.compute_policy_value_loss(
-                states, rnn_states, discounted_rewards, action_labels
+                batch_observations, rnn_states, discounted_rewards, action_labels
             )
             pi_loss, v_loss, h_loss, total_loss = loss_tuple
             aux_losses = {}
-            if self.experience.is_full():
-                aux_weight = 0.2
-                if self.args.use_grouping_control:
-                    gc_loss = self.compute_grouping_change_loss(samples)
-                    # gc_loss *= aux_weight
-                    total_loss += gc_loss
-                    aux_losses["gc"] = gc_loss
-                if self.args.use_reward_prediction:
-                    rp_loss = self.compute_reward_prediction_loss(
-                        samples, episode_memory
-                    )
-                    rp_loss *= aux_weight
-                    total_loss += rp_loss
-                    aux_losses["rp"] = rp_loss
-                if self.args.use_value_replay:
-                    vr_loss = self.compute_value_replay_loss(
-                        samples, episode_memory, discounted_rewards
-                    )
-                    vr_loss *= aux_weight
-                    total_loss += vr_loss
-                    aux_losses["vr"] = vr_loss
-                for key in aux_losses.keys():
-                    tf.summary.scalar(
-                        f"losses/{key}_loss", data=aux_losses[key], step=step
-                    )
+            aux_weight = 0.2
+            if self.args.use_grouping_control:
+                gc_loss = self.compute_grouping_change_loss(batch_frames)
+                # gc_loss *= aux_weight
+                total_loss += gc_loss
+                aux_losses["gc"] = gc_loss
+            if self.args.use_reward_prediction:
+                rp_loss = self.compute_reward_prediction_loss(
+                    batch_frames, episode_memory
+                )
+                rp_loss *= aux_weight
+                total_loss += rp_loss
+                aux_losses["rp"] = rp_loss
+            if self.args.use_value_replay:
+                vr_loss = self.compute_value_replay_loss(
+                    batch_frames, episode_memory, discounted_rewards
+                )
+                vr_loss *= aux_weight
+                total_loss += vr_loss
+                aux_losses["vr"] = vr_loss
+            for key in aux_losses.keys():
+                tf.summary.scalar(f"losses/{key}_loss", data=aux_losses[key], step=step)
 
             tf.summary.scalar(f"losses/total_loss", data=total_loss, step=step)
 
         return pi_loss, v_loss, h_loss, aux_losses, total_loss
 
     # Auxiliary tasks
+
+    def rp_samples(self, max_samples=2) -> Tuple[MathyBatchObservation, List[float]]:
+        output: MathyBatchObservation = MathyBatchObservation([], [], [])
+        rewards: List[float] = []
+        if self.experience.is_full() is False:
+            return output, rewards
+        windows: List[MathyWindowObservation] = []
+        for i in range(max_samples):
+            frames = self.experience.sample_rp_sequence()
+            # 4 frames
+            states = [frame.state for frame in frames[:-1]]
+            target_reward = frames[-1].reward
+            if math.isclose(target_reward, GameRewards.TIMESTEP):
+                sample_label = 0  # zero
+            elif target_reward > 0:
+                sample_label = 1  # positive
+            else:
+                sample_label = 2  # negative
+            windows.append(observations_to_window(states))
+            rewards.append(sample_label)
+        return windows_to_batch(windows), rewards
+
     def get_rp_inputs_with_labels(
         self, episode_buffer: EpisodeMemory
     ) -> Tuple[List[Any], List[Any]]:

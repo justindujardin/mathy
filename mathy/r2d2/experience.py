@@ -162,7 +162,7 @@ class Experience(object):
         frame_one_rnn = sampled_frames[0].rnn_state
         while len(sampled_frames) < sequence_size and state is not None:
             frame = ExperienceFrame(
-                state=state.to_empty_state(),
+                state=state.to_empty_observation(),
                 reward=0.0,
                 action=0,
                 terminal=False,

@@ -6,12 +6,7 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
-from .core.expressions import (
-    MathExpression,
-    MathTypeKeys,
-    TokenTypeSequenceStart,
-    TokenTypeSequenceEnd,
-)
+from .core.expressions import MathExpression, MathTypeKeys, MathTypeKeysMax
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
 from .core.tree import STOP
@@ -41,6 +36,55 @@ GAME_MODE_OFFSET = 2
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 TRAINING_SET_FILE_NAME = "training.jsonl"
 
+NodeIntList = List[int]
+NodeMaskIntList = List[int]
+ProblemTypeIntList = List[int]
+
+WindowNodeIntList = List[NodeIntList]
+WindowNodeMaskIntList = List[NodeMaskIntList]
+WindowProblemTypeIntList = List[ProblemTypeIntList]
+
+BatchNodeIntList = List[WindowNodeIntList]
+BatchNodeMaskIntList = List[WindowNodeMaskIntList]
+BatchProblemTypeIntList = List[WindowProblemTypeIntList]
+
+
+class MathyObservation(NamedTuple):
+    """A featurized observation from an environment state.
+    - "nodes" tree nodes in the current environment state shape=[n,]
+    - "mask" 0/1 mask where 0 indicates an invalid action shape=[n,]
+    - "type" two column hash of problem environment type shape=[2,]
+    """
+
+    nodes: NodeIntList
+    mask: NodeMaskIntList
+    type: ProblemTypeIntList
+
+
+class MathyWindowObservation(NamedTuple):
+    """A featurized observation from an n-step sequence of environment states.
+    - "nodes" n-step list of node sequences shape=[n, max(len(s))]
+    - "mask" n-step list of node sequence masks shape=[n, max(len(s))]
+    - "type" n-step problem type hash shape=[n, 2]
+    """
+
+    nodes: WindowNodeIntList
+    mask: WindowNodeMaskIntList
+    type: WindowProblemTypeIntList
+
+
+class MathyBatchObservation(NamedTuple):
+    """A batch of featurized observations from n-step sequences of environment states.
+
+    - "nodes" Batch of n-step node sequences shape=[b, n, max(len(s))]
+    - "mask" Batch of n-step node sequence masks shape=[b, n, max(len(s))]
+    - "type" Batch of n-step problem hashes shape=[b, n, max(len(s))]
+    """
+
+    nodes: BatchNodeIntList
+    mask: BatchNodeMaskIntList
+    type: BatchProblemTypeIntList
+
 
 class MathyEnvTimeStep(NamedTuple):
     """Capture summarized environment state for a previous timestep so the
@@ -53,6 +97,42 @@ class MathyEnvTimeStep(NamedTuple):
     raw: str
     focus: int
     action: int
+
+
+def observations_to_window(
+    observations: List[MathyObservation]
+) -> MathyWindowObservation:
+    output = MathyWindowObservation([], [], [])
+    max_length: int = max([len(o.nodes) for o in observations])
+    max_mask_length: int = max([len(o.mask) for o in observations])
+    for obs in observations:
+        output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
+        output.mask.append(pad_array(obs.mask, max_mask_length, 0))
+        output.type.append(obs.type)
+    return output
+
+
+def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
+    output = MathyBatchObservation([], [], [])
+    max_length = 0
+    max_mask_length = 0
+    for window in windows:
+        window_max = max([len(ts) for ts in window.nodes])
+        window_mask_max = max([len(ts) for ts in window.mask])
+        max_length = max([max_length, window_max])
+        max_mask_length = max([max_mask_length, window_mask_max])
+
+    for window in windows:
+        window_nodes = []
+        for nodes in window.nodes:
+            window_nodes.append(pad_array(nodes, max_length, MathTypeKeys["empty"]))
+        window_mask = []
+        for mask in window.mask:
+            window_mask.append(pad_array(mask, max_mask_length, 0))
+        output.nodes.append(window_nodes)
+        output.mask.append(window_mask)
+        output.type.append(window.type)
+    return output
 
 
 class MathAgentState:
@@ -152,46 +232,46 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
-    def to_empty_state(self):
-        pad_value = MathTypeKeys["empty"]
-        return {
-            FEATURE_MOVE_COUNTER: [-1],
-            FEATURE_LAST_RULE: [-1],
-            FEATURE_NODE_COUNT: [-1],
-            FEATURE_PROBLEM_TYPE: [self.agent.problem_type],
-            FEATURE_FWD_VECTORS: [[[pad_value]]],
-            FEATURE_BWD_VECTORS: [[[pad_value]]],
-            FEATURE_MOVE_MASK: [[0, 0, 0, 0, 0, 0]],
-        }
+    def problem_hash(self) -> ProblemTypeIntList:
+        max_problem_buckets = 128
+        problem_hash_one = tf.strings.to_hash_bucket_strong(
+            self.agent.problem_type, max_problem_buckets, [1337, 61059873]
+        )
+        problem_hash_two = tf.strings.to_hash_bucket_strong(
+            self.agent.problem_type, max_problem_buckets, [7, -242315]
+        )
+        hash_tensor = tf.one_hot(
+            indices=[problem_hash_one, problem_hash_two], depth=max_problem_buckets
+        )
+        return hash_tensor.numpy().tolist()
 
-    def to_empty_window(self):
-        return {
-            FEATURE_MOVE_COUNTER: [[-1], [-1], [-1]],
-            FEATURE_LAST_RULE: [[-1], [-1], [-1]],
-            FEATURE_NODE_COUNT: [[-1], [-1], [-1]],
-            FEATURE_PROBLEM_TYPE: [
-                self.agent.problem_type,
-                self.agent.problem_type,
-                self.agent.problem_type,
-            ],
-            FEATURE_FWD_VECTORS: [
-                [MathTypeKeys["empty"]],
-                [MathTypeKeys["empty"]],
-                [MathTypeKeys["empty"]],
-            ],
-            FEATURE_BWD_VECTORS: [
-                [MathTypeKeys["empty"]],
-                [MathTypeKeys["empty"]],
-                [MathTypeKeys["empty"]],
-            ],
-            FEATURE_MOVE_MASK: [
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-            ],
-        }
+    def to_empty_observation(self, hash=None) -> MathyObservation:
+        # TODO: max actions hardcode
+        num_actions = 6
+        if hash is None:
+            hash = self.problem_hash()
+        mask = [0] * num_actions
+        return MathyObservation([MathTypeKeys["empty"]], mask, hash)
 
-    def to_input_features(self, move_mask, return_batch=False):
+    def to_observation(self, move_mask: NodeMaskIntList) -> MathyObservation:
+        expression = self.parser.parse(self.agent.problem)
+        vectors: NodeIntList = [t.type_id for t in expression.toList()]
+        return MathyObservation(vectors, move_mask, self.problem_hash())
+
+    def to_empty_batch(self) -> MathyBatchObservation:
+        """Generate an empty batch of observations that can be passed
+        through the model """
+        hash = self.problem_hash()
+        window = observations_to_window(
+            [
+                self.to_empty_observation(hash),
+                self.to_empty_observation(hash),
+                self.to_empty_observation(hash),
+            ]
+        )
+        return windows_to_batch([window])
+
+    def to_input_features(self, move_mask: NodeMaskIntList, return_batch=False):
         """Output Dict of integer features that can be fed to the
         neural network for prediction.
 

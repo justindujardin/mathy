@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 import tensorflow as tf
 
 from ..core.expressions import MathTypeKeysMax
@@ -15,6 +15,7 @@ from ..features import (
 )
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from ..agent.layers.resnet_stack import ResNetStack
+from ..state import MathyBatchObservation, MathyWindowObservation, MathyObservation
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
@@ -56,33 +57,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             return_state=True,
         )
         self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
-        self.build_feature_columns()
         self.attention = BahdanauAttention(units, name="attention")
-        self.dense_h = tf.keras.layers.Dense(units, name=f"lstm_initial_h")
-        self.dense_c = tf.keras.layers.Dense(units, name=f"lstm_initial_c")
-
-    def build_feature_columns(self):
-        """Build out the Tensorflow Feature Columns that define the inputs from Mathy
-        into the neural network."""
-        self.f_move_count = tf.feature_column.numeric_column(
-            key=FEATURE_MOVE_COUNTER, dtype=tf.int64
-        )
-        self.f_last_rule = tf.feature_column.numeric_column(
-            key=FEATURE_LAST_RULE, dtype=tf.int64
-        )
-        self.f_node_count = tf.feature_column.numeric_column(
-            key=FEATURE_NODE_COUNT, dtype=tf.int64
-        )
-        self.f_problem_type = tf.feature_column.indicator_column(
-            tf.feature_column.categorical_column_with_identity(
-                key=FEATURE_PROBLEM_TYPE, num_buckets=32
-            )
-        )
-        self.feature_columns = [self.f_last_rule, self.f_node_count, self.f_move_count]
-
-        self.ctx_extractor = tf.keras.layers.DenseFeatures(
-            self.feature_columns, name="ctx_features"
-        )
 
     def init_rnn_state(self, units: int):
         """WIP to train RNN state as in: https://openreview.net/pdf?id=r1lyTjAqYX
@@ -114,82 +89,72 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         self.burn_in_steps_counter = 0
 
-    def call(self, features, initialize=False, initial_state=None):
-        context_inputs = self.ctx_extractor(features)
-        batch_size = len(features[FEATURE_BWD_VECTORS])
-        sequence_length = len(features[FEATURE_BWD_VECTORS][0])
+    def call(
+        self, features: MathyBatchObservation, initial_state=None
+    ) -> Tuple[tf.Tensor, int]:
+        batch_size = len(features.nodes)
+        sequence_length = len(features.nodes[0][0])
         max_depth = MathTypeKeysMax
-        batch_seq_one_hots = [
-            tf.one_hot(
-                features[FEATURE_BWD_VECTORS], dtype=tf.float32, depth=max_depth
-            ),
-            tf.one_hot(
-                features[FEATURE_FWD_VECTORS], dtype=tf.float32, depth=max_depth
-            ),
-        ]
-        batch_sequence_features = self.concat(batch_seq_one_hots)
+        batch_nodes = tf.one_hot(features.nodes, dtype=tf.float32, depth=max_depth)
 
         outputs = []
 
-        # Convert one-hot to dense layer representations while
+        # Convert n-step batch inputs into a single-step
         # preserving the 0 (batch) and 1 (time) dimensions
-        for i, sequence_inputs in enumerate(batch_sequence_features):
-            # Common resnet feature extraction
-            example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
-            outputs.append(tf.reshape(example, [sequence_length, -1]))
+        for i, n_step_batch in enumerate(batch_nodes):
+            # If NOT given a stored initial state
+            if initial_state is None:
+                # Use the LSTM local models recurrent state
+                n_step_state = [self.state_h, self.state_c]
+            else:
+                n_step_state = initial_state[i]
 
-        # Build initial LSTM state conditioned on the context features
-        # initial_state = [self.dense_c(context_inputs), self.dense_h(context_inputs)]
+            batch_outs = []
+            for j, sequence_inputs in enumerate(n_step_batch):
+                # Common resnet feature extraction
+                example = self.resnet(self.input_dense(self.flatten(sequence_inputs)))
+                batch_outs.append(tf.reshape(example, [sequence_length, -1]))
 
-        # Process the sequence embeddings with a RNN to capture temporal
-        # features. NOTE: this relies on the batches of observations being
-        # passed to this function to be in chronological order of the batch
-        # axis.
-        # outputs is a tensor that's a sequence of observations at timesteps
-        # where each observation has a sequence of nodes.
-        #
-        # shape = [Observations, ObservationNodeVectors, self.units]
+            # Process the sequence embeddings with a RNN to capture temporal
+            # features. NOTE: this relies on the batches of observations being
+            # passed to this function to be in chronological order of the batch
+            # axis.
+            # batch_outs is a tensor that's a sequence of observations at timesteps
+            # where each observation has a sequence of nodes.
+            #
+            # shape = [Observations, ObservationNodeVectors, self.units]
+            batch_outs = tf.convert_to_tensor(batch_outs)
+
+            # Add context to each timesteps node vectors first
+            batch_outs, state_h, state_c = self.nodes_lstm(
+                batch_outs, initial_state=n_step_state
+            )
+            # Add backwards context to each timesteps node vectors first
+            batch_outs, state_h, state_c = self.nodes_lstm_bwd(
+                batch_outs, initial_state=[state_h, state_c]
+            )
+
+            # Apply LSTM to the output sequences to capture context across timesteps
+            # in the batch.
+            #
+            # NOTE: This does process the observation timesteps across the batch axis
+            #
+            # shape = [Observations, 1, ObservationNodeVectors * self.units]
+
+            # reshape axis 1 to 1d so it corresponds to the expected
+            # time_out = tf.reshape(batch_outs, [self.sequence_steps, 1, -1])
+
+            time_out = self.time_lstm(batch_outs[-1::])
+
+            # reshape with nodes
+            # time_out = tf.reshape(time_out, [self.sequence_steps, outputs.shape[1], -1])
+
+            self.state_c.assign(state_c)
+            self.state_h.assign(state_h)
+
+            outputs.append(time_out)
+
         outputs = tf.convert_to_tensor(outputs)
-
-        if batch_size > 1:
-            # print("cool beans")
-            pass
-
-        # If NOT given a stored initial state
-        if initial_state is None:
-            # Use the LSTM local models recurrent state
-            initial_state = [self.state_h, self.state_c]
-        # Add context to each timesteps node vectors first
-        outputs, state_h, state_c = self.nodes_lstm(
-            outputs, initial_state=initial_state
-        )
-        # Add backwards context to each timesteps node vectors first
-        outputs, state_h, state_c = self.nodes_lstm_bwd(
-            outputs, initial_state=[state_h, state_c]
-        )
-
-        # Apply LSTM to the output sequences to capture context across timesteps
-        # in the batch.
-        #
-        # NOTE: This does process the observation timesteps across the batch axis with
-        #
-        # shape = [Observations, 1, ObservationNodeVectors * self.units]
-
-        # reshape axis 1 to 1d so it corresponds to the expected
-        # time_out = tf.reshape(outputs, [self.sequence_steps, 1, -1])
-
-        time_out = self.time_lstm(outputs)
-
-        # reshape with nodes
-        # time_out = tf.reshape(time_out, [self.sequence_steps, outputs.shape[1], -1])
-
-        self.state_c.assign(state_c)
-        self.state_h.assign(state_h)
-
-        # Convert context features into unit-sized layer
-        context_vector, _ = self.attention(time_out, context_inputs)
-
-        time_out = time_out + tf.expand_dims(context_vector, axis=1)
 
         # For the first (n) steps, don't backprop into the RNN, just update
         # the stored initial state.
@@ -199,9 +164,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         #       gradients should do it..?
         #
         #  Ref: https://openreview.net/pdf?id=r1lyTjAqYX
-        if self.burn_in_steps_counter <= self.burn_in_steps:
-            self.burn_in_steps_counter += 1
-            context_vector = tf.stop_gradient(context_vector)
-            time_out = tf.stop_gradient(time_out)
+        # if self.burn_in_steps_counter <= self.burn_in_steps:
+        #     self.burn_in_steps_counter += 1
+        #     time_out = tf.stop_gradient(time_out)
 
-        return (context_vector, time_out, sequence_length)
+        return (outputs, sequence_length)

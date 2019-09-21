@@ -13,7 +13,7 @@ from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..mathy_env_state import MathyEnvState
+from ..state import MathyEnvState
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .actor_critic_model import ActorCriticModel

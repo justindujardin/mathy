@@ -1,3 +1,4 @@
+import time
 import os
 from shutil import copyfile
 from typing import Any, Optional, Tuple
@@ -8,11 +9,46 @@ from tensorflow.keras.layers import TimeDistributed
 
 from .config import MathyArgs
 from .embedding import MathyEmbedding
-
+from ..state import MathyBatchObservation
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from ..agent.layers.lstm_stack import LSTMStack
-from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from ..agent.layers.math_policy_resnet import MathPolicyResNet
+
+
+class BatchPolicyValueSequences(tf.keras.layers.Layer):
+    """policy predictor that applies Dropout and activation"""
+
+    def __init__(self, num_predictions=2, dropout=0.1, random_seed=1337, **kwargs):
+        super(BatchPolicyValueSequences, self).__init__(**kwargs)
+        self.value_dense = tf.keras.layers.Dense(
+            64, name="value_dense", kernel_initializer="he_uniform"
+        )
+        self.value_layer = tf.keras.layers.Dense(
+            1, name="value_logits", kernel_initializer="he_uniform"
+        )
+        self.flatten = tf.keras.layers.Flatten(name="flatten")
+        self.num_predictions = num_predictions
+        self.logits = tf.keras.layers.Dense(
+            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
+        )
+        self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
+
+    def compute_output_shape(self, input_shape):
+        return tf.TensorShape([input_shape[0], self.num_predictions])
+
+    def call(self, input_tensor: tf.Tensor):
+        value_in = self.flatten(tf.reduce_max(input_tensor, axis=1))
+        value_out = tf.squeeze(self.value_layer(value_in), axis=1)
+
+        # NOTE: Apply dropout AFTER ALL batch norms. This works because
+        # the MathPolicy is right before the final Softmax output. If more
+        # layers with BatchNorm get inserted after this, the performance
+        # could worsen. Inspired by: https://arxiv.org/pdf/1801.05134.pdf
+        input_tensor = self.dropout(input_tensor)
+        input_tensor = self.logits(input_tensor)
+        policy_out = tf.keras.activations.relu(input_tensor, alpha=0.0001)
+
+        return policy_out, value_out
 
 
 class MathyModel(tf.keras.Model):
@@ -35,12 +71,13 @@ class MathyModel(tf.keras.Model):
         )
 
     def build_policy_value(self):
-        """A3C policy/value network"""
-        self.pi_sequence = TimeDistributed(
-            MathPolicyDropout(self.predictions), name="a3c/policy_logits"
+        """policy/value network"""
+        self.value_logits = tf.keras.layers.Dense(1, name="policy_value/value_logits")
+        self.policy_value_td = BatchPolicyValueSequences(self.predictions)
+        self.policy_value = TimeDistributed(
+            self.policy_value_td, name="policy_value/policy_logits"
         )
-        self.attention = BahdanauAttention(self.args.units, "a3c/attention")
-        self.value_logits = tf.keras.layers.Dense(1, name="a3c/value_logits")
+        self.attention = BahdanauAttention(self.args.units, "policy_value/attention")
 
     def build_reward_prediction(self):
         if self.args.use_reward_prediction is False:
@@ -59,30 +96,43 @@ class MathyModel(tf.keras.Model):
             self.args.embedding_units, name="value_replay/prepare_values"
         )
 
-    def call(self, batch_features, apply_mask=True, initial_state=None):
+    def call(
+        self, batch_features: MathyBatchObservation, apply_mask=True, initial_state=None
+    ):
+
+        batch_size = len(batch_features.nodes)
+        start = time.time()
         inputs = batch_features
         # Extract features into contextual inputs, sequence inputs.
-        context_inputs, sequence_inputs, sequence_length = self.embedding(
+        sequence_inputs, sequence_length = self.embedding(
             inputs, initial_state=initial_state
         )
-        values = self.value_logits(context_inputs)
-        logits = self.pi_sequence(sequence_inputs)
+        logits, values = self.policy_value(sequence_inputs)
         trimmed_logits, mask_logits = self.apply_pi_mask(
             logits, batch_features, sequence_length
         )
         mask_result = trimmed_logits if not apply_mask else mask_logits
+        if batch_size > 1:
+            print(
+                "call took : {0:03f} for batch of {1:03}".format(
+                    time.time() - start, batch_size
+                )
+            )
         return logits, values, mask_result
 
-    def apply_pi_mask(self, logits, batch_features, sequence_length: int):
+    def apply_pi_mask(
+        self, logits, batch_features: MathyBatchObservation, sequence_length: int
+    ):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves from
         selection """
-        batch_mask_flat = tf.reshape(
-            batch_features["policy_mask"], (logits.shape[0], -1, self.predictions)
-        )
+        # Take only the mask from the final timestep
+        mask = tf.convert_to_tensor(batch_features.mask)[:, -1]
+
+        batch_mask_flat = tf.reshape(mask, (logits.shape[0], -1, self.predictions))
         # Trim the logits to match the feature mask
-        batch_mask_flat = batch_mask_flat[:, : logits.shape[1], :]
-        trim_logits = logits[:, : logits.shape[1], :]
+        batch_mask_flat = batch_mask_flat[:, : logits.shape[2], :]
+        trim_logits = logits[:, : logits.shape[2], :]
         features_mask = tf.cast(batch_mask_flat, dtype=tf.float32)
 
         mask_logits = tf.multiply(trim_logits, features_mask)
@@ -94,7 +144,7 @@ class MathyModel(tf.keras.Model):
 
         return trim_logits, negative_mask_logits
 
-    def maybe_load(self, initial_state=None, do_init=False):
+    def maybe_load(self, initial_state=None, do_init=False, print_load=False):
         if initial_state is not None:
             # NOTE: This is needed to properly initialize the trainable vars
             #       for the global model. Each prediction path must be called
@@ -106,7 +156,7 @@ class MathyModel(tf.keras.Model):
                 self.predict_next_reward(initial_state)
             if self.args.use_value_replay:
                 self.predict_value_replays(initial_state)
-            self.embedding.call(initial_state, initialize=True)
+            self.embedding.call(initial_state)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
@@ -120,12 +170,10 @@ class MathyModel(tf.keras.Model):
                 copyfile(init_model_path, model_path)
             else:
                 raise ValueError(f"could not initialize model from: {init_model_path}")
-
         if os.path.exists(model_path):
-            if do_init and self.args.verbose:
-                print("Loading model from: {}".format(model_path))
-            if os.path.exists(model_path):
-                self.load_weights(model_path)
+            if (do_init and self.args.verbose) or print_load is True:
+                print(f"Loading model from: {model_path}")
+            self.load_weights(model_path)
 
     def init_global_step(self):
         if not os.path.exists(self.args.model_dir):
@@ -169,8 +217,11 @@ class MathyModel(tf.keras.Model):
         given sequence of inputs"""
         logits, values, masked = self.call(inputs)
         # take the last timestep
-        masked = masked[-1]
-        flat_logits = tf.reshape(tf.squeeze(masked), [-1])
+        out_mask = []
+        for m in masked:
+            out_mask.append(m[-1])
+
+        flat_logits = tf.reshape(tf.squeeze(out_mask), [-1])
         probs = tf.nn.softmax(flat_logits).numpy()
         return probs, tf.squeeze(values[-1]).numpy()
 
@@ -185,14 +236,12 @@ class MathyModel(tf.keras.Model):
             )
 
         # Pass the sequence inputs through the shared embedding network
-        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
+        sequence_inputs, sequence_length = self.embedding(inputs)
 
         combined_features = self.rp_prepare_values(
-            tf.reduce_sum(sequence_inputs, axis=1)
+            tf.reduce_mean(tf.reduce_mean(sequence_inputs, axis=3), axis=-1)
         )
-        predict_logits = self.reward_prediction(
-            tf.expand_dims(combined_features[-1], axis=0)
-        )
+        predict_logits = self.reward_prediction(combined_features)
         # Output 3 class logits and convert to probabilities with softmax
         return tf.nn.softmax(tf.squeeze(predict_logits))
 
@@ -207,7 +256,7 @@ class MathyModel(tf.keras.Model):
             )
 
         # Pass the sequence inputs through the shared embedding network
-        context_inputs, sequence_inputs, sequence_length = self.embedding(inputs)
+        sequence_inputs, sequence_length = self.embedding(inputs)
         vr_in = self.vr_prepare_values(tf.reduce_mean(sequence_inputs, axis=1))
         vr_in = tf.expand_dims(vr_in, axis=0)
         values = self.value_logits(vr_in)
