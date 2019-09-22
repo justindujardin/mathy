@@ -29,8 +29,8 @@ def math_estimator(features, labels, mode, params):
         # FEATURE_MOVE_MASK: features[FEATURE_MOVE_MASK],
         FEATURE_BWD_VECTORS: features[FEATURE_BWD_VECTORS],
         FEATURE_FWD_VECTORS: features[FEATURE_FWD_VECTORS],
-        FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
-        FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
+        # FEATURE_LAST_BWD_VECTORS: features[FEATURE_LAST_BWD_VECTORS],
+        # FEATURE_LAST_FWD_VECTORS: features[FEATURE_LAST_FWD_VECTORS],
     }
     # Pop the policy mask off (since we use it directly)
     # pi_mask = features[FEATURE_MOVE_MASK]
@@ -42,6 +42,12 @@ def math_estimator(features, labels, mode, params):
     context_inputs = DenseFeatures(feature_columns, name="ctx_features")(features)
     lstm = LSTMStack(units=shared_dense_units, share_weights=True)
     shared_network = ResNetStack(shared_dense_units, share_weights=True)
+
+    seq_resize = tf.keras.layers.TimeDistributed(
+        Dense(units=shared_dense_units), name="seq_prep"
+    )
+    sequence_inputs = seq_resize(sequence_inputs)
+
     hidden_states, lstm_vectors = lstm(sequence_inputs, context_inputs)
 
     # Push each sequence through the policy layer to predict

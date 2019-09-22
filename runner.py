@@ -15,7 +15,7 @@ from mathy import (
 from mathy.agent.controller import MathModel
 from mathy.agent.training.actor_mcts import ActorMCTS
 from mathy.agent.training.mcts import MCTS
-from mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from mathy.envs.polynomial_grouping import MathyPolynomialGroupingEnv
 
 
 class RunnerConfig(BaseModel):
@@ -76,8 +76,7 @@ class EpisodeRunner:
         env_name = str(env.__class__.__name__)
         print(f"{env_name}")
         # generate a new problem
-        options = {"difficulty": 3}
-        env_state, prob = env.get_initial_state(options)
+        env_state, prob = env.get_initial_state()
 
         # Configure MCTS options for train/eval
         if self.config.eval:
@@ -230,13 +229,14 @@ BaseEpisodeRunner = EpisodeRunner if dev_mode else ParallelEpisodeRunner
 
 class MathEpisodeRunner(BaseEpisodeRunner):  # type: ignore
     def get_env(self):
-        return MathyPolynomialSimplificationEnv()
+        return MathyPolynomialGroupingEnv()
 
     def get_model(self, env: MathyEnv, all_memory=False):
-        return MathModel(env.action_size, "agents/ablated", all_memory)
+        return MathModel(env.action_size, "training/dev", all_memory)
 
 
 if __name__ == "__main__":
     config = RunnerConfig()
     runner = MathEpisodeRunner(config)
     runner.execute_episodes(32)
+    print("done, bye")

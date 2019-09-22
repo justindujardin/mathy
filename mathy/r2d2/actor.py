@@ -78,7 +78,7 @@ class MathyActor(MPClass):
                 ctrl = self.command_queue.get_nowait()
                 if ctrl == "load_model":
                     print(f"[Worker{self.worker_idx}] loading latest learner")
-                    self.model.maybe_load(print_load=True)
+                    self.model.maybe_load()
             except BaseException:
                 pass
 

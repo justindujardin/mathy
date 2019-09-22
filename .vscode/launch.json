@@ -40,7 +40,7 @@
       "justMyCode": false,
       "module": "runner",
       "args": [
-        "agents/dev/",
+        "training/dev/",
         "-l",
         "dev"
       ]

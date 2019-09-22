@@ -181,8 +181,8 @@ class MathModel:
         self.sequence_columns = [
             self.feat_fwd_vectors,
             self.feat_bwd_vectors,
-            self.feat_last_fwd_vectors,
-            self.feat_last_bwd_vectors,
+            # self.feat_last_fwd_vectors,
+            # self.feat_last_bwd_vectors,
         ]
         self.feature_spec = tf.feature_column.make_parse_example_spec(
             self.feature_columns + self.sequence_columns

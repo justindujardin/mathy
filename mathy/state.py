@@ -232,7 +232,7 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
-    def problem_hash(self) -> ProblemTypeIntList:
+    def problem_hash(self, one_hot: bool = True) -> ProblemTypeIntList:
         max_problem_buckets = 128
         problem_hash_one = tf.strings.to_hash_bucket_strong(
             self.agent.problem_type, max_problem_buckets, [1337, 61059873]
@@ -240,9 +240,12 @@ class MathyEnvState(object):
         problem_hash_two = tf.strings.to_hash_bucket_strong(
             self.agent.problem_type, max_problem_buckets, [7, -242315]
         )
-        hash_tensor = tf.one_hot(
-            indices=[problem_hash_one, problem_hash_two], depth=max_problem_buckets
-        )
+        if one_hot:
+            hash_tensor = tf.one_hot(
+                indices=[problem_hash_one, problem_hash_two], depth=max_problem_buckets
+            )
+        else:
+            hash_tensor = tf.convert_to_tensor([problem_hash_one, problem_hash_two])
         return hash_tensor.numpy().tolist()
 
     def to_empty_observation(self, hash=None) -> MathyObservation:
@@ -306,7 +309,7 @@ class MathyEnvState(object):
             ),
             FEATURE_LAST_RULE: maybe_wrap(last_action),
             FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(self.agent.problem_type),
+            FEATURE_PROBLEM_TYPE: maybe_wrap(self.problem_hash()),
             FEATURE_FWD_VECTORS: maybe_wrap(vectors),
             FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
             FEATURE_MOVE_MASK: maybe_wrap(move_mask),

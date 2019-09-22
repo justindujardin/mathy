@@ -33,8 +33,8 @@ def make_training_input_fn(examples: List[deprecated_MathyEnvObservation], batch
         {
             FEATURE_FWD_VECTORS: tf.int64,
             FEATURE_BWD_VECTORS: tf.int64,
-            FEATURE_LAST_FWD_VECTORS: tf.int64,
-            FEATURE_LAST_BWD_VECTORS: tf.int64,
+            # FEATURE_LAST_FWD_VECTORS: tf.int64,
+            # FEATURE_LAST_BWD_VECTORS: tf.int64,
             FEATURE_LAST_RULE: tf.int64,
             FEATURE_NODE_COUNT: tf.int64,
             FEATURE_MOVE_COUNTER: tf.int64,

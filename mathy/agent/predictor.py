@@ -82,8 +82,6 @@ class MathPredictor(object):
             FEATURE_FWD_VECTORS: tf.int64,
             FEATURE_BWD_VECTORS: tf.int64,
             FEATURE_MOVE_MASK: tf.int64,
-            FEATURE_LAST_FWD_VECTORS: tf.int64,
-            FEATURE_LAST_BWD_VECTORS: tf.int64,
             FEATURE_LAST_RULE: tf.int64,
             FEATURE_NODE_COUNT: tf.int64,
             FEATURE_MOVE_COUNTER: tf.int64,
