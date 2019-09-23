@@ -155,25 +155,6 @@ class Experience(object):
             if frame.terminal:
                 break
 
-        if fill_from_env is None:
-            return sampled_frames
-
-        state, _ = fill_from_env.mathy.get_initial_state(print_problem=False)
-        frame_one_rnn = sampled_frames[0].rnn_state
-        while len(sampled_frames) < sequence_size and state is not None:
-            frame = ExperienceFrame(
-                state=state.to_empty_observation(),
-                reward=0.0,
-                action=0,
-                terminal=False,
-                discounted=0.0,
-                grouping_change=0.0,
-                last_action=0,
-                last_reward=0.0,
-                rnn_state=[frame_one_rnn[0].copy(), frame_one_rnn[1].copy()],
-            )
-            sampled_frames.insert(0, frame)
-
         return sampled_frames
 
     def sample_rp_sequence(self):

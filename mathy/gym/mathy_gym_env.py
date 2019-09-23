@@ -16,7 +16,7 @@ from ..features import (
 )
 from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
-from ..state import MathyEnvState, MathyObservation
+from ..state import MathyEnvState, MathyObservation, rnn_placeholder_state
 from ..rules.rule import ExpressionChangeRule
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import is_terminal_transition
@@ -82,18 +82,6 @@ class MathyGymEnv(gym.Env):
                     shape=self.vectors_shape,
                     dtype=np.int16,
                 ),
-                FEATURE_LAST_FWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_LAST_BWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
                 FEATURE_MOVE_MASK: spaces.Box(
                     low=0, high=1, shape=(2, 2), dtype=np.int16
                 ),
@@ -122,15 +110,22 @@ class MathyGymEnv(gym.Env):
         return self._observe(self.state)
 
     def initial_state(self):
-        """return an n-step set of observations for initializing the env"""
+        """return a batch of n-step observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)
         return state.to_empty_batch()
+
+    def initial_window(self, rnn_size: int):
+        """return an n-step set of observations for initializing the env"""
+        state, _ = self.mathy.get_initial_state(self.env_problem_args)
+        return state.to_empty_window(1, rnn_size)
 
     def _observe(self, state: MathyEnvState) -> MathyObservation:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
         action_mask = self.mathy.get_valid_moves(state)
-        observation = state.to_observation(action_mask)
+        # TODO: HACCCCCKS need to pass RNN state size here? Or verify that this
+        # placeholder state is ALWAYS replaced with an appropriately sized buffer
+        observation = state.to_observation(action_mask, rnn_placeholder_state(128))
         # Update masked action space
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask

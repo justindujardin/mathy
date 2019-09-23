@@ -83,7 +83,7 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "poly-grouping",
+        "poly",
         "training/dev",
         "-workers",
         "1"

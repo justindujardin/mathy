@@ -6,18 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from ..core.expressions import MathTypeKeys
-from ..features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_MOVE_COUNTER,
-    FEATURE_MOVE_MASK,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-    pad_array,
-)
+from ..features import pad_array
 from ..state import (
     MathyEnvState,
     MathyObservation,
@@ -51,13 +40,17 @@ class EpisodeMemory(object):
     def ready(self) -> bool:
         return len(self.observations) > 3
 
-    def get_current_window(
+    def get_current_batch(
         self, current_observation: MathyObservation, mathy_state: MathyEnvState
-    ):
+    ) -> MathyBatchObservation:
         observations = self.observations[-2:] + [current_observation]
+        rnn_size = len(current_observation.rnn_state[0])
         while len(observations) < 3:
-            observations.insert(0, mathy_state.to_empty_observation())
+            observations.insert(0, mathy_state.to_empty_observation(rnn_size=rnn_size))
         return windows_to_batch([observations_to_window(observations)])
+
+    def to_episode_window(self) -> MathyWindowObservation:
+        return observations_to_window(self.observations)
 
     def store(
         self,

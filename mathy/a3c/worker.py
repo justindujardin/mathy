@@ -13,13 +13,19 @@ from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..state import MathyEnvState
+from ..state import (
+    MathyEnvState,
+    MathyObservation,
+    MathyWindowObservation,
+    MathyBatchObservation,
+    observations_to_window,
+)
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
-from .experience import Experience, ExperienceFrame
-from .replay_buffer import ReplayBuffer
+from ..r2d2.experience import Experience, ExperienceFrame
+from ..r2d2.episode_memory import EpisodeMemory
 from .util import record
 
 
@@ -44,6 +50,8 @@ class A3CWorker(threading.Thread):
         global_model: ActorCriticModel,
         optimizer,
         result_queue: Queue,
+        experience_queue: Queue,
+        experience: Experience,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -53,6 +61,8 @@ class A3CWorker(threading.Thread):
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
+        self.experience_queue = experience_queue
+        self.experience = experience
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
@@ -64,9 +74,10 @@ class A3CWorker(threading.Thread):
         self.local_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )
-        self.local_model.maybe_load(self.envs[first_env].reset())
+        self.local_model.maybe_load(
+            self.envs[first_env].initial_window(self.args.embedding_units)
+        )
         self.reset_episode_loss()
-        self.agent_experience = Experience(history_size=32, ready_at=12)
 
         print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
 
@@ -84,12 +95,12 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        replay_buffer = ReplayBuffer(self.agent_experience)
+        episode_memory = EpisodeMemory(self.experience_queue)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
-            reward = self.run_episode(replay_buffer)
+            reward = self.run_episode(episode_memory)
             win_pct = self.teacher.report_result(self.worker_idx, reward)
             if win_pct is not None:
                 with self.writer.as_default():
@@ -125,55 +136,92 @@ class A3CWorker(threading.Thread):
             print(f"PROFILER: saved {profile_path}")
         self.result_queue.put(None)
 
-    def run_episode(self, replay_buffer: ReplayBuffer):
+    def run_episode(self, episode_memory: EpisodeMemory):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         if env_name not in self.envs:
             self.envs[env_name] = gym.make(env_name)
         env = self.envs[env_name]
-        replay_buffer.clear()
+        episode_memory.clear()
         self.ep_loss = 0
         ep_reward = 0.0
         ep_steps = 0
         time_count = 0
         done = False
-        last_state = env.reset()
+        last_state: MathyObservation = env.reset()
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
+
+        # Set RNN to 0 state for start of episode
+        self.local_model.embedding.reset_rnn_state()
+        # TODO: Burn in with fake predictions
+
         while not done and A3CWorker.request_quit is False:
+            # store rnn state for replay training
+            rnn_state_h = self.local_model.embedding.state_h.numpy()
+            rnn_state_c = self.local_model.embedding.state_c.numpy()
+            # named tuples are read-only, so add rnn state to a new copy
+            last_state = MathyObservation(
+                nodes=last_state.nodes,
+                mask=last_state.mask,
+                type=last_state.type,
+                rnn_state=[rnn_state_h, rnn_state_c],
+            )
 
             # Select a random action from the distribution with the given probabilities
-            sample = replay_buffer.get_current_window(last_state)
-            probs, value = self.local_model.predict_next(sample)
-            action = np.random.choice(len(probs), p=probs)
+            probs, value = self.local_model.predict_next(
+                observations_to_window([last_state])
+            )
+
+            # store rnn state for replay training
+            rnn_state_h = self.local_model.embedding.state_h.numpy()
+            rnn_state_c = self.local_model.embedding.state_c.numpy()
+
+            if np.random.random() < self.args.e_greedy:
+                # Select a random action
+                action_mask = last_state.mask[:]
+                # normalize all valid action to equal probability
+                actions = action_mask / np.sum(action_mask)
+                action = np.random.choice(len(actions), p=actions)
+            else:
+                # action = np.random.choice(len(probs), p=probs)
+                action = np.argmax(probs)
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
+            new_state = MathyObservation(
+                nodes=new_state.nodes,
+                mask=new_state.mask,
+                type=new_state.type,
+                rnn_state=[rnn_state_h, rnn_state_c],
+            )
+
             new_text = env.state.agent.problem
             grouping_change = calculate_grouping_control_signal(last_text, new_text)
             ep_reward += reward
             frame = ExperienceFrame(
-                last_state,
+                state=last_state,
                 reward=reward,
                 action=action,
                 terminal=done,
                 grouping_change=grouping_change,
                 last_action=last_action,
                 last_reward=last_reward,
+                rnn_state=[rnn_state_h, rnn_state_c],
             )
-            replay_buffer.store(
+            episode_memory.store(
                 last_state, action, reward, value, grouping_change, frame
             )
 
-            # self.agent_experience.add_frame(frame)
+            # self.experience.add_frame(frame)
             self.maybe_write_histograms()
 
             # If the agent has enough experience, train aux tasks
-            # if self.agent_experience.is_full() is True:
+            # if self.experience.is_full() is True:
             #     print("yay")
 
             if time_count == self.args.update_freq or done:
-                self.update_global_network(done, new_state, replay_buffer)
+                self.update_global_network(done, new_state, episode_memory)
                 time_count = 0
                 if done:
                     self.finish_episode(ep_reward, ep_steps, env.state)
@@ -248,12 +296,12 @@ class A3CWorker(threading.Thread):
                         var.name, var, step=self.global_model.global_step
                     )
 
-    def update_global_network(self, done, new_state, replay_buffer: ReplayBuffer):
+    def update_global_network(self, done, new_state, episode_memory: EpisodeMemory):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
         with tf.GradientTape() as tape:
             loss_tuple = self.compute_loss(
-                done, new_state, replay_buffer, self.args.gamma
+                done, new_state, episode_memory, self.args.gamma
             )
             pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
         self.ep_loss += total_loss
@@ -274,7 +322,7 @@ class A3CWorker(threading.Thread):
         )
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
-        replay_buffer.clear()
+        episode_memory.clear()
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
@@ -312,14 +360,18 @@ class A3CWorker(threading.Thread):
                 self.global_model.save()
 
     def compute_policy_value_loss(
-        self, done: bool, new_state, replay_buffer: ReplayBuffer, gamma=0.99
+        self,
+        done: bool,
+        new_state: MathyObservation,
+        episode_memory: EpisodeMemory,
+        gamma=0.99,
     ):
         step = self.global_model.global_step
         if done:
             reward_sum = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model(replay_buffer.get_current_window(new_state))
+            _, values, _ = self.local_model(observations_to_window([new_state]))
             # Select the last timestep
             values = values[-1]
             reward_sum = tf.squeeze(values).numpy()
@@ -327,7 +379,7 @@ class A3CWorker(threading.Thread):
         # figure out discounted rewards
         discounted_rewards: List[float] = []
         # iterate backwards
-        for reward in replay_buffer.rewards[::-1]:
+        for reward in episode_memory.rewards[::-1]:
             reward_sum = reward + gamma * reward_sum
             discounted_rewards.append(reward_sum)
         discounted_rewards.reverse()
@@ -335,9 +387,8 @@ class A3CWorker(threading.Thread):
             value=np.array(discounted_rewards)[:, None], dtype=tf.float32
         )
 
-        batch_size = len(replay_buffer.actions)
-
-        inputs = replay_buffer.to_features()
+        batch_size = len(episode_memory.actions)
+        inputs = episode_memory.to_episode_window()
         logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
         logits = tf.reshape(logits, [batch_size, -1])
         masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
@@ -361,7 +412,7 @@ class A3CWorker(threading.Thread):
         # we don't care what those logits are, unless they're part of
         # the mask.
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=replay_buffer.actions, logits=masked_flat
+            labels=episode_memory.actions, logits=masked_flat
         )
         policy_loss *= tf.stop_gradient(advantage)
 
@@ -402,81 +453,87 @@ class A3CWorker(threading.Thread):
         )
 
     def compute_grouping_change_loss(
-        self, done, new_state, replay_buffer: ReplayBuffer
+        self, done, new_state, episode_memory: EpisodeMemory
     ):
-        change_signals = [signal for signal in replay_buffer.grouping_changes]
+        change_signals = [signal for signal in episode_memory.grouping_changes]
         loss = tf.reduce_mean(tf.convert_to_tensor(change_signals))
         return loss
 
+    def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, float]:
+        output = MathyWindowObservation([], [], [], [])
+        reward: float = 0.0
+        if self.experience.is_full() is False:
+            return output, reward
+
+        frames = self.experience.sample_rp_sequence()
+        states = [frame.state for frame in frames[:-1]]
+        target_reward = frames[-1].reward
+        if math.isclose(target_reward, GameRewards.TIMESTEP):
+            sample_label = 0  # zero
+        elif target_reward > 0:
+            sample_label = 1  # positive
+        else:
+            sample_label = 2  # negative
+        return observations_to_window(states), sample_label
+
     def compute_reward_prediction_loss(
-        self, done, new_state, replay_buffer: ReplayBuffer
+        self, done, new_state, episode_memory: EpisodeMemory
     ):
-        if not replay_buffer.experience.is_full():
+        if not self.experience.is_full():
             return tf.constant(0.0)
-        rp_inputs, rp_labels = replay_buffer.rp_samples()
-        rp_losses = []
-        for inputs, labels in zip(rp_inputs, rp_labels):
-            rp_outputs = self.local_model.predict_next_reward(inputs)
-            rp_losses.append(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=rp_outputs, labels=labels
-                )
-            )
-        return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
-
-    def compute_value_replay_loss(
-        self,
-        done,
-        new_state,
-        replay_buffer: ReplayBuffer,
-        discounted_rewards: List[float],
-    ):
-        max_frames = 6
-        if not replay_buffer.experience.is_full():
-            return tf.constant(0.0)
-        frames: List[ExperienceFrame] = replay_buffer.experience.sample_sequence(
-            min(len(discounted_rewards), max_frames)
+        input, label = self.rp_samples()
+        rp_output = self.local_model.predict_next_reward(input)
+        rp_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=rp_output, labels=label
         )
-        vr_losses = []
-        for i, frame in enumerate(frames):
-            states = [frame.state for frame in frames]
-            sample_features = replay_buffer.to_features(states)
-            vr_values = self.local_model.predict_value_replays(sample_features)
-            advantage = discounted_rewards[i] - vr_values
-            # Value loss
-            value_loss = advantage ** 2
-            vr_losses.append(value_loss)
+        return tf.reduce_mean(tf.convert_to_tensor(rp_loss))
 
-        return tf.reduce_mean(tf.convert_to_tensor(vr_losses))
+    def compute_value_replay_loss(self, done, new_state, episode_memory: EpisodeMemory):
+        if not self.experience.is_full():
+            return tf.constant(0.0)
+        sample_size = 6
+        frames: List[ExperienceFrame] = self.experience.sample_sequence(sample_size)
+        states = []
+        discounted_rewards = []
+        for frame in frames:
+            states.append(frame.state)
+            discounted_rewards.append(frame.discounted)
+        discounted_rewards = tf.convert_to_tensor(discounted_rewards)
+        observation_window = observations_to_window(states)
+        vr_values = self.local_model.predict_value_replays(observation_window)
+        advantage = discounted_rewards - vr_values
+        # Value loss
+        value_loss = advantage ** 2
+        return tf.reduce_mean(tf.convert_to_tensor(value_loss))
 
     def compute_loss(
-        self, done: bool, new_state, replay_buffer: ReplayBuffer, gamma=0.99
+        self, done: bool, new_state, episode_memory: EpisodeMemory, gamma=0.99
     ):
         with self.writer.as_default():
             step = self.global_model.global_step
-            loss_tuple = self.compute_policy_value_loss(done, new_state, replay_buffer)
+            loss_tuple = self.compute_policy_value_loss(done, new_state, episode_memory)
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
-            replay_buffer.commit_frames(discounted_rewards)
-            if replay_buffer.experience.is_full():
+            episode_memory.commit_frames(discounted_rewards)
+            if self.experience.is_full():
                 aux_weight = 0.2
                 if self.args.use_grouping_control:
                     gc_loss = self.compute_grouping_change_loss(
-                        done, new_state, replay_buffer
+                        done, new_state, episode_memory
                     )
                     # gc_loss *= aux_weight
                     total_loss += gc_loss
                     aux_losses["gc"] = gc_loss
                 if self.args.use_reward_prediction:
                     rp_loss = self.compute_reward_prediction_loss(
-                        done, new_state, replay_buffer
+                        done, new_state, episode_memory
                     )
                     rp_loss *= aux_weight
                     total_loss += rp_loss
                     aux_losses["rp"] = rp_loss
                 if self.args.use_value_replay:
                     vr_loss = self.compute_value_replay_loss(
-                        done, new_state, replay_buffer, discounted_rewards
+                        done, new_state, episode_memory
                     )
                     vr_loss *= aux_weight
                     total_loss += vr_loss
@@ -498,12 +555,12 @@ class A3CWorker(threading.Thread):
 
     # Auxiliary tasks
     def get_rp_inputs_with_labels(
-        self, episode_buffer: ReplayBuffer
+        self, episode_buffer: EpisodeMemory
     ) -> Tuple[List[Any], List[Any]]:
         # [Reward prediction]
         rp_experience_frames: List[
             ExperienceFrame
-        ] = self.agent_experience.sample_rp_sequence()
+        ] = self.experience.sample_rp_sequence()
         # 4 frames
         states = [frame.state for frame in rp_experience_frames[:-1]]
         batch_rp_si = episode_buffer.to_features(states)

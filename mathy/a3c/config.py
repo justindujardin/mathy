@@ -15,15 +15,19 @@ class A3CArgs(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
+    history_size: int = 1024
+    ready_at: int = 64
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 25000
     gamma: float = 0.99
+
+    e_greedy = 0.01
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.05
+    worker_wait: float = 0.5
     # The number of worker agents to create.
     num_workers: int = 3
 
@@ -32,10 +36,10 @@ class A3CArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = False
+    use_reward_prediction = True
 
     # Whether to use the value replay aux task
-    use_value_replay = False
+    use_value_replay = True
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

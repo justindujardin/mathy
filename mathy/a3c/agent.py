@@ -1,6 +1,6 @@
 import os
 from queue import Queue
-from typing import Optional
+from typing import Optional, List
 from colr import color
 
 import gym
@@ -12,6 +12,7 @@ from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .worker import A3CWorker
 from ..teacher import Teacher, Student, Topic
+from ..r2d2.experience import Experience, ExperienceFrame
 
 
 class A3CAgent:
@@ -38,15 +39,21 @@ class A3CAgent:
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )
         # Initialize the global model with a random observation
-        self.global_model.maybe_load(env.reset(), do_init=True)
+        self.global_model.maybe_load(
+            env.initial_window(self.args.embedding_units), do_init=True
+        )
+        self.experience = Experience(self.args.history_size, self.args.ready_at)
 
     def train(self):
 
         res_queue = Queue()
+        exp_queue = Queue()
         workers = [
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
+                experience=self.experience,
+                experience_queue=exp_queue,
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,
@@ -62,6 +69,12 @@ class A3CAgent:
 
         try:
             while True:
+                try:
+                    frame: ExperienceFrame = exp_queue.get_nowait()
+                    self.experience.add_frame(frame)
+                except BaseException:
+                    pass
+
                 reward = res_queue.get()
                 if reward is None:
                     break

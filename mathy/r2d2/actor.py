@@ -137,7 +137,7 @@ class MathyActor(MPClass):
             rnn_state_h = self.model.embedding.state_h.numpy()
             rnn_state_c = self.model.embedding.state_c.numpy()
 
-            sample = episode_memory.get_current_window(last_state, env.state)
+            sample = episode_memory.get_current_batch(last_state, env.state)
 
             if not self.experience.is_full():
                 # Select a random action from the last timestep mask
