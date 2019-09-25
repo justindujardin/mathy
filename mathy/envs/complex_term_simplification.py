@@ -24,7 +24,7 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 2
+        return problem.complexity * 3
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce

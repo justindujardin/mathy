@@ -22,7 +22,8 @@ class A3CArgs(BaseModel):
     max_eps: int = 25000
     gamma: float = 0.99
 
-    e_greedy = 0.01
+    entropy_loss_scaling = 0.1
+    e_greedy = 0.1
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -36,10 +37,10 @@ class A3CArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = True
+    use_reward_prediction = False
 
     # Whether to use the value replay aux task
-    use_value_replay = True
+    use_value_replay = False
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

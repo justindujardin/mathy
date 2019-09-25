@@ -98,19 +98,12 @@ class ActorCriticModel(tf.keras.Model):
             self.args.embedding_units, name="value_replay/prepare_values"
         )
 
-    def call(
-        self,
-        features_window: MathyWindowObservation,
-        apply_mask=True,
-        reset_states=False,
-    ):
+    def call(self, features_window: MathyWindowObservation, apply_mask=True):
         # batch_size = len(features_window.nodes)
         # start = time.time()
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
-        sequence_inputs, sequence_length = self.embedding(
-            inputs, reset_states=reset_states
-        )
+        sequence_inputs, sequence_length = self.embedding(inputs)
         values = self.value_logits(tf.reduce_mean(sequence_inputs, axis=1))
         logits = self.policy_logits(sequence_inputs)
         trimmed_logits, mask_logits = self.apply_pi_mask(

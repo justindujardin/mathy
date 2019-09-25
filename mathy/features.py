@@ -4,7 +4,7 @@ import numpy as np
 from typing import Tuple, Any, List, Dict
 from .core import MathTypeKeys
 from enum import Enum
-
+import math
 from pydantic import BaseModel
 
 
@@ -205,7 +205,7 @@ def calculate_brevity_node_control_signal(observation: MathyEnvObservation):
     return 0 if input >= output else 1
 
 
-def calculate_term_grouping_distances(input: str):
+def calculate_term_grouping_distances(input: str) -> Tuple[float, float]:
     vars = re.sub(r"[^a-zA-Z]+", "", input)
     seen_pos: Dict[str, List[int]] = dict()
     for i, var in enumerate(vars):
@@ -230,7 +230,7 @@ def calculate_term_grouping_distances(input: str):
 
     # Scale the signal down to avoid it growing ever larger with more
     # complex inputs.
-    return signal / len(vars)
+    return signal, signal / len(vars)
 
 
 def calculate_grouping_control_signal(input: str, output: str) -> float:
@@ -252,18 +252,16 @@ def calculate_grouping_control_signal(input: str, output: str) -> float:
     # NOTE: this means that the signal is not correct when exponents or complex
     #       terms with multiple variables are in the expression. Perhaps it's a
     #       good improvement to make here.
-    in_signal = calculate_term_grouping_distances(input)
-    out_signal = calculate_term_grouping_distances(output)
-    # The grouping distance got larger
-    if in_signal < out_signal:
-        # return the calculated group error
-        return out_signal
-    # The distance got smaller
-    if in_signal > out_signal:
-        # hurray, no error for you!
-        return -out_signal
-    # It stayed the same, return the grouping error
-    return out_signal
+    in_signal, in_signal_normalized = calculate_term_grouping_distances(input)
+    out_signal, out_signal_normalized = calculate_term_grouping_distances(output)
+    # The grouping distance stayed the same
+    if in_signal == out_signal:
+        return out_signal_normalized
+    # # It changed, negative error based on magnitude of the change
+    # return -abs(in_signal_normalized - out_signal_normalized)
+
+    # It changed, no error
+    return 0.0
 
 
 def calculate_group_prediction_signal(observation: MathyEnvObservation):

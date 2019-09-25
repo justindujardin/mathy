@@ -395,6 +395,8 @@ class A3CWorker(threading.Thread):
 
         # Calculate entropy and policy loss
         h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        # Scale entropy loss down
+        entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
         # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
 
         # Advantage is the difference between the final calculated discount
@@ -417,7 +419,7 @@ class A3CWorker(threading.Thread):
         policy_loss *= tf.stop_gradient(advantage)
 
         value_loss *= 0.5
-        total_loss = tf.reduce_mean(value_loss + policy_loss + h_loss.loss)
+        total_loss = tf.reduce_mean(value_loss + policy_loss + entropy_loss)
         tf.summary.scalar(
             f"worker_{self.worker_idx}/losses/policy_loss",
             data=tf.reduce_mean(policy_loss),
@@ -430,7 +432,7 @@ class A3CWorker(threading.Thread):
         )
         tf.summary.scalar(
             f"worker_{self.worker_idx}/losses/entropy_loss",
-            data=tf.reduce_mean(h_loss.loss),
+            data=tf.reduce_mean(entropy_loss),
             step=step,
         )
         tf.summary.scalar(
@@ -447,7 +449,7 @@ class A3CWorker(threading.Thread):
         return (
             tf.reduce_mean(policy_loss),
             tf.reduce_mean(value_loss),
-            tf.reduce_mean(h_loss.loss),
+            tf.reduce_mean(entropy_loss),
             total_loss,
             discounted_rewards,
         )
@@ -456,7 +458,9 @@ class A3CWorker(threading.Thread):
         self, done, new_state, episode_memory: EpisodeMemory
     ):
         change_signals = [signal for signal in episode_memory.grouping_changes]
-        loss = tf.reduce_mean(tf.convert_to_tensor(change_signals))
+        signals_tensor = tf.convert_to_tensor(change_signals)
+        signals_tensor = tf.clip_by_value(signals_tensor, 0.0, 1.0)
+        loss = tf.reduce_mean(signals_tensor)
         return loss
 
     def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, float]:
@@ -515,15 +519,15 @@ class A3CWorker(threading.Thread):
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
             episode_memory.commit_frames(discounted_rewards)
+            if self.args.use_grouping_control:
+                gc_loss = self.compute_grouping_change_loss(
+                    done, new_state, episode_memory
+                )
+                # gc_loss *= aux_weight
+                total_loss += gc_loss
+                aux_losses["gc"] = gc_loss
             if self.experience.is_full():
                 aux_weight = 0.2
-                if self.args.use_grouping_control:
-                    gc_loss = self.compute_grouping_change_loss(
-                        done, new_state, episode_memory
-                    )
-                    # gc_loss *= aux_weight
-                    total_loss += gc_loss
-                    aux_losses["gc"] = gc_loss
                 if self.args.use_reward_prediction:
                     rp_loss = self.compute_reward_prediction_loss(
                         done, new_state, episode_memory

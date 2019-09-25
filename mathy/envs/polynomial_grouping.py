@@ -29,7 +29,7 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity
+        return problem.complexity * 2
 
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any
@@ -58,13 +58,13 @@ class MathyPolynomialGroupingEnv(MathyEnv):
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:
-            blockers = randint(1, 4)
+            blockers = randint(1, 3)
             text, _ = commute_haystack(
                 commute_blockers=blockers,
-                min_terms=6,
-                max_terms=12,
+                min_terms=4,
+                max_terms=8,
                 easy=True,
-                powers=True,
+                powers=False,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(3, 6)

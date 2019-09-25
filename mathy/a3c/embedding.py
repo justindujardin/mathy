@@ -1,6 +1,9 @@
-from typing import Dict, Tuple, Any
+from typing import Any, Dict, Tuple
+
 import tensorflow as tf
 
+from ..agent.layers.bahdanau_attention import BahdanauAttention
+from ..agent.layers.resnet_stack import ResNetStack
 from ..core.expressions import MathTypeKeysMax
 from ..features import (
     FEATURE_BWD_VECTORS,
@@ -13,9 +16,12 @@ from ..features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from ..agent.layers.bahdanau_attention import BahdanauAttention
-from ..agent.layers.resnet_stack import ResNetStack
-from ..state import MathyBatchObservation, MathyWindowObservation, MathyObservation
+from ..state import (
+    MathyBatchObservation,
+    MathyObservation,
+    MathyWindowObservation,
+    observations_to_window,
+)
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
@@ -32,7 +38,11 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=4)
         self.time_lstm = tf.keras.layers.LSTM(
-            units, name="timestep_lstm", return_sequences=True, time_major=True
+            units,
+            name="timestep_lstm",
+            return_sequences=True,
+            time_major=True,
+            return_state=True,
         )
         self.nodes_lstm = tf.keras.layers.LSTM(
             units,
@@ -51,6 +61,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
         self.attention = BahdanauAttention(units, name="attention")
+        # self.time_compress = tf.keras.layers.Dense(1, name="nodes_compress")
+        # self.time_expand = tf.keras.layers.Dense(self.units, name="nodes_expand")
 
     def init_rnn_state(self):
         """WIP to train RNN state as in: https://openreview.net/pdf?id=r1lyTjAqYX
@@ -89,7 +101,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.burn_in_steps_counter = 0
 
     def call(
-        self, features: MathyWindowObservation, reset_states=False
+        self, features: MathyWindowObservation, do_burn_in=False
     ) -> Tuple[tf.Tensor, int]:
         batch_size = len(features.nodes)
         sequence_length = len(features.nodes[0])
@@ -123,23 +135,14 @@ class MathyEmbedding(tf.keras.layers.Layer):
             outputs, initial_state=[state_h, state_c]
         )
 
-        # Apply LSTM to the output sequences to capture context across timesteps
-        # in the batch.
-        #
-        # NOTE: This does process the observation timesteps across the batch axis
-        #
-        # shape = [Observations, 1, ObservationNodeVectors * self.units]
-
-        # reshape axis 1 to 1d so it corresponds to the expected
-        # time_out = tf.reshape(outputs, [self.sequence_steps, 1, -1])
-
-        time_out = self.time_lstm(outputs)
-
-        self.state_c.assign(state_c[-1:])
+        # time_out, _, _ = self.time_lstm(outputs)
+        time_state = [
+            tf.tile(state_h[-1:], [sequence_length, 1]),
+            tf.tile(state_c[-1:], [sequence_length, 1]),
+        ]
+        time_out, state_h, state_c = self.time_lstm(outputs, initial_state=time_state)
         self.state_h.assign(state_h[-1:])
-
-        # reshape with nodes
-        # time_out = tf.reshape(time_out, [self.sequence_steps, outputs.shape[1], -1])
+        self.state_c.assign(state_c[-1:])
 
         # For the first (n) steps, don't backprop into the RNN, just update
         # the stored initial state.

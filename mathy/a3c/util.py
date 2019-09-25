@@ -49,26 +49,24 @@ def record(
     fore = "green" if episode_reward > 0.0 else "red"
 
     losses = [
-        f"total: {truncate(total_loss)} "
-        f"pi: {truncate(pi_loss)} "
-        f"value: {truncate(value_loss)} "
-        f"entropy: {truncate(entropy_loss)} "
+        "total: {:<8}".format(truncate(total_loss)),
+        "pi: {:<8}".format(truncate(pi_loss)),
+        "v: {:<8}".format(truncate(value_loss)),
+        "h: {:<8}".format(truncate(entropy_loss)),
     ]
     if isinstance(aux_losses, dict):
         for k in aux_losses.keys():
-            losses.append(f"{k}: {truncate(aux_losses[k])} ")
-    loss_str = f"losses( {' '.join(losses)}) "
+            losses.append("{:<4}: {:<8}".format(k, truncate(aux_losses[k])))
 
+    heading = "{:<8} {:<3} {:<8} {:<10}".format(
+        now, f"w{worker_idx}", f"ep: {episode}", f"steps: {num_steps}"
+    )
+    rewards = "r_avg: {:<6} r_ep: {:<6}".format(
+        truncate(global_ep_reward), truncate(episode_reward)
+    )
+    loss_str = " ".join(losses)
     print(
-        color(
-            f"{now} ep{episode} "
-            f"reward(avg:{truncate(global_ep_reward)} ep:{truncate(episode_reward)}) "
-            f"{loss_str}"
-            f"steps({num_steps}) "
-            f"worker{worker_idx}: {env_name}",
-            fore=fore,
-            style="bright",
-        )
+        color(f"{heading} {rewards} {loss_str} [{env_name}]", fore=fore, style="bright")
     )
     result_queue.put(global_ep_reward)
     return global_ep_reward
