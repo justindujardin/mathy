@@ -13,20 +13,15 @@ from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..state import (
-    MathyEnvState,
-    MathyObservation,
-    MathyWindowObservation,
-    MathyBatchObservation,
-    observations_to_window,
-)
+from ..r2d2.episode_memory import EpisodeMemory
+from ..r2d2.experience import Experience, ExperienceFrame
+from ..state import (MathyBatchObservation, MathyEnvState, MathyObservation,
+                     MathyWindowObservation, observations_to_window)
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
-from ..r2d2.experience import Experience, ExperienceFrame
-from ..r2d2.episode_memory import EpisodeMemory
-from .util import record
+from .util import record, truncate
 
 
 class A3CWorker(threading.Thread):
@@ -75,7 +70,7 @@ class A3CWorker(threading.Thread):
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )
         self.local_model.maybe_load(
-            self.envs[first_env].initial_window(self.args.embedding_units)
+            self.envs[first_env].initial_window(self.args.lstm_units)
         )
         self.reset_episode_loss()
 
@@ -144,7 +139,7 @@ class A3CWorker(threading.Thread):
         episode_memory.clear()
         self.ep_loss = 0
         ep_reward = 0.0
-        ep_steps = 0
+        ep_steps = 1
         time_count = 0
         done = False
         last_state: MathyObservation = env.reset()
@@ -264,9 +259,11 @@ class A3CWorker(threading.Thread):
             # )
 
             agent_state = last_state.agent
+            steps = int(last_state.max_moves - agent_state.moves_remaining)
+            rwd = truncate(episode_reward)
             p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
             outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
-            out_text = f"{outcome}: {p_text}"
+            out_text = f"{outcome} [steps: {steps}, reward: {rwd}]: {p_text}"
             tf.summary.text(
                 f"{name}/worker_{self.worker_idx}/summary", data=out_text, step=step
             )
@@ -455,12 +452,13 @@ class A3CWorker(threading.Thread):
         )
 
     def compute_grouping_change_loss(
-        self, done, new_state, episode_memory: EpisodeMemory
+        self, done, new_state, episode_memory: EpisodeMemory, clip: bool = True
     ):
         change_signals = [signal for signal in episode_memory.grouping_changes]
         signals_tensor = tf.convert_to_tensor(change_signals)
-        signals_tensor = tf.clip_by_value(signals_tensor, 0.0, 1.0)
         loss = tf.reduce_mean(signals_tensor)
+        if clip is True:
+            loss = tf.clip_by_value(loss, -1.0, 1.0)
         return loss
 
     def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, float]:

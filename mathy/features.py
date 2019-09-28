@@ -233,7 +233,9 @@ def calculate_term_grouping_distances(input: str) -> Tuple[float, float]:
     return signal, signal / len(vars)
 
 
-def calculate_grouping_control_signal(input: str, output: str) -> float:
+def calculate_grouping_control_signal(
+    input: str, output: str, clip_at_zero: bool = False
+) -> float:
     """Calculate grouping_control signals as the sum of all distances between
     all like terms. Gather all the terms in an expression and add an error value
     whenever a like term is separated by another term.
@@ -257,11 +259,13 @@ def calculate_grouping_control_signal(input: str, output: str) -> float:
     # The grouping distance stayed the same
     if in_signal == out_signal:
         return out_signal_normalized
-    # # It changed, negative error based on magnitude of the change
-    # return -abs(in_signal_normalized - out_signal_normalized)
 
     # It changed, no error
-    return 0.0
+    if clip_at_zero is True:
+        return 0.0
+
+    # It changed, negative error based on magnitude of the change
+    return -abs(in_signal_normalized - out_signal_normalized)
 
 
 def calculate_group_prediction_signal(observation: MathyEnvObservation):

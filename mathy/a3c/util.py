@@ -14,6 +14,10 @@ def cat_entropy(logits):
     return tf.reduce_sum(p0 * (tf.math.log(z0) - a0), 1)
 
 
+def truncate(value):
+    return float("%.3f" % (float(value)))
+
+
 def record(
     episode,
     episode_reward,
@@ -40,9 +44,6 @@ def record(
   """
 
     now = datetime.datetime.now().strftime("%H:%M:%S")
-
-    def truncate(value):
-        return float("%.3f" % (float(value)))
 
     global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
 

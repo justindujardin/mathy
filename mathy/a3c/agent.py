@@ -40,7 +40,7 @@ class A3CAgent:
         )
         # Initialize the global model with a random observation
         self.global_model.maybe_load(
-            env.initial_window(self.args.embedding_units), do_init=True
+            env.initial_window(self.args.lstm_units), do_init=True
         )
         self.experience = Experience(self.args.history_size, self.args.ready_at)
 

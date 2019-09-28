@@ -69,7 +69,7 @@ class ActorCriticModel(tf.keras.Model):
     def build_shared_network(self):
         """The shared embedding network for all tasks"""
         self.embedding = MathyEmbedding(
-            self.args.embedding_units, name="shared_network"
+            self.args.embedding_units, self.args.lstm_units, name="shared_network"
         )
 
     def build_policy_value(self):

@@ -10,8 +10,8 @@ class A3CArgs(BaseModel):
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
     units: int = 64
-    # Units for math embeddings
-    embedding_units: int = 128
+    embedding_units: int = 512
+    lstm_units: int = 64
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
@@ -22,8 +22,8 @@ class A3CArgs(BaseModel):
     max_eps: int = 25000
     gamma: float = 0.99
 
-    entropy_loss_scaling = 0.1
-    e_greedy = 0.1
+    entropy_loss_scaling = 0.5
+    e_greedy = 0.01
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to

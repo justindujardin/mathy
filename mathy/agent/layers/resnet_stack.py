@@ -7,6 +7,7 @@ class ResNetStack(tf.keras.layers.Layer):
 
     def __init__(self, units=64, num_layers=2, share_weights=False, **kwargs):
         self.stack_height = num_layers
+        self.in_dense = tf.keras.layers.Dense(units, use_bias=False, name="res_input")
         self.dense_stack = [
             ResNetBlock(name=f"res_block_0", units=units, use_shared=share_weights)
         ]
@@ -21,7 +22,8 @@ class ResNetStack(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
-    def call(self, input_tensor):
+    def call(self, input_tensor: tf.Tensor):
+        input_tensor = self.in_dense(input_tensor)
         with tf.compat.v1.variable_scope(self.name):
             for layer in self.dense_stack:
                 input_tensor = layer(input_tensor)
