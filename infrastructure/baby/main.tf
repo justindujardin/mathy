@@ -17,7 +17,7 @@ resource "google_compute_instance" "mathtastic-worker" {
 
   // We use this key instead of the `startup-script` key to force instance recreation when the contents change
   metadata_startup_script = "${file("${path.module}/mt-terraform-startup.sh")}"
-  metadata {
+  metadata = {
     shutdown-script = "${file("${path.module}/mt-terraform-shutdown.sh")}"
   }
   // Use an optimized Tensorflow build that requires Broadwell or newer, from: https://github.com/mind/wheels/
@@ -54,8 +54,8 @@ resource "google_compute_instance" "mathtastic-worker" {
     preemptible = true
     automatic_restart = false
   }
-  // guest_accelerator {
-  //   count = 1
-  //   type = "nvidia-tesla-k80"
-  // }
+  guest_accelerator {
+    count = 1
+    type = "nvidia-tesla-k80"
+  }
 }
