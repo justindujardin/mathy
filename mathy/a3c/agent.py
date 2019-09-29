@@ -48,12 +48,16 @@ class A3CAgent:
 
         res_queue = Queue()
         exp_queue = Queue()
+        worker_exploration_epsilons = np.linspace(
+            self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
+        )
         workers = [
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
                 experience=self.experience,
                 experience_queue=exp_queue,
+                greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,

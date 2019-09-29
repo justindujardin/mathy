@@ -9,9 +9,9 @@ class A3CArgs(BaseModel):
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
-    units: int = 64
-    embedding_units: int = 512
-    lstm_units: int = 64
+    units: int = 128
+    embedding_units: int = 128
+    lstm_units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
@@ -19,11 +19,13 @@ class A3CArgs(BaseModel):
     ready_at: int = 64
     lr: float = 3e-4
     update_freq: int = 25
-    max_eps: int = 25000
+    max_eps: int = 100000
     gamma: float = 0.99
 
     entropy_loss_scaling = 0.5
-    e_greedy = 0.01
+
+    e_greedy_min = 0.001
+    e_greedy_max = 0.5
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -37,10 +39,10 @@ class A3CArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = False
+    use_reward_prediction = True
 
     # Whether to use the value replay aux task
-    use_value_replay = False
+    use_value_replay = True
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

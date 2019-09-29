@@ -29,7 +29,7 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 2
+        return problem.complexity * 4
 
     def transition_fn(
         self, env_state: MathyEnvState, expression: MathExpression, features: Any

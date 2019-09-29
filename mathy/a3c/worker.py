@@ -15,8 +15,13 @@ from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
 from ..r2d2.episode_memory import EpisodeMemory
 from ..r2d2.experience import Experience, ExperienceFrame
-from ..state import (MathyBatchObservation, MathyEnvState, MathyObservation,
-                     MathyWindowObservation, observations_to_window)
+from ..state import (
+    MathyBatchObservation,
+    MathyEnvState,
+    MathyObservation,
+    MathyWindowObservation,
+    observations_to_window,
+)
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
 from .actor_critic_model import ActorCriticModel
@@ -44,6 +49,7 @@ class A3CWorker(threading.Thread):
         action_size: int,
         global_model: ActorCriticModel,
         optimizer,
+        greedy_epsilon: float,
         result_queue: Queue,
         experience_queue: Queue,
         experience: Experience,
@@ -53,6 +59,7 @@ class A3CWorker(threading.Thread):
     ):
         super(A3CWorker, self).__init__()
         self.args = args
+        self.greedy_epsilon = greedy_epsilon
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
@@ -74,7 +81,9 @@ class A3CWorker(threading.Thread):
         )
         self.reset_episode_loss()
 
-        print(f"[Worker {worker_idx}] using topics: {self.args.topics}")
+        print(
+            f"[#{worker_idx}] epsilon: {self.greedy_epsilon} topics: {self.args.topics}"
+        )
 
     def reset_episode_loss(self):
         self.ep_loss = 0.0
@@ -108,16 +117,13 @@ class A3CWorker(threading.Thread):
                     elif difficulty == "hard":
                         difficulty = 1.0
                     step = self.global_model.global_step
-                    tf.summary.scalar(
-                        f"worker_{self.worker_idx}/{student.topic}/success_rate",
-                        data=win_pct,
-                        step=step,
-                    )
-                    tf.summary.scalar(
-                        f"worker_{self.worker_idx}/{student.topic}/difficulty",
-                        data=difficulty,
-                        step=step,
-                    )
+                    if self.worker_idx == 0:
+                        tf.summary.scalar(
+                            f"{student.topic}/success_rate", data=win_pct, step=step
+                        )
+                        tf.summary.scalar(
+                            f"{student.topic}/difficulty", data=difficulty, step=step
+                        )
 
             self.iteration += 1
             # TODO: Make this a subprocess? Python threads won't scale up well to
@@ -172,7 +178,7 @@ class A3CWorker(threading.Thread):
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
 
-            if np.random.random() < self.args.e_greedy:
+            if np.random.random() < self.greedy_epsilon:
                 # Select a random action
                 action_mask = last_state.mask[:]
                 # normalize all valid action to equal probability
@@ -227,46 +233,32 @@ class A3CWorker(threading.Thread):
             last_action = action
             last_reward = reward
 
+            # The greedy worker sleeps for a shorter period of time
+            sleep = self.args.worker_wait
+            if self.worker_idx == 0:
+                sleep = sleep // 100
             # Workers wait between each step so that it's possible
             # to run more workers than there are CPUs available.
-            time.sleep(self.args.worker_wait)
+            time.sleep(sleep)
         return ep_reward
 
     def maybe_write_episode_summaries(
         self, episode_reward: float, episode_steps: int, last_state: MathyEnvState
     ):
+        if self.worker_idx != 0:
+            return
+
         # Track metrics for all workers
         name = self.teacher.get_env(self.worker_idx, self.iteration)
         step = self.global_model.global_step
         with self.writer.as_default():
-
-            tf.summary.scalar(
-                f"rewards/worker_{self.worker_idx}/episodes",
-                data=episode_reward,
-                step=step,
-            )
-            tf.summary.scalar(
-                f"steps/worker_{self.worker_idx}/ep_steps",
-                data=episode_steps,
-                step=step,
-            )
-
-            # TODO: track per-worker averages and log them
-            # tf.summary.scalar(
-            #     f"rewards/worker_{self.worker_idx}/mean_episode_reward",
-            #     data=episode_reward,
-            #     step=step,
-            # )
-
             agent_state = last_state.agent
             steps = int(last_state.max_moves - agent_state.moves_remaining)
             rwd = truncate(episode_reward)
             p_text = f"{agent_state.history[0].raw} = {agent_state.history[-1].raw}"
             outcome = "SOLVED" if episode_reward > 0.0 else "FAILED"
             out_text = f"{outcome} [steps: {steps}, reward: {rwd}]: {p_text}"
-            tf.summary.text(
-                f"{name}/worker_{self.worker_idx}/summary", data=out_text, step=step
-            )
+            tf.summary.text(f"{name}/summary", data=out_text, step=step)
 
             if self.worker_idx == 0:
                 # Track global model metrics
@@ -323,21 +315,27 @@ class A3CWorker(threading.Thread):
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
-        A3CWorker.global_moving_average_reward = record(
-            A3CWorker.global_episode,
-            episode_reward,
-            self.worker_idx,
-            A3CWorker.global_moving_average_reward,
-            self.result_queue,
-            self.ep_pi_loss,
-            self.ep_value_loss,
-            self.ep_entropy_loss,
-            self.ep_aux_loss,
-            self.ep_loss,
-            episode_steps,
-            env_name,
-        )
-        self.maybe_write_episode_summaries(episode_reward, episode_steps, last_state)
+
+        # Only observe/track the most-greedy worker (high epsilon exploration
+        # stats are unlikely to be consistent or informative)
+        if self.worker_idx == 0:
+            A3CWorker.global_moving_average_reward = record(
+                A3CWorker.global_episode,
+                episode_reward,
+                self.worker_idx,
+                A3CWorker.global_moving_average_reward,
+                self.result_queue,
+                self.ep_pi_loss,
+                self.ep_value_loss,
+                self.ep_entropy_loss,
+                self.ep_aux_loss,
+                self.ep_loss,
+                episode_steps,
+                env_name,
+            )
+            self.maybe_write_episode_summaries(
+                episode_reward, episode_steps, last_state
+            )
 
         # We must use a lock to save our model and to print to prevent data races.
         if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
