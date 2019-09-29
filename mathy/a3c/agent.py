@@ -34,7 +34,8 @@ class A3CAgent:
         self.writer = tf.summary.create_file_writer(
             os.path.join(self.args.model_dir, "tensorboard")
         )
-        self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
+        # Clip norms by some almost random value: https://youtu.be/yCC09vCHzF8?t=3885
+        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr, clipnorm=5.0)
         self.global_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )

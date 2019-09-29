@@ -67,6 +67,7 @@ class A3CWorker(threading.Thread):
         self.experience = experience
         self.global_model = global_model
         self.optimizer = optimizer
+        self.optimizer.iterations = self.global_model.global_step
         self.worker_idx = worker_idx
         self.teacher = teacher
         self.envs = {}
@@ -304,11 +305,7 @@ class A3CWorker(threading.Thread):
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
-        self.optimizer.iterations = self.global_model.global_step
-        self.optimizer.apply_gradients(
-            zip(grads, self.global_model.trainable_weights),
-            global_step=self.global_model.global_step,
-        )
+        self.optimizer.apply_gradients(zip(grads, self.global_model.trainable_weights))
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
         episode_memory.clear()
