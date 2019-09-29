@@ -93,7 +93,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         max_depth = MathTypeKeysMax
         nodes = tf.convert_to_tensor(features.nodes)
         # Add context to nodes
-        extract_window = 6
+        extract_window = 3
         input = tf.reshape(nodes, shape=[1, batch_size, sequence_length, 1])
         input = tf.image.extract_patches(
             images=input,

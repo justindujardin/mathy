@@ -562,28 +562,3 @@ class A3CWorker(threading.Thread):
             )
 
         return pi_loss, v_loss, h_loss, aux_losses, total_loss
-
-    # Auxiliary tasks
-    def get_rp_inputs_with_labels(
-        self, episode_buffer: EpisodeMemory
-    ) -> Tuple[List[Any], List[Any]]:
-        # [Reward prediction]
-        rp_experience_frames: List[
-            ExperienceFrame
-        ] = self.experience.sample_rp_sequence()
-        # 4 frames
-        states = [frame.state for frame in rp_experience_frames[:-1]]
-        batch_rp_si = episode_buffer.to_features(states)
-        batch_rp_c = []
-
-        # one hot vector for target reward
-        r = rp_experience_frames[3].reward
-        rp_c = [0.0, 0.0, 0.0]
-        if math.isclose(r, GameRewards.TIMESTEP):
-            rp_c[0] = 1.0  # zero
-        elif r > 0:
-            rp_c[1] = 1.0  # positive
-        else:
-            rp_c[2] = 1.0  # negative
-        batch_rp_c.append(rp_c)
-        return batch_rp_si, batch_rp_c

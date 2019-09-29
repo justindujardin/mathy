@@ -24,7 +24,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 4
+        return problem.complexity * 3
 
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.simplify"
