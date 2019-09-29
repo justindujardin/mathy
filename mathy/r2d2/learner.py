@@ -65,7 +65,7 @@ class MathyLearner(MPClass):
         )
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
         self.model = MathyModel(args=args, predictions=self.action_size)
-        self.obs_converter = EpisodeMemory()
+        self.obs_converter = EpisodeMemory(self.experience)
         # Initialize the model with a random observation
         self.model.maybe_load(self.env.initial_state(), do_init=True)
         self.update_actors_in = self.args.actor_update_from_learner_every_n

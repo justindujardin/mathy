@@ -72,7 +72,7 @@ class MathyActor(MPClass):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory(experience_queue=self.result_queue)
+        episode_memory = EpisodeMemory(exp_out=self.result_queue)
         while MathyActor.request_quit is False:
             try:
                 ctrl = self.command_queue.get_nowait()
@@ -253,7 +253,7 @@ class MathyActor(MPClass):
         )
         # Store experience frames now that we have finalized discounted
         # reward values.
-        episode_memory.commit_frames(discounted_rewards)
+        episode_memory.commit_frames(self.worker_idx, discounted_rewards)
         MathyActor.global_moving_average_reward = record(
             episode_reward,
             self.worker_idx,

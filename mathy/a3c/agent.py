@@ -43,12 +43,14 @@ class A3CAgent:
         self.global_model.maybe_load(
             env.initial_window(self.args.lstm_units), do_init=True
         )
+        self.optimizer.iterations = self.global_model.global_step
         self.experience = Experience(self.args.history_size, self.args.ready_at)
 
     def train(self):
 
         res_queue = Queue()
-        exp_queue = Queue()
+        exp_out_queue = Queue()
+        cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_workers)]
         worker_exploration_epsilons = np.linspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
         )
@@ -56,8 +58,8 @@ class A3CAgent:
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
-                experience=self.experience,
-                experience_queue=exp_queue,
+                exp_out=exp_out_queue,
+                cmd_queue=cmd_queues[i],
                 greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
                 teacher=self.teacher,
@@ -75,8 +77,15 @@ class A3CAgent:
         try:
             while True:
                 try:
-                    frame: ExperienceFrame = exp_queue.get_nowait()
-                    self.experience.add_frame(frame)
+                    # Share experience between workers
+
+                    index, frames = exp_out_queue.get_nowait()
+                    # It's lame, but post it back to the others.
+                    for i, q in enumerate(cmd_queues):
+                        # Don't post back to self
+                        if i == index:
+                            continue
+                        q.put(("experience", frames))
                 except BaseException:
                     pass
 

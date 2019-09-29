@@ -8,10 +8,10 @@ import tensorflow as tf
 from ..core.expressions import MathTypeKeys
 from ..features import pad_array
 from ..state import (
+    MathyBatchObservation,
     MathyEnvState,
     MathyObservation,
     MathyWindowObservation,
-    MathyBatchObservation,
     observations_to_window,
     windows_to_batch,
 )
@@ -27,8 +27,9 @@ class EpisodeMemory(object):
     frames: List[ExperienceFrame]
     grouping_changes: List[float]
 
-    def __init__(self, experience_queue: Optional[Queue] = None):
-        self.experience_queue = experience_queue
+    def __init__(self, experience: Experience, exp_out: Optional[Queue] = None):
+        self.experience = experience
+        self.exp_out = exp_out
         self.observations = []
         self.frames = []
         self.actions = []
@@ -68,11 +69,13 @@ class EpisodeMemory(object):
         self.frames.append(frame)
         self.grouping_changes.append(grouping_change)
 
-    def commit_frames(self, ground_truth_discounted_rewards: List[float]):
+    def commit_frames(
+        self, worker_index: int, ground_truth_discounted_rewards: List[float]
+    ):
         """Commit frames to the replay buffer when a terminal state is reached
         so that we have ground truth rewards rather than predictions for value
         replay """
-        if self.experience_queue is None:
+        if self.exp_out is None:
             raise ValueError(
                 "espisode memory was not given a queue to submit observations to"
             )
@@ -82,7 +85,10 @@ class EpisodeMemory(object):
         ), "discounted rewards must be for all frames"
         for frame, reward in zip(self.frames, ground_truth_discounted_rewards):
             frame.reward = reward
-            self.experience_queue.put(frame)
+        # share experience with other workers
+        self.exp_out.put((worker_index, self.frames))
+        for f in self.frames:
+            self.experience.add_frame(f)
         self.frames = []
 
     def clear(self):

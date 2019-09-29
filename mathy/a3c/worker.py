@@ -4,6 +4,7 @@ import threading
 import time
 from multiprocessing import Queue
 from typing import Any, Dict, List, Optional, Tuple
+import queue
 
 import gym
 import numpy as np
@@ -51,8 +52,8 @@ class A3CWorker(threading.Thread):
         optimizer,
         greedy_epsilon: float,
         result_queue: Queue,
-        experience_queue: Queue,
-        experience: Experience,
+        exp_out: Queue,
+        cmd_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -63,11 +64,13 @@ class A3CWorker(threading.Thread):
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
-        self.experience_queue = experience_queue
-        self.experience = experience
+        self.exp_out = exp_out
+        self.cmd_queue = cmd_queue
+        self.experience = Experience(
+            history_size=self.args.history_size, ready_at=self.args.ready_at
+        )
         self.global_model = global_model
         self.optimizer = optimizer
-        self.optimizer.iterations = self.global_model.global_step
         self.worker_idx = worker_idx
         self.teacher = teacher
         self.envs = {}
@@ -100,11 +103,21 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory(self.experience_queue)
+        episode_memory = EpisodeMemory(self.experience, self.exp_out)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
+            try:
+                ctrl, data = self.cmd_queue.get_nowait()
+                if ctrl == "experience":
+                    for frame in data:
+                        self.experience.add_frame(frame)
+                    # total = self.experience.frame_count
+                    # print(f"[#{self.worker_idx}] in({len(data)}) total({total})")
+            except queue.Empty:
+                pass
+
             reward = self.run_episode(episode_memory)
             win_pct = self.teacher.report_result(self.worker_idx, reward)
             if win_pct is not None:
@@ -511,7 +524,7 @@ class A3CWorker(threading.Thread):
             loss_tuple = self.compute_policy_value_loss(done, new_state, episode_memory)
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
-            episode_memory.commit_frames(discounted_rewards)
+            episode_memory.commit_frames(self.worker_idx, discounted_rewards)
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
                     done, new_state, episode_memory
