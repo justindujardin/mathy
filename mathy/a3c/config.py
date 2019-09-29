@@ -22,10 +22,10 @@ class A3CArgs(BaseModel):
     max_eps: int = 100000
     gamma: float = 0.99
 
-    entropy_loss_scaling = 0.5
+    entropy_loss_scaling = 1.0
 
     e_greedy_min = 0.001
-    e_greedy_max = 0.5
+    e_greedy_max = 0.3
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to

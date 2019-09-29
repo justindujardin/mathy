@@ -250,7 +250,7 @@ class A3CWorker(threading.Thread):
             # The greedy worker sleeps for a shorter period of time
             sleep = self.args.worker_wait
             if self.worker_idx == 0:
-                sleep = sleep // 100
+                sleep = max(sleep // 100, 0.05)
             # Workers wait between each step so that it's possible
             # to run more workers than there are CPUs available.
             time.sleep(sleep)
@@ -501,7 +501,7 @@ class A3CWorker(threading.Thread):
     def compute_value_replay_loss(self, done, new_state, episode_memory: EpisodeMemory):
         if not self.experience.is_full():
             return tf.constant(0.0)
-        sample_size = 6
+        sample_size = 32
         frames: List[ExperienceFrame] = self.experience.sample_sequence(sample_size)
         states = []
         discounted_rewards = []

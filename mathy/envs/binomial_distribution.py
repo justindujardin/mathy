@@ -64,6 +64,7 @@ class MathyBinomialDistributionEnv(MathyEnv):
                 powers_proability=0.8,
                 like_variables_probability=0.8,
             )
+            complexity += 2
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
