@@ -93,16 +93,16 @@ class MathyEmbedding(tf.keras.layers.Layer):
         max_depth = MathTypeKeysMax
         nodes = tf.convert_to_tensor(features.nodes)
         # Add context to nodes
-        extract_window = 3
+        extract_window = 6
         input = tf.reshape(nodes, shape=[1, batch_size, sequence_length, 1])
-        patches = tf.image.extract_patches(
+        input = tf.image.extract_patches(
             images=input,
             sizes=[1, 1, extract_window, 1],
             strides=[1, 1, 1, 1],
             rates=[1, 1, 1, 1],
             padding="SAME",
         )
-        nodes = tf.squeeze(patches, axis=0)
+        nodes = tf.squeeze(input, axis=0)
         batch_nodes = tf.one_hot(nodes, dtype=tf.float32, depth=max_depth)
 
         outputs = []
