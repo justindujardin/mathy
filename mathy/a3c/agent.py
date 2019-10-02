@@ -51,7 +51,7 @@ class A3CAgent:
         res_queue = Queue()
         exp_out_queue = Queue()
         cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_workers)]
-        worker_exploration_epsilons = np.linspace(
+        worker_exploration_epsilons = np.geomspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
         )
         workers = [
