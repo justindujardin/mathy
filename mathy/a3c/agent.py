@@ -7,7 +7,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from ..state import MathyEnvState
+from ..state import MathyEnvState, observations_to_window
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .worker import A3CWorker
@@ -100,7 +100,7 @@ class A3CAgent:
         [w.join() for w in workers]
         print("Done. Bye!")
 
-    def choose_action(self, env, state: MathyEnvState, greedy=False):
+    def choose_action(self, env, state: MathyEnvState, greedy=True):
         obs = state.to_input_features(env.action_space.mask, return_batch=True)
         if greedy is True:
             policy, value, masked_policy = self.global_model.call_masked(obs)
@@ -128,11 +128,10 @@ class A3CAgent:
                 reward_sum = 0
                 while not done:
                     env.render(mode="terminal")
-                    policy, value, probs = model.call_masked(state)
-                    action = np.random.choice(len(probs), p=probs)
-                    # NOTE: performance on greedy is terrible. Acting according
-                    #       to policy probs solves many more problems.
-                    # action = np.argmax(probs)
+                    policy, value, probs = model.call_masked(
+                        observations_to_window([state])
+                    )
+                    action = np.argmax(probs)
                     state, reward, done, _ = env.step(action)
                     reward_sum += reward
                     win = False
