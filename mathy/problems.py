@@ -62,10 +62,10 @@ def binomial_times_binomial(
     min_vars=1,
     max_vars=2,
     simple_variables=True,
-    powers_proability=0.33,
+    powers_probability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
-    power_prob_percent = powers_proability * 100
+    power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
 
@@ -108,10 +108,10 @@ def binomial_times_monomial(
     min_vars=1,
     max_vars=2,
     simple_variables=True,
-    powers_proability=0.33,
+    powers_probability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
-    power_prob_percent = powers_proability * 100
+    power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
 
@@ -165,11 +165,11 @@ def simplify_multiple_terms(
     op="+",
     common_variables=True,
     inner_terms_scaling=0.3,
-    powers_proability=0.33,
+    powers_probability=0.33,
     optional_var_probability=0.5,
     shuffle_probability=0.33,
 ) -> Tuple[str, int]:
-    power_prob_percent = powers_proability * 100
+    power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     num_like_terms = max(1, int(num_terms * inner_terms_scaling))
     term_templates = get_rand_vars(num_like_terms)
@@ -326,10 +326,10 @@ def get_blocker(num_blockers=1, exclude_vars=[]):
     return " + ".join(out_terms)
 
 
-def move_around_blockers_one(number_blockers: int, powers_proability: float = 0.5):
+def move_around_blockers_one(number_blockers: int, powers_probability: float = 0.5):
     # two like terms separated by (n) blocker terms, e.g. 2 ~ "4x + (y + f) + x"
     var = rand_var()
-    power_chance = powers_proability * 100
+    power_chance = powers_probability * 100
     exp = maybe_power(power_chance)
     complexity = 2 + number_blockers
     blockers = get_blocker(number_blockers, [var])
@@ -339,12 +339,12 @@ def move_around_blockers_one(number_blockers: int, powers_proability: float = 0.
     return problem, complexity
 
 
-def move_around_blockers_two(number_blockers: int, powers_proability: float = 0.5):
+def move_around_blockers_two(number_blockers: int, powers_probability: float = 0.5):
     # two like terms with three blockers: "7a + 4x + (2f + j) + x + 3d"
     rand_vars = get_rand_vars(3)
     [one_var, two_var, three_var] = rand_vars
     complexity = 4 + number_blockers
-    power_chance = powers_proability * 100
+    power_chance = powers_probability * 100
     one_exp = maybe_power(power_chance)
     two_exp = maybe_power(power_chance)
     three_exp = maybe_power(power_chance)
