@@ -3,7 +3,7 @@
 https://github.com/miyosuda/unreal/tree/master/train"""
 import unittest
 
-from ..experience import Experience, ExperienceFrame
+from ...r2d2.experience import Experience, ExperienceFrame
 
 
 class TestExperience(unittest.TestCase):

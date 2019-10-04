@@ -1,9 +1,10 @@
+from ..envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from ..features import (
     MathyBatchObservationFeatures,
-    MathyObservationFeatures,
     MathyBatchWindowObservationFeatures,
+    MathyObservationFeatures,
 )
-from ..state import MathyEnvState
+from ..state import MathyEnvState, rnn_placeholder_state
 
 
 def test_mathy_features_from_state():
@@ -11,3 +12,19 @@ def test_mathy_features_from_state():
 
     state.to_input_features(state.move_mask)
     state = MathyEnvState()
+
+
+def test_mathy_features_hierarchy():
+    """Verify that the observation generated encodes hierarchy properly
+    so the model can determine the precise nodes to act on"""
+
+    env = MathyPolynomialSimplificationEnv()
+    rnn_state = rnn_placeholder_state(128)
+
+    state_one = MathyEnvState(problem="4x + (3u + 7x + 3u) + 4u")
+    obs_one = state_one.to_observation(env.get_valid_moves(state_one), rnn_state)
+
+    state_two = MathyEnvState(problem="4x + 3u + 7x + 3u + 4u")
+    obs_two = state_two.to_observation(env.get_valid_moves(state_two), rnn_state)
+
+    assert obs_one.nodes != obs_two.nodes

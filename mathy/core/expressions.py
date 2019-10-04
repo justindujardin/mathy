@@ -147,11 +147,8 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return count
 
-    def toList(self, visit="inorder"):
-        """
-        Convert this node hierarchy into a list.
-        @returns {Array} Array of {@link MathExpression} visited in order
-        """
+    def toList(self, visit="preorder"):
+        """Convert this node hierarchy into a list."""
         results = []
 
         def visit_fn(node, depth, data):

@@ -1,6 +1,6 @@
 from ..state import MathyEnvState
 from ..mathy_env import MathyEnv
-from ..envs import MathyPolynomialSimplificationEnv
+from ..envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from ..util import is_terminal_transition
 import random
 import pytest

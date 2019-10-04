@@ -89,7 +89,7 @@ def is_add_or_sub(node):
 
 
 def get_sub_terms(node: MathExpression):
-    nodes = node.toList()
+    nodes = node.toList("inorder")
     terms = []
 
     def safe_pop():
