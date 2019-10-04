@@ -22,6 +22,7 @@ from ..state import (
     MathyObservation,
     MathyWindowObservation,
     observations_to_window,
+    windows_to_batch,
 )
 from ..teacher import Student, Teacher, Topic
 from ..util import GameRewards
@@ -66,8 +67,11 @@ class A3CWorker(threading.Thread):
         self.result_queue = result_queue
         self.exp_out = exp_out
         self.cmd_queue = cmd_queue
+        history_size = self.args.history_size
+        if worker_idx == 0:
+            history_size = self.args.greedy_history_size
         self.experience = Experience(
-            history_size=self.args.history_size, ready_at=self.args.ready_at
+            history_size=history_size, ready_at=self.args.ready_at
         )
         self.global_model = global_model
         self.optimizer = optimizer
@@ -85,8 +89,10 @@ class A3CWorker(threading.Thread):
         )
         self.reset_episode_loss()
 
+        e = truncate(self.greedy_epsilon)
+
         print(
-            f"[#{worker_idx}] epsilon: {self.greedy_epsilon} topics: {self.args.topics}"
+            f"[#{worker_idx}] e: {e} history: {history_size} topics: {self.args.topics}"
         )
 
     def reset_episode_loss(self):
@@ -364,6 +370,29 @@ class A3CWorker(threading.Thread):
                 A3CWorker.global_episode += 1
                 self.global_model.save()
 
+    def loss_normalize(self, loss, epsilon=1e-5):
+        """Loss normalization trick from Hvass Labs:
+        https://github.com/tensorflow/tensorflow/issues/6414#issuecomment-286118241
+        """
+        update_condition: bool = self.global_model.global_step.numpy() % 10 == 0
+        # Variable used for storing the scalar-value of the loss-function.
+        loss_value = tf.Variable(1.0)
+
+        # Expression used for either updating the scalar-value or
+        # just re-using the old value.
+        # Note that when loss_value.assign(loss) is evaluated, it
+        # first evaluates the loss-function which is a TensorFlow
+        # expression, and then assigns the resulting scalar-value to
+        # the loss_value variable.
+        loss_value_updated = tf.cond(
+            update_condition, lambda: loss_value.assign(loss), lambda: loss_value
+        )
+
+        # Expression for the normalized loss-function.
+        loss_normalized = loss / (loss_value_updated + epsilon)
+
+        return loss_normalized
+
     def compute_policy_value_loss(
         self,
         done: bool,
@@ -393,16 +422,21 @@ class A3CWorker(threading.Thread):
         )
 
         batch_size = len(episode_memory.actions)
+        sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window()
         logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
+
         logits = tf.reshape(logits, [batch_size, -1])
-        masked_flat = tf.reshape(trimmed_logits, [batch_size, -1])
+        policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
         h_loss = discrete_policy_entropy_loss(logits, normalise=True)
         # Scale entropy loss down
         entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
-        # pi_loss = discrete_policy_gradient_loss(logits, action_labels, reward_values)
+        entropy_loss = tf.reduce_mean(entropy_loss)
+        # action_values = [r.reward for r in episode_memory.frames]
+        # actions = tf.expand_dims(episode_memory.actions, axis=1)
+        # pi_loss = discrete_policy_gradient_loss(trimmed_logits, actions, action_values)
 
         # Advantage is the difference between the final calculated discount
         # rewards, and the current Value function prediction of the rewards
@@ -410,39 +444,33 @@ class A3CWorker(threading.Thread):
 
         # Value loss
         value_loss = advantage ** 2
+        value_loss = tf.reduce_mean(value_loss)
 
         # Policy Loss
 
-        # We calculate policy loss from the masked logits to keep
-        # the error from exploding when irrelevant (masked) logits
-        # have large values. Because we apply a mask for all operations
-        # we don't care what those logits are, unless they're part of
-        # the mask.
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=episode_memory.actions, logits=masked_flat
+            labels=episode_memory.actions, logits=policy_logits
         )
         policy_loss *= tf.stop_gradient(advantage)
+        policy_loss = tf.reduce_mean(policy_loss)
+        # Scale the policy loss down by the sequence length to avoid exploding losses
+        policy_loss /= sequence_length
 
-        value_loss *= 0.5
-        total_loss = tf.reduce_mean(value_loss + policy_loss + entropy_loss)
+        total_loss = value_loss * 0.5 + policy_loss + entropy_loss
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/losses/policy_loss",
-            data=tf.reduce_mean(policy_loss),
-            step=step,
+            f"worker_{self.worker_idx}/losses/policy_loss", data=policy_loss, step=step
         )
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/losses/value_loss",
-            data=tf.reduce_mean(value_loss),
-            step=step,
+            f"worker_{self.worker_idx}/losses/value_loss", data=value_loss, step=step
         )
         tf.summary.scalar(
             f"worker_{self.worker_idx}/losses/entropy_loss",
-            data=tf.reduce_mean(entropy_loss),
+            data=entropy_loss,
             step=step,
         )
         tf.summary.scalar(
             f"worker_{self.worker_idx}/advantage",
-            data=tf.reduce_sum(advantage),
+            data=tf.reduce_mean(advantage),
             step=step,
         )
         tf.summary.scalar(
@@ -451,13 +479,7 @@ class A3CWorker(threading.Thread):
             step=step,
         )
 
-        return (
-            tf.reduce_mean(policy_loss),
-            tf.reduce_mean(value_loss),
-            tf.reduce_mean(entropy_loss),
-            total_loss,
-            discounted_rewards,
-        )
+        return (policy_loss, value_loss, entropy_loss, total_loss, discounted_rewards)
 
     def compute_grouping_change_loss(
         self, done, new_state, episode_memory: EpisodeMemory, clip: bool = True
@@ -491,12 +513,17 @@ class A3CWorker(threading.Thread):
     ):
         if not self.experience.is_full():
             return tf.constant(0.0)
-        input, label = self.rp_samples()
-        rp_output = self.local_model.predict_next_reward(input)
-        rp_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=rp_output, labels=label
-        )
-        return tf.reduce_mean(tf.convert_to_tensor(rp_loss))
+        max_steps = 5
+        rp_losses = []
+        for i in range(max_steps):
+            input, label = self.rp_samples()
+            rp_output = self.local_model.predict_next_reward(input)
+            rp_losses.append(
+                tf.nn.sparse_softmax_cross_entropy_with_logits(
+                    logits=rp_output, labels=label
+                )
+            )
+        return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
 
     def compute_value_replay_loss(self, done, new_state, episode_memory: EpisodeMemory):
         if not self.experience.is_full():
@@ -524,7 +551,13 @@ class A3CWorker(threading.Thread):
             loss_tuple = self.compute_policy_value_loss(done, new_state, episode_memory)
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
-            episode_memory.commit_frames(self.worker_idx, discounted_rewards)
+            use_replay = self.args.use_reward_prediction or self.args.use_value_replay
+            # Skip over the experience replay buffers if not using Aux tasks because
+            # they add extra memory overhead to hold on to the frames.
+            if use_replay is True:
+                episode_memory.commit_frames(self.worker_idx, discounted_rewards)
+            aux_weight = 0.5
+
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
                     done, new_state, episode_memory
@@ -533,7 +566,6 @@ class A3CWorker(threading.Thread):
                 total_loss += gc_loss
                 aux_losses["gc"] = gc_loss
             if self.experience.is_full():
-                aux_weight = 0.2
                 if self.args.use_reward_prediction:
                     rp_loss = self.compute_reward_prediction_loss(
                         done, new_state, episode_memory

@@ -8,15 +8,9 @@ class ResNetStack(tf.keras.layers.Layer):
     def __init__(self, units=64, num_layers=2, share_weights=False, **kwargs):
         self.stack_height = num_layers
         self.in_dense = tf.keras.layers.Dense(units, use_bias=False, name="res_input")
-        self.dense_stack = [
-            ResNetBlock(name=f"res_block_0", units=units, use_shared=share_weights)
-        ]
+        self.dense_stack = [ResNetBlock(name=f"res_block_0", units=units)]
         for i in range(self.stack_height - 1):
-            self.dense_stack.append(
-                ResNetBlock(
-                    name=f"res_block_{i + 1}", units=units, use_shared=share_weights
-                )
-            )
+            self.dense_stack.append(ResNetBlock(name=f"res_block_{i + 1}", units=units))
         super(ResNetStack, self).__init__(**kwargs)
 
     def compute_output_shape(self, input_shape):

@@ -33,6 +33,8 @@ PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1
 GAME_MODE_OFFSET = 2
 
+PROBLEM_TYPE_HASH_BUCKETS = 128
+
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 TRAINING_SET_FILE_NAME = "training.jsonl"
 
@@ -141,7 +143,7 @@ def observations_to_window(
 
 
 def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
-    output = MathyBatchObservation([], [], [])
+    output = MathyBatchObservation([], [], [], [[], []])
     max_length = 0
     max_mask_length = 0
     for window in windows:
@@ -260,17 +262,17 @@ class MathyEnvState(object):
         agent.focus_index = focus_index
         return out_state
 
-    def problem_hash(self, one_hot: bool = True) -> ProblemTypeIntList:
-        max_problem_buckets = 128
+    def problem_hash(self, one_hot: bool = False) -> ProblemTypeIntList:
         problem_hash_one = tf.strings.to_hash_bucket_strong(
-            self.agent.problem_type, max_problem_buckets, [1337, 61059873]
+            self.agent.problem_type, PROBLEM_TYPE_HASH_BUCKETS, [1337, 61059873]
         )
         problem_hash_two = tf.strings.to_hash_bucket_strong(
-            self.agent.problem_type, max_problem_buckets, [7, -242315]
+            self.agent.problem_type, PROBLEM_TYPE_HASH_BUCKETS, [7, -242315]
         )
         if one_hot:
             hash_tensor = tf.one_hot(
-                indices=[problem_hash_one, problem_hash_two], depth=max_problem_buckets
+                indices=[problem_hash_one, problem_hash_two],
+                depth=PROBLEM_TYPE_HASH_BUCKETS,
             )
         else:
             hash_tensor = tf.convert_to_tensor([problem_hash_one, problem_hash_two])

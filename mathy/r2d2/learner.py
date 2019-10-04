@@ -352,7 +352,7 @@ class MathyLearner(MPClass):
     # Auxiliary tasks
 
     def rp_samples(self, max_samples=2) -> Tuple[MathyBatchObservation, List[float]]:
-        output: MathyBatchObservation = MathyBatchObservation([], [], [])
+        output: MathyBatchObservation = MathyBatchObservation([], [], [], [[], []])
         rewards: List[float] = []
         if self.experience.is_full() is False:
             return output, rewards

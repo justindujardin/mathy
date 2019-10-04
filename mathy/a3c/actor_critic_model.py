@@ -1,48 +1,41 @@
 import os
+import time
 from shutil import copyfile
 from typing import Any, Optional, Tuple
-import time
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
 from mathy.a3c.config import A3CArgs
-from ..state import MathyWindowObservation, MathyWindowObservation
+
 from ..agent.layers.bahdanau_attention import BahdanauAttention
-from ..agent.layers.lstm_stack import LSTMStack
-from .embedding import MathyEmbedding
 from ..agent.layers.math_policy_dropout import MathPolicyDropout
 from ..agent.layers.math_policy_resnet import MathPolicyResNet
+from ..agent.layers.resnet_block import ResNetBlock
+from ..state import MathyWindowObservation
+from .embedding import MathyEmbedding
 
 
 class PolicySequences(tf.keras.layers.Layer):
-    def __init__(self, num_predictions=2, dropout=0.1, random_seed=1337, **kwargs):
+    def __init__(self, num_predictions=2, **kwargs):
         super(PolicySequences, self).__init__(**kwargs)
-        self.value_dense = tf.keras.layers.Dense(
-            64, name="value_dense", kernel_initializer="he_uniform"
-        )
-        self.value_layer = tf.keras.layers.Dense(
-            1, name="value_logits", kernel_initializer="he_uniform"
-        )
+        self.policy_one = ResNetBlock(units=128, name="policy_resblock")
         self.num_predictions = num_predictions
-        self.logits = tf.keras.layers.Dense(
-            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
-        )
-        self.dropout = tf.keras.layers.Dropout(dropout, seed=random_seed)
+        self.normalize = tf.keras.layers.BatchNormalization()
+        self.logits = tf.keras.layers.Dense(num_predictions, name="pi_logits_dense")
 
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
     def call(self, input_tensor: tf.Tensor):
-        # NOTE: Apply dropout AFTER ALL batch norms. This works because
-        # the MathPolicy is right before the final Softmax output. If more
-        # layers with BatchNorm get inserted after this, the performance
-        # could worsen. Inspired by: https://arxiv.org/pdf/1801.05134.pdf
-        input_tensor = self.dropout(input_tensor)
-        input_tensor = self.logits(input_tensor)
-        policy_out = tf.keras.activations.relu(input_tensor, alpha=0.0001)
+        output = self.policy_one(input_tensor)
+        output = self.logits(output)
+        output = self.normalize(output)
+        return output
 
-        return policy_out
+
+# TODO: Consider gc as Q network, tf 2.0 basic impl here: https://rubikscode.net/2019/07/08/deep-q-learning-with-python-and-tensorflow-2-0/
 
 
 class ActorCriticModel(tf.keras.Model):
@@ -78,7 +71,6 @@ class ActorCriticModel(tf.keras.Model):
         self.policy_logits = TimeDistributed(
             PolicySequences(self.predictions), name="policy_value/policy_logits"
         )
-        self.attention = BahdanauAttention(self.args.units, "policy_value/attention")
 
     def build_reward_prediction(self):
         if self.args.use_reward_prediction is False:
@@ -93,14 +85,11 @@ class ActorCriticModel(tf.keras.Model):
     def build_value_replay(self):
         if self.args.use_value_replay is False:
             return
-        self.vr_flatten = tf.keras.layers.Flatten(name="value_replay/flatten")
-        self.vr_prepare_values = tf.keras.layers.Dense(
-            self.args.embedding_units, name="value_replay/prepare_values"
-        )
 
     def call(self, features_window: MathyWindowObservation, apply_mask=True):
-        # batch_size = len(features_window.nodes)
-        # start = time.time()
+        call_print = False
+        batch_size = len(features_window.nodes)
+        start = time.time()
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs, sequence_length = self.embedding(inputs)
@@ -110,12 +99,12 @@ class ActorCriticModel(tf.keras.Model):
             logits, features_window, sequence_length
         )
         mask_result = trimmed_logits if not apply_mask else mask_logits
-        # if batch_size > 1:
-        #     print(
-        #         "call took : {0:03f} for batch of {1:03}".format(
-        #             time.time() - start, batch_size
-        #         )
-        #     )
+        if call_print is True:
+            print(
+                "call took : {0:03f} for batch of {1:03}".format(
+                    time.time() - start, batch_size
+                )
+            )
         return logits, values, mask_result
 
     def apply_pi_mask(
@@ -123,7 +112,7 @@ class ActorCriticModel(tf.keras.Model):
     ):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves from
-        selection """
+        selection"""
 
         mask = tf.convert_to_tensor(features_window.mask, dtype=tf.float32)
         features_mask = tf.reshape(mask, (logits.shape[0], -1, self.predictions))
@@ -192,9 +181,6 @@ class ActorCriticModel(tf.keras.Model):
 
         # Pass the sequence inputs through the shared embedding network
         sequence_inputs, sequence_length = self.embedding(inputs)
-        # vr_in = self.vr_flatten(sequence_inputs)
-        # vr_in = self.vr_prepare_values(vr_in)
-        # vr_in = tf.expand_dims(vr_in, axis=0)
         values = self.value_logits(sequence_inputs)
         return values
 

@@ -62,7 +62,7 @@ MathTypeKeys = {
 
 
 # The maximum value in type keys (for one-hot encoding)
-MathTypeKeysMax = max(MathTypeKeys.values())
+MathTypeKeysMax = max(MathTypeKeys.values()) + 1
 
 
 class MathExpression(BinaryTreeNode):

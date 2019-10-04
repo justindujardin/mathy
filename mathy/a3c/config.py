@@ -15,14 +15,18 @@ class A3CArgs(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
-    history_size: int = 1024
+    # The history size for the greedy worker
+    greedy_history_size: int = 4096
+    # History size for exploratory workers
+    history_size: int = 2048
+    # Size at which it's okay to start sampling from the memory
     ready_at: int = 64
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 100000
     gamma: float = 0.99
 
-    entropy_loss_scaling = 0.25
+    entropy_loss_scaling = 1.0
 
     e_greedy_min = 0.001
     e_greedy_max = 0.3
@@ -39,10 +43,10 @@ class A3CArgs(BaseModel):
     profile: bool = False
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = True
+    use_reward_prediction = False
 
     # Whether to use the value replay aux task
-    use_value_replay = True
+    use_value_replay = False
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

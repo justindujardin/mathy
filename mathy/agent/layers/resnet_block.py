@@ -4,7 +4,7 @@ import tensorflow as tf
 class ResNetBlock(tf.keras.layers.Layer):
     """Dense layer with residual input/output addition to help with backpropagation"""
 
-    def __init__(self, units=128, num_layers=2, use_shared=False, **kwargs):
+    def __init__(self, units=128, **kwargs):
         super(ResNetBlock, self).__init__(**kwargs)
         self.activate = tf.keras.layers.Activation("relu", name="relu")
         self.normalize = tf.keras.layers.BatchNormalization()

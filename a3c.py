@@ -63,7 +63,7 @@ def main(
     workers: int = cpu_count(),
     units: int = 128,
     embedding_units: int = 512,
-    lstm_units: int = 128,
+    lstm_units: int = 64,
     difficulty: Optional[str] = None,
     profile: bool = False,
     evaluate: bool = False,
