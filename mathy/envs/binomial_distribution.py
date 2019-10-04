@@ -53,7 +53,7 @@ class MathyBinomialDistributionEnv(MathyEnv):
             text, complexity = binomial_times_binomial(
                 min_vars=2,
                 max_vars=2,
-                powers_proability=0.1,
+                powers_probability=0.1,
                 like_variables_probability=0.0,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
@@ -61,7 +61,7 @@ class MathyBinomialDistributionEnv(MathyEnv):
                 min_vars=2,
                 max_vars=3,
                 simple_variables=False,
-                powers_proability=0.8,
+                powers_probability=0.8,
                 like_variables_probability=0.8,
             )
             complexity += 2

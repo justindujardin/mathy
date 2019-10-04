@@ -37,7 +37,9 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         hard_block = rand_bool()
+        powers_probability = 0.5
         if params.difficulty == MathyEnvDifficulty.easy:
+            powers_probability = 0.1
             blockers = randint(1, 3)
             hard_blockers = 1
         elif params.difficulty == MathyEnvDifficulty.normal:
@@ -49,7 +51,9 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         if hard_block:
-            text, complexity = move_around_blockers_two(hard_blockers)
+            text, complexity = move_around_blockers_two(
+                hard_blockers, powers_probability=powers_probability
+            )
         else:
-            text, complexity = move_around_blockers_one(blockers)
+            text, complexity = move_around_blockers_one(blockers, powers_probability)
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)

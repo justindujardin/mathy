@@ -1,3 +1,0 @@
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
-from .binomial_distribution import MathyBinomialDistributionEnv
-from .complex_term_simplification import MathyComplexTermSimplificationEnv

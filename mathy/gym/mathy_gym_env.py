@@ -59,34 +59,6 @@ class MathyGymEnv(gym.Env):
         self.problem = None
         self.vectors_shape = (max_nodes, vector_width)
         self.action_space = MaskedDiscrete(max_actions, [1] * max_actions)
-        self.observation_space = spaces.Dict(
-            {
-                FEATURE_LAST_RULE: spaces.Box(
-                    low=0, high=max_actions, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_NODE_COUNT: spaces.Box(
-                    low=0, high=max_nodes, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_PROBLEM_TYPE: spaces.Box(
-                    low=0, high=max_problem_types, shape=(1,), dtype=np.int16
-                ),
-                FEATURE_FWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_BWD_VECTORS: spaces.Box(
-                    low=0,
-                    high=MathTypeKeysMax,
-                    shape=self.vectors_shape,
-                    dtype=np.int16,
-                ),
-                FEATURE_MOVE_MASK: spaces.Box(
-                    low=0, high=1, shape=(2, 2), dtype=np.int16
-                ),
-            }
-        )
 
     @property
     def action_size(self) -> int:
