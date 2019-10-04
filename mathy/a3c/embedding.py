@@ -101,21 +101,37 @@ class MathyEmbedding(tf.keras.layers.Layer):
         sequence_length = len(features.nodes[0])
         type = tf.convert_to_tensor(features.type)
         nodes = tf.convert_to_tensor(features.nodes)
-        query = self.token_embedding(tf.concat([type, nodes], axis=1))
-        value = self.mask_embedding(tf.convert_to_tensor(features.mask))
+
+        #
+        # Contextualize nodes by expanding their integers to include (n) neighbors
+        #
+        extract_window = 4
+        # reshape to 4 dimensions so we can use `extract_patches`
+        input = tf.reshape(nodes, shape=[1, batch_size, sequence_length, 1])
+        input = tf.image.extract_patches(
+            images=input,
+            sizes=[1, 1, extract_window, 1],
+            strides=[1, 1, 1, 1],
+            rates=[1, 1, 1, 1],
+            padding="SAME",
+        )
+        # Remove the extra dimensions
+        input = tf.squeeze(input, axis=0)
+        # Reshape the "type" information and combine it with each node in the
+        # sequence so the nodes have context for the current task
+        type_with_batch = type[:, tf.newaxis, :]
+        # Repeat the type values for each node in the sequence
+        type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
+        # Concatenate them yielding nodes with length [seq + extract_len + type_len]
+        query = tf.concat([type_tiled, input], axis=2)
+
+        # Embed the contextual nodes
+        query = self.token_embedding(query)
+        query = tf.reshape(query, [batch_size, sequence_length, -1])
         query = self.resnet(query)
-        # # Add context to nodes
-        # extract_window = 3
-        # input = tf.reshape(nodes, shape=[1, batch_size, sequence_length, 1])
-        # input = tf.image.extract_patches(
-        #     images=input,
-        #     sizes=[1, 1, extract_window, 1],
-        #     strides=[1, 1, 1, 1],
-        #     rates=[1, 1, 1, 1],
-        #     padding="SAME",
-        # )
-        # input = tf.squeeze(input, axis=0)
-        # value = self.token_embedding(tf.reverse(nodes, [1]))
+
+        # Embed the valid move mask for the attention layer
+        value = self.mask_embedding(tf.convert_to_tensor(features.mask))
 
         # Add context to each timesteps node vectors first
         in_state_h = tf.concat(features.rnn_state[0], axis=0)
@@ -128,22 +144,11 @@ class MathyEmbedding(tf.keras.layers.Layer):
             query, initial_state=[state_h, state_c]
         )
 
-        # Reshape to [Time/Batch, 1, sequence * self.lstm_units]
-        # time_in = self.time_compress(query)
-
-        # + 2 is for the contatenated type information
-        # context_vec_length = sequence_length + 2
-        # time_in = tf.reshape(
-        #     query, [batch_size, 1, context_vec_length * self.lstm_units]
-        # )
-        # time_in = self.time_compress(time_in)
-
-        state_h = tf.tile(state_h[-1:], [sequence_length + 2, 1])
-        state_c = tf.tile(state_c[-1:], [sequence_length + 2, 1])
+        state_h = tf.tile(state_h[-1:], [sequence_length, 1])
+        state_c = tf.tile(state_c[-1:], [sequence_length, 1])
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
-        # time_out = self.time_expand(time_out, sequence_length)
         time_out = self.attention([time_out, value])
 
         self.state_h.assign(state_h[-1:])
