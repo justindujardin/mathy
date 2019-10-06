@@ -95,6 +95,20 @@ class ActorCriticModel(tf.keras.Model):
         sequence_inputs, sequence_length = self.embedding(inputs)
         values = self.value_logits(tf.reduce_mean(sequence_inputs, axis=1))
         logits = self.policy_logits(sequence_inputs)
+        # NOTE: Use tanh to constrain logits values before masking
+        #
+        # This keeps gradients from gradually pushing logits to extremes
+        # and keeps policy loss magnitudes roughly equal to the loss values
+        # from auxiliary tasks. In this way no task totally washes out the
+        # loss of another.
+        #
+        # Practically I have observed this is critical for model stability
+        # in cases where you overtrain a task. Without it the a3c agent
+        # will get to a really nice reward average and then slowly diverge
+        # as the model overfits the logits to large values. In extreme cases
+        # this can lead to values that don't mask properly with our large
+        # negative value.
+        logits = tf.keras.activations.tanh(logits)
         trimmed_logits, mask_logits = self.apply_pi_mask(
             logits, features_window, sequence_length
         )
