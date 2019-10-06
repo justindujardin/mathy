@@ -5,6 +5,7 @@ from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
+from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import combine_terms_in_place, commute_haystack, rand_bool
 from ..rules import (
@@ -13,8 +14,7 @@ from ..rules import (
     CommutativeSwapRule,
     DistributiveFactorOutRule,
 )
-from ..rules.helpers import TermEx, get_term_ex, get_terms
-from ..state import MathyEnvState
+from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
 
@@ -33,7 +33,10 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         self.rule = DistributiveFactorOutRule()
 
     def transition_fn(
-        self, env_state: MathyEnvState, expression: MathExpression, features: Any
+        self,
+        env_state: MathyEnvState,
+        expression: MathExpression,
+        features: MathyObservation,
     ) -> Optional[time_step.TimeStep]:
         """If the expression has any nodes that the DistributiveFactorOut rule
         can be applied to, the problem is solved. """
@@ -60,8 +63,8 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
             easy = False
             text, _ = commute_haystack(
                 commute_blockers=blockers,
-                min_terms=5,
-                max_terms=10,
+                min_terms=3,
+                max_terms=5,
                 easy=easy,
                 powers=powers,
             )

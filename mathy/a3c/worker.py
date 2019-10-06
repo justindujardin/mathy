@@ -186,6 +186,7 @@ class A3CWorker(threading.Thread):
             last_state = MathyObservation(
                 nodes=last_state.nodes,
                 mask=last_state.mask,
+                hints=last_state.hints,
                 type=last_state.type,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
@@ -214,6 +215,7 @@ class A3CWorker(threading.Thread):
             new_state = MathyObservation(
                 nodes=new_state.nodes,
                 mask=new_state.mask,
+                hints=new_state.hints,
                 type=new_state.type,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
@@ -482,7 +484,9 @@ class A3CWorker(threading.Thread):
         return loss
 
     def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, float]:
-        output = MathyWindowObservation([], [], [], [])
+        output = MathyWindowObservation(
+            nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+        )
         reward: float = 0.0
         if self.experience.is_full() is False:
             return output, reward

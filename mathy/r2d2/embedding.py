@@ -15,7 +15,7 @@ from ..features import (
 )
 from ..agent.layers.bahdanau_attention import BahdanauAttention
 from ..agent.layers.resnet_stack import ResNetStack
-from ..state import MathyBatchObservation, MathyWindowObservation, MathyObservation
+from ..state import MathyBatchObservation, MathyObservation
 
 
 class MathyEmbedding(tf.keras.layers.Layer):

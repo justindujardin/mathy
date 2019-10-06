@@ -6,6 +6,7 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy
 import tensorflow as tf
 
+from .helpers import get_term_ex, get_terms
 from .core.expressions import MathExpression, MathTypeKeys, MathTypeKeysMax
 from .core.parser import ExpressionParser
 from .core.tokenizer import TokenEOF
@@ -39,17 +40,20 @@ INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 TRAINING_SET_FILE_NAME = "training.jsonl"
 
 NodeIntList = List[int]
+NodeHintMaskIntList = List[int]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
 RNNStatesFloatList = List[List[List[float]]]
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
+WindowNodeHintMaskIntList = List[NodeHintMaskIntList]
 WindowProblemTypeIntList = List[ProblemTypeIntList]
 WindowRNNStatesFloatList = List[RNNStatesFloatList]
 
 BatchNodeIntList = List[WindowNodeIntList]
 BatchNodeMaskIntList = List[WindowNodeMaskIntList]
+BatchNodeHintMaskIntList = List[WindowNodeHintMaskIntList]
 BatchProblemTypeIntList = List[WindowProblemTypeIntList]
 BatchRNNStatesFloatList = List[WindowRNNStatesFloatList]
 
@@ -58,12 +62,14 @@ class MathyObservation(NamedTuple):
     """A featurized observation from an environment state.
     - "nodes" tree nodes in the current environment state shape=[n,]
     - "mask" 0/1 mask where 0 indicates an invalid action shape=[n,]
+    - "hints" 0/1 mask where 1 indicates a useful node for the environment shape=[n,]
     - "type" two column hash of problem environment type shape=[2,]
     - "rnn_state" n-step rnn state paris shape=[2*dimensions]
     """
 
     nodes: NodeIntList
     mask: NodeMaskIntList
+    hints: NodeHintMaskIntList
     type: ProblemTypeIntList
     rnn_state: RNNStatesFloatList
 
@@ -72,12 +78,15 @@ class MathyWindowObservation(NamedTuple):
     """A featurized observation from an n-step sequence of environment states.
     - "nodes" n-step list of node sequences shape=[n, max(len(s))]
     - "mask" n-step list of node sequence masks shape=[n, max(len(s))]
+    - "hints" 0/1 mask where 1 indicates a useful node for the environment
+       of shape=[n, max(len(s))]
     - "type" n-step problem type hash shape=[n, 2]
     - "rnn_state" n-step rnn state paris shape=[n, 2*dimensions]
     """
 
     nodes: WindowNodeIntList
     mask: WindowNodeMaskIntList
+    hints: WindowNodeHintMaskIntList
     type: WindowProblemTypeIntList
     rnn_state: WindowRNNStatesFloatList
 
@@ -87,12 +96,14 @@ class MathyBatchObservation(NamedTuple):
 
     - "nodes" Batch of n-step node sequences shape=[b, n, max(len(s))]
     - "mask" Batch of n-step node sequence masks shape=[b, n, max(len(s))]
+    - "hints" Batch of n-step node sequence hint masks of shape=[n, max(len(s))]
     - "type" Batch of n-step problem hashes shape=[b, n, max(len(s))]
     - "rnn_state" Batch of n-step rnn state pairs shape=[b, n, 2*dimensions]
     """
 
     nodes: BatchNodeIntList
     mask: BatchNodeMaskIntList
+    hints: BatchNodeHintMaskIntList
     type: BatchProblemTypeIntList
     rnn_state: BatchRNNStatesFloatList
 
@@ -129,7 +140,9 @@ def rnn_placeholder_states(rnn_size: int, num_states: int) -> WindowRNNStatesFlo
 def observations_to_window(
     observations: List[MathyObservation]
 ) -> MathyWindowObservation:
-    output = MathyWindowObservation([], [], [], [[], []])
+    output = MathyWindowObservation(
+        nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+    )
     max_length: int = max([len(o.nodes) for o in observations])
     max_mask_length: int = max([len(o.mask) for o in observations])
 
@@ -143,7 +156,9 @@ def observations_to_window(
 
 
 def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
-    output = MathyBatchObservation([], [], [], [[], []])
+    output = MathyBatchObservation(
+        nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+    )
     max_length = 0
     max_mask_length = 0
     for window in windows:
@@ -284,16 +299,35 @@ class MathyEnvState(object):
         if hash is None:
             hash = self.problem_hash()
         mask = [0] * num_actions
+        hints = [0] * num_actions
         return MathyObservation(
-            [MathTypeKeys["empty"]], mask, hash, rnn_placeholder_state(rnn_size)
+            nodes=[MathTypeKeys["empty"]],
+            mask=mask,
+            hints=hints,
+            type=hash,
+            rnn_state=rnn_placeholder_state(rnn_size),
         )
 
     def to_observation(
-        self, move_mask: NodeMaskIntList, rnn_state: RNNStatesFloatList
+        self,
+        move_mask: NodeMaskIntList,
+        hint_mask: Optional[NodeHintMaskIntList] = None,
+        rnn_state: Optional[RNNStatesFloatList] = None,
     ) -> MathyObservation:
+        if hint_mask is None:
+            hint_mask = move_mask
+        if rnn_state is None:
+            rnn_state = rnn_placeholder_state(128)
         expression = self.parser.parse(self.agent.problem)
-        vectors: NodeIntList = [t.type_id for t in expression.toList()]
-        return MathyObservation(vectors, move_mask, self.problem_hash(), rnn_state)
+        nodes: List[MathExpression] = expression.toList()
+        vectors: NodeIntList = [t.type_id for t in nodes]
+        return MathyObservation(
+            nodes=vectors,
+            mask=move_mask,
+            hints=[],
+            type=self.problem_hash(),
+            rnn_state=rnn_state,
+        )
 
     def to_empty_window(self, samples: int, rnn_size: int) -> MathyWindowObservation:
         """Generate an empty window of observations that can be passed
@@ -308,44 +342,3 @@ class MathyEnvState(object):
         """Generate an empty batch of observations that can be passed
         through the model """
         return windows_to_batch([self.to_empty_window(window_size, rnn_size)])
-
-    def to_input_features(self, move_mask: NodeMaskIntList, return_batch=False):
-        """Output Dict of integer features that can be fed to the
-        neural network for prediction.
-
-        When return_batch is true, the outputs will have an array of features for each
-        so the result can be directly passed to the predictor.
-        """
-        expression = self.parser.parse(self.agent.problem)
-        # Generate context vectors for the current state's expression tree
-        vectors = [[t.type_id] for t in expression.toList()]
-        # # Start each sequence with the start token
-        # vectors.insert(0, [TokenTypeSequenceStart])
-        # # End it with a specific end token
-        # vectors.append([TokenTypeSequenceEnd])
-
-        # Encode the last action
-        last_action = -1
-        if len(self.agent.history) >= 1:
-            last_action = self.agent.history[-1].action
-
-        # After padding is done, generate reversed vectors for the bilstm
-        vectors_reversed = vectors[:]
-        vectors_reversed.reverse()
-
-        def maybe_wrap(value):
-            nonlocal return_batch
-            return [value] if return_batch else value
-
-        return {
-            FEATURE_MOVES_REMAINING: maybe_wrap(self.agent.moves_remaining),
-            FEATURE_MOVE_COUNTER: maybe_wrap(
-                int(self.max_moves - self.agent.moves_remaining)
-            ),
-            FEATURE_LAST_RULE: maybe_wrap(last_action),
-            FEATURE_NODE_COUNT: maybe_wrap(len(expression.toList())),
-            FEATURE_PROBLEM_TYPE: maybe_wrap(self.problem_hash()),
-            FEATURE_FWD_VECTORS: maybe_wrap(vectors),
-            FEATURE_BWD_VECTORS: maybe_wrap(vectors_reversed),
-            FEATURE_MOVE_MASK: maybe_wrap(move_mask),
-        }

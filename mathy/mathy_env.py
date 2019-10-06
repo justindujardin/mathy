@@ -1,9 +1,16 @@
 from itertools import groupby
-from typing import Optional, List, Type, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
+
 from tf_agents.trajectories import time_step
-from .types import MathyEnvProblem, MathyEnvProblemArgs
+
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
+from .features import (
+    MathyBatchObservationFeatures,
+    MathyBatchWindowObservationFeatures,
+    MathyObservationFeatures,
+)
+from .helpers import TermEx, get_term_ex, get_terms
 from .rules import (
     AssociativeSwapRule,
     BaseRule,
@@ -11,16 +18,12 @@ from .rules import (
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
-    VariableMultiplyRule,
     ExpressionChangeRule,
+    VariableMultiplyRule,
 )
-from .state import MathyEnvTimeStep, MathyEnvState
+from .state import MathyEnvState, MathyEnvTimeStep, MathyObservation
+from .types import MathyEnvProblem, MathyEnvProblemArgs
 from .util import GameRewards
-from .features import (
-    MathyObservationFeatures,
-    MathyBatchObservationFeatures,
-    MathyBatchWindowObservationFeatures,
-)
 
 
 def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
@@ -95,7 +98,10 @@ class MathyEnv:
         return problem.complexity * 3
 
     def transition_fn(
-        self, env_state: MathyEnvState, expression: MathExpression, features: Any
+        self,
+        env_state: MathyEnvState,
+        expression: MathExpression,
+        features: MathyObservation,
     ) -> Optional[time_step.TimeStep]:
         """Provide environment-specific transitions per timestep."""
         return None
@@ -138,7 +144,7 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        features = env_state.to_input_features(self.get_valid_moves(env_state))
+        features = env_state.to_observation(self.get_valid_moves(env_state))
         root = expression.get_root()
 
         # Subclass specific win conditions happen here. Custom win-conditions
@@ -324,6 +330,33 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
+        return self.get_actions_for_node(expression)
+
+    def get_hint_mask(self, env_state: MathyEnvState) -> List[int]:
+        agent = env_state.agent
+        expression = self.parser.parse(agent.problem)
+
+        term_nodes = get_terms(expression)
+        already_seen: set = set()
+        current_term = ""
+        # Iterate over each term in order and build a unique key to identify its
+        # term likeness. For this we drop the coefficient from the term and use
+        # only its variable/exponent to build keys.
+        for term in term_nodes:
+            ex: Optional[TermEx] = get_term_ex(term)
+            if ex is None:
+                raise ValueError("should this happen?")
+            key = f"{ex.variable}{ex.exponent}"
+            # If the key is in the "already seen and moved on" list then we've failed
+            # to meet the completion criteria. e.g. the final x in "4x + 2y + x"
+            if key in already_seen:
+                return None
+            if key != current_term:
+                already_seen.add(current_term)
+                current_term = key
+
+            pass
+
         return self.get_actions_for_node(expression)
 
     def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:

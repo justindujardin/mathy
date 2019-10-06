@@ -5,7 +5,7 @@ from ..core.expressions import (
     VariableExpression,
 )
 from .rule import BaseRule
-from .helpers import unlink
+from ..helpers import unlink
 
 
 class DistributiveMultiplyRule(BaseRule):

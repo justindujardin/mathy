@@ -175,7 +175,7 @@ class MathExpression(BinaryTreeNode):
 
     def findByType(self, instanceType):
         """Find an expression in this tree by type.
-        
+
         @param {Function} instanceType The type to check for instances of
         @returns {Array} Array of {@link MathExpression} that are of the given type.
         """

@@ -5,7 +5,7 @@ from typing import Dict, List, NamedTuple, Optional, Union
 
 import numpy
 
-from ..core.expressions import (
+from .core.expressions import (
     AddExpression,
     BinaryExpression,
     ConstantExpression,
@@ -17,7 +17,7 @@ from ..core.expressions import (
     SubtractExpression,
     VariableExpression,
 )
-from ..core.tree import LEFT
+from .core.tree import LEFT
 
 
 def is_debug_mode():

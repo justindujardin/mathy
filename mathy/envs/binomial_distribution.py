@@ -4,17 +4,17 @@ from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
+from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..state import MathyEnvState
+from ..problems import binomial_times_binomial, binomial_times_monomial
 from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..rules.helpers import get_terms, has_like_terms, is_preferred_term_form
-from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
-from ..problems import binomial_times_binomial, binomial_times_monomial
+from ..state import MathyEnvState, MathyObservation
+from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 
 
 class MathyBinomialDistributionEnv(MathyEnv):
@@ -36,7 +36,10 @@ class MathyBinomialDistributionEnv(MathyEnv):
         return [ConstantsSimplifyRule, DistributiveMultiplyRule, VariableMultiplyRule]
 
     def transition_fn(
-        self, env_state: MathyEnvState, expression: MathExpression, features: Any
+        self,
+        env_state: MathyEnvState,
+        expression: MathExpression,
+        features: MathyObservation,
     ) -> Optional[time_step.TimeStep]:
         """If there are no like terms."""
         if not has_like_terms(expression):

@@ -95,6 +95,7 @@ class MathyGymEnv(gym.Env):
         """Observe the environment at the given state, updating the observation
         space and action space for the given state."""
         action_mask = self.mathy.get_valid_moves(state)
+        hint_mask = self.mathy.get_hint_mask(state)
         # TODO: HACCCCCKS need to pass RNN state size here? Or verify that this
         # placeholder state is ALWAYS replaced with an appropriately sized buffer
         observation = state.to_observation(action_mask, rnn_placeholder_state(128))

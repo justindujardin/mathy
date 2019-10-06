@@ -5,11 +5,11 @@ from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
+from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..state import MathyEnvState
 from ..problems import commute_haystack
 from ..rules import AssociativeSwapRule, BaseRule, CommutativeSwapRule
-from ..rules.helpers import TermEx, get_term_ex, get_terms
+from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 
 
@@ -32,7 +32,10 @@ class MathyPolynomialGroupingEnv(MathyEnv):
         return problem.complexity * 2
 
     def transition_fn(
-        self, env_state: MathyEnvState, expression: MathExpression, features: Any
+        self,
+        env_state: MathyEnvState,
+        expression: MathExpression,
+        features: MathyObservation,
     ) -> Optional[time_step.TimeStep]:
         """If all like terms are siblings."""
         term_nodes = get_terms(expression)
