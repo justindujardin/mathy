@@ -88,6 +88,7 @@ class A3CWorker(threading.Thread):
             self.envs[first_env].initial_window(self.args.lstm_units)
         )
         self.reset_episode_loss()
+        self.last_histogram_write = -1
 
         e = truncate(self.greedy_epsilon)
 
@@ -233,16 +234,9 @@ class A3CWorker(threading.Thread):
             episode_memory.store(
                 last_state, action, reward, value, grouping_change, frame
             )
-
-            # self.experience.add_frame(frame)
-            self.maybe_write_histograms()
-
-            # If the agent has enough experience, train aux tasks
-            # if self.experience.is_full() is True:
-            #     print("yay")
-
             if time_count == self.args.update_freq or done:
                 self.update_global_network(done, new_state, episode_memory)
+                self.maybe_write_histograms()
                 time_count = 0
                 if done:
                     self.finish_episode(ep_reward, ep_steps, env.state)
@@ -280,26 +274,22 @@ class A3CWorker(threading.Thread):
             out_text = f"{outcome} [steps: {steps}, reward: {rwd}]: {p_text}"
             tf.summary.text(f"{name}/summary", data=out_text, step=step)
 
-            if self.worker_idx == 0:
-                # Track global model metrics
-                tf.summary.scalar(
-                    f"rewards/mean_episode_reward",
-                    data=A3CWorker.global_moving_average_reward,
-                    step=step,
-                )
+            # Track global model metrics
+            tf.summary.scalar(
+                f"rewards/mean_episode_reward",
+                data=A3CWorker.global_moving_average_reward,
+                step=step,
+            )
 
     def maybe_write_histograms(self):
         if self.worker_idx != 0:
             return
-        # The global step is incremented when the optimizer is applied, so check
-        # and print summary data here.
-        summary_interval = 100
-        with self.writer.as_default():
-            with tf.summary.record_if(
-                lambda: tf.math.equal(
-                    self.global_model.global_step % summary_interval, 0
-                )
-            ):
+        step = self.global_model.global_step.numpy()
+        summary_interval = 50
+        next_write = self.last_histogram_write + summary_interval
+        if step >= next_write or self.last_histogram_write == -1:
+            with self.writer.as_default():
+                self.last_histogram_write = step
                 for var in self.local_model.trainable_variables:
                     tf.summary.histogram(
                         var.name, var, step=self.global_model.global_step
