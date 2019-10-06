@@ -333,31 +333,29 @@ class MathyEnv:
         return self.get_actions_for_node(expression)
 
     def get_hint_mask(self, env_state: MathyEnvState) -> List[int]:
+        """Return a 0/1 mask of shape [len(actions) * len(nodes_in_expr)] that
+        indicates nodes in the expression that the model should be hinted at
+        may be salient to act on given the current task.
+
+        The default implementation marks all the rules in any "term" node as
+        possibly salient. A separate embedding is learned from this mask, and
+        that embedding is used to attend to the input sequence.
+        """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-
-        term_nodes = get_terms(expression)
-        already_seen: set = set()
-        current_term = ""
-        # Iterate over each term in order and build a unique key to identify its
-        # term likeness. For this we drop the coefficient from the term and use
-        # only its variable/exponent to build keys.
-        for term in term_nodes:
-            ex: Optional[TermEx] = get_term_ex(term)
-            if ex is None:
-                raise ValueError("should this happen?")
-            key = f"{ex.variable}{ex.exponent}"
-            # If the key is in the "already seen and moved on" list then we've failed
-            # to meet the completion criteria. e.g. the final x in "4x + 2y + x"
-            if key in already_seen:
-                return None
-            if key != current_term:
-                already_seen.add(current_term)
-                current_term = key
-
-            pass
-
-        return self.get_actions_for_node(expression)
+        node_list: List[MathExpression] = expression.toList()
+        node_count = len(node_list)
+        rule_count = len(self.actions)
+        hints = [0] * rule_count * node_count
+        for index, node in enumerate(node_list):
+            term: Optional[TermEx] = get_term_ex(node)
+            if term is None:
+                continue
+            # The move mask indicates valid node/rule combinations
+            # for the hints we mark all rules on any term node
+            for i in range(rule_count):
+                hints[(index * rule_count) + i] = 1
+        return hints
 
     def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:
         """Get a vector the length of the number of valid rules that is

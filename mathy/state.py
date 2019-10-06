@@ -145,10 +145,12 @@ def observations_to_window(
     )
     max_length: int = max([len(o.nodes) for o in observations])
     max_mask_length: int = max([len(o.mask) for o in observations])
+    max_hints_length: int = max([len(o.hints) for o in observations])
 
     for obs in observations:
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
+        output.hints.append(pad_array(obs.hints, max_hints_length, 0))
         output.type.append(obs.type)
         output.rnn_state[0].append(obs.rnn_state[0])
         output.rnn_state[1].append(obs.rnn_state[1])
@@ -161,11 +163,14 @@ def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObserva
     )
     max_length = 0
     max_mask_length = 0
+    max_hints_length = 0
     for window in windows:
         window_max = max([len(ts) for ts in window.nodes])
         window_mask_max = max([len(ts) for ts in window.mask])
+        window_hints_max = max([len(ts) for ts in window.hints])
         max_length = max([max_length, window_max])
         max_mask_length = max([max_mask_length, window_mask_max])
+        max_hints_length = max([max_hints_length, window_hints_max])
 
     for window in windows:
         window_nodes = []
@@ -174,8 +179,12 @@ def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObserva
         window_mask = []
         for mask in window.mask:
             window_mask.append(pad_array(mask, max_mask_length, 0))
+        hints_mask = []
+        for mask in window.hints:
+            hints_mask.append(pad_array(mask, max_hints_length, 0))
         output.nodes.append(window_nodes)
         output.mask.append(window_mask)
+        output.hints.append(hints_mask)
         output.type.append(window.type)
     return output
 
@@ -324,7 +333,7 @@ class MathyEnvState(object):
         return MathyObservation(
             nodes=vectors,
             mask=move_mask,
-            hints=[],
+            hints=hint_mask,
             type=self.problem_hash(),
             rnn_state=rnn_state,
         )

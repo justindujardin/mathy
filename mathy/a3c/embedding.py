@@ -45,6 +45,12 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="mask_embedding",
             mask_zero=False,
         )
+        self.hints_embedding = tf.keras.layers.Embedding(
+            input_dim=2,
+            output_dim=self.lstm_units,
+            name="hints_embedding",
+            mask_zero=False,
+        )
         self.attention = tf.keras.layers.AdditiveAttention(name="attention")
         self.flatten = tf.keras.layers.Flatten(name="flatten")
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
@@ -128,6 +134,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
 
         # Embed the valid move mask for the attention layer
         value = self.mask_embedding(tf.convert_to_tensor(features.mask))
+        key = self.hints_embedding(tf.convert_to_tensor(features.hints))
 
         # Add context to each timesteps node vectors first
         in_state_h = tf.concat(features.rnn_state[0], axis=0)
@@ -141,7 +148,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
-        time_out = self.attention([time_out, value])
+        time_out = self.attention([time_out, value, key])
 
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
