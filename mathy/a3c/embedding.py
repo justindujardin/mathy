@@ -48,10 +48,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.attention = tf.keras.layers.AdditiveAttention(name="attention")
         self.flatten = tf.keras.layers.Flatten(name="flatten")
         self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
-        self.input_dense = tf.keras.layers.Dense(
-            self.units, name="embedding_input", use_bias=False
+        self.resnet = ResNetStack(
+            units=units // 12, name="embedding_resnet", num_layers=12
         )
-        self.resnet = ResNetStack(units=units, name="embedding_resnet", num_layers=3)
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -64,14 +63,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="nodes_lstm",
             return_sequences=True,
             time_major=False,
-            return_state=True,
-        )
-        self.nodes_lstm_bwd = tf.keras.layers.LSTM(
-            self.lstm_units,
-            name="nodes_lstm_bwd",
-            return_sequences=True,
-            time_major=False,
-            go_backwards=True,
             return_state=True,
         )
         self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
@@ -105,10 +96,10 @@ class MathyEmbedding(tf.keras.layers.Layer):
         #
         # Contextualize nodes by expanding their integers to include (n) neighbors
         #
-        extract_window = 4
+        extract_window = 6
         # reshape to 4 dimensions so we can use `extract_patches`
         input = tf.reshape(nodes, shape=[1, batch_size, sequence_length, 1])
-        input = tf.image.extract_patches(
+        input_one = tf.image.extract_patches(
             images=input,
             sizes=[1, 1, extract_window, 1],
             strides=[1, 1, 1, 1],
@@ -116,11 +107,16 @@ class MathyEmbedding(tf.keras.layers.Layer):
             padding="SAME",
         )
         # Remove the extra dimensions
-        input = tf.squeeze(input, axis=0)
+        input = tf.squeeze(input_one, axis=0)
+
         # Reshape the "type" information and combine it with each node in the
         # sequence so the nodes have context for the current task
+        #
+        # [Batch, len(Type)] => [Batch, 1, len(Type)]
         type_with_batch = type[:, tf.newaxis, :]
         # Repeat the type values for each node in the sequence
+        #
+        # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
         type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
         # Concatenate them yielding nodes with length [seq + extract_len + type_len]
         query = tf.concat([type_tiled, input], axis=2)
@@ -138,10 +134,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
         in_state_c = tf.concat(features.rnn_state[1], axis=0)
         query, state_h, state_c = self.nodes_lstm(
             query, initial_state=[in_state_h, in_state_c]
-        )
-        # Add backwards context to each timesteps node vectors first
-        query, state_h, state_c = self.nodes_lstm_bwd(
-            query, initial_state=[state_h, state_c]
         )
 
         state_h = tf.tile(state_h[-1:], [sequence_length, 1])

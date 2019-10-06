@@ -2,11 +2,16 @@ from typing import Any, Dict, List, Optional, Type
 
 from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
 from ..mathy_env import MathyEnvProblem
-from ..state import MathyEnvState
-from ..rules import BaseRule, ConstantsSimplifyRule, VariableMultiplyRule
-from ..types import MathyEnvProblemArgs, MathyEnvDifficulty
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
 from ..problems import simplify_multiple_terms
+from ..rules import (
+    AssociativeSwapRule,
+    BaseRule,
+    ConstantsSimplifyRule,
+    VariableMultiplyRule,
+)
+from ..state import MathyEnvState
+from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from .polynomial_simplification import MathyPolynomialSimplificationEnv
 
 
 class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
@@ -21,10 +26,13 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, VariableMultiplyRule]
 
+    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
+        return [AssociativeSwapRule]
+
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 3
+        return problem.complexity * 4
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce

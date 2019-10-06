@@ -20,16 +20,16 @@ class A3CArgs(BaseModel):
     # History size for exploratory workers
     history_size: int = 2048
     # Size at which it's okay to start sampling from the memory
-    ready_at: int = 64
+    ready_at: int = 1024
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 100000
     gamma: float = 0.99
 
-    entropy_loss_scaling = 1.0
+    entropy_loss_scaling = 0.25
 
     e_greedy_min = 0.001
-    e_greedy_max = 0.3
+    e_greedy_max = 0.4
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to

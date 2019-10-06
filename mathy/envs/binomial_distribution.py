@@ -27,6 +27,11 @@ class MathyBinomialDistributionEnv(MathyEnv):
     def get_env_namespace(self) -> str:
         return "mathy.binomials.mulptiply"
 
+    def max_moves_fn(
+        self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
+    ) -> int:
+        return problem.complexity * 4
+
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [ConstantsSimplifyRule, DistributiveMultiplyRule, VariableMultiplyRule]
 
@@ -53,8 +58,8 @@ class MathyBinomialDistributionEnv(MathyEnv):
             text, complexity = binomial_times_binomial(
                 min_vars=2,
                 max_vars=2,
-                powers_probability=0.1,
-                like_variables_probability=0.0,
+                powers_probability=0.4,
+                like_variables_probability=0.2,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             text, complexity = binomial_times_binomial(
