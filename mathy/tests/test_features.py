@@ -22,8 +22,8 @@ def test_mathy_features_hierarchy():
     diff_pairs: List[Tuple[str, str]] = [
         ("4x + (3u + 7x + 3u) + 4u", "4x + 3u + 7x + 3u + 4u"),
         ("7c * 5", "7 * (c * 5)"),
+        ("5v + 20b + (10v + 7b)", "5v + 20b + 10v + 7b"),
     ]
-
     env = MathyPolynomialSimplificationEnv()
     rnn_state = rnn_placeholder_state(128)
 

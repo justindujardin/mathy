@@ -28,9 +28,8 @@ from ..state import (
 class MathyEmbedding(tf.keras.layers.Layer):
     def __init__(
         self,
-        units: int = 128,
-        lstm_units: int = 256,
-        burn_in_steps: int = 10,
+        units: int,
+        lstm_units: int,
         extract_window: Optional[int] = None,
         encode_tokens_with_type: bool = False,
         **kwargs,
@@ -40,7 +39,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.encode_tokens_with_type = encode_tokens_with_type
         self.extract_window = extract_window
         self.lstm_units = lstm_units
-        self.burn_in_steps = burn_in_steps
         self.init_rnn_state()
         token_in_dimension = (
             PROBLEM_TYPE_HASH_BUCKETS
@@ -54,7 +52,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             mask_zero=True,
         )
         self.mask_embedding = tf.keras.layers.Embedding(
-            input_dim=2,
+            input_dim=PROBLEM_TYPE_HASH_BUCKETS,
             output_dim=self.lstm_units,
             name="mask_embedding",
             mask_zero=False,
@@ -66,8 +64,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
             mask_zero=False,
         )
         self.attention = MultiHeadAttention(head_num=8, name="multi_head_attention")
-        self.flatten = tf.keras.layers.Flatten(name="flatten")
-        self.concat = tf.keras.layers.Concatenate(name=f"embedding_concat")
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -129,25 +125,34 @@ class MathyEmbedding(tf.keras.layers.Layer):
             # Add an empty dimension (usually used by the extract window depth)
             input = tf.expand_dims(input, axis=-1)
 
+        # Reshape the "type" information and combine it with each node in the
+        # sequence so the nodes have context for the current task
+        #
+        # [Batch, len(Type)] => [Batch, 1, len(Type)]
+        type_with_batch = type[:, tf.newaxis, :]
+        # Repeat the type values for each node in the sequence
+        #
+        # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
+        type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
+
         if self.encode_tokens_with_type:
-            # Reshape the "type" information and combine it with each node in the
-            # sequence so the nodes have context for the current task
-            #
-            # [Batch, len(Type)] => [Batch, 1, len(Type)]
-            type_with_batch = type[:, tf.newaxis, :]
-            # Repeat the type values for each node in the sequence
-            #
-            # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
-            type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
             # Concatenate them yielding nodes with length [seq + extract_len + type_len]
             input = tf.concat([type_tiled, input], axis=2)
 
         query = self.token_embedding(input)
         query = tf.reshape(query, [batch_size, sequence_length, -1])
 
+        move_mask = tf.convert_to_tensor(features.mask)
+        hint_mask = tf.convert_to_tensor(features.hints)
+        if batch_size == 1:
+            move_mask = move_mask[tf.newaxis, :, :]
+            hint_mask = hint_mask[tf.newaxis, :, :]
+        move_mask = tf.reshape(move_mask, [batch_size, sequence_length, -1])
+        hint_mask = tf.reshape(hint_mask, [batch_size, sequence_length, -1])
+        mask_input = tf.concat([type_tiled, move_mask, hint_mask], axis=2)
         # Embed the valid move mask for the attention layer
-        value = self.mask_embedding(tf.convert_to_tensor(features.mask))
-        key = self.hints_embedding(tf.convert_to_tensor(features.hints))
+        value = self.mask_embedding(mask_input)
+        value = tf.reshape(value, [batch_size, sequence_length, -1])
 
         # Add context to each timesteps node vectors first
         in_state_h = tf.concat(features.rnn_state[0], axis=0)
@@ -161,7 +166,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
-        time_out = self.attention([time_out, value, key])
+        time_out = self.attention([time_out, value, value])
 
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
