@@ -66,7 +66,9 @@ class ActorCriticModel(tf.keras.Model):
         self.policy_logits = TimeDistributed(
             PolicySequences(self.predictions), name="policy_value/policy_logits"
         )
-        self.normalize = tf.keras.layers.BatchNormalization()
+        self.normalize = tf.keras.layers.BatchNormalization(
+            name="policy_value/logits_batch_norm"
+        )
 
     def build_reward_prediction(self):
         if self.args.use_reward_prediction is False:

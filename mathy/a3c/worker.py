@@ -577,12 +577,12 @@ class A3CWorker(threading.Thread):
                     vr_loss *= aux_weight
                     total_loss += vr_loss
                     aux_losses["vr"] = vr_loss
-                for key in aux_losses.keys():
-                    tf.summary.scalar(
-                        f"worker_{self.worker_idx}/losses/{key}_loss",
-                        data=aux_losses[key],
-                        step=step,
-                    )
+            for key in aux_losses.keys():
+                tf.summary.scalar(
+                    f"worker_{self.worker_idx}/losses/{key}_loss",
+                    data=aux_losses[key],
+                    step=step,
+                )
 
             tf.summary.scalar(
                 f"worker_{self.worker_idx}/losses/total_loss",
