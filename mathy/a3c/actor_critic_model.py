@@ -20,19 +20,14 @@ from .embedding import MathyEmbedding
 class PolicySequences(tf.keras.layers.Layer):
     def __init__(self, num_predictions=2, **kwargs):
         super(PolicySequences, self).__init__(**kwargs)
-        self.policy_one = ResNetBlock(units=128, name="policy_resblock")
         self.num_predictions = num_predictions
-        self.normalize = tf.keras.layers.BatchNormalization()
         self.logits = tf.keras.layers.Dense(num_predictions, name="pi_logits_dense")
 
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
 
     def call(self, input_tensor: tf.Tensor):
-        output = self.policy_one(input_tensor)
-        output = self.logits(output)
-        output = self.normalize(output)
-        return output
+        return self.logits(input_tensor)
 
 
 # TODO: Consider gc as Q network, tf 2.0 basic impl here: https://rubikscode.net/2019/07/08/deep-q-learning-with-python-and-tensorflow-2-0/
@@ -71,6 +66,7 @@ class ActorCriticModel(tf.keras.Model):
         self.policy_logits = TimeDistributed(
             PolicySequences(self.predictions), name="policy_value/policy_logits"
         )
+        self.normalize = tf.keras.layers.BatchNormalization()
 
     def build_reward_prediction(self):
         if self.args.use_reward_prediction is False:
@@ -94,7 +90,8 @@ class ActorCriticModel(tf.keras.Model):
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs, sequence_length = self.embedding(inputs)
         values = self.value_logits(tf.reduce_mean(sequence_inputs, axis=1))
-        logits = self.policy_logits(sequence_inputs)
+        logits = self.normalize(self.policy_logits(sequence_inputs))
+
         # NOTE: Use tanh to constrain logits values before masking
         #
         # This keeps gradients from gradually pushing logits to extremes
@@ -128,8 +125,10 @@ class ActorCriticModel(tf.keras.Model):
         the policy logits by it to remove any invalid moves from
         selection"""
 
-        mask = tf.convert_to_tensor(features_window.mask, dtype=tf.float32)
-        features_mask = tf.reshape(mask, (logits.shape[0], -1, self.predictions))
+        features_mask = tf.reshape(
+            features_window.mask, (logits.shape[0], -1, self.predictions)
+        )
+        features_mask = tf.cast(features_mask, dtype=tf.float32)
         # Trim the logits to match the feature mask
         trim_logits = logits[:, : features_mask.shape[1], :]
         mask_logits = tf.multiply(trim_logits, features_mask)
