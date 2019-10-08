@@ -23,6 +23,7 @@ def test_mathy_features_hierarchy():
         ("4x + (3u + 7x + 3u) + 4u", "4x + 3u + 7x + 3u + 4u"),
         ("7c * 5", "7 * (c * 5)"),
         ("5v + 20b + (10v + 7b)", "5v + 20b + 10v + 7b"),
+        ("5s + 60 + 12s + s^2", "5s + 60 + (12s + s^2)"),
     ]
     env = MathyPolynomialSimplificationEnv()
     rnn_state = rnn_placeholder_state(128)

@@ -101,15 +101,13 @@ class A3CAgent:
         [w.join() for w in workers]
         print("Done. Bye!")
 
-    def choose_action(self, env, state: MathyEnvState, greedy=True):
-        obs = state.to_input_features(env.action_space.mask, return_batch=True)
-        if greedy is True:
-            policy, value, masked_policy = self.global_model.call_masked(obs)
-            policy = tf.nn.softmax(masked_policy)
-            action = np.argmax(policy)
-        else:
-            probs, value = self.global_model.predict_next(obs)
-            action = np.random.choice(len(probs), p=probs)
+    def choose_action(self, env, state: MathyEnvState):
+        obs = state.to_observation(env.action_space.mask)
+        policy, value, masked_policy = self.global_model.call_masked(
+            observations_to_window([obs])
+        )
+        policy = tf.nn.softmax(masked_policy)
+        action = np.argmax(policy)
         return action
 
     def play(self, loop=False):
@@ -123,7 +121,7 @@ class A3CAgent:
                 if env_name not in envs:
                     envs[env_name] = gym.make(env_name).unwrapped
                 env = envs[env_name]
-                state = env.reset()
+                state = env.reset(rnn_size=self.args.lstm_units)
                 done = False
                 step_counter = 0
                 reward_sum = 0

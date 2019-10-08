@@ -28,7 +28,7 @@ def is_debug_mode():
 
 def load_rule_tests(name):
     rule_file = (
-        Path(__file__).parent.parent / "tests" / "rules" / "{}.json".format(name)
+        Path(__file__).parent / "tests" / "rules" / "{}.json".format(name)
     )
     print(rule_file)
     assert rule_file.is_file() is True

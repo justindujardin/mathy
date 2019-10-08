@@ -53,13 +53,13 @@ def mathy_free_a3c():
         __agent = None
 
 
-def a3c_choose_action(gym_env: MathyGymEnv, greedy: bool):
+def a3c_choose_action(gym_env: MathyGymEnv):
     global __agent
     assert __agent is not None, "A3C agent must be initialized with: `mathy_load_a3c`"
     assert (
         gym_env.mathy is not None and gym_env.state is not None
     ), "MathyGymEnv has invalid MathyEnv or MathyEnvState members"
-    return __agent.choose_action(gym_env, gym_env.state, greedy)
+    return __agent.choose_action(gym_env, gym_env.state)
 
 
 def mcts_cleanup(gym_env: MathyGymEnv):
@@ -135,7 +135,7 @@ def run():
 
     a3c_agent = "training/mtl_one_bucket"
 
-    agents = ["a3c", "a3c-greedy", "random"]
+    agents = ["a3c", "random"]
     topics = ["poly", "binomial", "complex", "poly-blockers", "poly-grouping"]
     # topics = ["complex"]
 
@@ -143,7 +143,6 @@ def run():
     # difficulties = ["hard"]
 
     a3c_values: List[float] = []
-    a3c_greedy_values: List[float] = []
     random_values: List[float] = []
     labels: List[str] = []
     for topic in topics:
@@ -158,17 +157,11 @@ def run():
                         main(env_name, agent, label=label, model=a3c_agent)
                     )
                     pass
-                elif agent == "a3c-greedy":
-                    a3c_greedy_values.append(
-                        main(env_name, agent, label=label, model=a3c_agent)
-                    )
-                    pass
                 elif agent == "random":
                     random_values.append(main(env_name, agent, label=label))
                     pass
 
     a3c_values.reverse()
-    a3c_greedy_values.reverse()
     random_values.reverse()
     labels.reverse()
 
@@ -183,14 +176,6 @@ def run():
 
     plt.barh(index, a3c_values, bar_width, alpha=opacity, color="b", label="a3c")
 
-    plt.barh(
-        index + bar_width,
-        a3c_greedy_values,
-        bar_width,
-        alpha=opacity,
-        color="r",
-        label="a3c-greedy",
-    )
     plt.barh(
         index + bar_width * 2,
         random_values,
@@ -240,7 +225,7 @@ def main(
                 mcts_start_problem(env)
             elif agent == "model":
                 mathy_load_model(env)
-            elif agent in ["a3c", "a3c-greedy"]:
+            elif agent == "a3c":
                 if model is None:
                     raise ValueError("model must be specified")
                 mathy_load_a3c(env_name, env, model)
@@ -258,9 +243,7 @@ def main(
                 elif agent == "model":
                     action = nn_choose_action(env)
                 elif agent == "a3c":
-                    action = a3c_choose_action(env, False)
-                elif agent == "a3c-greedy":
-                    action = a3c_choose_action(env, True)
+                    action = a3c_choose_action(env)
                 else:
                     raise EnvironmentError(f"unknown agent: {agent}")
                 observation, reward, done, info = env.step(action)

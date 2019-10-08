@@ -30,7 +30,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self,
         units: int,
         lstm_units: int,
-        extract_window: Optional[int] = None,
+        extract_window: Optional[int] = 3,
         encode_tokens_with_type: bool = False,
         **kwargs,
     ):
@@ -63,7 +63,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="hints_embedding",
             mask_zero=False,
         )
-        self.attention = MultiHeadAttention(head_num=8, name="multi_head_attention")
+        self.attention = MultiHeadAttention(head_num=4, name="multi_head_attention")
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -149,7 +149,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             hint_mask = hint_mask[tf.newaxis, :, :]
         move_mask = tf.reshape(move_mask, [batch_size, sequence_length, -1])
         hint_mask = tf.reshape(hint_mask, [batch_size, sequence_length, -1])
-        mask_input = tf.concat([type_tiled, move_mask, hint_mask], axis=2)
+        mask_input = tf.concat([type_tiled, move_mask + hint_mask], axis=2)
         # Embed the valid move mask for the attention layer
         value = self.mask_embedding(mask_input)
         value = tf.reshape(value, [batch_size, sequence_length, -1])

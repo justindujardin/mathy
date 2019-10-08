@@ -58,13 +58,13 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:
-            blockers = 1
-            powers = rand_bool(100)
-            easy = False
+            blockers = randint(1, 3)
+            powers = rand_bool(20)
+            easy = rand_bool(50)
             text, _ = commute_haystack(
                 commute_blockers=blockers,
-                min_terms=3,
-                max_terms=5,
+                min_terms=4,
+                max_terms=8,
                 easy=easy,
                 powers=powers,
             )
@@ -73,14 +73,14 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
             powers = rand_bool(40)
             easy = rand_bool(25)
             text, _ = commute_haystack(
-                min_terms=8, max_terms=20, easy=easy, powers=powers
+                min_terms=4, max_terms=8, easy=easy, powers=powers
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(5, 10)
             powers = rand_bool(60)
             easy = rand_bool(5)
             text, _ = commute_haystack(
-                min_terms=16, max_terms=32, easy=easy, powers=powers
+                min_terms=6, max_terms=12, easy=easy, powers=powers
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")

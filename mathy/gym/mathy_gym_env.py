@@ -26,6 +26,7 @@ from .masked_discrete import MaskedDiscrete
 class MathyGymEnv(gym.Env):
     """"""
 
+    default_rnn_size = 128
     metadata = {"render.modes": ["terminal"]}
     mathy: MathyEnv
     state: Optional[MathyEnvState]
@@ -75,7 +76,8 @@ class MathyGymEnv(gym.Env):
         self.last_change = change
         return observation, transition.reward, done, info
 
-    def reset(self):
+    def reset(self, rnn_size=default_rnn_size):
+        self.rnn_size = rnn_size
         self.last_action = -1
         self.last_change = None
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
@@ -99,7 +101,7 @@ class MathyGymEnv(gym.Env):
         observation = state.to_observation(
             move_mask=action_mask,
             hint_mask=hint_mask,
-            rnn_state=rnn_placeholder_state(128),
+            rnn_state=rnn_placeholder_state(self.rnn_size),
         )
         # Update masked action space
         self.action_space.n = self.mathy.get_agent_actions_count(state)

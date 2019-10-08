@@ -5,31 +5,34 @@ from pydantic import BaseModel
 
 
 class A3CArgs(BaseModel):
+    units: int
+    embedding_units: int
+    lstm_units: int
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model.h5"
-    units: int = 128
-    embedding_units: int = 128
-    lstm_units: int = 128
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
     # The history size for the greedy worker
-    greedy_history_size: int = 4096
+    greedy_history_size: int = 512
     # History size for exploratory workers
-    history_size: int = 2048
+    history_size: int = 128
     # Size at which it's okay to start sampling from the memory
-    ready_at: int = 1024
+    ready_at: int = 128
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 100000
     gamma: float = 0.99
 
-    entropy_loss_scaling = 0.25
+    # NOTE: scaling down h_loss is observed to be important to keep it from
+    #       destabilizing the overall loss when it grows very small
+    entropy_loss_scaling = 0.1
 
-    e_greedy_min = 0.001
-    e_greedy_max = 0.4
+    main_worker_use_epsilon = False
+    e_greedy_min = 0.01
+    e_greedy_max = 0.3
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to

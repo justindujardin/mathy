@@ -200,7 +200,8 @@ class A3CWorker(threading.Thread):
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
 
-            if np.random.random() < self.greedy_epsilon:
+            no_greedy = not self.args.main_worker_use_epsilon and self.worker_idx == 0
+            if not no_greedy and np.random.random() < self.greedy_epsilon:
                 # Select a random action
                 action_mask = last_state.mask[:]
                 # normalize all valid action to equal probability
