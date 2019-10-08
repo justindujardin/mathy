@@ -12,6 +12,7 @@ from ..rules import (
 from ..state import MathyEnvState
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from numpy.random import randint, uniform
 
 
 class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
@@ -38,20 +39,40 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
         """Given a set of parameters to control term generation, produce
         a complex term that has a simple representation that must be found.
         - "4x * 2y^2 * 7q"
-        - "7j * z^6"
+        - "7j * 2z^6"
         - "x * 2y^7 * 8z * 2x"
         """
 
         if params.difficulty == MathyEnvDifficulty.easy:
+            num_terms = randint(2, 4)
+            scaling = uniform(0.5, 1.0)
             text, complexity = simplify_multiple_terms(
-                2, op="*", optional_var=True, inner_terms_scaling=1.0
+                num_terms,
+                op="*",
+                optional_var=True,
+                inner_terms_scaling=scaling,
+                powers_probability=0.4,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
+            num_terms = randint(3, 6)
+            scaling = uniform(0.5, 0.85)
             text, complexity = simplify_multiple_terms(
-                4, op="*", optional_var=True, optional_var_probability=0.5
+                num_terms,
+                op="*",
+                optional_var=True,
+                inner_terms_scaling=scaling,
+                powers_probability=0.6,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            text, complexity = simplify_multiple_terms(6, op="*", optional_var=False)
+            num_terms = randint(4, 8)
+            scaling = uniform(0.2, 0.6)
+            text, complexity = simplify_multiple_terms(
+                num_terms,
+                op="*",
+                shuffle_probability=0.5,
+                powers_probability=0.8,
+                inner_terms_scaling=scaling,
+            )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_COMPLEX_TERM)

@@ -170,12 +170,10 @@ def simplify_multiple_terms(
     shuffle_probability=0.33,
 ) -> Tuple[str, int]:
     power_prob_percent = powers_probability * 100
-    powers = rand_bool(power_prob_percent)
     num_like_terms = max(1, int(num_terms * inner_terms_scaling))
     term_templates = get_rand_vars(num_like_terms)
-    if powers is not False:
-        for i, var in enumerate(term_templates):
-            term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
+    for i, var in enumerate(term_templates):
+        term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
 
     # Repeat enough times to satisfy max_terms
     term_templates *= int(num_terms / num_like_terms) + 1
