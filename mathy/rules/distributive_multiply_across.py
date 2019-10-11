@@ -3,6 +3,7 @@ from ..core.expressions import (
     MultiplyExpression,
     ConstantExpression,
     VariableExpression,
+    PowerExpression,
 )
 from .rule import BaseRule
 from ..helpers import unlink
@@ -71,7 +72,12 @@ class DistributiveMultiplyRule(BaseRule):
 
         # If the operands for either multiplication can be expressed
         # in a "natural" order, do so like a human would.
-        a_var: bool = isinstance(a, VariableExpression)
+        a_exp_var = (
+            isinstance(a, PowerExpression)
+            and isinstance(a.right, VariableExpression)
+            or isinstance(a.left, VariableExpression)
+        )
+        a_var: bool = a_exp_var or isinstance(a, VariableExpression)
         b_const: bool = isinstance(b, ConstantExpression)
         c_const: bool = isinstance(c, ConstantExpression)
         if a_var and b_const:

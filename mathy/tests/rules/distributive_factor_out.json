@@ -4,6 +4,21 @@
   },
   "valid": [
     {
+      "input": "11 + 11d + (1d + d^2)",
+      "output": "11 + (11 + 1) * d + d^2",
+      "why": "invariance to sibling grouping"
+    },
+    {
+      "input": "5a + o + (o + y) + 4s",
+      "output": "5a + (1 + 1) * o + y + 4s",
+      "why": "invariance to sibling grouping"
+    },
+    {
+      "input": "8c + (4v + 9n) + 7n + 4r",
+      "output": "8c + 4v + (9 + 7) * n + 4r",
+      "why": "invariance to sibling grouping"
+    },
+    {
       "input": "15 + 20j + 9j",
       "output": "15 + (20 + 9) * j"
     },

@@ -41,6 +41,7 @@ class DistributiveFactorOutRule(BaseRule):
         self.constants = constants
 
     POS_SIMPLE = "simple"
+    POS_CHAINED_BOTH = "chained_both"
     POS_CHAINED_LEFT = "chained_left"
     POS_CHAINED_RIGHT = "chained_right"
 
@@ -81,7 +82,21 @@ class DistributiveFactorOutRule(BaseRule):
 
         # No terms found for either child
         if left_term is None and right_term is None:
-            return None
+            # Check for the rare case where both terms are chained.
+            # This happens when forcing the associative groups into
+            # a certain form. It's not usually useful, but it's a
+            # valid thing to do.
+
+            if isinstance(node.right, AddExpression):
+                right_term = get_term_ex(node.right.left)
+            if right_term is None or right_term.variable is None:
+                return None
+
+            if isinstance(node.left, AddExpression):
+                left_term = get_term_ex(node.left.right)
+            if left_term is None or left_term.variable is None:
+                return None
+            return DistributiveFactorOutRule.POS_CHAINED_BOTH, left_term, right_term
 
         # Simplest case of each child being a term exactly.
         if left_term is not None and right_term is not None:
@@ -158,17 +173,24 @@ class DistributiveFactorOutRule(BaseRule):
         result = MultiplyExpression(inside, a)
         result.all_changed()
 
-        if tree_position == DistributiveFactorOutRule.POS_CHAINED_LEFT:
-            # chained type has to fixup the tree to keep the chain unbroken
-
+        # Fix the links to existing nodes on the left side of the result
+        left_positions = [
+            DistributiveFactorOutRule.POS_CHAINED_LEFT,
+            DistributiveFactorOutRule.POS_CHAINED_BOTH,
+        ]
+        if tree_position in left_positions:
             # Because in the chained mode we extract node.left.right, the other
             # child is the remainder we want to be sure to preserve.
             # e.g. "(4 + p) + p" we need to keep "4"
             keep_child = node.left.left
             result = AddExpression(keep_child, result)
-        elif tree_position == DistributiveFactorOutRule.POS_CHAINED_RIGHT:
-            # chained type has to fixup the tree to keep the chain unbroken
 
+        # Fix the links to existing nodes on the right side of the result
+        right_positions = [
+            DistributiveFactorOutRule.POS_CHAINED_RIGHT,
+            DistributiveFactorOutRule.POS_CHAINED_BOTH,
+        ]
+        if tree_position in right_positions:
             # Because in the chained mode we extract node.right.left, the other
             # child is the remainder we want to be sure to preserve.
             # e.g. "p + (p + 2x)" we need to keep 2x

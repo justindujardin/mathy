@@ -1,9 +1,30 @@
 {
   "valid": [
-    { "input": "(4 + v) * (12 + r)", "output": "(12 + r) * 4 + (12 + r) * v" },
-    { "input": "(12 + r) * v", "output": "12v + v * r" },
-    { "input": "7 * (1 + 1)", "output": "7 * 1 + 7 * 1" },
-    { "input": "7x * (2 + 1)", "output": "7x * 2 + 7x * 1" }
+    {
+      "input": "(2 + k^2) * w^4",
+      "output": "2w^4 + w^4 * k^2",
+      "why": "places constants on left"
+    },
+    {
+      "input": "(1 + k^2) * w^4",
+      "output": "1w^4 + w^4 * k^2"
+    },
+    {
+      "input": "(4 + v) * (12 + r)",
+      "output": "(12 + r) * 4 + (12 + r) * v"
+    },
+    {
+      "input": "(12 + r) * v",
+      "output": "12v + v * r"
+    },
+    {
+      "input": "7 * (1 + 1)",
+      "output": "7 * 1 + 7 * 1"
+    },
+    {
+      "input": "7x * (2 + 1)",
+      "output": "7x * 2 + 7x * 1"
+    }
   ],
   "invalid": []
 }

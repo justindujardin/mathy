@@ -60,8 +60,10 @@ def run_rule_tests(name, rule_class, callback=None):
         print(ex)
         if "target" in ex:
             nodes = rule.find_nodes(expression)
-            node = [n for n in nodes if n.raw == ex["target"]][0]
-            assert node, "could not find node with target string"
+            targets = [n.raw for n in nodes]
+            node = [n for n in nodes if n.raw == ex["target"]]
+            assert len(node) > 0, f"could not find target node. targets are: {targets}"
+            node = node[0]
         else:
             node = rule.find_node(expression)
 
