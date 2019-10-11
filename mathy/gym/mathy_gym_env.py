@@ -113,7 +113,7 @@ class MathyGymEnv(gym.Env):
         token_index = -1
         if self.last_action != -1 and self.last_change is not None:
             action_index, token_index = self.mathy.get_action_indices(self.last_action)
-            action_name = self.mathy.actions[action_index].name
+            action_name = self.mathy.rules[action_index].name
         else:
             print(f"Problem: {self.state.agent.problem}")
         self.mathy.print_state(

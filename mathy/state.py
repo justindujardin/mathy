@@ -246,19 +246,23 @@ class MathyEnvState(object):
     agent: MathAgentState
     parser: ExpressionParser
     max_moves: int
+    num_rules: int
 
     def __init__(
         self,
         state: Optional["MathyEnvState"] = None,
         problem: str = None,
         max_moves: int = 10,
+        num_rules: int = 0,
         problem_type: str = "mathy.unknown",
     ):
         self.parser = ExpressionParser()
         self.max_moves = max_moves
+        self.num_rules = num_rules
         if problem is not None:
             self.agent = MathAgentState(max_moves, problem, problem_type)
         elif state is not None:
+            self.num_rules = state.num_rules
             self.max_moves = state.max_moves
             self.agent = MathAgentState.copy(state.agent)
         else:
@@ -303,8 +307,7 @@ class MathyEnvState(object):
         return hash_tensor.numpy().tolist()
 
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
-        # TODO: max actions hardcode
-        num_actions = 6
+        num_actions = 1 * self.num_rules
         if hash is None:
             hash = self.problem_hash()
         mask = [0] * num_actions

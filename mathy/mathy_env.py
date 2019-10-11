@@ -43,7 +43,7 @@ class MathyEnv:
     right sequence of actions to reduce a math expression to an agreeable
     basic representation in as few moves as possible."""
 
-    actions: List[BaseRule]
+    rules: List[BaseRule]
     rewarding_actions: List[Type[BaseRule]]
     max_moves: int
     verbose: bool
@@ -54,7 +54,7 @@ class MathyEnv:
 
     def __init__(
         self,
-        actions=None,
+        rules=None,
         rewarding_actions=None,
         max_moves=20,
         verbose=False,
@@ -64,9 +64,9 @@ class MathyEnv:
         self.verbose = verbose
         self.max_moves = max_moves
         self.parser = ExpressionParser()
-        self.actions = actions
-        if self.actions is None:
-            self.actions = mathy_core_rules()
+        self.rules = rules
+        if self.rules is None:
+            self.rules = mathy_core_rules()
         self.rewarding_actions = rewarding_actions
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
@@ -74,7 +74,7 @@ class MathyEnv:
     @property
     def action_size(self) -> int:
         """Return the number of available actions"""
-        return len(self.actions)
+        return len(self.rules)
 
     def get_env_namespace(self) -> str:
         """Return a unique dot namespaced string representing the current
@@ -217,7 +217,7 @@ class MathyEnv:
         expression = self.parser.parse(agent.problem)
         action_index, token_index = self.get_action_indices(action)
         token = self.get_token_at_index(expression, token_index)
-        operation = self.actions[action_index]
+        operation = self.rules[action_index]
 
         if (
             token is None
@@ -270,9 +270,9 @@ class MathyEnv:
         def get_move_shortname(index, move):
             if move == 0:
                 return "--"
-            if move >= len(self.actions):
+            if move >= len(self.rules):
                 return "xx"
-            return self.actions[index].code.lower()
+            return self.rules[index].code.lower()
 
         token_idx = "{}".format(token_index).zfill(3)
         moves_left = str(env_state.agent.moves_remaining).zfill(2)
@@ -296,6 +296,7 @@ class MathyEnv:
             problem=prob.text,
             problem_type=self.get_env_namespace(),
             max_moves=self.max_moves,
+            num_rules=len(self.rules),
         )
         if print_problem and self.verbose:
             self.print_state(env_state, "initial-state")
@@ -345,7 +346,7 @@ class MathyEnv:
         expression = self.parser.parse(agent.problem)
         node_list: List[MathExpression] = expression.toList()
         node_count = len(node_list)
-        rule_count = len(self.actions)
+        rule_count = len(self.rules)
         hints = [0] * rule_count * node_count
         for index, node in enumerate(node_list):
             term: Optional[TermEx] = get_term_ex(node)
@@ -369,8 +370,8 @@ class MathyEnv:
         if key in self.valid_rules_cache:
             return self.valid_rules_cache[key]
         expression = self.parser.parse(env_state.agent.problem)
-        actions = [0] * len(self.actions)
-        for rule_index, rule in enumerate(self.actions):
+        actions = [0] * len(self.rules)
+        for rule_index, rule in enumerate(self.rules):
             nodes = rule.find_nodes(expression)
             actions[rule_index] = 0 if len(nodes) == 0 else 1
         self.valid_rules_cache[key] = actions[:]
@@ -388,7 +389,7 @@ class MathyEnv:
         given absolute action value.
 
         Returns a tuple of (rule_index, node_index)"""
-        rule_count = len(self.actions)
+        rule_count = len(self.rules)
         # Rule index = val % rule_count
         action_index = action % rule_count
         # And the action at that token
@@ -396,16 +397,16 @@ class MathyEnv:
         return action_index, token_index
 
     def get_rule_from_timestep(self, time_step: MathyEnvTimeStep):
-        return self.actions[time_step.action]
+        return self.rules[time_step.action]
 
     def get_actions_for_node(self, expression: MathExpression) -> List[int]:
         key = str(expression)
         if key in self.valid_actions_mask_cache:
             return self.valid_actions_mask_cache[key][:]
         node_count = len(expression.toList())
-        rule_count = len(self.actions)
+        rule_count = len(self.rules)
         actions = [0] * rule_count * node_count
-        for rule_index, rule in enumerate(self.actions):
+        for rule_index, rule in enumerate(self.rules):
             nodes = rule.find_nodes(expression)
             for node in nodes:
                 action_index = (node.r_index * rule_count) + rule_index

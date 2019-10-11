@@ -49,7 +49,7 @@ class TreeLayout:
 
     # Computer relative tree node positions
     def measure(self, node, level=0, extremes: TidierExtreme = None):
-        if extremes == None:
+        if extremes is None:
             extremes = TidierExtreme()
 
         # left and right subtree extreme leaf nodes
