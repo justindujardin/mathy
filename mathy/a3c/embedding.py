@@ -30,12 +30,14 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self,
         units: int,
         lstm_units: int,
-        extract_window: Optional[int] = 3,
+        use_node_lstm: bool = True,
+        extract_window: Optional[int] = 6,
         encode_tokens_with_type: bool = False,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.units = units
+        self.use_node_lstm = use_node_lstm
         self.encode_tokens_with_type = encode_tokens_with_type
         self.extract_window = extract_window
         self.lstm_units = lstm_units
@@ -155,12 +157,16 @@ class MathyEmbedding(tf.keras.layers.Layer):
         value = self.mask_embedding(mask_input)
         value = tf.reshape(value, [batch_size, sequence_length, -1])
 
-        # Add context to each timesteps node vectors first
-        in_state_h = tf.concat(features.rnn_state[0], axis=0)
-        in_state_c = tf.concat(features.rnn_state[1], axis=0)
-        query, state_h, state_c = self.nodes_lstm(
-            query, initial_state=[in_state_h, in_state_c]
-        )
+        if self.use_node_lstm:
+            # Add context to each timesteps node vectors first
+            in_state_h = tf.concat(features.rnn_state[0], axis=0)
+            in_state_c = tf.concat(features.rnn_state[1], axis=0)
+            query, state_h, state_c = self.nodes_lstm(
+                query, initial_state=[in_state_h, in_state_c]
+            )
+        else:
+            state_h = features.rnn_state[0][0]
+            state_c = features.rnn_state[1][0]
 
         state_h = tf.tile(state_h[-1:], [sequence_length, 1])
         state_c = tf.tile(state_c[-1:], [sequence_length, 1])
