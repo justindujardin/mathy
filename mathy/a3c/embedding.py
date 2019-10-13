@@ -63,7 +63,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="hints_embedding",
             mask_zero=False,
         )
-        self.attention = MultiHeadAttention(head_num=4, name="multi_head_attention")
+        self.attention = MultiHeadAttention(head_num=4, name="self_attention")
+        self.attention_hints = MultiHeadAttention(head_num=2, name="hint_attention")
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -136,7 +137,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
 
         if self.encode_tokens_with_type:
-            # Concatenate them yielding nodes with length [seq + extract_len + type_len]
+            # Concatenate them yielding nodes with length [seq + type_len]
             input = tf.concat([type_tiled, input], axis=2)
 
         query = self.token_embedding(input)
@@ -166,7 +167,10 @@ class MathyEmbedding(tf.keras.layers.Layer):
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
-        time_out = self.attention([time_out, value, value])
+        # Self-attention
+        time_out = self.attention([time_out, time_out, time_out])
+        # Focusing attention with contextual embeddings
+        time_out = self.attention_hints([value, time_out, time_out])
 
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
