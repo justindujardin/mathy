@@ -445,8 +445,6 @@ class BinaryExpression(MathExpression):
 
     def self_parens(self):
         parent = isinstance(self.parent, BinaryExpression)
-        right_binary = isinstance(self.right, BinaryExpression)
-        left_binary = isinstance(self.left, BinaryExpression)
         self_pri = self.get_priority()
         if not parent:
             return False
@@ -455,20 +453,19 @@ class BinaryExpression(MathExpression):
         if parent_pri > self_pri:
             return True
 
-        grand_parent = isinstance(self.parent.parent, BinaryExpression)
         parent_side = self.parent.get_side(self)
-        if not grand_parent:
-            if right_binary:
-                grand_right_binary = isinstance(self.right.right, BinaryExpression)
-                if grand_right_binary:
-                    # Continuation of same priority binary op
-                    return self.right.right.get_priority() <= self_pri
-            return parent_pri == self_pri and parent_side == "left"
-        else:
-            if parent_side == "right":
-                return parent_pri < self_pri
-            else:
-                return parent_pri <= self_pri
+        # If we're a left child of a parent
+        if parent_pri == self_pri:
+            self_addsub = isinstance(self, (AddExpression, SubtractExpression))
+            parent_addsub = isinstance(self.parent, (AddExpression, SubtractExpression))
+            self_muldiv = isinstance(self, (MultiplyExpression, DivideExpression))
+            parent_muldiv = isinstance(
+                self.parent, (MultiplyExpression, DivideExpression)
+            )
+            if parent_side == "right" and self_addsub and parent_addsub:
+                return True
+            if parent_side == "left" and self_muldiv and parent_muldiv:
+                return True
         return False
 
     def __str__(self):
