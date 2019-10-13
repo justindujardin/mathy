@@ -80,6 +80,10 @@ class A3CArgs(BaseModel):
     # file in the model save path when it exits.
     profile: bool = False
 
+    # Verbose setting to print out worker_0 training steps. Useful for trying
+    # to find problems.
+    print_training: bool = False
+
     # Whether to use the reward prediction aux task
     use_reward_prediction = False
 

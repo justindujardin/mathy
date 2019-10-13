@@ -249,9 +249,33 @@ class A3CWorker(threading.Thread):
 
         # Set RNN to 0 state for start of episode
         self.local_model.embedding.reset_rnn_state()
-        # TODO: Burn in with fake predictions
 
+        # Start with the "init" sequence
+        rnn_state_h = self.local_model.embedding.state_h.numpy()
+        rnn_state_c = self.local_model.embedding.state_c.numpy()
+        seq_start = env.start_observation([rnn_state_h, rnn_state_c])
+        self.local_model.predict_next(observations_to_window([seq_start]))
+
+        # Burn-in the initial problem state for N steps
+        #
+        # This tries to "align" the zero-state with the current model weights/biases
+        burn_in_steps = 0
+        for i in range(burn_in_steps):
+            rnn_state_h = self.local_model.embedding.state_h.numpy()
+            rnn_state_c = self.local_model.embedding.state_c.numpy()
+            last_state = MathyObservation(
+                nodes=last_state.nodes,
+                mask=last_state.mask,
+                hints=last_state.hints,
+                type=last_state.type,
+                rnn_state=[rnn_state_h, rnn_state_c],
+            )
+            self.local_model.predict_next(observations_to_window([last_state]))
+
+        first_step = True
         while not done and A3CWorker.request_quit is False:
+            if self.args.print_training and self.worker_idx == 0:
+                env.render("terminal")
             # store rnn state for replay training
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
@@ -315,6 +339,8 @@ class A3CWorker(threading.Thread):
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
+                    if self.args.print_training and self.worker_idx == 0:
+                        env.render("terminal")
                     self.finish_episode(ep_reward, ep_steps, env.state)
 
             ep_steps += 1
@@ -322,6 +348,7 @@ class A3CWorker(threading.Thread):
             last_state = new_state
             last_action = action
             last_reward = reward
+            first_step = False
 
             # If there are multiple workers, apply a worker sleep
             # to give the system some breathing room.
@@ -472,6 +499,25 @@ class A3CWorker(threading.Thread):
 
         return loss_normalized
 
+    def soften_policy_targets(self, hard_targets, observations: List[MathyObservation]):
+        policy = np.array(hard_targets[:], dtype="float32")
+        for i, timestep in enumerate(policy):
+            observation = observations[i]
+            # The policy coming from the network will usually already include weight
+            # for each active rule, but we want the model to be less sure of itself
+            # with the targets so we adjust the policy weightings slightly.
+            policy_mask = np.array(observation.mask[:], dtype="float32")
+            # assert numpy.count_nonzero(policy_mask) == numpy.count_nonzero(policy)
+            # The policy mask has 0.0 and 1.0 values. We scale the mask down so that
+            # 1 becomes smaller, and then we elementwise add the policy and the mask to
+            # increment each valid action by the scaled value
+            policy_soft = timestep + (policy_mask * 0.01)
+            # Finally we re-normalize the values so that they sum to 1.0 like they
+            # did before we incremented them.
+            policy_soft /= np.sum(policy_soft)
+            policy[i] = policy_soft
+        return tf.convert_to_tensor(policy)
+
     def compute_policy_value_loss(
         self,
         done: bool,
@@ -527,8 +573,15 @@ class A3CWorker(threading.Thread):
 
         # Policy Loss
 
-        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=episode_memory.actions, logits=policy_logits
+        action_targets = tf.one_hot(
+            episode_memory.actions, depth=self.action_size * sequence_length
+        )
+        soft_targets = self.soften_policy_targets(
+            action_targets, episode_memory.observations
+        )
+
+        policy_loss = tf.nn.softmax_cross_entropy_with_logits(
+            labels=soft_targets, logits=policy_logits
         )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss = tf.reduce_mean(policy_loss)
@@ -722,6 +775,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
     def __init__(self, *, epsilon: float, **kwargs):
         super(A3CEpsilonGreedyActionSelector, self).__init__(**kwargs)
         self.epsilon = epsilon
+        self.first_step = True
 
     def select(
         self,
@@ -736,6 +790,9 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         probs, _ = self.worker.local_model.predict_next(
             observations_to_window([last_observation])
         )
+        if self.first_step is True:
+            self.first_step = False
+            
         no_random = (
             not self.worker.args.main_worker_use_epsilon and self.worker.worker_idx == 0
         )

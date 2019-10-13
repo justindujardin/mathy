@@ -306,6 +306,19 @@ class MathyEnvState(object):
             hash_tensor = tf.convert_to_tensor([problem_hash_one, problem_hash_two])
         return hash_tensor.numpy().tolist()
 
+    def to_start_observation(self, rnn_state: RNNStatesFloatList) -> MathyObservation:
+        num_actions = 1 * self.num_rules
+        hash = self.problem_hash()
+        mask = [0] * num_actions
+        hints = [0] * num_actions
+        return MathyObservation(
+            nodes=[MathTypeKeys["empty"]],
+            mask=mask,
+            hints=hints,
+            type=hash,
+            rnn_state=rnn_state,
+        )
+
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
         num_actions = 1 * self.num_rules
         if hash is None:

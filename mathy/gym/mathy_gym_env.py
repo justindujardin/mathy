@@ -1,9 +1,10 @@
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 import gym
 import numpy as np
 from gym import spaces
 
+from ..core.expressions import MathTypeKeysMax
 from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
@@ -14,10 +15,14 @@ from ..features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
-from ..state import MathyEnvState, MathyObservation, rnn_placeholder_state
 from ..rules.rule import ExpressionChangeRule
+from ..state import (
+    MathyEnvState,
+    MathyObservation,
+    RNNStatesFloatList,
+    rnn_placeholder_state,
+)
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
@@ -87,6 +92,11 @@ class MathyGymEnv(gym.Env):
         """return a batch of n-step observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)
         return state.to_empty_batch()
+
+    def start_observation(self, rnn_state: RNNStatesFloatList):
+        """return an n-step set of observations for initializing the env"""
+        state, _ = self.mathy.get_initial_state(self.env_problem_args)
+        return state.to_start_observation(rnn_state)
 
     def initial_window(self, rnn_size: int):
         """return an n-step set of observations for initializing the env"""

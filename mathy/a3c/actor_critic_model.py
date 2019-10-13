@@ -21,7 +21,9 @@ class PolicySequences(tf.keras.layers.Layer):
     def __init__(self, num_predictions=2, **kwargs):
         super(PolicySequences, self).__init__(**kwargs)
         self.num_predictions = num_predictions
-        self.logits = tf.keras.layers.Dense(num_predictions, name="pi_logits_dense")
+        self.logits = tf.keras.layers.Dense(
+            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
+        )
 
     def compute_output_shape(self, input_shape):
         return tf.TensorShape([input_shape[0], self.num_predictions])
