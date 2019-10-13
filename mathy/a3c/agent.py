@@ -2,7 +2,7 @@ import os
 from queue import Queue
 from typing import Optional, List
 from colr import color
-
+import json
 import gym
 import numpy as np
 import tensorflow as tf
@@ -23,7 +23,13 @@ class A3CAgent:
         self.args = args
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
-            print(f"Config: {self.args.dict()}")
+            print(
+                color(
+                    text=f"Config: {json.dumps(self.args.dict(), indent=2)}",
+                    fore="blue",
+                    style="bright",
+                )
+            )
         self.teacher = Teacher(
             topic_names=self.args.topics,
             num_students=self.args.num_workers,
@@ -60,7 +66,7 @@ class A3CAgent:
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
-                exp_out=exp_out_queue,
+                experience_queue=exp_out_queue,
                 cmd_queue=cmd_queues[i],
                 greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
