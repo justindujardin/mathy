@@ -166,17 +166,40 @@ def simplify_multiple_terms(
     common_variables=True,
     inner_terms_scaling=0.3,
     powers_probability=0.33,
-    optional_var_probability=0.5,
-    shuffle_probability=0.33,
+    optional_var_probability=0.8,
+    noise_probability=0.8,
+    shuffle_probability=0.66,
 ) -> Tuple[str, int]:
     power_prob_percent = powers_probability * 100
-    num_like_terms = max(1, int(num_terms * inner_terms_scaling))
-    term_templates = get_rand_vars(num_like_terms)
+    num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    like_term_vars = get_rand_vars(num_like_terms)
+    term_templates = like_term_vars[:]
     for i, var in enumerate(term_templates):
         term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
 
     # Repeat enough times to satisfy max_terms
     term_templates *= int(num_terms / num_like_terms) + 1
+
+    # sometimes add noise terms to the ends
+    if rand_bool(noise_probability * 100) is True:
+        num_noise_terms = min(5, max(1, num_terms - 2))
+        noise_vars = get_rand_vars(num_noise_terms, like_term_vars)
+
+        # We take the larger value for the left side to push the terms
+        # that have to be matched to the right side of expression. This is
+        # so that the model cannot use its existing knowledge about distributive
+        # factoring on smaller problems to solve this problem.
+        right_num, left_num = split_in_two_random(num_noise_terms)
+        for i in range(left_num):
+            current = noise_vars.pop()
+            term_templates.insert(
+                0, f"{maybe_int()}{current}{maybe_power(power_prob_percent)}"
+            )
+        for i in range(right_num):
+            current = noise_vars.pop()
+            term_templates.append(
+                f"{maybe_int()}{current}{maybe_power(power_prob_percent)}"
+            )
 
     # sometimes shuffle the terms
     if rand_bool(shuffle_probability * 100) is True:
