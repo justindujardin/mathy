@@ -23,7 +23,6 @@ class EpisodeMemory(object):
     observations: List[MathyObservation]
     actions: List[int]
     rewards: List[float]
-    values: List[float]
     frames: List[ExperienceFrame]
     grouping_changes: List[float]
 
@@ -34,7 +33,6 @@ class EpisodeMemory(object):
         self.frames = []
         self.actions = []
         self.rewards = []
-        self.values = []
         self.grouping_changes = []
 
     @property
@@ -58,14 +56,12 @@ class EpisodeMemory(object):
         state,
         action: int,
         reward: float,
-        value: float,
         grouping_change: float,
         frame: ExperienceFrame,
     ):
         self.observations.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
-        self.values.append(value)
         self.frames.append(frame)
         self.grouping_changes.append(grouping_change)
 
@@ -95,6 +91,5 @@ class EpisodeMemory(object):
         self.observations = []
         self.actions = []
         self.rewards = []
-        self.values = []
         self.frames = []
         self.grouping_changes = []

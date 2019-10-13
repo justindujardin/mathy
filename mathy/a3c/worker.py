@@ -1,10 +1,10 @@
 import math
 import os
+import queue
 import threading
 import time
 from multiprocessing import Queue
-from typing import Any, Dict, List, Optional, Tuple
-import queue
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import gym
 import numpy as np
@@ -12,6 +12,7 @@ import tensorflow as tf
 
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
+from ..agent.mcts import MCTS
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
 from ..r2d2.episode_memory import EpisodeMemory
@@ -53,7 +54,7 @@ class A3CWorker(threading.Thread):
         optimizer,
         greedy_epsilon: float,
         result_queue: Queue,
-        exp_out: Queue,
+        experience_queue: Queue,
         cmd_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
@@ -65,7 +66,7 @@ class A3CWorker(threading.Thread):
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
-        self.exp_out = exp_out
+        self.experience_queue = experience_queue
         self.cmd_queue = cmd_queue
         history_size = self.args.history_size
         if worker_idx == 0:
@@ -92,6 +93,19 @@ class A3CWorker(threading.Thread):
 
         e = truncate(self.greedy_epsilon)
 
+        # Sanity check
+        if self.args.action_strategy == "mcts_e_unreal":
+            if self.args.num_workers == 1:
+                raise EnvironmentError(
+                    "You are attempting to use MCTS with an UNREAL style agent, "
+                    "but you have only enabled 1 worker. This configuration requires "
+                    "at minimum 2 workers, because MCTS is not run on worker_0. This "
+                    "is to keep the true Greedy worker training/reporting outputs "
+                    "consistently. It's also helpful to see the strength of the model "
+                    "without the tree search. We don't want to ship a 1000x slower "
+                    "model at runtime just to solve basic problems."
+                )
+
         print(
             f"[#{worker_idx}] e: {e} history: {history_size} topics: {self.args.topics}"
         )
@@ -110,7 +124,7 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory(self.experience, self.exp_out)
+        episode_memory = EpisodeMemory(self.experience, self.experience_queue)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -173,6 +187,65 @@ class A3CWorker(threading.Thread):
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
+        mcts: Optional[MCTS] = None
+        if "mcts" in self.args.action_strategy:
+            mcts = MCTS(
+                env=env.mathy, model=self.local_model, num_mcts_sims=self.args.mcts_sims
+            )
+        selector: ActionSelector
+        if mcts is not None and self.args.action_strategy == "mcts_e_unreal":
+            if (
+                self.args.use_reward_prediction is False
+                and self.args.use_value_replay is False
+            ):
+                raise EnvironmentError(
+                    "This model is not configured to use reward prediction or value replay. "
+                    "To use UNREAL MCTS you must enable at least one UNREAL aux task."
+                )
+
+            selector = UnrealMCTSActionSelector(
+                worker=self,
+                mcts=mcts,
+                epsilon=self.args.unreal_mcts_epsilon,
+                episode=A3CWorker.global_episode,
+            )
+        elif mcts is not None and self.args.action_strategy == "mcts":
+            selector = MCTSActionSelector(
+                worker=self, mcts=mcts, episode=A3CWorker.global_episode
+            )
+        elif (
+            mcts is not None
+            and self.args.action_strategy == "mcts_worker_0"
+            and self.worker_idx == 0
+        ):
+            selector = MCTSActionSelector(
+                worker=self, mcts=mcts, episode=A3CWorker.global_episode
+            )
+        elif mcts is not None and self.args.action_strategy == "mcts_worker_n":
+            if self.worker_idx != 0:
+                selector = MCTSActionSelector(
+                    worker=self, mcts=mcts, episode=A3CWorker.global_episode
+                )
+            else:
+                selector = A3CEpsilonGreedyActionSelector(
+                    worker=self,
+                    epsilon=self.greedy_epsilon,
+                    episode=A3CWorker.global_episode,
+                )
+        elif self.args.action_strategy in ["a3c", "unreal"]:
+            selector = A3CEpsilonGreedyActionSelector(
+                worker=self,
+                epsilon=self.greedy_epsilon,
+                episode=A3CWorker.global_episode,
+            )
+        elif self.args.action_strategy == "a3c-eval":
+            selector = A3CGreedyActionSelector(
+                worker=self, episode=A3CWorker.global_episode
+            )
+        else:
+            raise EnvironmentError(
+                f"Unknown action_strategy: {self.args.action_strategy}"
+            )
 
         # Set RNN to 0 state for start of episode
         self.local_model.embedding.reset_rnn_state()
@@ -182,34 +255,26 @@ class A3CWorker(threading.Thread):
             # store rnn state for replay training
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
+            last_rnn_state = [rnn_state_h, rnn_state_c]
             # named tuples are read-only, so add rnn state to a new copy
             last_state = MathyObservation(
                 nodes=last_state.nodes,
                 mask=last_state.mask,
                 hints=last_state.hints,
                 type=last_state.type,
-                rnn_state=[rnn_state_h, rnn_state_c],
+                rnn_state=last_rnn_state,
             )
 
-            # Select a random action from the distribution with the given probabilities
-            probs, value = self.local_model.predict_next(
-                observations_to_window([last_state])
+            action = selector.select(
+                last_state=env.state,
+                last_observation=last_state,
+                last_action=last_action,
+                last_reward=last_reward,
+                last_rnn_state=last_rnn_state,
             )
-
             # store rnn state for replay training
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
-
-            no_greedy = not self.args.main_worker_use_epsilon and self.worker_idx == 0
-            if not no_greedy and np.random.random() < self.greedy_epsilon:
-                # Select a random action
-                action_mask = last_state.mask[:]
-                # normalize all valid action to equal probability
-                actions = action_mask / np.sum(action_mask)
-                action = np.random.choice(len(actions), p=actions)
-            else:
-                # action = np.random.choice(len(probs), p=probs)
-                action = np.argmax(probs)
 
             # Take an env step
             new_state, reward, done, _ = env.step(action)
@@ -234,11 +299,19 @@ class A3CWorker(threading.Thread):
                 last_reward=last_reward,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
-            episode_memory.store(
-                last_state, action, reward, value, grouping_change, frame
-            )
+            episode_memory.store(last_state, action, reward, grouping_change, frame)
             if time_count == self.args.update_freq or done:
-                self.update_global_network(done, new_state, episode_memory)
+                keep_experience = bool(
+                    self.args.use_value_replay or self.args.use_reward_prediction
+                )
+                if self.args.action_strategy == "unreal":
+                    keep_experience = True
+                elif self.args.action_strategy == "mcts_e_unreal":
+                    unreal = cast(UnrealMCTSActionSelector, selector)
+                    keep_experience = unreal.use_mcts or not self.experience.is_full()
+                self.update_global_network(
+                    done, new_state, episode_memory, keep_experience=keep_experience
+                )
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
@@ -301,12 +374,22 @@ class A3CWorker(threading.Thread):
                         var.name, var, step=self.global_model.global_step
                     )
 
-    def update_global_network(self, done, new_state, episode_memory: EpisodeMemory):
+    def update_global_network(
+        self,
+        done: bool,
+        new_state: MathyObservation,
+        episode_memory: EpisodeMemory,
+        keep_experience: bool,
+    ):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
         with tf.GradientTape() as tape:
             loss_tuple = self.compute_loss(
-                done, new_state, episode_memory, self.args.gamma
+                done=done,
+                new_state=new_state,
+                episode_memory=episode_memory,
+                gamma=self.args.gamma,
+                keep_experience=keep_experience,
             )
             pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
         self.ep_loss += total_loss
@@ -542,7 +625,13 @@ class A3CWorker(threading.Thread):
         return tf.reduce_mean(tf.convert_to_tensor(value_loss))
 
     def compute_loss(
-        self, done: bool, new_state, episode_memory: EpisodeMemory, gamma=0.99
+        self,
+        *,
+        done: bool,
+        new_state: MathyObservation,
+        episode_memory: EpisodeMemory,
+        keep_experience=False,
+        gamma=0.99,
     ):
         with self.writer.as_default():
             step = self.global_model.global_step
@@ -552,7 +641,7 @@ class A3CWorker(threading.Thread):
             use_replay = self.args.use_reward_prediction or self.args.use_value_replay
             # Skip over the experience replay buffers if not using Aux tasks because
             # they add extra memory overhead to hold on to the frames.
-            if use_replay is True:
+            if use_replay is True and keep_experience is True:
                 episode_memory.commit_frames(self.worker_idx, discounted_rewards)
             aux_weight = 0.5
 
@@ -592,3 +681,116 @@ class A3CWorker(threading.Thread):
             )
 
         return pi_loss, v_loss, h_loss, aux_losses, total_loss
+
+
+class ActionSelector:
+    """An episode-specific stategy action using some user-defined method"""
+
+    def __init__(self, *, worker: A3CWorker, episode: int):
+        self.worker = worker
+        self.episode = episode
+
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+        return 0
+
+
+class A3CGreedyActionSelector(ActionSelector):
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+        probs, _ = self.worker.local_model.predict_next(
+            observations_to_window([last_observation])
+        )
+        return np.argmax(probs)
+
+
+class A3CEpsilonGreedyActionSelector(ActionSelector):
+    def __init__(self, *, epsilon: float, **kwargs):
+        super(A3CEpsilonGreedyActionSelector, self).__init__(**kwargs)
+        self.epsilon = epsilon
+
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+
+        probs, _ = self.worker.local_model.predict_next(
+            observations_to_window([last_observation])
+        )
+        no_random = (
+            not self.worker.args.main_worker_use_epsilon and self.worker.worker_idx == 0
+        )
+        if not no_random and np.random.random() < self.epsilon:
+            # Select a random action
+            action_mask = last_observation.mask[:]
+            # normalize all valid action to equal probability
+            actions = action_mask / np.sum(action_mask)
+            action = np.random.choice(len(actions), p=actions)
+        else:
+            action = np.argmax(probs)
+        return action
+
+
+class MCTSActionSelector(ActionSelector):
+    def __init__(self, mcts: MCTS, **kwargs):
+        super(MCTSActionSelector, self).__init__(**kwargs)
+        self.mcts = mcts
+
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+        probs = self.mcts.getActionProb(last_state, last_rnn_state)
+        return np.argmax(probs)
+
+
+class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
+    def __init__(self, *, mcts: MCTS, **kwargs):
+        super(UnrealMCTSActionSelector, self).__init__(**kwargs)
+        self.mcts = mcts
+        can_mcts = self.worker.worker_idx != 0
+        self.use_mcts = can_mcts and bool(np.random.random() < self.epsilon)
+
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+        if self.use_mcts is False:
+            return super(UnrealMCTSActionSelector, self).select(
+                last_state=last_state,
+                last_observation=last_observation,
+                last_action=last_action,
+                last_reward=last_reward,
+                last_rnn_state=last_rnn_state,
+            )
+        probs = self.mcts.getActionProb(last_state, last_rnn_state)
+        return np.argmax(probs)

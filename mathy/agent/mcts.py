@@ -1,19 +1,19 @@
+from typing import Any, List
 import math
 import numpy
-from ...util import is_terminal_transition
-from ...mathy_env import MathyEnv
-from ..controller import MathModel
+from ..util import is_terminal_transition
+from ..mathy_env import MathyEnv
+from ..state import MathyEnvState, observations_to_window
 
 EPS = 1e-8
 
 
 class MCTS:
-    """
-    This class handles the MCTS tree.
-    """
+    """Monte-Carlo Tree Search is used for improving the actions selected
+    for an agent by simulating a bunch of actions and returning the best
+    based on the reward at the end of the simulated episodes."""
 
     env: MathyEnv
-    model: MathModel
     # cpuct is a hyperparameter controlling the degree of exploration
     # (1.0 in Suragnair experiments.)
     cpuct: int
@@ -26,11 +26,11 @@ class MCTS:
     def __init__(
         self,
         env: MathyEnv,
-        model: MathModel,
-        cpuct=1,
-        num_mcts_sims=15,
-        epsilon=0.25,
-        dir_alpha=0.3,
+        model: Any,
+        cpuct: float = 1.0,
+        num_mcts_sims: int = 15,
+        epsilon: float = 0.25,
+        dir_alpha: float = 0.3,
     ):
         self.env = env
         self.model = model
@@ -43,11 +43,14 @@ class MCTS:
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
+        self.Rs = {}  # stores observed rnn states at Ps
 
         self.Es = {}  # stores env.get_state_transition ended for env_state s
         self.Vs = {}  # stores env.get_valid_moves for env_state s
 
-    def getActionProb(self, env_state, temp=1):
+    def getActionProb(
+        self, env_state: MathyEnvState, rnn_state: List[Any], temp: float = 1.0
+    ):
         """
         This function performs num_mcts_sims simulations of MCTS starting from
         env_state.
@@ -57,7 +60,7 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for _ in range(self.num_mcts_sims):
-            self.search(env_state, True)
+            self.search(env_state, rnn_state, True)
 
         s = self.env.to_hash_key(env_state)
         counts = []
@@ -82,10 +85,10 @@ class MCTS:
         probs = [x / float(count_sum) for x in counts]
         return probs
 
-    def search(self, env_state, isRootNode=False):
+    def search(self, env_state: MathyEnvState, rnn_state: List[Any], isRootNode=False):
         """
         This function performs one iteration of MCTS. It is recursively called
-        till a leaf node is found. The action chosen at each node is one that
+        until a leaf node is found. The action chosen at each node is one that
         has the maximum upper confidence bound as in the paper.
 
         Once a leaf node is found, the neural network is called to return an
@@ -108,42 +111,25 @@ class MCTS:
             return self.Es[s].reward
 
         # This state does not have a predicted policy of value vector
-        if s not in self.Ps:
+        if s not in self.Ps or s not in self.Rs:
             # leaf node
             valids = self.env.get_valid_moves(env_state)
-            num_valids = len(valids)
-            out_policy, action_v = self.model.predict(env_state, valids)
-            out_policy = out_policy.flatten()
-            # Clip any predictions over batch-size padding tokens
-            if len(out_policy) > num_valids:
-                out_policy = out_policy[:num_valids]
+            observations = observations_to_window(
+                [env_state.to_observation(valids, rnn_state=rnn_state)]
+            )
+            out_policy, action_v = self.model.predict_next(observations)
+            out_rnn_state = [
+                self.model.embedding.state_h.numpy(),
+                self.model.embedding.state_c.numpy(),
+            ]
+            self.Rs[s] = out_rnn_state
             self.Ps[s] = out_policy
-            # print("calculating valid moves for: {}".format(s))
-            # print("action_v = {}".format(action_v))
-            # print("Ps = {}".format(self.Ps[s].shape))
-            # save_ps = self.Ps[s]
-            self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
-            sum_Ps_s = numpy.sum(self.Ps[s])
-            # print("sum Ps = {}".format(sum_Ps_s))
-            if sum_Ps_s > 0:
-                # renormalize so values sum to 1
-                self.Ps[s] /= sum_Ps_s
-            else:
-                # If all valid moves were masked make all valid moves equally probable
-                # NOTE: This can happen if your model is under/over fitting.
-                # MORE: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
-                # print("All valid moves were masked, do workaround.")
-                # print("problem: {}".format(env_state.agent.problem))
-                # print("history: {}".format(env_state.agent.history))
-                # print("save: {}".format(save_ps))
-                # print("mask: {}".format(self.Ps[s]))
-                # print("valids: {}".format(valids))
-                self.Ps[s] = self.Ps[s] + valids
-                self.Ps[s] /= numpy.sum(self.Ps[s])
-
             self.Vs[s] = valids
             self.Ns[s] = 0
             return action_v
+        else:
+            # Use the observed RNN state when this was cached
+            out_rnn_state = self.Rs[s]
 
         valids = self.Vs[s]
         cur_best = -float("inf")
@@ -183,7 +169,7 @@ class MCTS:
 
         a = numpy.random.choice(all_best)
         next_s, _, _ = self.env.get_next_state(env_state, a, searching=True)
-        action_v = self.search(next_s)
+        action_v = self.search(next_s, out_rnn_state)
 
         # state key for next state
         state_key = (s, a)
