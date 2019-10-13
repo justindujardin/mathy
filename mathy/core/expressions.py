@@ -20,7 +20,10 @@ MathTypeKeys = {
     "multiply": 5,
     "divide": 6,
     "power": 7,
-    # NOTE: reserved 8-15 for future expression types (such as functions)
+    "term_root": 8,
+    "term_connector": 9,
+    # NOTE: reserved 10-14 for future expression types (such as functions)
+    "constant": 15,
     "constant_0": 16,
     "constant_1": 17,
     "constant_2": 18,
@@ -147,7 +150,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return count
 
-    def toList(self, visit="preorder"):
+    def toList(self, visit="postorder"):
         """Convert this node hierarchy into a list."""
         results = []
 
@@ -440,32 +443,32 @@ class BinaryExpression(MathExpression):
 
         return priority
 
-    def left_parens(self):
-        leftChildBinary = self.left and isinstance(self.left, BinaryExpression)
-        return (
-            leftChildBinary
-            and self.left
-            and not self.left.self_parens()
-            and self.left.get_priority() < self.get_priority()
-        )
-
-    def right_parens(self):
-        rightChildBinary = self.right and isinstance(self.right, BinaryExpression)
-        return (
-            rightChildBinary
-            and not self.right.self_parens()
-            and self.right.get_priority() <= self.get_priority()
-        )
-
     def self_parens(self):
-        my_pri = self.get_priority()
-        # (7 - (5 - 3)) * (32 - 7)
-        # 6 ^ (1 + 1)
-        return (
-            self.parent
-            and isinstance(self.parent, BinaryExpression)
-            and self.parent.get_priority() > my_pri
-        )
+        parent = isinstance(self.parent, BinaryExpression)
+        right_binary = isinstance(self.right, BinaryExpression)
+        left_binary = isinstance(self.left, BinaryExpression)
+        self_pri = self.get_priority()
+        if not parent:
+            return False
+
+        parent_pri = self.parent.get_priority()
+        if parent_pri > self_pri:
+            return True
+
+        grand_parent = isinstance(self.parent.parent, BinaryExpression)
+        parent_side = self.parent.get_side(self)
+        if not grand_parent:
+            if right_binary:
+                grand_right_binary = isinstance(self.right.right, BinaryExpression)
+                if grand_right_binary:
+                    # Continuation of same priority binary op
+                    return self.right.right.get_priority() <= self_pri
+            return parent_pri == self_pri and parent_side == "left"
+        else:
+            if parent_side == "right":
+                return parent_pri < self_pri
+            else:
+                return parent_pri <= self_pri
         return False
 
     def __str__(self):
@@ -476,9 +479,7 @@ class BinaryExpression(MathExpression):
                 )
             )
 
-        left = f"({self.left})" if self.left_parens() else f"{self.left}"
-        right = f"({self.right})" if self.right_parens() else f"{self.right}"
-        out = f"{left} {self.with_color(self.name)} {right}"
+        out = f"{self.left} {self.with_color(self.name)} {self.right}"
         return f"({out})" if self.self_parens() else out
 
     def to_math_ml(self):
@@ -527,6 +528,13 @@ class AddExpression(BinaryExpression):
 
     @property
     def type_id(self):
+        from ..helpers import get_term_ex
+
+        term_l = get_term_ex(self.left)
+        if term_l is not None:
+            term_r = get_term_ex(self.right)
+            if term_r is not None:
+                return MathTypeKeys["term_connector"]
         return MathTypeKeys["add"]
 
     @property
@@ -573,6 +581,12 @@ class MultiplyExpression(BinaryExpression):
 
     @property
     def type_id(self):
+        from ..helpers import get_term_ex
+
+        # Is the root of a term
+        term = get_term_ex(self)
+        if term is not None:
+            return MathTypeKeys["term_root"]
         return MathTypeKeys["multiply"]
 
     @property
@@ -597,9 +611,13 @@ class MultiplyExpression(BinaryExpression):
     # instead of "4 * x"
     def __str__(self):
         if isinstance(self.left, ConstantExpression):
-            if isinstance(self.right, VariableExpression) or isinstance(
-                self.right, PowerExpression
-            ):
+            # const * var
+            one = isinstance(self.right, VariableExpression)
+            # const * var^power
+            two = isinstance(self.right, PowerExpression) and isinstance(
+                self.right.left, VariableExpression
+            )
+            if one or two:
                 return self.with_color("{}{}".format(self.left, self.right))
 
         return super().__str__()
@@ -680,9 +698,22 @@ class ConstantExpression(MathExpression):
     value: Union[float, int]
 
     @property
+    def name(self):
+        return f"const({self.value})"
+
+    @property
     def type_id(self):
-        id = f"_{int(self.value % 10)}" if self.value is not None else ""
-        return MathTypeKeys[f"constant{id}"]
+        # NOTE: Trying out no constant values exposed to model. The idea here
+        #       is that matybe this limited precision representation is making
+        #       it hard for the model to understand the "constantness" of the
+        #       vectors because there are 10 variations on it. When we consider
+        #       it, the constant value isn't always useful, and is only really
+        #       required for tasks that involve arithmetic or factoring. Mathy
+        #       does arithmetic and picking factors outside of the actions, so
+        #       we shouldn't need to encode it in the types.
+        return MathTypeKeys[f"constant"]
+        # id = f"_{int(self.value % 10)}" if self.value is not None else ""
+        # return MathTypeKeys[f"constant{id}"]
 
     def __init__(self, value=None):
         super().__init__()
@@ -707,6 +738,10 @@ class ConstantExpression(MathExpression):
 
 class VariableExpression(MathExpression):
     identifier: str
+
+    @property
+    def name(self):
+        return f"var({self.identifier})"
 
     @property
     def type_id(self):
@@ -816,6 +851,6 @@ class SgnExpression(FunctionExpression):
             f(x) = sgn( g(x) )
             d( f(x) ) = 0
     </pre>
-    Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function   
+    Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function
     """
         return ConstantExpression(0)
