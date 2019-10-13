@@ -172,6 +172,10 @@ def simplify_multiple_terms(
 ) -> Tuple[str, int]:
     power_prob_percent = powers_probability * 100
     num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    if num_terms <= 1:
+        raise ValueError("num_terms must be at least 2")
+    if num_terms == 2:
+        num_like_terms = 1
     like_term_vars = get_rand_vars(num_like_terms)
     term_templates = like_term_vars[:]
     for i, var in enumerate(term_templates):
@@ -179,10 +183,11 @@ def simplify_multiple_terms(
 
     # Repeat enough times to satisfy max_terms
     term_templates *= int(num_terms / num_like_terms) + 1
+    term_templates = term_templates[0:num_terms]
 
     # sometimes add noise terms to the ends
     if rand_bool(noise_probability * 100) is True:
-        num_noise_terms = min(5, max(1, num_terms - 2))
+        num_noise_terms = min(5, max(1, num_terms // 3))
         noise_vars = get_rand_vars(num_noise_terms, like_term_vars)
 
         # We take the larger value for the left side to push the terms
@@ -207,8 +212,8 @@ def simplify_multiple_terms(
 
     root_term = term_templates.pop()
     result = f"{rand_int()}{root_term}"
-    for i in range(num_terms - 1):
-        other_var = term_templates[i]
+    for other_var in term_templates:
+        # other_var = term_templates[i]
         if optional_var and rand_bool(optional_var_probability * 100) is False:
             other_var = ""
         result = result + " {} {}{}".format(

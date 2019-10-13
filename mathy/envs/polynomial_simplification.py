@@ -58,7 +58,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
         if params.difficulty == MathyEnvDifficulty.easy:
-            num_terms = randint(3, 6)
+            num_terms = randint(2, 5)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
                 num_terms, inner_terms_scaling=scaling
