@@ -2,31 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "mathy:main",
-      "type": "python",
-      "request": "launch",
-      "justMyCode": false,
-      "module": "main",
-      "args": [
-        "mixed",
-        "agents/ablated",
-        "-d",
-        "4"
-      ]
-    },
-    {
-      "name": "mathy:to_features",
-      "type": "python",
-      "request": "launch",
-      "justMyCode": false,
-      "module": "to_features",
-      "args": [
-        "agents/mt_07_15_19",
-        "4x + 2x",
-        "2x + 4x"
-      ]
-    },
-    {
       "name": "mathy:evaluate",
       "type": "python",
       "request": "launch",
@@ -43,24 +18,6 @@
         "training/dev/",
         "-l",
         "dev"
-      ]
-    },
-    {
-      "name": "mathy:lstm",
-      "type": "python",
-      "request": "launch",
-      "justMyCode": false,
-      "module": "lstm"
-    },
-    {
-      "name": "mathy:train",
-      "type": "python",
-      "request": "launch",
-      "justMyCode": false,
-      "module": "train",
-      "args": [
-        "training/mathy_micro_dev/",
-        "training.jsonl"
       ]
     },
     {
@@ -83,10 +40,11 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "poly",
+        "poly-commute",
         "training/dev",
-        "-workers",
-        "1"
+        "-workers=1",
+        "-strategy=mcts_recover",
+        "-difficulty=normal"
       ]
     },
     {
@@ -107,7 +65,11 @@
         "--pyargs",
         "mathy",
         "-k",
-        "test_distributive_factor_out"
+        // "test_mathy_env_valid_rules"
+        // "test_parser_to_string"
+        // "test_mathy_features_hierarchy"
+        // "test_associative_property"
+        "test_commutative_property"
       ]
     },
     {

@@ -7,14 +7,14 @@ from ..core.parser import ExpressionParser
 def test_parser_to_string():
     parser = ExpressionParser()
     expects = [
-        {
-            "input": "4x * p^(1 + 3) * 12x^2",
-            "output": "4x * (p^(1 + 3) * (12x^2))",
-            "meta": "fix this case, there are extra parens",
-        },
-        {"input": "(7 - (5 - 3)) * (32 - 7)", "output": "(7 - (5 - 3)) * (32 - 7)"},
-        {"input": "7 - (5 * 3) * (32 / 7)", "output": "7 - 5 * 3 * (32 / 7)"},
-        {"input": "7 - (5 * 3) * (2^7)", "output": "7 - 5 * 3 * 2^7"},
+        {"input": "1f + 98i + 3f + 14t", "output": "1f + 98i + 3f + 14t"},
+        {"input": "4x * p^(1 + 3) * 12x^2", "output": "4x * p^(1 + 3) * 12x^2"},
+        {"input": "(5 * 3) * (32 / 7)", "output": "(5 * 3) * 32 / 7"},
+        {"input": "7 - 5 * 3 * (2^7)", "output": "7 - 5 * 3 * 2^7"},
+        {"input": "(8x^2 * 9b) * 7", "output": "(8x^2 * 9b) * 7"},
+        {"input": "(8 * 9b) * 7", "output": "(8 * 9b) * 7"},
+        {"input": "7 - (5 * 3) * (32 / 7)", "output": "7 - (5 * 3) * 32 / 7"},
+        {"input": "7 - (5 - 3) * (32 - 7)", "output": "7 - (5 - 3) * (32 - 7)"},
         {"input": "(7 - (5 * 3)) * (32 - 7)", "output": "(7 - 5 * 3) * (32 - 7)"},
     ]
     # Test to make sure parens are preserved in output when they are meaningful

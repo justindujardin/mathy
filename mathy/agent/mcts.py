@@ -134,10 +134,9 @@ class MCTS:
         valids = self.Vs[s]
         cur_best = -float("inf")
         all_best = []
-        e = self.epsilon
         # add Dirichlet noise for root node. set epsilon=0 for ExaminationRunner
         # competitions of trained models
-        add_noise = isRootNode and e > 0
+        add_noise = isRootNode and self.epsilon > 0
         if add_noise:
             moves = self.env.get_valid_moves(env_state)
             noise = numpy.random.dirichlet([self.dir_alpha] * len(moves))
@@ -156,7 +155,7 @@ class MCTS:
 
                 p = self.Ps[s][a]
                 if add_noise:
-                    p = (1 - e) * p + e * noise[i]
+                    p = (1 - self.epsilon) * p + self.epsilon * noise[i]
 
                 u = q + self.cpuct * p * math.sqrt(self.Ns[s]) / (1 + n_s_a)
 

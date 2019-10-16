@@ -277,8 +277,8 @@ class A3CWorker(threading.Thread):
         # Start with the "init" sequence
         rnn_state_h = self.local_model.embedding.state_h.numpy()
         rnn_state_c = self.local_model.embedding.state_c.numpy()
-        seq_start = env.start_observation([rnn_state_h, rnn_state_c])
-        self.local_model.predict_next(observations_to_window([seq_start]))
+        # seq_start = env.start_observation([rnn_state_h, rnn_state_c])
+        # self.local_model.predict_next(observations_to_window([seq_start]))
 
         # Burn-in the initial problem state for N steps
         #
@@ -603,13 +603,20 @@ class A3CWorker(threading.Thread):
         action_targets = tf.one_hot(
             episode_memory.actions, depth=self.action_size * sequence_length
         )
-        soft_targets = self.soften_policy_targets(
-            action_targets, episode_memory.observations
-        )
+        # NOTE: only because we need to do batch-length trimming on the ops inside
+        soften = False
+        if soften:
+            action_targets = self.soften_policy_targets(
+                action_targets, episode_memory.observations
+            )
+            policy_loss = tf.nn.softmax_cross_entropy_with_logits(
+                labels=action_targets, logits=policy_logits
+            )
+        else:
+            policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+                labels=episode_memory.actions, logits=policy_logits
+            )
 
-        policy_loss = tf.nn.softmax_cross_entropy_with_logits(
-            labels=soft_targets, logits=policy_logits
-        )
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss = tf.reduce_mean(policy_loss)
         # Scale the policy loss down by the sequence length to avoid exploding losses
@@ -723,13 +730,13 @@ class A3CWorker(threading.Thread):
             # they add extra memory overhead to hold on to the frames.
             if use_replay is True and keep_experience is True:
                 episode_memory.commit_frames(self.worker_idx, discounted_rewards)
-            aux_weight = 0.5
+            aux_weight = 0.1
 
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
                     done, new_state, episode_memory
                 )
-                # gc_loss *= aux_weight
+                gc_loss *= aux_weight
                 total_loss += gc_loss
                 aux_losses["gc"] = gc_loss
             if self.experience.is_full():
@@ -802,7 +809,8 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
     def __init__(self, *, epsilon: float, **kwargs):
         super(A3CEpsilonGreedyActionSelector, self).__init__(**kwargs)
         self.epsilon = epsilon
-        self.first_step = True
+        self.noise_alpha = 0.3
+        self.use_noise = False
 
     def select(
         self,
@@ -817,9 +825,18 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         probs, _ = self.worker.local_model.predict_next(
             observations_to_window([last_observation])
         )
-        if self.first_step is True:
+        # Apply dirichlet noise to the root node (ala MCTS search)
+        # TODO: Note sure if this is useful without the follow up tree search
+        if self.use_noise is True:
+            noise = np.random.dirichlet([self.noise_alpha] * len(probs))
+            noise = noise * np.array(last_observation.mask)
+            probs += noise
+            pi_sum = np.sum(probs)
+            if pi_sum > 0:
+                probs /= pi_sum
+
             self.first_step = False
-            
+
         no_random = (
             not self.worker.args.main_worker_use_epsilon and self.worker.worker_idx == 0
         )
@@ -850,6 +867,33 @@ class MCTSActionSelector(ActionSelector):
     ) -> int:
         probs = self.mcts.getActionProb(last_state, last_rnn_state)
         return np.argmax(probs)
+
+
+class MCTSRecoveryActionSelector(MCTSActionSelector):
+    def __init__(self, base_selector: ActionSelector, recover_threshold=0.80, **kwargs):
+        super(MCTSRecoveryActionSelector, self).__init__(**kwargs)
+        self.base_selector = base_selector
+        self.recover_threshold = recover_threshold
+
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_observation: MathyObservation,
+        last_action: int,
+        last_reward: float,
+        last_rnn_state: List[float],
+    ) -> int:
+        if last_observation.time[0] >= self.recover_threshold:
+            probs = self.mcts.getActionProb(last_state, last_rnn_state)
+            return np.argmax(probs)
+        return self.base_selector.select(
+            last_state=last_state,
+            last_observation=last_observation,
+            last_action=last_action,
+            last_reward=last_reward,
+            last_rnn_state=last_rnn_state,
+        )
 
 
 class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
