@@ -32,6 +32,9 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         super(MathyPolynomialCommuteLikeTermsEnv, self).__init__(**kwargs)
         self.rule = DistributiveFactorOutRule()
 
+    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
+        return [CommutativeSwapRule, AssociativeSwapRule]
+
     def transition_fn(
         self,
         env_state: MathyEnvState,
@@ -64,7 +67,7 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
             text, _ = commute_haystack(
                 commute_blockers=blockers,
                 min_terms=4,
-                max_terms=8,
+                max_terms=10,
                 easy=easy,
                 powers=powers,
             )
@@ -73,7 +76,7 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
             powers = rand_bool(40)
             easy = rand_bool(25)
             text, _ = commute_haystack(
-                min_terms=4, max_terms=8, easy=easy, powers=powers
+                min_terms=8, max_terms=12, easy=easy, powers=powers
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(5, 10)
