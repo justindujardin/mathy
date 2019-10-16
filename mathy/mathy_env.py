@@ -161,7 +161,20 @@ class MathyEnv:
         # Check the turn count last because if the previous move that incremented
         # the turn over the count resulted in a win-condition, we want it to be honored.
         if env_state.agent.moves_remaining <= 0:
-            return time_step.termination(features, GameRewards.LOSE)
+            return time_step.termination(features, self.get_lose_signal(env_state))
+
+        # The agent is penalized for returning to a previous state.
+        for key, group in groupby(
+            sorted([f"{h.raw}" for h in env_state.agent.history])
+        ):
+            list_group = list(group)
+            list_count = len(list_group)
+            if list_count <= 1:
+                continue
+
+            return time_step.transition(
+                features, reward=GameRewards.PREVIOUS_LOCATION, discount=self.discount
+            )
 
         if len(agent.history) > 0:
             last_timestep = agent.history[-1]
@@ -185,19 +198,6 @@ class MathyEnv:
                         reward=GameRewards.UNHELPFUL_MOVE,
                         discount=self.discount,
                     )
-
-        # The agent is penalized for returning to a previous state.
-        for key, group in groupby(
-            sorted([f"{h.raw}" for h in env_state.agent.history])
-        ):
-            list_group = list(group)
-            list_count = len(list_group)
-            if list_count <= 1:
-                continue
-
-            return time_step.transition(
-                features, reward=GameRewards.PREVIOUS_LOCATION, discount=self.discount
-            )
 
         # We're in a new state, and the agent is a little older.
         return time_step.transition(
