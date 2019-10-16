@@ -244,6 +244,18 @@ class A3CWorker(threading.Thread):
                     epsilon=self.greedy_epsilon,
                     episode=A3CWorker.global_episode,
                 )
+        elif mcts is not None and self.args.action_strategy == "mcts_recover":
+            selector = MCTSRecoveryActionSelector(
+                worker=self,
+                mcts=mcts,
+                episode=A3CWorker.global_episode,
+                recover_threshold=self.args.mcts_recover_time_threshold,
+                base_selector=A3CEpsilonGreedyActionSelector(
+                    worker=self,
+                    epsilon=self.greedy_epsilon,
+                    episode=A3CWorker.global_episode,
+                ),
+            )
         elif self.args.action_strategy in ["a3c", "unreal"]:
             selector = A3CEpsilonGreedyActionSelector(
                 worker=self,
@@ -280,6 +292,7 @@ class A3CWorker(threading.Thread):
                 mask=last_state.mask,
                 hints=last_state.hints,
                 type=last_state.type,
+                time=last_state.time,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
             self.local_model.predict_next(observations_to_window([last_state]))
@@ -298,6 +311,7 @@ class A3CWorker(threading.Thread):
                 mask=last_state.mask,
                 hints=last_state.hints,
                 type=last_state.type,
+                time=last_state.time,
                 rnn_state=last_rnn_state,
             )
 
@@ -319,6 +333,7 @@ class A3CWorker(threading.Thread):
                 mask=new_state.mask,
                 hints=new_state.hints,
                 type=new_state.type,
+                time=new_state.time,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
 
