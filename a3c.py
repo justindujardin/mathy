@@ -53,7 +53,9 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         None,
         int,
     ),
+    strategy=("The action selection strategy to use", "option", None, str),
     lstm_units=("Number of dimensions to use for LSTM layers", "option", None, int),
+    show=("Show the agents step-by-step directions", "flag", False, bool),
     profile=("Set to gather profiler outputs for the A3C workers", "flag", False, bool),
     evaluate=("Set when evaluation is desired", "flag", False, bool),
 )
@@ -64,17 +66,20 @@ def main(
     workers: int = cpu_count(),
     units: int = 64,
     embedding_units: int = 512,
-    lstm_units: int = 32,
+    lstm_units: int = 256,
+    strategy: str = "a3c",
     difficulty: Optional[str] = None,
     profile: bool = False,
+    show: bool = False,
     evaluate: bool = False,
 ):
     topics_list = topics.split(",")
     args = A3CArgs(
         verbose=True,
-        update_freq=8,
+        update_freq=128,
         train=not evaluate,
         difficulty=difficulty,
+        action_strategy=strategy,
         topics=topics_list,
         lstm_units=lstm_units,
         units=units,
@@ -83,6 +88,7 @@ def main(
         init_model_from=transfer_from,
         num_workers=workers,
         profile=profile,
+        print_training=show,
     )
     agent = A3CAgent(args)
     if not evaluate:
