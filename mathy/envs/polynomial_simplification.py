@@ -4,13 +4,20 @@ from numpy.random import randint, uniform
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
+from ..features import calculate_term_grouping_distances
 from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import simplify_multiple_terms
-from ..rules import BaseRule, ConstantsSimplifyRule, DistributiveFactorOutRule
+from ..rules import (
+    BaseRule,
+    CommutativeSwapRule,
+    ConstantsSimplifyRule,
+    DistributiveFactorOutRule,
+)
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from ..util import GameRewards
 
 
 class MathyPolynomialSimplificationEnv(MathyEnv):
@@ -30,7 +37,16 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         return "mathy.polynomials.simplify"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
+        return [CommutativeSwapRule, ConstantsSimplifyRule, DistributiveFactorOutRule]
+
+    def get_lose_signal(self, env_state: MathyEnvState) -> float:
+        """Subtract the normalized GC error from the lose signal
+        so that the penalty is reduced when the agent is closer to
+        winning."""
+
+        _, error = calculate_term_grouping_distances(env_state.agent.problem)
+
+        return max(-2.0, GameRewards.LOSE - error)
 
     def transition_fn(
         self,
