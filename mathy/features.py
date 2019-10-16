@@ -206,7 +206,7 @@ def calculate_brevity_node_control_signal(observation: MathyEnvObservation):
 
 
 def calculate_term_grouping_distances(input: str) -> Tuple[float, float]:
-    vars = re.sub(r"[^a-zA-Z]+", "", input)
+    vars = re.findall(r"([a-zA-Z]\^?\d?)+", input)
     seen_pos: Dict[str, List[int]] = dict()
     for i, var in enumerate(vars):
         if var not in seen_pos:
