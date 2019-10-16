@@ -128,6 +128,11 @@ class MathyEnv:
             bonus *= 2
         return GameRewards.WIN + bonus
 
+    def get_lose_signal(self, env_state: MathyEnvState) -> float:
+        """Calculate the reward value for failing to complete the episode. This is done
+        so that the reward signal can be problem-type dependent."""
+        return GameRewards.LOSE
+
     def get_state_transition(
         self, env_state: MathyEnvState, searching: bool = False
     ) -> time_step.TimeStep:
