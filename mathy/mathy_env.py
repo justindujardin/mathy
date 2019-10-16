@@ -1,6 +1,6 @@
 from itertools import groupby
 from typing import Any, Dict, List, Optional, Tuple, Type
-
+import numpy as np
 from tf_agents.trajectories import time_step
 
 from .core.expressions import STOP, MathExpression
@@ -281,10 +281,12 @@ class MathyEnv:
 
         token_idx = "{}".format(token_index).zfill(3)
         moves_left = str(env_state.agent.moves_remaining).zfill(2)
-        valid_moves = self.get_valid_rules(env_state)
-        move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_moves)]
+        valid_rules = self.get_valid_rules(env_state)
+        valid_moves = self.get_valid_moves(env_state)
+        num_moves = "{}".format(len(np.nonzero(valid_moves)[0])).zfill(3)
+        move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_rules)]
         moves = " ".join(move_codes)
-        return f"{moves} | {moves_left} | {token_idx} | {output}"
+        return f"{num_moves} | {moves} | {moves_left} | {token_idx} | {output}"
 
     def get_initial_state(
         self, params: Optional[MathyEnvProblemArgs] = None, print_problem: bool = True
