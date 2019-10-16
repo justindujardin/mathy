@@ -34,6 +34,9 @@ class A3CAgent:
             topic_names=self.args.topics,
             num_students=self.args.num_workers,
             difficulty=self.args.difficulty,
+            eval_window=self.args.teacher_evaluation_steps,
+            win_threshold=self.args.teacher_promote_wins,
+            lose_threshold=self.args.teacher_demote_wins,
         )
         env = gym.make(self.teacher.get_env(0, 0))
         self.action_size = env.action_space.n

@@ -53,10 +53,10 @@ class A3CArgs(BaseModel):
     #                for the remaining steps. This is an attempt to convert near miss (all negative)
     #                episodes into "weak win" ones. The idea is that agents struggle to overcome
     #                the sign-flipping effect of episode loss/wins
-    action_strategy = "mcts_e_unreal"
-    # MCTS provides higher quality observations at extra computational
-    # cost.
+    action_strategy = "mcts_recover"
+    # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 10
+    mcts_recover_time_threshold: float = 0.66
     # When using "" action strategy, this is the epsilon that will trigger an MCTS
     # episode when random is less than it.
     unreal_mcts_epsilon: float = 0.05
@@ -67,14 +67,22 @@ class A3CArgs(BaseModel):
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.3
+    e_greedy_max = 0.2
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
     worker_wait: float = 0.5
+
     # The number of worker agents to create.
     num_workers: int = 3
+
+    # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
+    teacher_evaluation_steps = 25
+    # If the agent wins >= this value, promote to the next difficulty class
+    teacher_promote_wins = 0.75
+    # If the agent loses >= this value, demot to the previous difficulty class
+    teacher_demote_wins = 0.3
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.
