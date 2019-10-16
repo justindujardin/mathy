@@ -222,14 +222,17 @@ class A3CWorker(threading.Thread):
             selector = MCTSActionSelector(
                 worker=self, mcts=mcts, episode=A3CWorker.global_episode
             )
-        elif (
-            mcts is not None
-            and self.args.action_strategy == "mcts_worker_0"
-            and self.worker_idx == 0
-        ):
-            selector = MCTSActionSelector(
-                worker=self, mcts=mcts, episode=A3CWorker.global_episode
-            )
+        elif mcts is not None and self.args.action_strategy == "mcts_worker_0":
+            if self.worker_idx == 0:
+                selector = MCTSActionSelector(
+                    worker=self, mcts=mcts, episode=A3CWorker.global_episode
+                )
+            else:
+                selector = A3CEpsilonGreedyActionSelector(
+                    worker=self,
+                    epsilon=self.greedy_epsilon,
+                    episode=A3CWorker.global_episode,
+                )
         elif mcts is not None and self.args.action_strategy == "mcts_worker_n":
             if self.worker_idx != 0:
                 selector = MCTSActionSelector(
