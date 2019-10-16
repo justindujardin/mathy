@@ -189,8 +189,17 @@ class A3CWorker(threading.Thread):
         last_reward = -1
         mcts: Optional[MCTS] = None
         if "mcts" in self.args.action_strategy:
+            if self.worker_idx == 0:
+                # disable dirichlet noise in worker_0
+                epsilon = 0.0
+            else:
+                # explore based on eGreedy param (wild guess for values)
+                epsilon = 0.1 + self.greedy_epsilon
             mcts = MCTS(
-                env=env.mathy, model=self.local_model, num_mcts_sims=self.args.mcts_sims
+                env=env.mathy,
+                model=self.local_model,
+                num_mcts_sims=self.args.mcts_sims,
+                epsilon=epsilon,
             )
         selector: ActionSelector
         if mcts is not None and self.args.action_strategy == "mcts_e_unreal":
