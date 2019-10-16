@@ -31,7 +31,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         use_node_lstm: bool = True,
-        extract_window: Optional[int] = 6,
+        extract_window: Optional[int] = None,
         encode_tokens_with_type: bool = False,
         **kwargs,
     ):
@@ -42,31 +42,14 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.extract_window = extract_window
         self.lstm_units = lstm_units
         self.init_rnn_state()
-        token_in_dimension = (
-            PROBLEM_TYPE_HASH_BUCKETS
-            if self.encode_tokens_with_type
-            else MathTypeKeysMax
-        )
         self.token_embedding = tf.keras.layers.Embedding(
-            input_dim=token_in_dimension,
+            input_dim=MathTypeKeysMax,
             output_dim=self.lstm_units,
             name="nodes_embedding",
             mask_zero=True,
         )
-        self.mask_embedding = tf.keras.layers.Embedding(
-            input_dim=PROBLEM_TYPE_HASH_BUCKETS,
-            output_dim=self.lstm_units,
-            name="mask_embedding",
-            mask_zero=False,
-        )
-        self.hints_embedding = tf.keras.layers.Embedding(
-            input_dim=2,
-            output_dim=self.lstm_units,
-            name="hints_embedding",
-            mask_zero=False,
-        )
-        self.attention = MultiHeadAttention(head_num=4, name="self_attention")
-        self.attention_hints = MultiHeadAttention(head_num=2, name="hint_attention")
+        self.bottleneck = tf.keras.layers.Dense(self.lstm_units, use_bias=False)
+        self.attention = MultiHeadAttention(head_num=16, name="self_attention")
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -81,7 +64,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
             time_major=False,
             return_state=True,
         )
-        self.embedding = tf.keras.layers.Dense(units=self.units, name="embedding")
 
     def init_rnn_state(self):
         """Track RNN states with variables in the graph"""
@@ -107,6 +89,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         batch_size = len(features.nodes)  # noqa
         sequence_length = len(features.nodes[0])
         type = tf.convert_to_tensor(features.type)
+        time = tf.convert_to_tensor(features.time)
         input = tf.convert_to_tensor(features.nodes)
 
         #
@@ -128,34 +111,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
             # Add an empty dimension (usually used by the extract window depth)
             input = tf.expand_dims(input, axis=-1)
 
-        # Reshape the "type" information and combine it with each node in the
-        # sequence so the nodes have context for the current task
-        #
-        # [Batch, len(Type)] => [Batch, 1, len(Type)]
-        type_with_batch = type[:, tf.newaxis, :]
-        # Repeat the type values for each node in the sequence
-        #
-        # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
-        type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
-
-        if self.encode_tokens_with_type:
-            # Concatenate them yielding nodes with length [seq + type_len]
-            input = tf.concat([type_tiled, input], axis=2)
-
         query = self.token_embedding(input)
-        query = tf.reshape(query, [batch_size, sequence_length, -1])
 
-        move_mask = tf.convert_to_tensor(features.mask)
-        hint_mask = tf.convert_to_tensor(features.hints)
-        if batch_size == 1:
-            move_mask = move_mask[tf.newaxis, :, :]
-            hint_mask = hint_mask[tf.newaxis, :, :]
-        move_mask = tf.reshape(move_mask, [batch_size, sequence_length, -1])
-        hint_mask = tf.reshape(hint_mask, [batch_size, sequence_length, -1])
-        mask_input = tf.concat([type_tiled, move_mask + hint_mask], axis=2)
-        # Embed the valid move mask for the attention layer
-        value = self.mask_embedding(mask_input)
-        value = tf.reshape(value, [batch_size, sequence_length, -1])
+        query = tf.reshape(query, [batch_size, sequence_length, -1])
 
         if self.use_node_lstm:
             # Add context to each timesteps node vectors first
@@ -173,10 +131,52 @@ class MathyEmbedding(tf.keras.layers.Layer):
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
+
+        #
+        # Aux features
+        #
+        move_mask = tf.convert_to_tensor(features.mask)
+        hint_mask = tf.convert_to_tensor(features.hints)
+        if batch_size == 1:
+            move_mask = move_mask[tf.newaxis, :, :]
+            hint_mask = hint_mask[tf.newaxis, :, :]
+        move_mask = tf.reshape(move_mask, [batch_size, sequence_length, -1])
+        hint_mask = tf.reshape(hint_mask, [batch_size, sequence_length, -1])
+
+        # Reshape the "type" information and combine it with each node in the
+        # sequence so the nodes have context for the current task
+        #
+        # [Batch, len(Type)] => [Batch, 1, len(Type)]
+        type_with_batch = type[:, tf.newaxis, :]
+        # Repeat the type values for each node in the sequence
+        #
+        # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
+        type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
+
+        # Reshape the "time" information so it has a time axis
+        #
+        # [Batch, 1] => [Batch, 1, 1]
+        time_with_batch = time[:, tf.newaxis, :]
+        # Repeat the type values for each node in the sequence
+        #
+        # [Batch, 1, 1] => [Batch, len(Sequence), 1]
+        time_tiled = tf.tile(time_with_batch, [1, sequence_length, 1])
+
+        # Combine the LSTM outputs with the contextual features
+        time_out = tf.concat(
+            [
+                time_tiled,
+                time_out,
+                tf.cast(type_tiled, dtype=tf.float32),
+                tf.cast(move_mask + hint_mask, dtype=tf.float32),
+            ],
+            axis=-1,
+        )
+        # use a bottleneck so that we know the dimensions fit the attention layer below
+        time_out = self.bottleneck(time_out)
+
         # Self-attention
         time_out = self.attention([time_out, time_out, time_out])
-        # Focusing attention with contextual embeddings
-        time_out = self.attention_hints([value, time_out, time_out])
 
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])

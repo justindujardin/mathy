@@ -43,18 +43,21 @@ NodeIntList = List[int]
 NodeHintMaskIntList = List[int]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
+ProblemTimeFloatList = List[float]
 RNNStatesFloatList = List[List[List[float]]]
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
 WindowNodeHintMaskIntList = List[NodeHintMaskIntList]
 WindowProblemTypeIntList = List[ProblemTypeIntList]
+WindowProblemTimeFloatList = List[ProblemTimeFloatList]
 WindowRNNStatesFloatList = List[RNNStatesFloatList]
 
 BatchNodeIntList = List[WindowNodeIntList]
 BatchNodeMaskIntList = List[WindowNodeMaskIntList]
 BatchNodeHintMaskIntList = List[WindowNodeHintMaskIntList]
 BatchProblemTypeIntList = List[WindowProblemTypeIntList]
+BatchProblemTimeFloatList = List[WindowProblemTimeFloatList]
 BatchRNNStatesFloatList = List[WindowRNNStatesFloatList]
 
 
@@ -64,6 +67,7 @@ class MathyObservation(NamedTuple):
     - "mask" 0/1 mask where 0 indicates an invalid action shape=[n,]
     - "hints" 0/1 mask where 1 indicates a useful node for the environment shape=[n,]
     - "type" two column hash of problem environment type shape=[2,]
+    - "time" float value between 0.0-1.0 for how much time has passed shape=[1,]
     - "rnn_state" n-step rnn state paris shape=[2*dimensions]
     """
 
@@ -71,6 +75,7 @@ class MathyObservation(NamedTuple):
     mask: NodeMaskIntList
     hints: NodeHintMaskIntList
     type: ProblemTypeIntList
+    time: ProblemTimeFloatList
     rnn_state: RNNStatesFloatList
 
 
@@ -81,6 +86,7 @@ class MathyWindowObservation(NamedTuple):
     - "hints" 0/1 mask where 1 indicates a useful node for the environment
        of shape=[n, max(len(s))]
     - "type" n-step problem type hash shape=[n, 2]
+    - "time" float value between 0.0-1.0 for how much time has passed shape=[n, 1]
     - "rnn_state" n-step rnn state paris shape=[n, 2*dimensions]
     """
 
@@ -88,6 +94,7 @@ class MathyWindowObservation(NamedTuple):
     mask: WindowNodeMaskIntList
     hints: WindowNodeHintMaskIntList
     type: WindowProblemTypeIntList
+    time: WindowProblemTimeFloatList
     rnn_state: WindowRNNStatesFloatList
 
 
@@ -98,6 +105,7 @@ class MathyBatchObservation(NamedTuple):
     - "mask" Batch of n-step node sequence masks shape=[b, n, max(len(s))]
     - "hints" Batch of n-step node sequence hint masks of shape=[n, max(len(s))]
     - "type" Batch of n-step problem hashes shape=[b, n, max(len(s))]
+    - "time" float value between 0.0-1.0 for how much time has passed shape=[b, n, 1]
     - "rnn_state" Batch of n-step rnn state pairs shape=[b, n, 2*dimensions]
     """
 
@@ -105,6 +113,7 @@ class MathyBatchObservation(NamedTuple):
     mask: BatchNodeMaskIntList
     hints: BatchNodeHintMaskIntList
     type: BatchProblemTypeIntList
+    time: BatchProblemTimeFloatList
     rnn_state: BatchRNNStatesFloatList
 
 
@@ -141,7 +150,7 @@ def observations_to_window(
     observations: List[MathyObservation]
 ) -> MathyWindowObservation:
     output = MathyWindowObservation(
-        nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+        nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
     )
     max_length: int = max([len(o.nodes) for o in observations])
     max_mask_length: int = max([len(o.mask) for o in observations])
@@ -152,6 +161,7 @@ def observations_to_window(
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
         output.hints.append(pad_array(obs.hints, max_hints_length, 0))
         output.type.append(obs.type)
+        output.time.append(obs.time)
         output.rnn_state[0].append(obs.rnn_state[0])
         output.rnn_state[1].append(obs.rnn_state[1])
     return output
@@ -159,7 +169,7 @@ def observations_to_window(
 
 def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
     output = MathyBatchObservation(
-        nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+        nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
     )
     max_length = 0
     max_mask_length = 0
@@ -186,6 +196,7 @@ def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObserva
         output.mask.append(window_mask)
         output.hints.append(hints_mask)
         output.type.append(window.type)
+        output.time.append(window.time)
     return output
 
 
@@ -316,6 +327,7 @@ class MathyEnvState(object):
             mask=mask,
             hints=hints,
             type=hash,
+            time=[0.0],
             rnn_state=rnn_state,
         )
 
@@ -330,6 +342,7 @@ class MathyEnvState(object):
             mask=mask,
             hints=hints,
             type=hash,
+            time=[0.0],
             rnn_state=rnn_placeholder_state(rnn_size),
         )
 
@@ -346,11 +359,19 @@ class MathyEnvState(object):
         expression = self.parser.parse(self.agent.problem)
         nodes: List[MathExpression] = expression.toList()
         vectors: NodeIntList = [t.type_id for t in nodes]
+
+        # Pass a 0-1 value indicating the relative episode time where 0.0 is
+        # the episode start, and 1.0 is the episode end as indicated by the
+        # maximum allowed number of actions.
+        step = int(self.max_moves - self.agent.moves_remaining)
+        time = step / self.max_moves
+
         return MathyObservation(
             nodes=vectors,
             mask=move_mask,
             hints=hint_mask,
             type=self.problem_hash(),
+            time=[time],
             rnn_state=rnn_state,
         )
 
