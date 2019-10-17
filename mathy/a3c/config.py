@@ -65,9 +65,12 @@ class A3CArgs(BaseModel):
     #       destabilizing the overall loss when it grows very small
     entropy_loss_scaling = 0.1
 
+    # How much to scale down loss values from auxiliary tasks
+    aux_tasks_weight_scale = 0.1
+
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.2
+    e_greedy_max = 0.4
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to

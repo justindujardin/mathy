@@ -730,7 +730,7 @@ class A3CWorker(threading.Thread):
             # they add extra memory overhead to hold on to the frames.
             if use_replay is True and keep_experience is True:
                 episode_memory.commit_frames(self.worker_idx, discounted_rewards)
-            aux_weight = 0.1
+            aux_weight = self.args.aux_tasks_weight_scale
 
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
