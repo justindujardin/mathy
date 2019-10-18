@@ -37,7 +37,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         return "mathy.polynomials.simplify"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [CommutativeSwapRule, ConstantsSimplifyRule, DistributiveFactorOutRule]
+        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Subtract the normalized GC error from the lose signal

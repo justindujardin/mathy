@@ -33,7 +33,7 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         self.rule = DistributiveFactorOutRule()
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [CommutativeSwapRule, AssociativeSwapRule]
+        return []
 
     def transition_fn(
         self,

@@ -30,7 +30,7 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
         return "mathy.polynomials.commute_then_simplify"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, DistributiveFactorOutRule, CommutativeSwapRule]
+        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
 
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [AssociativeSwapRule]

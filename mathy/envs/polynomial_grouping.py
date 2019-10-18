@@ -24,7 +24,7 @@ class MathyPolynomialGroupingEnv(MathyEnv):
         return "mathy.polynomials.group_like_terms"
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [CommutativeSwapRule, AssociativeSwapRule]
+        return []
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
