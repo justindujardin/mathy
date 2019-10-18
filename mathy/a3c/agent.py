@@ -23,13 +23,7 @@ class A3CAgent:
         self.args = args
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
-            print(
-                color(
-                    text=f"Config: {json.dumps(self.args.dict(), indent=2)}",
-                    fore="blue",
-                    style="bright",
-                )
-            )
+            print(f"Config: {json.dumps(self.args.dict(), indent=2)}")
         self.teacher = Teacher(
             topic_names=self.args.topics,
             num_students=self.args.num_workers,

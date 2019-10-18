@@ -39,6 +39,7 @@ class MathyGymEnv(gym.Env):
     env_class: Type[MathyEnv]
     env_problem_args: Optional[MathyEnvProblemArgs]
     last_action: int
+    last_reward: float
     last_change: Optional[ExpressionChangeRule]
 
     def __init__(
@@ -57,7 +58,7 @@ class MathyGymEnv(gym.Env):
 
         self.last_action = -1
         self.last_change = None
-        max_problem_types = 64
+        self.last_reward = 0.0
         max_nodes = 1024
         max_actions = self.mathy.action_size
         vector_width = 1  # a single number
@@ -79,12 +80,14 @@ class MathyGymEnv(gym.Env):
         done = is_terminal_transition(transition)
         self.last_action = action
         self.last_change = change
+        self.last_reward = round(float(transition.reward), 4)
         return observation, transition.reward, done, info
 
     def reset(self, rnn_size=default_rnn_size):
         self.rnn_size = rnn_size
         self.last_action = -1
         self.last_change = None
+        self.last_reward = 0.0
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
@@ -127,5 +130,9 @@ class MathyGymEnv(gym.Env):
         else:
             print(f"Problem: {self.state.agent.problem}")
         self.mathy.print_state(
-            self.state, action_name[:25].lower(), token_index, change=self.last_change
+            self.state,
+            action_name[:25].lower(),
+            token_index,
+            change=self.last_change,
+            change_reward=self.last_reward,
         )

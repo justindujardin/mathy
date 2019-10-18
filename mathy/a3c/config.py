@@ -23,7 +23,7 @@ class A3CArgs(BaseModel):
     ready_at: int = 256
     lr: float = 3e-4
     update_freq: int = 25
-    max_eps: int = 100000
+    max_eps: int = 15000
     gamma: float = 0.99
 
     # Strategy for introducing MCTS into the A3C agent training process
@@ -53,7 +53,7 @@ class A3CArgs(BaseModel):
     #                for the remaining steps. This is an attempt to convert near miss (all negative)
     #                episodes into "weak win" ones. The idea is that agents struggle to overcome
     #                the sign-flipping effect of episode loss/wins
-    action_strategy = "mcts_recover"
+    action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 10
     mcts_recover_time_threshold: float = 0.66
@@ -95,11 +95,15 @@ class A3CArgs(BaseModel):
     # to find problems.
     print_training: bool = False
 
+    # When training on the experience replay buffer, burn-in the stored RNN states 
+    # against the current model for (n) steps before processing the replay examples
+    unreal_burn_in_steps: int = 1
+
     # Whether to use the reward prediction aux task
-    use_reward_prediction = False
+    use_reward_prediction = True
 
     # Whether to use the value replay aux task
-    use_value_replay = False
+    use_value_replay = True
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

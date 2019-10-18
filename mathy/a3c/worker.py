@@ -15,6 +15,7 @@ from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 from ..agent.mcts import MCTS
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
+from ..gym.mathy_gym_env import MathyGymEnv
 from ..r2d2.episode_memory import EpisodeMemory
 from ..r2d2.experience import Experience, ExperienceFrame
 from ..state import (
@@ -92,6 +93,8 @@ class A3CWorker(threading.Thread):
         self.last_histogram_write = -1
 
         e = truncate(self.greedy_epsilon)
+        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
+            e = 0.0
 
         # Sanity check
         if self.args.action_strategy == "mcts_e_unreal":
@@ -172,21 +175,7 @@ class A3CWorker(threading.Thread):
             print(f"PROFILER: saved {profile_path}")
         self.result_queue.put(None)
 
-    def run_episode(self, episode_memory: EpisodeMemory):
-        env_name = self.teacher.get_env(self.worker_idx, self.iteration)
-        if env_name not in self.envs:
-            self.envs[env_name] = gym.make(env_name)
-        env = self.envs[env_name]
-        episode_memory.clear()
-        self.ep_loss = 0
-        ep_reward = 0.0
-        ep_steps = 1
-        time_count = 0
-        done = False
-        last_state: MathyObservation = env.reset()
-        last_text = env.state.agent.problem
-        last_action = -1
-        last_reward = -1
+    def build_episode_selector(self, env: MathyGymEnv) -> "ActionSelector":
         mcts: Optional[MCTS] = None
         if "mcts" in self.args.action_strategy:
             if self.worker_idx == 0:
@@ -208,7 +197,7 @@ class A3CWorker(threading.Thread):
                 and self.args.use_value_replay is False
             ):
                 raise EnvironmentError(
-                    "This model is not configured to use reward prediction or value replay. "
+                    "This model is not configured for reward prediction/value replay. "
                     "To use UNREAL MCTS you must enable at least one UNREAL aux task."
                 )
 
@@ -270,6 +259,25 @@ class A3CWorker(threading.Thread):
             raise EnvironmentError(
                 f"Unknown action_strategy: {self.args.action_strategy}"
             )
+        return selector
+
+    def run_episode(self, episode_memory: EpisodeMemory):
+        env_name = self.teacher.get_env(self.worker_idx, self.iteration)
+        if env_name not in self.envs:
+            self.envs[env_name] = gym.make(env_name)
+        env = self.envs[env_name]
+        episode_memory.clear()
+        self.ep_loss = 0
+        ep_reward = 0.0
+        ep_steps = 1
+        time_count = 0
+        done = False
+        last_state: MathyObservation = env.reset(rnn_size=self.args.lstm_units)
+        last_text = env.state.agent.problem
+        last_action = -1
+        last_reward = -1
+
+        selector = self.build_episode_selector(env)
 
         # Set RNN to 0 state for start of episode
         self.local_model.embedding.reset_rnn_state()
@@ -277,25 +285,10 @@ class A3CWorker(threading.Thread):
         # Start with the "init" sequence
         rnn_state_h = self.local_model.embedding.state_h.numpy()
         rnn_state_c = self.local_model.embedding.state_c.numpy()
-        # seq_start = env.start_observation([rnn_state_h, rnn_state_c])
-        # self.local_model.predict_next(observations_to_window([seq_start]))
-
-        # Burn-in the initial problem state for N steps
-        #
-        # This tries to "align" the zero-state with the current model weights/biases
-        burn_in_steps = 0
-        for i in range(burn_in_steps):
-            rnn_state_h = self.local_model.embedding.state_h.numpy()
-            rnn_state_c = self.local_model.embedding.state_c.numpy()
-            last_state = MathyObservation(
-                nodes=last_state.nodes,
-                mask=last_state.mask,
-                hints=last_state.hints,
-                type=last_state.type,
-                time=last_state.time,
-                rnn_state=[rnn_state_h, rnn_state_c],
-            )
-            self.local_model.predict_next(observations_to_window([last_state]))
+        seq_start = env.start_observation([rnn_state_h, rnn_state_c])
+        self.local_model.predict_next(
+            observations_to_window([seq_start, last_state])
+        )
 
         first_step = True
         while not done and A3CWorker.request_quit is False:
@@ -657,9 +650,9 @@ class A3CWorker(threading.Thread):
             loss = tf.clip_by_value(loss, -1.0, 1.0)
         return loss
 
-    def rp_samples(self, max_samples=2) -> Tuple[MathyWindowObservation, float]:
+    def rp_samples(self) -> Tuple[MathyWindowObservation, float]:
         output = MathyWindowObservation(
-            nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []]
+            nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []], time=[]
         )
         reward: float = 0.0
         if self.experience.is_full() is False:
@@ -696,7 +689,7 @@ class A3CWorker(threading.Thread):
     def compute_value_replay_loss(self, done, new_state, episode_memory: EpisodeMemory):
         if not self.experience.is_full():
             return tf.constant(0.0)
-        sample_size = 32
+        sample_size = 12
         frames: List[ExperienceFrame] = self.experience.sample_sequence(sample_size)
         states = []
         discounted_rewards = []
