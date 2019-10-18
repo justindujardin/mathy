@@ -255,9 +255,14 @@ class MathyEnv:
         action_name: str,
         token_index: int = -1,
         change: ExpressionChangeRule = None,
+        change_reward: float = 0.0,
     ):
         """Render the given state to stdout for visualization"""
-        print(self.render_state(env_state, action_name, token_index, change))
+        print(
+            self.render_state(
+                env_state, action_name, token_index, change, change_reward
+            )
+        )
 
     def render_state(
         self,
@@ -265,6 +270,7 @@ class MathyEnv:
         action_name: str,
         token_index: int = -1,
         change: ExpressionChangeRule = None,
+        change_reward: float = 0.0,
     ):
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
@@ -279,14 +285,16 @@ class MathyEnv:
                 return "xx"
             return self.rules[index].code.lower()
 
-        token_idx = "{}".format(token_index).zfill(3)
+        token = "{}".format(token_index).zfill(3)
         moves_left = str(env_state.agent.moves_remaining).zfill(2)
         valid_rules = self.get_valid_rules(env_state)
         valid_moves = self.get_valid_moves(env_state)
         num_moves = "{}".format(len(np.nonzero(valid_moves)[0])).zfill(3)
         move_codes = [get_move_shortname(i, m) for i, m in enumerate(valid_rules)]
         moves = " ".join(move_codes)
-        return f"{num_moves} | {moves} | {moves_left} | {token_idx} | {output}"
+        reward = f"{change_reward:.2}"
+        reward = f"{reward:<5}"
+        return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
 
     def get_initial_state(
         self, params: Optional[MathyEnvProblemArgs] = None, print_problem: bool = True
