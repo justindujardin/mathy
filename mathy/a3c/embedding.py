@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 
@@ -89,13 +89,30 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.state_h.assign(tf.zeros([1, self.lstm_units]))
 
     def call(
-        self, features: MathyWindowObservation, do_burn_in=False
-    ) -> Tuple[tf.Tensor, int]:
+        self, features: MathyWindowObservation, burn_in_steps=0, return_rnn_states=False
+    ) -> Union[Tuple[tf.Tensor, int], Tuple[tf.Tensor, tf.Tensor]]:
         batch_size = len(features.nodes)  # noqa
         sequence_length = len(features.nodes[0])
         type = tf.convert_to_tensor(features.type)
         time = tf.convert_to_tensor(features.time)
         input = tf.convert_to_tensor(features.nodes)
+
+        # Do any specified burn-in steps (for off-policy RNN state correction)
+        burn_in_window = features
+        burn_in_state_h = features.rnn_state[0]
+        burn_in_state_c = features.rnn_state[1]
+        for i in range(burn_in_steps):
+            burn_in_window = MathyWindowObservation(
+                nodes=burn_in_window.nodes,
+                mask=burn_in_window.mask,
+                hints=burn_in_window.hints,
+                type=burn_in_window.type,
+                time=burn_in_window.time,
+                rnn_state=[burn_in_state_h, burn_in_state_c],
+            )
+            burn_in_state_h, burn_in_state_c = self.call(
+                burn_in_window, burn_in_steps=0, return_rnn_states=True
+            )
 
         #
         # Contextualize nodes by expanding their integers to include (n) neighbors
@@ -120,16 +137,15 @@ class MathyEmbedding(tf.keras.layers.Layer):
 
         query = tf.reshape(query, [batch_size, sequence_length, -1])
 
+        state_h = features.rnn_state[0][0]
+        state_c = features.rnn_state[1][0]
         if self.use_node_lstm:
             # Add context to each timesteps node vectors first
-            in_state_h = tf.concat(features.rnn_state[0], axis=0)
-            in_state_c = tf.concat(features.rnn_state[1], axis=0)
+            state_h = tf.concat(features.rnn_state[0], axis=0)
+            state_c = tf.concat(features.rnn_state[1], axis=0)
             query, state_h, state_c = self.nodes_lstm(
-                query, initial_state=[in_state_h, in_state_c]
+                query, initial_state=[state_h, state_c]
             )
-        else:
-            state_h = features.rnn_state[0][0]
-            state_c = features.rnn_state[1][0]
 
         state_h = tf.tile(state_h[-1:], [sequence_length, 1])
         state_c = tf.tile(state_c[-1:], [sequence_length, 1])
@@ -188,4 +204,11 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
 
+        # For burn-in we only want the RNN states
+        if return_rnn_states:
+            state_h = tf.tile(state_h[-1:], [batch_size, 1])
+            state_c = tf.tile(state_c[-1:], [batch_size, 1])
+            return (state_h, state_c)
+
+        # Return the embeddings and sequence length
         return (time_out, sequence_length)

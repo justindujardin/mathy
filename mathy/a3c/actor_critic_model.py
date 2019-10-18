@@ -175,7 +175,9 @@ class ActorCriticModel(tf.keras.Model):
             )
 
         # Pass the sequence inputs through the shared embedding network
-        sequence_inputs, sequence_length = self.embedding(inputs)
+        sequence_inputs, sequence_length = self.embedding(
+            inputs, burn_in_steps=self.args.unreal_burn_in_steps
+        )
 
         combined_features = self.rp_prepare_values(
             tf.reduce_sum(sequence_inputs, axis=1)
@@ -197,7 +199,9 @@ class ActorCriticModel(tf.keras.Model):
             )
 
         # Pass the sequence inputs through the shared embedding network
-        sequence_inputs, sequence_length = self.embedding(inputs)
+        sequence_inputs, sequence_length = self.embedding(
+            inputs, burn_in_steps=self.args.unreal_burn_in_steps
+        )
         values = self.value_logits(sequence_inputs)
         return values
 
