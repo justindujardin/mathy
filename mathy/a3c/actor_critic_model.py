@@ -164,7 +164,7 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(flat_logits).numpy()
         return probs, tf.squeeze(values[-1]).numpy()
 
-    def predict_next_reward(self, inputs) -> tf.Tensor:
+    def predict_next_reward(self, inputs: MathyWindowObservation) -> tf.Tensor:
         """Reward prediction for auxiliary tasks. Given an input sequence of
         observations predict a class for positive, negative or neutral representing
         the amount of reward that is received at the next state. """
@@ -174,19 +174,12 @@ class ActorCriticModel(tf.keras.Model):
                 "To use reward prediction aux task, set 'use_reward_prediction=True'"
             )
 
-        # Pass the sequence inputs through the shared embedding network
-        sequence_inputs, sequence_length = self.embedding(
-            inputs, burn_in_steps=self.args.unreal_burn_in_steps
+        rnn_state_h, _ = self.embedding(
+            inputs, burn_in_steps=self.args.unreal_burn_in_steps, return_rnn_states=True
         )
-
-        combined_features = self.rp_prepare_values(
-            tf.reduce_sum(sequence_inputs, axis=1)
-        )
-        predict_logits = self.reward_prediction(
-            tf.expand_dims(combined_features[-1], axis=0)
-        )
+        predict_logits = self.reward_prediction(rnn_state_h[-1:])
         # Output 3 class logits and convert to probabilities with softmax
-        return tf.nn.softmax(tf.squeeze(predict_logits))
+        return tf.nn.softmax(predict_logits)
 
     def predict_value_replays(self, inputs: MathyWindowObservation) -> tf.Tensor:
         """Value replay aux task that replays historical observations
