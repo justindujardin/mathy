@@ -181,6 +181,8 @@ def simplify_multiple_terms(
     for i, var in enumerate(term_templates):
         term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
 
+    complexity = num_terms
+
     # Repeat enough times to satisfy max_terms
     term_templates *= int(num_terms / num_like_terms) + 1
     term_templates = term_templates[0:num_terms]
@@ -189,6 +191,8 @@ def simplify_multiple_terms(
     if rand_bool(noise_probability * 100) is True:
         num_noise_terms = min(5, max(1, num_terms // 3))
         noise_vars = get_rand_vars(num_noise_terms, like_term_vars)
+
+        complexity += num_noise_terms
 
         # We take the larger value for the left side to push the terms
         # that have to be matched to the right side of expression. This is
@@ -219,7 +223,7 @@ def simplify_multiple_terms(
         result = result + " {} {}{}".format(
             rand_op() if op is None else op, rand_int(), other_var
         )
-    return result, num_terms
+    return result, complexity
 
 
 def solve_for_variable(terms=4):
