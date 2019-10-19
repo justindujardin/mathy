@@ -272,7 +272,7 @@ class A3CWorker(threading.Thread):
         ep_steps = 1
         time_count = 0
         done = False
-        last_state: MathyObservation = env.reset(rnn_size=self.args.lstm_units)
+        last_observation: MathyObservation = env.reset(rnn_size=self.args.lstm_units)
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
@@ -287,7 +287,7 @@ class A3CWorker(threading.Thread):
         rnn_state_c = self.local_model.embedding.state_c.numpy()
         seq_start = env.start_observation([rnn_state_h, rnn_state_c])
         self.local_model.predict_next(
-            observations_to_window([seq_start, last_state])
+            observations_to_window([seq_start, last_observation])
         )
 
         first_step = True
@@ -299,18 +299,19 @@ class A3CWorker(threading.Thread):
             rnn_state_c = self.local_model.embedding.state_c.numpy()
             last_rnn_state = [rnn_state_h, rnn_state_c]
             # named tuples are read-only, so add rnn state to a new copy
-            last_state = MathyObservation(
-                nodes=last_state.nodes,
-                mask=last_state.mask,
-                hints=last_state.hints,
-                type=last_state.type,
-                time=last_state.time,
+            last_observation = MathyObservation(
+                nodes=last_observation.nodes,
+                mask=last_observation.mask,
+                hints=last_observation.hints,
+                type=last_observation.type,
+                time=last_observation.time,
                 rnn_state=last_rnn_state,
             )
 
+            window = episode_memory.to_window_observation(last_observation)
             action = selector.select(
                 last_state=env.state,
-                last_observation=last_state,
+                last_window=window,
                 last_action=last_action,
                 last_reward=last_reward,
                 last_rnn_state=last_rnn_state,
@@ -320,13 +321,13 @@ class A3CWorker(threading.Thread):
             rnn_state_c = self.local_model.embedding.state_c.numpy()
 
             # Take an env step
-            new_state, reward, done, _ = env.step(action)
-            new_state = MathyObservation(
-                nodes=new_state.nodes,
-                mask=new_state.mask,
-                hints=new_state.hints,
-                type=new_state.type,
-                time=new_state.time,
+            observation, reward, done, _ = env.step(action)
+            observation = MathyObservation(
+                nodes=observation.nodes,
+                mask=observation.mask,
+                hints=observation.hints,
+                type=observation.type,
+                time=observation.time,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
 
@@ -334,7 +335,7 @@ class A3CWorker(threading.Thread):
             grouping_change = calculate_grouping_control_signal(last_text, new_text)
             ep_reward += reward
             frame = ExperienceFrame(
-                state=last_state,
+                state=last_observation,
                 reward=reward,
                 action=action,
                 terminal=done,
@@ -343,7 +344,9 @@ class A3CWorker(threading.Thread):
                 last_reward=last_reward,
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
-            episode_memory.store(last_state, action, reward, grouping_change, frame)
+            episode_memory.store(
+                last_observation, action, reward, grouping_change, frame
+            )
             if time_count == self.args.update_freq or done:
                 keep_experience = bool(
                     self.args.use_value_replay or self.args.use_reward_prediction
@@ -354,7 +357,7 @@ class A3CWorker(threading.Thread):
                     unreal = cast(UnrealMCTSActionSelector, selector)
                     keep_experience = unreal.use_mcts or not self.experience.is_full()
                 self.update_global_network(
-                    done, new_state, episode_memory, keep_experience=keep_experience
+                    done, observation, episode_memory, keep_experience=keep_experience
                 )
                 self.maybe_write_histograms()
                 time_count = 0
@@ -365,7 +368,7 @@ class A3CWorker(threading.Thread):
 
             ep_steps += 1
             time_count += 1
-            last_state = new_state
+            last_observation = observation
             last_action = action
             last_reward = reward
             first_step = False
@@ -424,7 +427,7 @@ class A3CWorker(threading.Thread):
     def update_global_network(
         self,
         done: bool,
-        new_state: MathyObservation,
+        observation: MathyObservation,
         episode_memory: EpisodeMemory,
         keep_experience: bool,
     ):
@@ -433,7 +436,7 @@ class A3CWorker(threading.Thread):
         with tf.GradientTape() as tape:
             loss_tuple = self.compute_loss(
                 done=done,
-                new_state=new_state,
+                observation=observation,
                 episode_memory=episode_memory,
                 gamma=self.args.gamma,
                 keep_experience=keep_experience,
@@ -541,7 +544,7 @@ class A3CWorker(threading.Thread):
     def compute_policy_value_loss(
         self,
         done: bool,
-        new_state: MathyObservation,
+        observation: MathyObservation,
         episode_memory: EpisodeMemory,
         gamma=0.99,
     ):
@@ -550,7 +553,7 @@ class A3CWorker(threading.Thread):
             reward_sum = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model(observations_to_window([new_state]))
+            _, values, _ = self.local_model(observations_to_window([observation]))
             # Select the last timestep
             values = values[-1]
             reward_sum = tf.squeeze(values).numpy()
@@ -641,7 +644,11 @@ class A3CWorker(threading.Thread):
         return (policy_loss, value_loss, entropy_loss, total_loss, discounted_rewards)
 
     def compute_grouping_change_loss(
-        self, done, new_state, episode_memory: EpisodeMemory, clip: bool = True
+        self,
+        done,
+        observation: MathyObservation,
+        episode_memory: EpisodeMemory,
+        clip: bool = True,
     ):
         change_signals = [signal for signal in episode_memory.grouping_changes]
         signals_tensor = tf.convert_to_tensor(change_signals)
@@ -650,13 +657,13 @@ class A3CWorker(threading.Thread):
             loss = tf.clip_by_value(loss, -1.0, 1.0)
         return loss
 
-    def rp_samples(self) -> Tuple[MathyWindowObservation, float]:
+    def rp_samples(self) -> Tuple[MathyWindowObservation, List[float]]:
         output = MathyWindowObservation(
             nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []], time=[]
         )
         reward: float = 0.0
         if self.experience.is_full() is False:
-            return output, reward
+            return output, [reward]
 
         frames = self.experience.sample_rp_sequence()
         states = [frame.state for frame in frames[:-1]]
@@ -667,14 +674,14 @@ class A3CWorker(threading.Thread):
             sample_label = 1  # positive
         else:
             sample_label = 2  # negative
-        return observations_to_window(states), sample_label
+        return observations_to_window(states), [sample_label]
 
     def compute_reward_prediction_loss(
-        self, done, new_state, episode_memory: EpisodeMemory
+        self, done, observation: MathyObservation, episode_memory: EpisodeMemory
     ):
         if not self.experience.is_full():
             return tf.constant(0.0)
-        max_steps = 5
+        max_steps = 3
         rp_losses = []
         for i in range(max_steps):
             input, label = self.rp_samples()
@@ -686,7 +693,9 @@ class A3CWorker(threading.Thread):
             )
         return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
 
-    def compute_value_replay_loss(self, done, new_state, episode_memory: EpisodeMemory):
+    def compute_value_replay_loss(
+        self, done, observation: MathyObservation, episode_memory: EpisodeMemory
+    ):
         if not self.experience.is_full():
             return tf.constant(0.0)
         sample_size = 12
@@ -708,14 +717,16 @@ class A3CWorker(threading.Thread):
         self,
         *,
         done: bool,
-        new_state: MathyObservation,
+        observation: MathyObservation,
         episode_memory: EpisodeMemory,
         keep_experience=False,
         gamma=0.99,
     ):
         with self.writer.as_default():
             step = self.global_model.global_step
-            loss_tuple = self.compute_policy_value_loss(done, new_state, episode_memory)
+            loss_tuple = self.compute_policy_value_loss(
+                done, observation, episode_memory
+            )
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
             use_replay = self.args.use_reward_prediction or self.args.use_value_replay
@@ -727,7 +738,7 @@ class A3CWorker(threading.Thread):
 
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
-                    done, new_state, episode_memory
+                    done, observation, episode_memory
                 )
                 gc_loss *= aux_weight
                 total_loss += gc_loss
@@ -735,14 +746,14 @@ class A3CWorker(threading.Thread):
             if self.experience.is_full():
                 if self.args.use_reward_prediction:
                     rp_loss = self.compute_reward_prediction_loss(
-                        done, new_state, episode_memory
+                        done, observation, episode_memory
                     )
                     rp_loss *= aux_weight
                     total_loss += rp_loss
                     aux_losses["rp"] = rp_loss
                 if self.args.use_value_replay:
                     vr_loss = self.compute_value_replay_loss(
-                        done, new_state, episode_memory
+                        done, observation, episode_memory
                     )
                     vr_loss *= aux_weight
                     total_loss += vr_loss
@@ -774,7 +785,7 @@ class ActionSelector:
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
@@ -787,14 +798,12 @@ class A3CGreedyActionSelector(ActionSelector):
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
     ) -> int:
-        probs, _ = self.worker.local_model.predict_next(
-            observations_to_window([last_observation])
-        )
+        probs, _ = self.worker.local_model.predict_next(last_window)
         return np.argmax(probs)
 
 
@@ -809,20 +818,19 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
     ) -> int:
 
-        probs, _ = self.worker.local_model.predict_next(
-            observations_to_window([last_observation])
-        )
+        probs, _ = self.worker.local_model.predict_next(last_window)
+        last_move_mask = last_window.mask[-1]
         # Apply dirichlet noise to the root node (ala MCTS search)
         # TODO: Note sure if this is useful without the follow up tree search
         if self.use_noise is True:
             noise = np.random.dirichlet([self.noise_alpha] * len(probs))
-            noise = noise * np.array(last_observation.mask)
+            noise = noise * np.array(last_move_mask)
             probs += noise
             pi_sum = np.sum(probs)
             if pi_sum > 0:
@@ -835,7 +843,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         )
         if not no_random and np.random.random() < self.epsilon:
             # Select a random action
-            action_mask = last_observation.mask[:]
+            action_mask = last_move_mask[:]
             # normalize all valid action to equal probability
             actions = action_mask / np.sum(action_mask)
             action = np.random.choice(len(actions), p=actions)
@@ -853,7 +861,7 @@ class MCTSActionSelector(ActionSelector):
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
@@ -872,17 +880,18 @@ class MCTSRecoveryActionSelector(MCTSActionSelector):
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
     ) -> int:
-        if last_observation.time[0] >= self.recover_threshold:
+        last_time = last_window.time[-1][0]
+        if last_time >= self.recover_threshold:
             probs = self.mcts.getActionProb(last_state, last_rnn_state)
             return np.argmax(probs)
         return self.base_selector.select(
             last_state=last_state,
-            last_observation=last_observation,
+            last_window=last_window,
             last_action=last_action,
             last_reward=last_reward,
             last_rnn_state=last_rnn_state,
@@ -900,7 +909,7 @@ class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
         self,
         *,
         last_state: MathyEnvState,
-        last_observation: MathyObservation,
+        last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
@@ -908,7 +917,7 @@ class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
         if self.use_mcts is False:
             return super(UnrealMCTSActionSelector, self).select(
                 last_state=last_state,
-                last_observation=last_observation,
+                last_window=last_window,
                 last_action=last_action,
                 last_reward=last_reward,
                 last_rnn_state=last_rnn_state,

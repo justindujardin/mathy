@@ -48,6 +48,13 @@ class EpisodeMemory(object):
             observations.insert(0, mathy_state.to_empty_observation(rnn_size=rnn_size))
         return windows_to_batch([observations_to_window(observations)])
 
+    def to_window_observation(
+        self, observation: MathyObservation, window_size: int = 2
+    ) -> MathyWindowObservation:
+        previous = -(window_size - 1)
+        window_observations = self.observations[previous:] + [observation]
+        return observations_to_window(window_observations)
+
     def to_episode_window(self) -> MathyWindowObservation:
         return observations_to_window(self.observations)
 
