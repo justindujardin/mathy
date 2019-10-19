@@ -123,8 +123,9 @@ class MathyEnv:
         # guard against divide by zero with max and a small value
         current_move = max(tiny, total_moves - env_state.agent.moves_remaining)
         bonus = (total_moves / current_move) / total_moves
-        # If the agent completes in half the allowed steps, double the bonus signal
-        if current_move < total_moves / 2:
+        # If the episode is not very short, and the agent completes in half
+        # the number of allowed steps, double the bonus signal
+        if total_moves > 4 and current_move < total_moves / 2:
             bonus *= 2
         return GameRewards.WIN + bonus
 
@@ -167,13 +168,15 @@ class MathyEnv:
         for key, group in groupby(
             sorted([f"{h.raw}" for h in env_state.agent.history])
         ):
-            list_group = list(group)
-            list_count = len(list_group)
+            list_count = len(list(group))
             if list_count <= 1:
                 continue
 
+            # NOTE: the reward is scaled by how many times this state has been visited
             return time_step.transition(
-                features, reward=GameRewards.PREVIOUS_LOCATION, discount=self.discount
+                features,
+                reward=GameRewards.PREVIOUS_LOCATION * list_count,
+                discount=self.discount,
             )
 
         if len(agent.history) > 0:
