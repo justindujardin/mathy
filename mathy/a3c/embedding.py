@@ -110,9 +110,10 @@ class MathyEmbedding(tf.keras.layers.Layer):
                 time=burn_in_window.time,
                 rnn_state=[burn_in_state_h, burn_in_state_c],
             )
-            burn_in_state_h, burn_in_state_c = self.call(
+            result: Tuple[tf.Tensor, tf.Tensor] = self.call(
                 burn_in_window, burn_in_steps=0, return_rnn_states=True
             )
+            burn_in_state_h, burn_in_state_c = result
 
         #
         # Contextualize nodes by expanding their integers to include (n) neighbors
@@ -141,14 +142,14 @@ class MathyEmbedding(tf.keras.layers.Layer):
         state_c = features.rnn_state[1][0]
         if self.use_node_lstm:
             # Add context to each timesteps node vectors first
-            state_h = tf.concat(features.rnn_state[0], axis=0)
-            state_c = tf.concat(features.rnn_state[1], axis=0)
-            query, state_h, state_c = self.nodes_lstm(
-                query, initial_state=[state_h, state_c]
-            )
+            node_states = [
+                tf.concat(features.rnn_state[0], axis=0),
+                tf.concat(features.rnn_state[1], axis=0),
+            ]
+            query, _, _ = self.nodes_lstm(query, initial_state=node_states)
 
-        state_h = tf.tile(state_h[-1:], [sequence_length, 1])
-        state_c = tf.tile(state_c[-1:], [sequence_length, 1])
+        state_h = tf.tile(state_h, [sequence_length, 1])
+        state_c = tf.tile(state_c, [sequence_length, 1])
         time_out, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
