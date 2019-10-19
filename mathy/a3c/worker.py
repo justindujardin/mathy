@@ -4,7 +4,7 @@ import queue
 import threading
 import time
 from multiprocessing import Queue
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast, Union
 
 import gym
 import numpy as np
@@ -53,7 +53,7 @@ class A3CWorker(threading.Thread):
         action_size: int,
         global_model: ActorCriticModel,
         optimizer,
-        greedy_epsilon: float,
+        greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,
         experience_queue: Queue,
         cmd_queue: Queue,
@@ -92,10 +92,6 @@ class A3CWorker(threading.Thread):
         self.reset_episode_loss()
         self.last_histogram_write = -1
 
-        e = truncate(self.greedy_epsilon)
-        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
-            e = 0.0
-
         # Sanity check
         if self.args.action_strategy == "mcts_e_unreal":
             if self.args.num_workers == 1:
@@ -109,9 +105,23 @@ class A3CWorker(threading.Thread):
                     "model at runtime just to solve basic problems."
                 )
 
-        print(
-            f"[#{worker_idx}] e: {e} history: {history_size} topics: {self.args.topics}"
-        )
+        print(f"[#{worker_idx}] e: {self.epsilon} topics: {self.args.topics}")
+
+    @property
+    def epsilon(self) -> float:
+        """Return an exploration epsilon for use in an episode"""
+        e = 0.0
+        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
+            return e
+
+        if isinstance(self.greedy_epsilon, list):
+            e = np.random.choice(self.greedy_epsilon)
+        elif isinstance(self.greedy_epsilon, float):
+            e = self.greedy_epsilon
+        else:
+            raise ValueError("greedy_epsilon must either be a float or list of floats")
+        e = truncate(e)
+        return e
 
     def reset_episode_loss(self):
         self.ep_loss = 0.0
@@ -183,7 +193,7 @@ class A3CWorker(threading.Thread):
                 epsilon = 0.0
             else:
                 # explore based on eGreedy param (wild guess for values)
-                epsilon = 0.1 + self.greedy_epsilon
+                epsilon = 0.1 + self.epsilon
             mcts = MCTS(
                 env=env.mathy,
                 model=self.local_model,
@@ -218,9 +228,7 @@ class A3CWorker(threading.Thread):
                 )
             else:
                 selector = A3CEpsilonGreedyActionSelector(
-                    worker=self,
-                    epsilon=self.greedy_epsilon,
-                    episode=A3CWorker.global_episode,
+                    worker=self, epsilon=self.epsilon, episode=A3CWorker.global_episode
                 )
         elif mcts is not None and self.args.action_strategy == "mcts_worker_n":
             if self.worker_idx != 0:
@@ -229,9 +237,7 @@ class A3CWorker(threading.Thread):
                 )
             else:
                 selector = A3CEpsilonGreedyActionSelector(
-                    worker=self,
-                    epsilon=self.greedy_epsilon,
-                    episode=A3CWorker.global_episode,
+                    worker=self, epsilon=self.epsilon, episode=A3CWorker.global_episode
                 )
         elif mcts is not None and self.args.action_strategy == "mcts_recover":
             selector = MCTSRecoveryActionSelector(
@@ -240,16 +246,12 @@ class A3CWorker(threading.Thread):
                 episode=A3CWorker.global_episode,
                 recover_threshold=self.args.mcts_recover_time_threshold,
                 base_selector=A3CEpsilonGreedyActionSelector(
-                    worker=self,
-                    epsilon=self.greedy_epsilon,
-                    episode=A3CWorker.global_episode,
+                    worker=self, epsilon=self.epsilon, episode=A3CWorker.global_episode
                 ),
             )
         elif self.args.action_strategy in ["a3c", "unreal"]:
             selector = A3CEpsilonGreedyActionSelector(
-                worker=self,
-                epsilon=self.greedy_epsilon,
-                episode=A3CWorker.global_episode,
+                worker=self, epsilon=self.epsilon, episode=A3CWorker.global_episode
             )
         elif self.args.action_strategy == "a3c-eval":
             selector = A3CGreedyActionSelector(

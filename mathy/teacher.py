@@ -58,6 +58,8 @@ class Teacher:
         if self.difficulty is not None:
             print(f"difficulty will not adjust and is fixed to: {self.difficulty}")
         self.initialize_students(num_students)
+        self.directed_topics = self.topic_names[:]
+        self.directed_topic = self.get_directed_topic()
 
     def initialize_students(self, num_students: int):
         self.num_students = num_students
@@ -71,6 +73,13 @@ class Teacher:
             self.students.append(
                 Student(id=i, topic=start_topic, topics=student_topics)
             )
+
+    def get_directed_topic(self, eval_win_ratio: Optional[float] = None) -> str:
+        """After each evaluation, student zero gets a new topic."""
+        if len(self.directed_topics) == 0:
+            self.directed_topics = self.topic_names[:]
+            random.shuffle(self.directed_topics)
+        return self.directed_topics.pop()
 
     def get_student(self, student_id: int) -> Student:
         return self.students[student_id]
@@ -107,14 +116,35 @@ class Teacher:
                 pass
             elif win_ratio >= self.win_threshold:
                 topic.difficulty = self.next_difficulty(topic.difficulty)
+                action = "promoted"
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)
+                action = "demoted"
+            else:
+                action = "kept at the same difficulty, to gather more experience"
+            if student_id == 0:
+                pct = int(win_ratio * 100)
+                type = topic.name
+                diff = topic.difficulty
+                print(
+                    f"Solved {pct}% of {type} problems and was {action}. "
+                    f"Next round will use {diff} difficulty problems."
+                )
             topic.reset_counts()
+            # Set a new directed focus for the student 0
+            if student_id == 0:
+                self.directed_topic = self.get_directed_topic(win_ratio)
+
             return win_ratio
         return None
 
     def get_env(self, student_id: int, iteration: int) -> str:
         student = self.get_student(student_id)
-        student.topic = self.topic_names[iteration % len(self.topic_names)]
+        # The console printing student is special, it trains in everything
+        len_topics = len(self.topic_names)
+        if student_id == 0:
+            student.topic = self.directed_topic
+        else:
+            student.topic = self.topic_names[iteration % len_topics]
         topic = student.topics[student.topic]
         return f"mathy-{topic.name}-{topic.difficulty}-v0"

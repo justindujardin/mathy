@@ -45,7 +45,7 @@ def record(
 
     now = datetime.datetime.now().strftime("%H:%M:%S")
 
-    global_ep_reward = global_ep_reward * 0.95 + episode_reward * 0.05
+    global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
 
     fore = "green" if episode_reward > 0.0 else "red"
 

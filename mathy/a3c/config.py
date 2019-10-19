@@ -15,12 +15,14 @@ class A3CArgs(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
+
     # The history size for the greedy worker
     greedy_history_size: int = 1024
     # History size for exploratory workers
     history_size: int = 512
     # Size at which it's okay to start sampling from the memory
     ready_at: int = 256
+
     lr: float = 3e-4
     update_freq: int = 25
     max_eps: int = 15000
@@ -75,7 +77,7 @@ class A3CArgs(BaseModel):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.5
+    worker_wait: float = 0.2
 
     # The number of worker agents to create.
     num_workers: int = 3
@@ -85,7 +87,7 @@ class A3CArgs(BaseModel):
     # If the agent wins >= this value, promote to the next difficulty class
     teacher_promote_wins = 0.75
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.3
+    teacher_demote_wins = 0.5
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.
@@ -95,15 +97,15 @@ class A3CArgs(BaseModel):
     # to find problems.
     print_training: bool = False
 
-    # When training on the experience replay buffer, burn-in the stored RNN states 
+    # When training on the experience replay buffer, burn-in the stored RNN states
     # against the current model for (n) steps before processing the replay examples
     unreal_burn_in_steps: int = 1
 
     # Whether to use the reward prediction aux task
-    use_reward_prediction = True
+    use_reward_prediction = False
 
     # Whether to use the value replay aux task
-    use_value_replay = True
+    use_value_replay = False
 
     # Whether to use the grouping change aux task
     use_grouping_control = True
