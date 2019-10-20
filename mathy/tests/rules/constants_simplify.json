@@ -1,6 +1,18 @@
 {
   "valid": [
     {
+      "input": "10n * 6",
+      "output": "60n"
+    },
+    {
+      "input": "10 * 6n * x",
+      "output": "60n * x"
+    },
+    {
+      "input": "5 * (8h * t)",
+      "output": "40h * t"
+    },
+    {
       "input": "(u^3 * 36c^6) * 7u^3",
       "output": "u^3 * 252c^6 * u^3",
       "why": "can see same-term sibling constants through obscuring variables"
@@ -80,6 +92,10 @@
       "input": "(7q^6 + 10y^3) * 2q",
       "target": "(7q^6 + 10y^3)",
       "why": "can't commute constants across terms connected by addition"
+    },
+    {
+      "input": "2 + 2x",
+      "why": "the multiplication by x must be resolved first"
     },
     {
       "input": "2x - 2"

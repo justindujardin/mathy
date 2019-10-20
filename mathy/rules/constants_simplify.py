@@ -5,6 +5,7 @@ from ..core.expressions import (
     BinaryExpression,
     ConstantExpression,
     MultiplyExpression,
+    VariableExpression,
 )
 from .rule import BaseRule
 
@@ -22,6 +23,7 @@ class ConstantsSimplifyRule(BaseRule):
         return "CA"
 
     POS_SIMPLE = "simple"
+    POS_SIMPLE_VAR_MULT = "simple_var_multiply"
     POS_CHAINED_RIGHT = "chained_right"
     POS_CHAINED_RIGHT_LEFT = "chained_right_left"
     POS_CHAINED_RIGHT_LEFT_LEFT = "chained_right_left_left"
@@ -56,6 +58,17 @@ class ConstantsSimplifyRule(BaseRule):
             and isinstance(node.right, ConstantExpression)
         ):
             return ConstantsSimplifyRule.POS_SIMPLE, node.left, node.right
+
+        # Check for const * var * const
+        # (4n * 2) + 3
+        if (
+            isinstance(node, MultiplyExpression)
+            and isinstance(node.left, MultiplyExpression)
+            and isinstance(node.left.left, ConstantExpression)
+            and isinstance(node.left.right, VariableExpression)
+            and isinstance(node.right, ConstantExpression)
+        ):
+            return ConstantsSimplifyRule.POS_SIMPLE_VAR_MULT, node.left.left, node.right
 
         # Check for a continuation to the right that's more than one node
         # e.g. "5 * (8h * t)" = "40h * t"
@@ -105,21 +118,17 @@ class ConstantsSimplifyRule(BaseRule):
         # Check for a continuation to the right
         # "(7q * 10y^3) * x"
         if (
-            isinstance(node, BinaryExpression)
+            isinstance(node, MultiplyExpression)
             and isinstance(node.left, MultiplyExpression)
             and isinstance(node.left.left, ConstantExpression)
-            and isinstance(node.right, BinaryExpression)
+            and isinstance(node.right, MultiplyExpression)
             and isinstance(node.right.left, ConstantExpression)
         ):
-            # Add/Multiply continuations are okay
-            if isinstance(node, MultiplyExpression) and isinstance(
-                node.right, MultiplyExpression
-            ):
-                return (
-                    ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT,
-                    node.left.left,
-                    node.right.left,
-                )
+            return (
+                ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT,
+                node.left.left,
+                node.right.left,
+            )
 
         # Check for variable terms with constants on the left and right
         # "792z^4 * 490f * q^3"
@@ -157,24 +166,6 @@ class ConstantsSimplifyRule(BaseRule):
 
         return None
 
-    def get_operands(self, node):
-        # Check simple case of left/right child binary op with constants
-
-        # TODO: Need to support these forms (binomial, complex) envs are failing
-        #       because of unmatched rules.
-
-        # Examples where two constants were siblings, but were not offered for
-        # simplification.
-        #
-        # -- cs -- -- ag -- | 12 | 003 | commutative swap          | 5 * (8h * t)
-        # -- cs -- -- ag -- | 10 | 003 | commutative swap          | 5 * (8t * h)
-
-        return (
-            isinstance(node, BinaryExpression)
-            and isinstance(node.left, ConstantExpression)
-            and isinstance(node.right, ConstantExpression)
-        )
-
     def can_apply_to(self, node):
         return self.get_type(node) is not None
 
@@ -184,7 +175,15 @@ class ConstantsSimplifyRule(BaseRule):
         change.save_parent()
         if arrangement == ConstantsSimplifyRule.POS_SIMPLE:
             result = ConstantExpression(node.evaluate())
+        if arrangement == ConstantsSimplifyRule.POS_SIMPLE_VAR_MULT:
+            assert isinstance(node, MultiplyExpression)
+            assert isinstance(node.left.right, VariableExpression)
+            value = ConstantExpression(
+                MultiplyExpression(left_const, right_const).evaluate()
+            )
+            result = MultiplyExpression(value, node.left.right)
         elif arrangement == ConstantsSimplifyRule.POS_CHAINED_LEFT_LEFT_RIGHT:
+            assert isinstance(node, MultiplyExpression)
             value = ConstantExpression(
                 MultiplyExpression(left_const, right_const).evaluate()
             )
