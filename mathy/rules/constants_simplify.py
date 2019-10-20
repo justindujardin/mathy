@@ -23,6 +23,9 @@ class ConstantsSimplifyRule(BaseRule):
 
     POS_SIMPLE = "simple"
     POS_CHAINED_RIGHT = "chained_right"
+    POS_CHAINED_RIGHT_LEFT = "chained_right_left"
+    POS_CHAINED_RIGHT_LEFT_LEFT = "chained_right_left_left"
+    POS_CHAINED_LEFT_LEFT_RIGHT = "chained_left_left_right"
     POS_CHAINED_RIGHT_DEEP = "chained_right_deep"
 
     def get_type(
@@ -79,6 +82,7 @@ class ConstantsSimplifyRule(BaseRule):
                 )
 
         # Check for a continuation to the right
+        # "(7 * 10y^3) * x"
         if (
             isinstance(node, BinaryExpression)
             and isinstance(node.left, ConstantExpression)
@@ -97,6 +101,59 @@ class ConstantsSimplifyRule(BaseRule):
                     node.left,
                     node.right.left,
                 )
+
+        # Check for a continuation to the right
+        # "(7q * 10y^3) * x"
+        if (
+            isinstance(node, BinaryExpression)
+            and isinstance(node.left, MultiplyExpression)
+            and isinstance(node.left.left, ConstantExpression)
+            and isinstance(node.right, BinaryExpression)
+            and isinstance(node.right.left, ConstantExpression)
+        ):
+            # Add/Multiply continuations are okay
+            if isinstance(node, MultiplyExpression) and isinstance(
+                node.right, MultiplyExpression
+            ):
+                return (
+                    ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT,
+                    node.left.left,
+                    node.right.left,
+                )
+
+        # Check for variable terms with constants on the left and right
+        # "792z^4 * 490f * q^3"
+        #   ^--------^
+        if (
+            isinstance(node, MultiplyExpression)
+            and isinstance(node.left, MultiplyExpression)
+            and isinstance(node.left.left, ConstantExpression)
+            and isinstance(node.right, BinaryExpression)
+            and isinstance(node.right.left, MultiplyExpression)
+            and isinstance(node.right.left.left, ConstantExpression)
+        ):
+            return (
+                ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT_LEFT,
+                node.left.left,
+                node.right.left.left,
+            )
+
+        # Check for variable terms with constants nested on the left and right
+        # "(u^3 * 36c^6) * 7u^3"
+        #         ^--------^
+        if (
+            isinstance(node, MultiplyExpression)
+            and isinstance(node.left, MultiplyExpression)
+            and isinstance(node.left.right, MultiplyExpression)
+            and isinstance(node.left.right.left, ConstantExpression)
+            and isinstance(node.right, MultiplyExpression)
+            and isinstance(node.right.left, ConstantExpression)
+        ):
+            return (
+                ConstantsSimplifyRule.POS_CHAINED_LEFT_LEFT_RIGHT,
+                node.left.right.left,
+                node.right.left,
+            )
 
         return None
 
@@ -127,6 +184,31 @@ class ConstantsSimplifyRule(BaseRule):
         change.save_parent()
         if arrangement == ConstantsSimplifyRule.POS_SIMPLE:
             result = ConstantExpression(node.evaluate())
+        elif arrangement == ConstantsSimplifyRule.POS_CHAINED_LEFT_LEFT_RIGHT:
+            value = ConstantExpression(
+                MultiplyExpression(left_const, right_const).evaluate()
+            )
+            result = MultiplyExpression(
+                node.left.left,
+                MultiplyExpression(
+                    MultiplyExpression(value, node.left.right.right), node.right.right
+                ),
+            )
+
+        elif arrangement == ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT:
+            value = ConstantExpression(
+                MultiplyExpression(left_const, right_const).evaluate()
+            )
+            value = MultiplyExpression(value, node.left.right)
+            result = MultiplyExpression(value, node.right.right)
+        elif arrangement == ConstantsSimplifyRule.POS_CHAINED_RIGHT_LEFT_LEFT:
+            value = ConstantExpression(
+                MultiplyExpression(left_const, right_const).evaluate()
+            )
+            value = MultiplyExpression(value, node.left.right)
+            result = MultiplyExpression(
+                value, MultiplyExpression(node.right.left.right, node.right.right)
+            )
         elif arrangement == ConstantsSimplifyRule.POS_CHAINED_RIGHT:
             if isinstance(node, AddExpression):
                 value = ConstantExpression(
