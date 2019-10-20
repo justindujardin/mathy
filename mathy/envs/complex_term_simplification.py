@@ -24,16 +24,10 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
     def get_env_namespace(self) -> str:
         return "mathy.monomials.complex_simplify"
 
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, VariableMultiplyRule]
-
-    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [AssociativeSwapRule]
-
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 4
+        return problem.complexity * 3
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce
@@ -52,6 +46,7 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
                 optional_var=True,
                 inner_terms_scaling=scaling,
                 powers_probability=0.4,
+                noise_probability=0.1,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             num_terms = randint(3, 6)

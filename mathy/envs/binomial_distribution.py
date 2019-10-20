@@ -10,6 +10,7 @@ from ..problems import binomial_times_binomial, binomial_times_monomial
 from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
+    CommutativeSwapRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
@@ -31,9 +32,6 @@ class MathyBinomialDistributionEnv(MathyEnv):
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
         return problem.complexity * 4
-
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, DistributiveMultiplyRule, VariableMultiplyRule]
 
     def transition_fn(
         self,

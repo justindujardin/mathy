@@ -32,9 +32,6 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         super(MathyPolynomialCommuteLikeTermsEnv, self).__init__(**kwargs)
         self.rule = DistributiveFactorOutRule()
 
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return []
-
     def transition_fn(
         self,
         env_state: MathyEnvState,
@@ -54,16 +51,16 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         as many actions as there are blocker nodes. The problem complexity
         is a direct measure of this value."""
 
-        return problem.complexity * 2
+        return problem.complexity * 4
 
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.commute.like.terms"
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
+        easy = False
         if params.difficulty == MathyEnvDifficulty.easy:
             blockers = randint(1, 3)
             powers = rand_bool(20)
-            easy = rand_bool(50)
             text, _ = commute_haystack(
                 commute_blockers=blockers,
                 min_terms=4,
@@ -74,14 +71,12 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 4)
             powers = rand_bool(40)
-            easy = rand_bool(25)
             text, _ = commute_haystack(
                 min_terms=8, max_terms=12, easy=easy, powers=powers
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(5, 10)
             powers = rand_bool(60)
-            easy = rand_bool(5)
             text, _ = commute_haystack(
                 min_terms=6, max_terms=12, easy=easy, powers=powers
             )

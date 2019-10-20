@@ -36,9 +36,6 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.simplify"
 
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
-
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Subtract the normalized GC error from the lose signal
         so that the penalty is reduced when the agent is closer to
@@ -46,7 +43,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
 
         _, error = calculate_term_grouping_distances(env_state.agent.problem)
 
-        return max(-2.0, GameRewards.LOSE - error)
+        return GameRewards.LOSE - error
 
     def transition_fn(
         self,
@@ -77,16 +74,20 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
             num_terms = randint(2, 5)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
-                num_terms, inner_terms_scaling=scaling
+                num_terms,
+                inner_terms_scaling=scaling,
+                powers_probability=0.1,
+                noise_probability=0.6,
+                shuffle_probability=0.1,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
-            num_terms = randint(3, 8)
+            num_terms = randint(5, 8)
             scaling = uniform(0.35, 0.65)
             text, complexity = simplify_multiple_terms(
                 num_terms, shuffle_probability=0.45, inner_terms_scaling=scaling
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            num_terms = randint(5, 10)
+            num_terms = randint(9, 12)
             scaling = uniform(0.25, 0.75)
             text, complexity = simplify_multiple_terms(
                 num_terms,

@@ -83,8 +83,19 @@ class MathyEnv:
 
     def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of rewarding action types. When these actions
-        are selected, the agent gets a positive reward."""
-        return []
+        are selected, the agent gets a positive reward. """
+        # NOTE: by default we give a positive reward for any action taken. Reward
+        #       values are only applied AFTER penalties, so things like reentrant
+        #       states become negative reward even if their action is otherwise
+        #       rewarding.
+        return [
+            ConstantsSimplifyRule,
+            CommutativeSwapRule,
+            DistributiveMultiplyRule,
+            DistributiveFactorOutRule,
+            AssociativeSwapRule,
+            VariableMultiplyRule,
+        ]
 
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of penalizing action types. When these actions

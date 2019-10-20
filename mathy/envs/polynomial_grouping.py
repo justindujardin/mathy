@@ -23,9 +23,6 @@ class MathyPolynomialGroupingEnv(MathyEnv):
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.group_like_terms"
 
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return []
-
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
@@ -61,9 +58,9 @@ class MathyPolynomialGroupingEnv(MathyEnv):
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:
-            blockers = randint(1, 2)
+            blockers = randint(1, 3)
             text, _ = commute_haystack(
-                commute_blockers=1, min_terms=3, max_terms=6, easy=True, powers=True
+                commute_blockers=1, min_terms=3, max_terms=6, easy=True, powers=False
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 4)
@@ -71,9 +68,9 @@ class MathyPolynomialGroupingEnv(MathyEnv):
                 min_terms=5, max_terms=10, easy=False, powers=True
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            blockers = randint(5, 10)
+            blockers = randint(3, 6)
             text, _ = commute_haystack(
-                min_terms=12, max_terms=24, easy=False, powers=True
+                min_terms=11, max_terms=16, easy=False, powers=True
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")

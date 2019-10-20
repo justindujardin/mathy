@@ -29,12 +29,6 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.commute_then_simplify"
 
-    def get_rewarding_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [ConstantsSimplifyRule, DistributiveFactorOutRule]
-
-    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
-        return [AssociativeSwapRule]
-
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         hard_block = rand_bool()
         powers_probability = 0.5
