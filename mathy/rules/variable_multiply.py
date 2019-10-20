@@ -51,6 +51,7 @@ class VariableMultiplyRule(BaseRule):
     """
     POS_SIMPLE = "simple"
     POS_CHAINED = "chained"
+    POS_CHAINED_LEFT_RIGHT = "chained_left_right"
 
     @property
     def name(self):
@@ -77,12 +78,30 @@ class VariableMultiplyRule(BaseRule):
         """
         if not isinstance(node, MultiplyExpression):
             return None
-        # Left node in both cases is always resolved as a term.
+
         left_term = get_term_ex(node.left)
+        right_term = get_term_ex(node.right)
+        # Both children are multiplications
+        if isinstance(node.left, MultiplyExpression) and isinstance(
+            node.right, MultiplyExpression
+        ):
+            # Check '(36c^6 * u^3) * 7u^3'
+            # node ----------------^
+            # node.left.right = u^3
+            # node.right = 7u^3
+            chain_left_term = get_term_ex(node.left.right)
+            if chain_left_term is not None and right_term is not None:
+                if chain_left_term.variable == right_term.variable:
+                    return (
+                        VariableMultiplyRule.POS_CHAINED_LEFT_RIGHT,
+                        chain_left_term,
+                        right_term,
+                    )
+
+        # Left node in both cases is always resolved as a term.
         if left_term is None or left_term.variable is None:
             return None
         chained = False
-        right_term = get_term_ex(node.right)
         if right_term is None and isinstance(node.right, MultiplyExpression):
             chained = True
             right_term = get_term_ex(node.right.left)
@@ -129,12 +148,12 @@ class VariableMultiplyRule(BaseRule):
         # in the output
         has_left_coefficient = left_term.coefficient is not None
         has_right_coefficient = right_term.coefficient is not None
+        coefficient_term: Optional[MathExpression] = None
         if has_left_coefficient or has_right_coefficient:
             left_const = 1 if left_term.coefficient is None else left_term.coefficient
             right_const = (
                 1 if right_term.coefficient is None else right_term.coefficient
             )
-            coefficient_term: MathExpression
             if has_left_coefficient and has_right_coefficient:
                 # "(2 * 4)" both terms have coefficients
                 coefficient_term = MultiplyExpression(
@@ -144,18 +163,52 @@ class VariableMultiplyRule(BaseRule):
                 # "2" only one term had a coefficient
                 const_value = left_const if has_left_coefficient else right_const
                 coefficient_term = ConstantExpression(const_value)
+
+        # Check for chained results to keep from adding unnecessary parens
+        if tree_position == VariableMultiplyRule.POS_CHAINED:
+            keep_child = node.right.right
+            # Start at the right and work up in the tree
+            #
+            # First the trailing part of the expression to the right of the
+            # node we're changing.
+            result = MultiplyExpression(power_term, keep_child)
+
+            # Next, include the coefficient term (if any)
+            if coefficient_term is not None:
+                if isinstance(coefficient_term, MultiplyExpression):
+                    result = MultiplyExpression(coefficient_term.right, result)
+                    result = MultiplyExpression(coefficient_term.left, result)
+                else:
+                    result = MultiplyExpression(coefficient_term, result)
+        elif tree_position == VariableMultiplyRule.POS_CHAINED_LEFT_RIGHT:
+            keep_child = node.left.left
+
+            # Next, include the coefficient term (if any)
+            result = power_term
+            if coefficient_term is not None:
+                if isinstance(coefficient_term, MultiplyExpression):
+                    result = MultiplyExpression(
+                        coefficient_term.right,
+                        MultiplyExpression(coefficient_term.left, power_term),
+                    )
+                else:
+                    result = MultiplyExpression(coefficient_term, power_term)
+
+            # Start at the right and work up in the tree
+            #
+            # First the trailing part of the expression to the right of the
+            # node we're changing.
+            result = MultiplyExpression(keep_child, result)
+
+        else:
             # "(2 * 4) * x^(2 + 1)"
-            result = MultiplyExpression(coefficient_term, power_term)
+            if coefficient_term is not None:
+                result = MultiplyExpression(coefficient_term, power_term)
+            else:
+                result = power_term
 
         # Mark all nodes in the result as having changed
         result.all_changed()
 
-        # chained type has to fixup the tree to keep the chain unbroken
-        if tree_position == VariableMultiplyRule.POS_CHAINED:
-            # Because in the chained mode we extract node.right.left, the other
-            # child is the remainder we want to be sure to preserve.
-            # e.g. "p * p * 2x" we need to keep 2x
-            keep_child = node.right.right
-            result = MultiplyExpression(result, keep_child)
         change.done(result)
         return change

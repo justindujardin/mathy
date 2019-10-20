@@ -5,12 +5,24 @@
   },
   "valid": [
     {
+      "input": "x * x",
+      "output": "x^(1 + 1)"
+    },
+    {
+      "input": "(36c^6 * u^3) * 7u^3",
+      "output": "36c^6 * 7u^(3 + 3)"
+    },
+    {
+      "input": "4x * 2p^2 * 2p^3 * 12x^2",
+      "output": "4x * 2 * 2 * p^(2 + 3) * 12x^2"
+    },
+    {
       "input": "324u * u",
       "output": "324u^(1 + 1)"
     },
     {
       "input": "17k * 23k",
-      "output": "17 * 23 * k^(1 + 1)"
+      "output": "17 * 23k^(1 + 1)"
     },
     {
       "input": "p * p * 12",
@@ -18,28 +30,20 @@
       "why": "this is a common case that a human would not confuse"
     },
     {
-      "input": "4x * 2p^2 * 2p^3 * 12x^2",
-      "output": "4x * (2 * 2 * p^(2 + 3) * (12x^2))"
-    },
-    {
       "input": "4x * p^2 * p^3 * 12x^2",
-      "output": "4x * (p^(2 + 3) * (12x^2))"
+      "output": "4x * p^(2 + 3) * 12x^2"
     },
     {
       "input": "4 * p * p^3 * 12x^2",
-      "output": "4 * (p^(1 + 3) * (12x^2))"
+      "output": "4 * p^(1 + 3) * 12x^2"
     },
     {
       "input": "4 * p * p * 12x^2",
-      "output": "4 * (p^(1 + 1) * (12x^2))"
+      "output": "4 * p^(1 + 1) * 12x^2"
     },
     {
       "input": "4 * p * p * 12",
-      "output": "4 * (p^(1 + 1) * 12)"
-    },
-    {
-      "input": "x * x",
-      "output": "x^(1 + 1)"
+      "output": "4 * p^(1 + 1) * 12"
     },
     {
       "input": "x * x^3",
@@ -55,7 +59,7 @@
     },
     {
       "input": "(8y * 4y)",
-      "output": "8 * 4 * y^(1 + 1)"
+      "output": "8 * 4y^(1 + 1)"
     }
   ],
   "invalid": [
