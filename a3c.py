@@ -54,6 +54,12 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         int,
     ),
     strategy=("The action selection strategy to use", "option", None, str),
+    embedding_units=(
+        "Number of dimensions to use for token embeddings",
+        "option",
+        None,
+        int,
+    ),
     lstm_units=("Number of dimensions to use for LSTM layers", "option", None, int),
     show=("Show the agents step-by-step directions", "flag", False, bool),
     profile=("Set to gather profiler outputs for the A3C workers", "flag", False, bool),

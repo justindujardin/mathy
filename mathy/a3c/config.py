@@ -57,7 +57,7 @@ class A3CArgs(BaseModel):
     #                the sign-flipping effect of episode loss/wins
     action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
-    mcts_sims: int = 10
+    mcts_sims: int = 15
     mcts_recover_time_threshold: float = 0.66
     # When using "" action strategy, this is the epsilon that will trigger an MCTS
     # episode when random is less than it.
@@ -77,17 +77,17 @@ class A3CArgs(BaseModel):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.2
+    worker_wait: float = 0.5
 
     # The number of worker agents to create.
     num_workers: int = 3
 
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 25
+    teacher_evaluation_steps = 10
     # If the agent wins >= this value, promote to the next difficulty class
-    teacher_promote_wins = 0.75
+    teacher_promote_wins = 0.80
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.5
+    teacher_demote_wins = 0.33
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

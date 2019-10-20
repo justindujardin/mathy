@@ -59,7 +59,7 @@ class Teacher:
             print(f"difficulty will not adjust and is fixed to: {self.difficulty}")
         self.initialize_students(num_students)
         self.directed_topics = self.topic_names[:]
-        self.directed_topic = self.get_directed_topic()
+        self.directed_topic = self.directed_topics.pop()
 
     def initialize_students(self, num_students: int):
         self.num_students = num_students
@@ -111,6 +111,7 @@ class Teacher:
 
         if topic.count >= self.eval_window:
             win_ratio = topic.positives / self.eval_window
+            action = "kept at the same difficulty, to gather more experience"
             # If the difficulty is locked, don't adjust it.
             if self.difficulty is not None:
                 pass
@@ -120,8 +121,6 @@ class Teacher:
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)
                 action = "demoted"
-            else:
-                action = "kept at the same difficulty, to gather more experience"
             if student_id == 0:
                 pct = int(win_ratio * 100)
                 type = topic.name
