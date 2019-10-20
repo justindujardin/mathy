@@ -828,8 +828,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
 
         probs, _ = self.worker.local_model.predict_next(last_window)
         last_move_mask = last_window.mask[-1]
-        # Apply dirichlet noise to the root node (ala MCTS search)
-        # TODO: Note sure if this is useful without the follow up tree search
+        # Apply noise to the root node (like AlphaGoZero MCTS)
         if self.use_noise is True:
             noise = np.random.dirichlet([self.noise_alpha] * len(probs))
             noise = noise * np.array(last_move_mask)
