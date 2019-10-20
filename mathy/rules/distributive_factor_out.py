@@ -43,6 +43,7 @@ class DistributiveFactorOutRule(BaseRule):
     POS_SIMPLE = "simple"
     POS_CHAINED_BOTH = "chained_both"
     POS_CHAINED_LEFT = "chained_left"
+    POS_CHAINED_LEFT_RIGHT = "chained_left_right"
     POS_CHAINED_RIGHT = "chained_right"
 
     @property
@@ -122,9 +123,23 @@ class DistributiveFactorOutRule(BaseRule):
                 return None
             if isinstance(node.left, AddExpression):
                 left_term = get_term_ex(node.left.right)
+            if left_term is not None:
+                if left_term.variable is None:
+                    return None
+                return DistributiveFactorOutRule.POS_CHAINED_LEFT, left_term, right_term
+
+            # check inside another group
+            if isinstance(node.left, AddExpression) and isinstance(
+                node.left.right, AddExpression
+            ):
+                left_term = get_term_ex(node.left.right.right)
             if left_term is None or left_term.variable is None:
                 return None
-            return DistributiveFactorOutRule.POS_CHAINED_LEFT, left_term, right_term
+            return (
+                DistributiveFactorOutRule.POS_CHAINED_LEFT_RIGHT,
+                left_term,
+                right_term,
+            )
 
         return None
 
@@ -183,6 +198,11 @@ class DistributiveFactorOutRule(BaseRule):
             # child is the remainder we want to be sure to preserve.
             # e.g. "(4 + p) + p" we need to keep "4"
             keep_child = node.left.left
+            result = AddExpression(keep_child, result)
+
+        # Fix the links to existing nodes on the left-right side of the result
+        if tree_position == DistributiveFactorOutRule.POS_CHAINED_LEFT_RIGHT:
+            keep_child = AddExpression(node.left.left, node.left.right.left)
             result = AddExpression(keep_child, result)
 
         # Fix the links to existing nodes on the right side of the result
