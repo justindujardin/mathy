@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from ..agent.layers.keras_self_attention.multi_head_attention import MultiHeadAttention
+from ..agent.layers.attention_stack import MultiHeadAttentionStack
 from ..agent.layers.resnet_stack import ResNetStack
 from ..core.expressions import MathTypeKeysMax
 from ..features import (
@@ -30,8 +30,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self,
         units: int,
         lstm_units: int,
-        use_node_lstm: bool = True,
-        extract_window: Optional[int] = None,
+        use_node_lstm: bool = False,
+        extract_window: Optional[int] = 3,
         encode_tokens_with_type: bool = False,
         **kwargs,
     ):
@@ -54,7 +54,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.bottleneck_norm = tf.keras.layers.BatchNormalization(
             name="combined_features_normalize"
         )
-        self.attention = MultiHeadAttention(head_num=16, name="self_attention")
+        self.attention = MultiHeadAttentionStack(
+            num_heads=8, num_layers=3, name="self_attention"
+        )
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="timestep_lstm",
@@ -148,12 +150,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
             ]
             query, _, _ = self.nodes_lstm(query, initial_state=node_states)
 
-        state_h = tf.tile(state_h, [sequence_length, 1])
-        state_c = tf.tile(state_c, [sequence_length, 1])
-        time_out, state_h, state_c = self.time_lstm(
-            query, initial_state=[state_h, state_c]
-        )
-
         #
         # Aux features
         #
@@ -188,7 +184,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         time_out = tf.concat(
             [
                 time_tiled,
-                time_out,
+                query,
                 tf.cast(type_tiled, dtype=tf.float32),
                 tf.cast(move_mask + hint_mask, dtype=tf.float32),
             ],
@@ -202,6 +198,12 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # Self-attention
         time_out = self.attention([time_out, time_out, time_out])
 
+        # LSTM for temporal dependencies
+        state_h = tf.tile(state_h, [sequence_length, 1])
+        state_c = tf.tile(state_c, [sequence_length, 1])
+        time_out, state_h, state_c = self.time_lstm(
+            time_out, initial_state=[state_h, state_c]
+        )
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
 
