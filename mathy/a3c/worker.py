@@ -814,7 +814,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         super(A3CEpsilonGreedyActionSelector, self).__init__(**kwargs)
         self.epsilon = epsilon
         self.noise_alpha = 0.3
-        self.use_noise = False
+        self.use_noise = True
 
     def select(
         self,
