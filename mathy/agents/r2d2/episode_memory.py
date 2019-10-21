@@ -1,13 +1,7 @@
-import math
 from multiprocessing import Queue
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional
 
-import numpy as np
-import tensorflow as tf
-
-from ..core.expressions import MathTypeKeys
-from ..features import pad_array
-from ..state import (
+from ...state import (
     MathyBatchObservation,
     MathyEnvState,
     MathyObservation,
@@ -15,7 +9,6 @@ from ..state import (
     observations_to_window,
     windows_to_batch,
 )
-from ..util import GameRewards
 from .experience import Experience, ExperienceFrame
 
 

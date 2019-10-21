@@ -27,7 +27,7 @@ import collections
 
 # Dependency imports
 import tensorflow as tf
-from trfl import base_ops
+from . import base_ops
 
 DPGExtra = collections.namedtuple("dpg_extra", ["q_max", "a_max", "dqda"])
 

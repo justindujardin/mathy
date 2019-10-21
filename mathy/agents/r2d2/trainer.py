@@ -1,19 +1,19 @@
 import os
 from queue import Queue
-from typing import Optional, List
-from colr import color
+from typing import List, Optional
 
 import gym
 import numpy as np
 import tensorflow as tf
+from colr import color
 
-from ..state import MathyEnvState
-from .model import MathyModel
-from .config import MathyArgs
+from ...state import MathyEnvState
+from ...teacher import Student, Teacher, Topic
 from .actor import MathyActor
-from .learner import MathyLearner
+from .config import MathyArgs
 from .experience import Experience, ExperienceFrame
-from ..teacher import Teacher, Student, Topic
+from .learner import MathyLearner
+from .model import MathyModel
 
 
 class MathyTrainer:

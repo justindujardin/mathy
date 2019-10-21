@@ -29,8 +29,8 @@ import collections
 
 # Dependency imports
 import tensorflow as tf
-from trfl import base_ops
-from trfl import distribution_ops
+from . import base_ops
+from . import distribution_ops
 
 Extra = collections.namedtuple("dist_value_extra", ["target"])
 

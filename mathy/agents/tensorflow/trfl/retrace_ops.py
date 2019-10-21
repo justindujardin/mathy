@@ -33,9 +33,9 @@ import collections
 # Dependency imports
 from six.moves import zip
 import tensorflow as tf
-from trfl import base_ops
-from trfl import indexing_ops
-from trfl import sequence_ops
+from . import base_ops
+from . import indexing_ops
+from . import sequence_ops
 
 RetraceCoreExtra = collections.namedtuple(
     "retrace_core_extra", ["retrace_weights", "target"]

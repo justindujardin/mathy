@@ -4,8 +4,8 @@ import tensorflow as tf
 
 from ..tensorflow.layers.attention_stack import MultiHeadAttentionStack
 from ..tensorflow.layers.resnet_stack import ResNetStack
-from ..core.expressions import MathTypeKeysMax
-from ..features import (
+from ...core.expressions import MathTypeKeysMax
+from ...features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -16,7 +16,7 @@ from ..features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from ..state import (
+from ...state import (
     PROBLEM_TYPE_HASH_BUCKETS,
     MathyBatchObservation,
     MathyObservation,

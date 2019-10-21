@@ -1,8 +1,6 @@
-import math
 import os
-import threading
 import time
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 from typing import Any, Dict, List, Optional, Tuple
 
 import gym
@@ -10,17 +8,9 @@ import numpy as np
 import tensorflow as tf
 from colr import color
 
-from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
-
-from ..core.expressions import MathTypeKeysMax
-from ..features import (
-    FEATURE_FWD_VECTORS,
-    FEATURE_MOVE_MASK,
-    calculate_grouping_control_signal,
-)
-from ..state import MathyEnvState
-from ..teacher import Student, Teacher, Topic
-from ..util import GameRewards
+from ...features import calculate_grouping_control_signal
+from ...state import MathyEnvState
+from ...teacher import Teacher
 from .config import MathyArgs
 from .episode_memory import EpisodeMemory
 from .experience import Experience, ExperienceFrame

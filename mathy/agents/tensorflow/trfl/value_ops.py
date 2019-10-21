@@ -22,8 +22,8 @@ import collections
 
 # Dependency imports
 import tensorflow as tf
-from trfl import base_ops
-from trfl import sequence_ops
+from . import base_ops
+from . import sequence_ops
 
 
 TDExtra = collections.namedtuple("td_extra", ["target", "td_error"])

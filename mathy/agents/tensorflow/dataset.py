@@ -3,7 +3,7 @@ from typing import List
 import numpy
 import tensorflow as tf
 
-from ..features import (
+from ...features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
     FEATURE_LAST_BWD_VECTORS,
@@ -25,7 +25,9 @@ from ..features import (
 from ..types import deprecated_MathyEnvObservation
 
 
-def make_training_input_fn(examples: List[deprecated_MathyEnvObservation], batch_size: int):
+def make_training_input_fn(
+    examples: List[deprecated_MathyEnvObservation], batch_size: int
+):
     """Return an input function that lazily loads self-play examples from
     the given file during training."""
 

@@ -7,12 +7,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
-from mathy.a3c.config import A3CArgs
+from mathy.agents.a3c.config import A3CArgs
 
 from ..tensorflow.layers.math_policy_dropout import MathPolicyDropout
 from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
 from ..tensorflow.layers.resnet_block import ResNetBlock
-from ..state import MathyWindowObservation
+from ...state import MathyWindowObservation
 from .embedding import MathyEmbedding
 
 

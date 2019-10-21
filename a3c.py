@@ -4,7 +4,7 @@ import tensorflow as tf
 np.random.seed(1337)
 tf.random.set_seed(1337)
 
-from mathy.a3c import A3CAgent, A3CArgs
+from mathy.agents.a3c import A3CAgent, A3CArgs
 from mathy import gym  # noqa
 from typing import Optional
 import plac

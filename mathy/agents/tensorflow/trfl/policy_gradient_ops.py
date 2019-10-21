@@ -23,8 +23,8 @@ import collections
 # Dependency imports
 from six.moves import zip
 import tensorflow as tf
-from trfl import base_ops
-from trfl import value_ops
+from . import base_ops
+from . import value_ops
 
 from tensorflow.python.util import nest
 

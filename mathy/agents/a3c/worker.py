@@ -4,30 +4,26 @@ import queue
 import threading
 import time
 from multiprocessing import Queue
-from typing import Any, Dict, List, Optional, Tuple, cast, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import gym
 import numpy as np
 import tensorflow as tf
 
-from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
-
-from ..tensorflow.mcts import MCTS
-from ..core.expressions import MathTypeKeysMax
-from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..gym.mathy_gym_env import MathyGymEnv
-from ..r2d2.episode_memory import EpisodeMemory
-from ..r2d2.experience import Experience, ExperienceFrame
-from ..state import (
-    MathyBatchObservation,
+from ...features import calculate_grouping_control_signal
+from ...gym.mathy_gym_env import MathyGymEnv
+from ...state import (
     MathyEnvState,
     MathyObservation,
     MathyWindowObservation,
     observations_to_window,
-    windows_to_batch,
 )
-from ..teacher import Student, Teacher, Topic
-from ..util import GameRewards
+from ...teacher import Teacher
+from ...util import GameRewards
+from ..mcts import MCTS
+from ..r2d2.episode_memory import EpisodeMemory
+from ..r2d2.experience import Experience, ExperienceFrame
+from ..tensorflow.trfl import discrete_policy_entropy_loss
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .util import record, truncate

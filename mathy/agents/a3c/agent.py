@@ -1,18 +1,19 @@
+import json
 import os
 from queue import Queue
-from typing import Optional, List
-from colr import color
-import json
+from typing import List, Optional
+
 import gym
 import numpy as np
 import tensorflow as tf
+from colr import color
 
-from ..state import MathyEnvState, observations_to_window
+from ...state import MathyEnvState, observations_to_window
+from ...teacher import Student, Teacher, Topic
+from ..r2d2.experience import Experience, ExperienceFrame
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .worker import A3CWorker
-from ..teacher import Teacher, Student, Topic
-from ..r2d2.experience import Experience, ExperienceFrame
 
 
 class A3CAgent:

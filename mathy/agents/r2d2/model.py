@@ -1,5 +1,5 @@
-import time
 import os
+import time
 from shutil import copyfile
 from typing import Any, Optional, Tuple
 
@@ -7,10 +7,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
-from .config import MathyArgs
+from ...state import MathyBatchObservation
 from ..a3c.embedding import MathyEmbedding
-from ..state import MathyBatchObservation
 from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
+from .config import MathyArgs
 
 
 class BatchPolicyValueSequences(tf.keras.layers.Layer):

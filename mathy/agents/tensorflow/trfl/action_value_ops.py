@@ -27,9 +27,9 @@ import collections
 
 # Dependency imports
 import tensorflow as tf
-from trfl import base_ops
-from trfl import indexing_ops
-from trfl import sequence_ops
+from . import base_ops
+from . import indexing_ops
+from . import sequence_ops
 
 QExtra = collections.namedtuple("qlearning_extra", ["target", "td_error"])
 DoubleQExtra = collections.namedtuple(

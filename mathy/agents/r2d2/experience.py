@@ -7,8 +7,8 @@ from typing import Any, List, Optional
 
 import numpy as np
 
-from ..util import GameRewards
-from ..gym import MathyGymEnv
+from ...util import GameRewards
+from ...gym import MathyGymEnv
 
 
 class ExperienceFrame(object):

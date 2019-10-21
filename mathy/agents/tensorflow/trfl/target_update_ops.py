@@ -25,7 +25,7 @@ from __future__ import print_function
 
 # Dependency imports
 import tensorflow as tf
-from trfl import periodic_ops
+from . import periodic_ops
 
 
 def update_target_variables(

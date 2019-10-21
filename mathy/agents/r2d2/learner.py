@@ -11,20 +11,15 @@ import numpy as np
 import tensorflow as tf
 from colr import color
 
-from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
-
-from ..core.expressions import MathTypeKeysMax
-from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ..state import (
-    MathyEnvState,
-    observations_to_window,
-    windows_to_batch,
-    MathyObservation,
-    MathyBatchObservation,
-    MathyWindowObservation,
-)
-from ..teacher import Student, Teacher, Topic
-from ..util import GameRewards
+from ...core.expressions import MathTypeKeysMax
+from ...features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
+from ...state import (MathyBatchObservation, MathyEnvState, MathyObservation,
+                      MathyWindowObservation, observations_to_window,
+                      windows_to_batch)
+from ...teacher import Student, Teacher, Topic
+from ...util import GameRewards
+from ..tensorflow.trfl import (discrete_policy_entropy_loss,
+                               discrete_policy_gradient_loss)
 from .config import MathyArgs
 from .episode_memory import EpisodeMemory
 from .experience import Experience, ExperienceFrame
