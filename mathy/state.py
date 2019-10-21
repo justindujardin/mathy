@@ -24,11 +24,6 @@ from .features import (
     FEATURE_PROBLEM_TYPE,
     pad_array,
 )
-from .game_modes import (
-    MODE_ARITHMETIC,
-    MODE_SIMPLIFY_POLYNOMIAL,
-    MODE_SOLVE_FOR_VARIABLE,
-)
 
 PLAYER_ID_OFFSET = 0
 MOVE_COUNT_OFFSET = 1

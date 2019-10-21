@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Optional, Type
 
 from numpy.random import randint
 
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnvProblem
 from ..state import MathyEnvState
 from ..rules import (
@@ -50,4 +49,4 @@ class MathyPolynomialBlockersEnv(MathyPolynomialSimplificationEnv):
             )
         else:
             text, complexity = move_around_blockers_one(blockers, powers_probability)
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, self.get_env_namespace())

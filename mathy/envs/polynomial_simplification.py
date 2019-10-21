@@ -5,7 +5,6 @@ from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
 from ..features import calculate_term_grouping_distances
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import simplify_multiple_terms
@@ -97,4 +96,4 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, self.get_env_namespace())

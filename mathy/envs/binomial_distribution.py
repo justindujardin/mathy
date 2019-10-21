@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Type
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import binomial_times_binomial, binomial_times_monomial
@@ -73,4 +72,4 @@ class MathyBinomialDistributionEnv(MathyEnv):
             complexity += 2
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, complexity, self.get_env_namespace())

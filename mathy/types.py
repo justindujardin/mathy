@@ -31,13 +31,12 @@ class MathyEnvProblem(NamedTuple):
      - "text" is the text content of the generated problem
      - "complexity" is an integer value that represents the number of
        terms in the problem text.
-     - "type" is an integer value representing the problem type that
-       the environment generates.
+     - "type" is a dot namespaced string, e.g. "mathy.poly.simplify"
     """
 
     text: str
     complexity: int
-    type: int
+    type: str
 
 
 class deprecated_MathyEnvObservation(NamedTuple):

@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Type
 
-from ..game_modes import MODE_SIMPLIFY_COMPLEX_TERM
 from ..mathy_env import MathyEnvProblem
 from ..problems import simplify_multiple_terms
 from ..rules import (
@@ -70,4 +69,4 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, complexity, MODE_SIMPLIFY_COMPLEX_TERM)
+        return MathyEnvProblem(text, complexity, self.get_env_namespace())

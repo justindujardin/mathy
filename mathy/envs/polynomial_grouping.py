@@ -4,7 +4,6 @@ from numpy.random import randint
 from tf_agents.trajectories import time_step
 
 from ..core.expressions import MathExpression
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import commute_haystack
@@ -74,4 +73,4 @@ class MathyPolynomialGroupingEnv(MathyEnv):
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, blockers + 2, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, blockers + 2, self.get_env_namespace())

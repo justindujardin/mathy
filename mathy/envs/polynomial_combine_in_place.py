@@ -1,4 +1,3 @@
-from ..game_modes import MODE_SIMPLIFY_POLYNOMIAL
 from ..mathy_env import MathyEnvProblem
 from ..problems import combine_terms_in_place, rand_bool
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
@@ -49,4 +48,4 @@ class MathyPolynomialCombineInPlaceEnv(MathyPolynomialSimplificationEnv):
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, 2, MODE_SIMPLIFY_POLYNOMIAL)
+        return MathyEnvProblem(text, 2, self.get_env_namespace())
