@@ -30,7 +30,11 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 3
+        if config.difficulty == MathyEnvDifficulty.easy:
+            multiplier = 3
+        else:
+            multiplier = 4
+        return problem.complexity * multiplier
 
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.simplify"
@@ -86,7 +90,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
                 num_terms, shuffle_probability=0.45, inner_terms_scaling=scaling
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            num_terms = randint(9, 12)
+            num_terms = randint(7, 10)
             scaling = uniform(0.25, 0.75)
             text, complexity = simplify_multiple_terms(
                 num_terms,
