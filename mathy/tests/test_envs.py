@@ -14,20 +14,7 @@ def test_mathy_env_init():
         env.get_initial_state()
 
 
-def test_mathy_env_jd():
-    env = MathyEnv()
-    assert env is not None
-    problem = "5y * 9x + 8z + 8x + 3z * 10y * 11x + 10y"
-    env_state = MathyEnvState(problem=problem, max_moves=35)
-    for i in range(3):
-        actions = env.get_valid_moves(env_state)
-        indices = [i for i, value in enumerate(actions) if value == 1]
-        random.shuffle(indices)
-        env_state, value, changed = env.get_next_state(env_state, indices[0])
-    assert env_state.to_input_features([]) is not None
-
-
-def test_binomial_distribution_env():
+def test_env_terminal_conditions():
 
     expectations = [
         ("70656 * (x^2 * z^6)", True),

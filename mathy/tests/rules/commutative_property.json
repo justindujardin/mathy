@@ -3,14 +3,14 @@
     {
       "input": "2b^4 * 3x",
       "target": "2b^4",
-      "output": "b^4 * 2 * (3x)",
+      "output": "(b^4 * 2) * 3x",
       "args": {
         "preferred": false
       }
     },
     {
       "input": "12x * 10y",
-      "output": "x * 12 * (10y)",
+      "output": "(x * 12) * 10y",
       "args": {
         "preferred": false
       }

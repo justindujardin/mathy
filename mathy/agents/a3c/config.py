@@ -83,7 +83,7 @@ class A3CArgs(BaseModel):
     num_workers: int = 3
 
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 10
+    teacher_evaluation_steps = 25
     # If the agent wins >= this value, promote to the next difficulty class
     teacher_promote_wins = 0.80
     # If the agent loses >= this value, demot to the previous difficulty class

@@ -1,9 +1,11 @@
-from typing import Any, List
 import math
+from typing import Any, List
+
 import numpy
-from ..util import is_terminal_transition
+
 from ..mathy_env import MathyEnv
 from ..state import MathyEnvState, observations_to_window
+from ..util import is_terminal_transition
 
 EPS = 1e-8
 
@@ -133,7 +135,7 @@ class MCTS:
 
         valids = self.Vs[s]
         cur_best = -float("inf")
-        all_best = []
+        all_best: List[int] = []
         # add Dirichlet noise for root node. set epsilon=0 for ExaminationRunner
         # competitions of trained models
         add_noise = isRootNode and self.epsilon > 0

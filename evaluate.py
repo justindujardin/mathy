@@ -9,8 +9,8 @@ from gym.envs.registration import register
 from tqdm import trange
 
 from mathy.a3c import A3CAgent, A3CArgs
-from mathy.tensorflow.controller import MathModel
-from mathy.tensorflow.training.mcts import MCTS
+from mathy.agents.tensorflow.controller import MathModel
+from mathy.agents.tensorflow.training.mcts import MCTS
 from mathy.gym import MathyGymEnv
 
 __mcts: Optional[MCTS] = None

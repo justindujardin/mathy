@@ -8,7 +8,7 @@ from gym import error, spaces, utils
 from gym.envs.registration import register
 from gym.utils import seeding
 
-from ..tensorflow.controller import MathModel
+from ..agents.tensorflow.controller import MathModel
 from ..features import (
     FEATURE_BWD_VECTORS,
     FEATURE_FWD_VECTORS,
@@ -19,7 +19,7 @@ from ..features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from ..tensorflow.training.mcts import MCTS
+from ..agents.tensorflow.training.mcts import MCTS
 from ..core.expressions import MathTypeKeysMax
 from ..mathy_env import MathyEnv, MathyEnvTimeStep
 from ..state import MathyEnvState

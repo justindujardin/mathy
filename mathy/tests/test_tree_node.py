@@ -1,5 +1,6 @@
 from ..core.tree import BinaryTreeNode
 
+
 def test_tree_node_constructor():
     tree = BinaryTreeNode(BinaryTreeNode(), BinaryTreeNode())
     assert tree.left is not None and tree.right is not None

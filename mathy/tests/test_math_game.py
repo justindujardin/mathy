@@ -15,7 +15,7 @@ def test_mathy_env_jd():
         indices = [i for i, value in enumerate(actions) if value == 1]
         random.shuffle(indices)
         env_state, value, changed = env.get_next_state(env_state, indices[0])
-    assert env_state.to_input_features([]) is not None
+    assert env_state.to_observation([]) is not None
 
 
 def test_mathy_env_win_conditions():

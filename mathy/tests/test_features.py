@@ -1,3 +1,4 @@
+import pytest
 from typing import Tuple, List
 from ..envs.polynomial_simplification import MathyPolynomialSimplificationEnv
 from ..features import (
@@ -9,10 +10,10 @@ from ..state import MathyEnvState, rnn_placeholder_state
 
 
 def test_mathy_features_from_state():
-    state = MathyEnvState()
-
-    state.to_input_features(state.move_mask)
-    state = MathyEnvState()
+    with pytest.raises(ValueError):
+        state = MathyEnvState()
+    state = MathyEnvState(problem="4x+2x")
+    assert state.to_observation([]) is not None
 
 
 def test_mathy_features_hierarchy():

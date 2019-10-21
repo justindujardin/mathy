@@ -5,12 +5,12 @@ me = 0
 
 
 def test_teacher_env_rotation_by_iteration_modulus():
-    teacher = Teacher(topic_names)
+    teacher = Teacher(topic_names, num_students=2)
 
     # Test env rotation
     for i, e in enumerate(topic_names):
         # rotation is modulus by iteration
-        result = teacher.get_env(me, i)
+        result = teacher.get_env(1, i)
         assert result == f"mathy-{e}-easy-v0"
 
 
@@ -25,9 +25,6 @@ def test_teacher_evaluation_window_win_loss_record():
     assert student.topics[student.topic].positives == 2
     assert student.topics[student.topic].negatives == 1
 
-    other_topic = "binomial"
-    assert student.topics[other_topic].positives == 0
-    assert student.topics[other_topic].negatives == 0
 
 
 def test_teacher_evaluation_window_change_difficulty():
