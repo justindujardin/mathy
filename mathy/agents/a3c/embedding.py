@@ -16,29 +16,15 @@ from ...features import (
     FEATURE_NODE_COUNT,
     FEATURE_PROBLEM_TYPE,
 )
-from ...state import (
-    PROBLEM_TYPE_HASH_BUCKETS,
-    MathyBatchObservation,
-    MathyObservation,
-    MathyWindowObservation,
-    observations_to_window,
-)
+from ...state import MathyWindowObservation
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
     def __init__(
-        self,
-        units: int,
-        lstm_units: int,
-        use_node_lstm: bool = False,
-        extract_window: Optional[int] = 3,
-        encode_tokens_with_type: bool = False,
-        **kwargs,
+        self, units: int, lstm_units: int, extract_window: Optional[int] = 3, **kwargs
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.units = units
-        self.use_node_lstm = use_node_lstm
-        self.encode_tokens_with_type = encode_tokens_with_type
         self.extract_window = extract_window
         self.lstm_units = lstm_units
         self.init_rnn_state()
@@ -62,13 +48,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="timestep_lstm",
             return_sequences=True,
             time_major=True,
-            return_state=True,
-        )
-        self.nodes_lstm = tf.keras.layers.LSTM(
-            self.lstm_units,
-            name="nodes_lstm",
-            return_sequences=True,
-            time_major=False,
             return_state=True,
         )
 
@@ -137,18 +116,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             input = tf.expand_dims(input, axis=-1)
 
         query = self.token_embedding(input)
-
         query = tf.reshape(query, [batch_size, sequence_length, -1])
-
-        state_h = features.rnn_state[0][0]
-        state_c = features.rnn_state[1][0]
-        if self.use_node_lstm:
-            # Add context to each timesteps node vectors first
-            node_states = [
-                tf.concat(features.rnn_state[0], axis=0),
-                tf.concat(features.rnn_state[1], axis=0),
-            ]
-            query, _, _ = self.nodes_lstm(query, initial_state=node_states)
 
         #
         # Aux features
@@ -183,24 +151,22 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # Combine the LSTM outputs with the contextual features
         time_out = tf.concat(
             [
+                tf.cast(type_tiled, dtype=tf.float32),
                 time_tiled,
                 query,
-                tf.cast(type_tiled, dtype=tf.float32),
                 tf.cast(move_mask + hint_mask, dtype=tf.float32),
             ],
             axis=-1,
         )
         # use a bottleneck so that we know the dimensions fit the attention layer below
-        time_out = self.bottleneck(time_out)
-
-        time_out = self.bottleneck_norm(time_out)
+        time_out = self.bottleneck_norm(self.bottleneck(time_out))
 
         # Self-attention
         time_out = self.attention([time_out, time_out, time_out])
 
         # LSTM for temporal dependencies
-        state_h = tf.tile(state_h, [sequence_length, 1])
-        state_c = tf.tile(state_c, [sequence_length, 1])
+        state_h = tf.tile(features.rnn_state[0][-1], [sequence_length, 1])
+        state_c = tf.tile(features.rnn_state[1][-1], [sequence_length, 1])
         time_out, state_h, state_c = self.time_lstm(
             time_out, initial_state=[state_h, state_c]
         )
