@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 
 class A3CArgs(BaseModel):
-    units: int
-    embedding_units: int
-    lstm_units: int
+    units: int = 64
+    embedding_units: int = 512
+    lstm_units: int = 256
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"

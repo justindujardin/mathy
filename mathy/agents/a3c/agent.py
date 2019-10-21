@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from colr import color
 
-from ...state import MathyEnvState, observations_to_window
+from ...state import MathyEnvState, observations_to_window, MathyObservation
 from ...teacher import Student, Teacher, Topic
 from ..experience import Experience, ExperienceFrame
 from .actor_critic_model import ActorCriticModel
@@ -105,12 +105,27 @@ class A3CAgent:
         [w.join() for w in workers]
         print("Done. Bye!")
 
-    def choose_action(self, env, state: MathyEnvState):
-        obs = state.to_observation(env.action_space.mask)
-        policy, value, masked_policy = self.global_model.call_masked(
-            observations_to_window([obs])
+    def choose_action(
+        self, env, state: MathyEnvState, last_observation: MathyObservation
+    ):
+        rnn_state_h = self.global_model.embedding.state_h.numpy()
+        rnn_state_c = self.global_model.embedding.state_c.numpy()
+        # named tuples are read-only, so add rnn state to a new copy
+        current_observation = env._observe(state)
+        current_observation = MathyObservation(
+            nodes=current_observation.nodes,
+            mask=current_observation.mask,
+            hints=current_observation.hints,
+            type=current_observation.type,
+            time=current_observation.time,
+            rnn_state=[rnn_state_h, rnn_state_c],
         )
-        policy = tf.nn.softmax(masked_policy)
+        observations = [current_observation]
+        if last_observation is not None:
+            observations.insert(0, last_observation)
+        policy, value = self.global_model.predict_next(
+            observations_to_window(observations)
+        )
         action = np.argmax(policy)
         return action
 

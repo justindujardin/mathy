@@ -40,11 +40,11 @@
       "justMyCode": false,
       "module": "a3c",
       "args": [
-        "poly-commute",
+        "poly",
         "training/dev",
-        "-workers=1",
-        "-strategy=mcts_recover",
-        "-difficulty=normal"
+        "-workers=2",
+        // "-show",
+        "-difficulty=easy"
       ]
     },
     {
