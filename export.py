@@ -3,7 +3,7 @@ import os
 import plac
 import tensorflow as tf
 from pathlib import Path
-from mathy.agent.controller import MathModel
+from mathy.tensorflow.controller import MathModel
 from mathy import MathyEnv
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"

@@ -9,10 +9,9 @@ from tensorflow.keras.layers import TimeDistributed
 
 from mathy.a3c.config import A3CArgs
 
-from ..agent.layers.bahdanau_attention import BahdanauAttention
-from ..agent.layers.math_policy_dropout import MathPolicyDropout
-from ..agent.layers.math_policy_resnet import MathPolicyResNet
-from ..agent.layers.resnet_block import ResNetBlock
+from ..tensorflow.layers.math_policy_dropout import MathPolicyDropout
+from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
+from ..tensorflow.layers.resnet_block import ResNetBlock
 from ..state import MathyWindowObservation
 from .embedding import MathyEmbedding
 

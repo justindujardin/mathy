@@ -12,7 +12,7 @@ import tensorflow as tf
 
 from trfl import discrete_policy_entropy_loss, discrete_policy_gradient_loss
 
-from ..agent.mcts import MCTS
+from ..tensorflow.mcts import MCTS
 from ..core.expressions import MathTypeKeysMax
 from ..features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
 from ..gym.mathy_gym_env import MathyGymEnv

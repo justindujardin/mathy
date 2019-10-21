@@ -2,8 +2,8 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from ..agent.layers.attention_stack import MultiHeadAttentionStack
-from ..agent.layers.resnet_stack import ResNetStack
+from ..tensorflow.layers.attention_stack import MultiHeadAttentionStack
+from ..tensorflow.layers.resnet_stack import ResNetStack
 from ..core.expressions import MathTypeKeysMax
 from ..features import (
     FEATURE_BWD_VECTORS,
@@ -55,7 +55,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="combined_features_normalize"
         )
         self.attention = MultiHeadAttentionStack(
-            num_heads=8, num_layers=3, name="self_attention"
+            num_heads=8, num_layers=3, name="self_attention", attn_width=self.lstm_units
         )
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,

@@ -12,9 +12,9 @@ from mathy import (
     deprecated_MathyEnvObservation,
     MathyEnvState,
 )
-from mathy.agent.controller import MathModel
-from mathy.agent.training.actor_mcts import ActorMCTS
-from mathy.agent.training.mcts import MCTS
+from mathy.tensorflow.controller import MathModel
+from mathy.tensorflow.training.actor_mcts import ActorMCTS
+from mathy.tensorflow.training.mcts import MCTS
 from mathy.envs.polynomial_grouping import MathyPolynomialGroupingEnv
 
 

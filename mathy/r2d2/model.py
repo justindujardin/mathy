@@ -8,11 +8,9 @@ import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
 from .config import MathyArgs
-from .embedding import MathyEmbedding
+from ..a3c.embedding import MathyEmbedding
 from ..state import MathyBatchObservation
-from ..agent.layers.bahdanau_attention import BahdanauAttention
-from ..agent.layers.lstm_stack import LSTMStack
-from ..agent.layers.math_policy_resnet import MathPolicyResNet
+from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
 
 
 class BatchPolicyValueSequences(tf.keras.layers.Layer):
