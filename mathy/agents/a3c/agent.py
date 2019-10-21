@@ -1,26 +1,26 @@
 import json
 import os
 from queue import Queue
-from typing import List, Optional
+from typing import List
 
 import gym
 import numpy as np
 import tensorflow as tf
 from colr import color
 
-from ...state import MathyEnvState, observations_to_window, MathyObservation
-from ...teacher import Student, Teacher, Topic
-from ..experience import Experience, ExperienceFrame
-from .actor_critic_model import ActorCriticModel
-from .config import A3CArgs
+from ...state import MathyEnvState, MathyObservation, observations_to_window
+from ...teacher import Teacher
+from ..actor_critic_model import ActorCriticModel
+from ..experience import Experience
+from ..base_config import BaseConfig
 from .worker import A3CWorker
 
 
 class A3CAgent:
 
-    args: A3CArgs
+    args: BaseConfig
 
-    def __init__(self, args: A3CArgs):
+    def __init__(self, args: BaseConfig):
         self.args = args
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")

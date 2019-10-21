@@ -7,13 +7,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
-from mathy.agents.a3c.config import A3CArgs
-
-from ..tensorflow.layers.math_policy_dropout import MathPolicyDropout
-from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
-from ..tensorflow.layers.resnet_block import ResNetBlock
-from ...state import MathyWindowObservation
-from ..embedding import MathyEmbedding
+from ..state import MathyWindowObservation
+from .base_config import BaseConfig
+from .embedding import MathyEmbedding
 
 
 class PolicySequences(tf.keras.layers.Layer):
@@ -35,12 +31,12 @@ class PolicySequences(tf.keras.layers.Layer):
 
 
 class ActorCriticModel(tf.keras.Model):
-    args: A3CArgs
+    args: BaseConfig
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
         self,
-        args: A3CArgs,
+        args: BaseConfig,
         optimizer: tf.optimizers.Optimizer,
         predictions=2,
         initial_state: Any = None,

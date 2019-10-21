@@ -4,7 +4,7 @@ import tensorflow as tf
 np.random.seed(1337)
 tf.random.set_seed(1337)
 
-from mathy.agents.r2d2 import MathyTrainer, MathyArgs
+from mathy.agents.r2d2 import MathyTrainer, BaseConfig
 from mathy import gym  # noqa
 from typing import Optional
 import plac
@@ -69,7 +69,7 @@ def main(
     evaluate: bool = False,
 ):
     topics_list = topics.split(",")
-    args = MathyArgs(
+    args = BaseConfig(
         verbose=True,
         update_freq=3,
         train=not evaluate,

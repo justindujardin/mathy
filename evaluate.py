@@ -8,7 +8,7 @@ import plac
 import tensorflow as tf
 from tqdm import trange
 
-from mathy.agents.a3c import A3CAgent, A3CArgs
+from mathy.agents.a3c import A3CAgent, BaseConfig
 from mathy.agents.mcts import MCTS
 from mathy.gym import MathyGymEnv
 
@@ -25,7 +25,7 @@ def mathy_load_a3c(env_name: str, gym_env: MathyGymEnv, model: str):
         tf.compat.v1.logging.set_verbosity("CRITICAL")
         if model is None:
             raise ValueError("model is none, must be specified")
-        args = A3CArgs(model_dir=model)
+        args = BaseConfig(model_dir=model)
         __agent = A3CAgent(args)
 
 

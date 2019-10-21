@@ -2,9 +2,9 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
 from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
+from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
 
 
 class MathyEmbedding(tf.keras.layers.Layer):

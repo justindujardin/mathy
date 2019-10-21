@@ -4,10 +4,11 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class A3CArgs(BaseModel):
+class BaseConfig(BaseModel):
     units: int = 64
     embedding_units: int = 512
     lstm_units: int = 256
+
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
@@ -24,6 +25,14 @@ class A3CArgs(BaseModel):
     ready_at: int = 256
 
     lr: float = 3e-5
+
+    # Update frequencey for the Worker to sync with the Main model. This has different
+    # meaning for different agents:
+    #
+    # - for A3C agents this value indicates the maximum number of steps to take in an
+    #   episode before syncing the replay buffer and gradients.
+    # - for R2D2 agents this value indicates the number of episodes to run between
+    #   syncing the latest model from the learner process.
     update_freq: int = 25
     max_eps: int = 15000
     gamma: float = 0.99

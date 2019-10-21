@@ -11,23 +11,23 @@ from colr import color
 from ...features import calculate_grouping_control_signal
 from ...state import MathyEnvState
 from ...teacher import Teacher
-from .config import MathyArgs
+from ..actor_critic_model import ActorCriticModel
+from ..base_config import BaseConfig
 from ..episode_memory import EpisodeMemory
 from ..experience import Experience, ExperienceFrame
-from .model import MathyModel
 from .util import MPClass, record
 
 
 class MathyActor(MPClass):
     """Actors gather experience and submit it to the learner for replay training"""
 
-    args: MathyArgs
+    args: BaseConfig
     request_quit = False
     envs: Dict[str, Any]
 
     def __init__(
         self,
-        args: MathyArgs,
+        args: BaseConfig,
         result_queue: Queue,
         command_queue: Queue,
         experience: Experience,
@@ -51,7 +51,7 @@ class MathyActor(MPClass):
         self.envs[env_name] = gym.make(env_name)
         self.action_size = self.envs[env_name].action_space.n
         self.writer = writer
-        self.model = MathyModel(args=args, predictions=self.action_size)
+        self.model = ActorCriticModel(args=args, predictions=self.action_size)
         self.model.maybe_load(self.envs[env_name].initial_state())
         print(f"[actor{worker_idx}] e:{self.greedy_epsilon} t: {self.args.topics}")
 

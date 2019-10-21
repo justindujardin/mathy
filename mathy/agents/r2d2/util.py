@@ -1,5 +1,5 @@
 from colr import color
-from .config import MathyArgs
+from ..base_config import BaseConfig
 from typing import Any
 import datetime
 from multiprocessing import Process

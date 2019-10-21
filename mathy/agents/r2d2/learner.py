@@ -13,28 +13,35 @@ from colr import color
 
 from ...core.expressions import MathTypeKeysMax
 from ...features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
-from ...state import (MathyBatchObservation, MathyEnvState, MathyObservation,
-                      MathyWindowObservation, observations_to_window,
-                      windows_to_batch)
+from ...state import (
+    MathyBatchObservation,
+    MathyEnvState,
+    MathyObservation,
+    MathyWindowObservation,
+    observations_to_window,
+    windows_to_batch,
+)
 from ...teacher import Student, Teacher, Topic
 from ...util import GameRewards
 from ..episode_memory import EpisodeMemory
-from ..tensorflow.trfl import (discrete_policy_entropy_loss,
-                               discrete_policy_gradient_loss)
-from .config import MathyArgs
+from ..tensorflow.trfl import (
+    discrete_policy_entropy_loss,
+    discrete_policy_gradient_loss,
+)
+from ..base_config import BaseConfig
 from ..experience import Experience, ExperienceFrame
-from .model import MathyModel
+from ..actor_critic_model import ActorCriticModel
 from .util import MPClass, record, record_losses
 
 
 class MathyLearner(MPClass):
 
-    args: MathyArgs
+    args: BaseConfig
     request_quit = False
 
     def __init__(
         self,
-        args: MathyArgs,
+        args: BaseConfig,
         writer: tf.summary.SummaryWriter,
         command_queues: List[Queue],
         experience: Experience,
@@ -50,7 +57,7 @@ class MathyLearner(MPClass):
             print(f"Config: {self.args.dict()}")
         self.teacher = Teacher(
             topic_names=self.args.topics,
-            num_students=self.args.num_actors,
+            num_students=self.args.num_workers,
             difficulty=self.args.difficulty,
         )
         self.env = gym.make(self.teacher.get_env(0, 0))
@@ -59,11 +66,13 @@ class MathyLearner(MPClass):
             os.path.join(self.args.model_dir, "tensorboard")
         )
         self.optimizer = tf.compat.v1.train.AdamOptimizer(args.lr, use_locking=True)
-        self.model = MathyModel(args=args, predictions=self.action_size)
+        self.model = ActorCriticModel(
+            args=args, predictions=self.action_size, optimizer=self.optimizer
+        )
         self.obs_converter = EpisodeMemory(self.experience)
         # Initialize the model with a random observation
         self.model.maybe_load(self.env.initial_state(), do_init=True)
-        self.update_actors_in = self.args.actor_update_from_learner_every_n
+        self.update_actors_in = self.args.update_freq
 
     def choose_action(self, state: MathyEnvState, greedy=False):
         obs = state.to_input_features(self.env.action_space.mask, return_batch=True)

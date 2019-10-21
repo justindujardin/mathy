@@ -4,7 +4,8 @@ import tensorflow as tf
 np.random.seed(1337)
 tf.random.set_seed(1337)
 
-from mathy.agents.a3c import A3CAgent, A3CArgs
+from mathy.agents.base_config import BaseConfig
+from mathy.agents.a3c import A3CAgent
 from mathy import gym  # noqa
 from typing import Optional
 import plac
@@ -80,7 +81,7 @@ def main(
     evaluate: bool = False,
 ):
     topics_list = topics.split(",")
-    args = A3CArgs(
+    args = BaseConfig(
         verbose=True,
         update_freq=128,
         train=not evaluate,

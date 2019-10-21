@@ -2,25 +2,21 @@ import os
 from queue import Queue
 from typing import List, Optional
 
-import gym
 import numpy as np
 import tensorflow as tf
-from colr import color
 
-from ...state import MathyEnvState
-from ...teacher import Student, Teacher, Topic
+from ...teacher import Teacher
+from ..base_config import BaseConfig
 from ..experience import Experience, ExperienceFrame
 from .actor import MathyActor
-from .config import MathyArgs
 from .learner import MathyLearner
-from .model import MathyModel
 
 
 class MathyTrainer:
 
-    args: MathyArgs
+    args: BaseConfig
 
-    def __init__(self, args: MathyArgs):
+    def __init__(self, args: BaseConfig):
         self.args = args
         self.experience = Experience(
             history_size=self.args.replay_size, ready_at=self.args.replay_ready
@@ -30,7 +26,7 @@ class MathyTrainer:
             print(f"Config: {self.args.dict()}")
         self.teacher = Teacher(
             topic_names=self.args.topics,
-            num_students=self.args.num_actors,
+            num_students=self.args.num_workers,
             difficulty=self.args.difficulty,
         )
         self.writer = tf.summary.create_file_writer(
@@ -39,12 +35,12 @@ class MathyTrainer:
 
     def run(self):
         res_queue = Queue()
-        cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_actors)]
+        cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_workers)]
 
         all_children = []
 
         # Create (n) actors for gathering trajectories
-        actor_epsilons = np.linspace(0.001, 0.5, self.args.num_actors)
+        actor_epsilons = np.linspace(0.001, 0.5, self.args.num_workers)
         actors = [
             MathyActor(
                 args=self.args,
@@ -56,7 +52,7 @@ class MathyTrainer:
                 worker_idx=i,
                 writer=self.writer,
             )
-            for i in range(self.args.num_actors)
+            for i in range(self.args.num_workers)
         ]
         all_children += actors
 

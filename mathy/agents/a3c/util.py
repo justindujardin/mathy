@@ -1,5 +1,5 @@
 from colr import color
-from .config import A3CArgs
+from ..base_config import BaseConfig
 import datetime
 
 
