@@ -71,13 +71,21 @@ class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
             blockers = randint(2, 4)
             powers = rand_bool(40)
             text, _ = commute_haystack(
-                min_terms=8, max_terms=12, easy=easy, powers=powers
+                commute_blockers=blockers,
+                min_terms=8,
+                max_terms=12,
+                easy=easy,
+                powers=powers,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(5, 10)
             powers = rand_bool(60)
             text, _ = commute_haystack(
-                min_terms=6, max_terms=12, easy=easy, powers=powers
+                commute_blockers=blockers,
+                min_terms=6,
+                max_terms=12,
+                easy=easy,
+                powers=powers,
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")

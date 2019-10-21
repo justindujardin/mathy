@@ -1,9 +1,8 @@
 import math
 import os
-import threading
 import time
-from multiprocessing import Process, Queue
-from queue import Queue
+from multiprocessing import Queue
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import gym
@@ -12,7 +11,7 @@ import tensorflow as tf
 from colr import color
 
 from ...core.expressions import MathTypeKeysMax
-from ...features import FEATURE_FWD_VECTORS, calculate_grouping_control_signal
+from ...features import calculate_grouping_control_signal
 from ...state import (
     MathyBatchObservation,
     MathyEnvState,
@@ -375,27 +374,3 @@ class MathyLearner(MPClass):
             windows.append(observations_to_window(states))
             rewards.append(sample_label)
         return windows_to_batch(windows), rewards
-
-    def get_rp_inputs_with_labels(
-        self, episode_buffer: EpisodeMemory
-    ) -> Tuple[List[Any], List[Any]]:
-        # [Reward prediction]
-        rp_experience_frames: List[
-            ExperienceFrame
-        ] = self.agent_experience.sample_rp_sequence()
-        # 4 frames
-        states = [frame.state for frame in rp_experience_frames[:-1]]
-        batch_rp_si = episode_buffer.to_features(states)
-        batch_rp_c = []
-
-        # one hot vector for target reward
-        r = rp_experience_frames[3].reward
-        rp_c = [0.0, 0.0, 0.0]
-        if math.isclose(r, GameRewards.TIMESTEP):
-            rp_c[0] = 1.0  # zero
-        elif r > 0:
-            rp_c[1] = 1.0  # positive
-        else:
-            rp_c[2] = 1.0  # negative
-        batch_rp_c.append(rp_c)
-        return batch_rp_si, batch_rp_c

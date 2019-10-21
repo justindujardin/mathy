@@ -5,7 +5,8 @@ from .densenet_stack import DenseNetStack
 
 
 class MultiHeadAttentionStack(tf.keras.layers.Layer):
-    """Stack of Multi-Head Attention layers with DenseNet stacks between each layer"""
+    """Stack of Multi-Head Attention layers with a shared DenseNet stack
+    between each layer"""
 
     def __init__(
         self, num_layers=2, num_heads=4, dropout_rate=0.1, attn_width=128, **kwargs

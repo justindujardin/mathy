@@ -9,28 +9,6 @@ from ..rules import (
     VariableMultiplyRule,
 )
 
-# TODO: Incorporate competency evaluations in training? Adjust hyper params/problems
-# when certain competencies are met?
-exam_combine_like_terms = [
-    ("10 + (7x + 6x)", "10 + 13x"),
-    ("6x + 6 * 5 - 2x", "4x + 30"),
-    ("(x * 14 + 7x) + 2", "21x + 2"),
-    ("4x + 7x + 2", "11x + 2"),
-    ("6x + 120x", "126x"),
-    ("3x + 72x", "75x"),
-]
-
-exam_simplify_complex_terms = [
-    ("60 * 6y", "360y"),
-    ("4x * 7x", "28x^2"),
-    ("(x * 14 + 7x) + 2", "21x + 2"),
-    ("4x + 7x + 2", "11x + 2"),
-    ("6x + 120x", "126x"),
-    ("3x + 72x", "75x"),
-    ("4x^(2^2)", "4x^4"),
-    ("(4x^2)^2", "16x^4"),
-]
-
 
 def init_rule_for_test(example, rule_class):
     if "args" not in example:

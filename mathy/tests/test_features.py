@@ -1,11 +1,8 @@
+from typing import List, Tuple
+
 import pytest
-from typing import Tuple, List
+
 from ..envs.polynomial_simplification import MathyPolynomialSimplificationEnv
-from ..features import (
-    MathyBatchObservationFeatures,
-    MathyBatchWindowObservationFeatures,
-    MathyObservationFeatures,
-)
 from ..state import MathyEnvState, rnn_placeholder_state
 
 

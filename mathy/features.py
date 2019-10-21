@@ -3,127 +3,10 @@ import numpy
 import numpy as np
 from typing import Tuple, Any, List, Dict
 from .core import MathTypeKeys
+from .state import MathyObservation
 from enum import Enum
 import math
 from pydantic import BaseModel
-
-
-class MathyObservationFeatures(Enum):
-    """TODO: This is not used and speculative"""
-
-    steps_remaining = "steps_remaining"
-    step = "step"
-    last_action = "last_action"
-    problem_type = "problem_type"
-    vectors = "vectors"
-    vectors_bwd = "vectors_bwd"
-    mask = "mask"
-
-
-class MathyEnvObservation(BaseModel):
-    """TODO: This is not used and speculative"""
-
-    state: Any
-
-
-# A sequence of nodes representing the math tree for the
-# current environment state.
-MathyObservationNodes = List[int]
-
-
-class MathyObservationSignal(BaseModel):
-    """TODO: This is not used and speculative"""
-
-    # Unique ID for this environment signal
-    id: str
-
-    def get_value(self, observation: MathyEnvObservation):
-        raise NotImplementedError("subclass must implement")
-
-
-class MathyObsValueSignal(MathyObservationSignal):
-    """TODO: This is not used and speculative"""
-
-    id = "value"
-    value: float
-
-    def get_value(self, observation: MathyEnvObservation):
-        self.value = observation.value
-
-
-class MathyObsGroupingSignal(MathyObservationSignal):
-    """TODO: This is not used and speculative"""
-
-    id = "grouping"
-    value: float
-
-    def get_value(self, observation: MathyEnvObservation):
-        self.value = calculate_grouping_control_signal(observation)
-
-
-class MathyObservationFeatures(BaseModel):
-    """TODO: This is not used and speculative"""
-
-    # List of current env state node types in a sequence.
-    vectors: MathyObservationNodes = []
-    # Valid move mask for the associated vectors
-    mask: MathyObservationNodes = []
-    # The observed reward from the timestep before this observation
-    last_reward: float = 0.0
-    # The action taken at the timestep before this observation
-    last_action: int = -1
-    # A list of signals associated with this observation
-    signals: List[MathyObservationSignal] = []
-
-
-class MathyBatchObservationFeatures(BaseModel):
-    """TODO: This is not used and speculative"""
-
-    # List of current env state node types in a sequence.
-    vectors: List[MathyObservationNodes] = []
-    # Valid move mask for the associated vectors
-    mask: List[MathyObservationNodes] = []
-    # The observed reward from the timestep before this observation
-    last_reward: List[float] = []
-    # The action taken at the timestep before this observation
-    last_action: List[int] = []
-    # A list of signals associated with this observation
-    signals: List[List[MathyObservationSignal]] = []
-
-
-class MathyBatchWindowObservationFeatures(BaseModel):
-    """TODO: This is not used and speculative"""
-
-    # List of current env state node types in a sequence.
-    vectors: List[List[MathyObservationNodes]] = []
-    # Valid move mask for the associated vectors
-    mask: List[List[MathyObservationNodes]] = []
-    # The observed reward from the timestep before this observation
-    last_reward: List[List[float]] = []
-    # The action taken at the timestep before this observation
-    last_action: List[List[int]] = []
-    # A list of signals associated with this observation
-    signals: List[List[List[MathyObservationSignal]]] = []
-
-
-FEATURE_FWD_VECTORS = "fwd_vectors"
-FEATURE_LAST_RULE = "last_action"
-FEATURE_BWD_VECTORS = "bwd_vectors"
-FEATURE_LAST_FWD_VECTORS = "fwd_last_vectors"
-FEATURE_LAST_BWD_VECTORS = "bwd_last_vectors"
-FEATURE_NODE_COUNT = "node_count"
-FEATURE_MOVES_REMAINING = "moves_remaining"
-FEATURE_MOVE_COUNTER = "move_counter"
-FEATURE_PROBLEM_TYPE = "problem_type"
-FEATURE_MOVE_MASK = "policy_mask"
-
-
-TENSOR_KEY_PI = "policy"
-TENSOR_KEY_VALUE = "value"
-TENSOR_KEY_NODE_CTRL = "node_ctrl"
-TENSOR_KEY_GROUPING_CTRL = "grouping_ctrl"
-TENSOR_KEY_GROUP_PREDICT = "group_prediction"
-TENSOR_KEY_REWARD_PREDICT = "reward_prediction"
 
 
 def build_cnn_image_input(observation):
@@ -134,7 +17,7 @@ def build_cnn_image_input(observation):
     pass
 
 
-def calculate_chaos_node_control_signal(observation: MathyEnvObservation):
+def calculate_chaos_node_control_signal(observation: MathyObservation):
     """node_ctrl signal is either 0 or 1 depending on if the input
     matches the output.
 
@@ -175,7 +58,7 @@ def calculate_chaos_node_control_signal(observation: MathyEnvObservation):
     return 0 if input != output else 1
 
 
-def calculate_brevity_node_control_signal(observation: MathyEnvObservation):
+def calculate_brevity_node_control_signal(observation: MathyObservation):
     """node_ctrl signal is either 0 or 1 depending on if the output state
     has fewer nodes than the input. This doesn't always make sense, but for
     most problems in math I think it does. If it doesn't then expansion tends
@@ -268,7 +151,7 @@ def calculate_grouping_control_signal(
     return -abs(in_signal_normalized - out_signal_normalized)
 
 
-def calculate_group_prediction_signal(observation: MathyEnvObservation):
+def calculate_group_prediction_signal(observation: MathyObservation):
     """Calculate the ratio of unique groups of like terms to all terms in
     the expression. This is useful to get a number that stays in range of 0-1
     so your loss does not run all over the place when you introduce variable
@@ -302,7 +185,7 @@ def calculate_group_prediction_signal(observation: MathyEnvObservation):
     return len(unique_vars) / len(vars)
 
 
-def calculate_reward_prediction_signal(observation: MathyEnvObservation):
+def calculate_reward_prediction_signal(observation: MathyObservation):
     """reward_prediction signal is a single integer indicating one of three
     classes: POSITIVE, NEUTRAL, NEGATIVE based on the reward for
     entering the current state.
@@ -315,7 +198,7 @@ def calculate_reward_prediction_signal(observation: MathyEnvObservation):
     return [negative, neutral, positive]
 
 
-def calculate_policy_target(observation: MathyEnvObservation, soft: bool = False):
+def calculate_policy_target(observation: MathyObservation, soft: bool = False):
     policy = numpy.array(observation.policy[:], dtype="float32")
     # If we're using the hard targets, pass the policy distribution back
     # directly from the tree search. This may end up being the best way, but
@@ -337,95 +220,3 @@ def calculate_policy_target(observation: MathyEnvObservation, soft: bool = False
     policy_soft /= numpy.sum(policy_soft)
     return policy_soft
 
-
-def parse_example_for_training(
-    example: MathyEnvObservation,
-    max_sequence: int,
-    max_policy_sequence: int,
-    num_rules: int = 6,
-    extract_window_size: int = 1
-    # TODO: types for the outputs and labels
-) -> Tuple[Any, Any]:
-    """Prepare a gathered training example for input into the Policy/Value network.
-    This requires padding sequence inputs to the given max length values given as
-    arguments. It returns an output shape that conforms to the structure defined
-    by `dataset.make_training_input_fn`
-    """
-    inputs = {}
-    ex_input = example.features
-    num_actions = num_rules
-    pad_value = tuple([MathTypeKeys["empty"]] * extract_window_size)
-
-    inputs[FEATURE_FWD_VECTORS] = pad_array(
-        ex_input[FEATURE_FWD_VECTORS][:], max_sequence, pad_value
-    )
-    inputs[FEATURE_BWD_VECTORS] = pad_array(
-        ex_input[FEATURE_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
-    )
-    # inputs[FEATURE_LAST_FWD_VECTORS] = pad_array(
-    #     ex_input[FEATURE_LAST_FWD_VECTORS][:], max_sequence, pad_value
-    # )
-    # inputs[FEATURE_LAST_BWD_VECTORS] = pad_array(
-    #     ex_input[FEATURE_LAST_BWD_VECTORS][:], max_sequence, pad_value, backwards=True
-    # )
-
-    policy_out = numpy.array(calculate_policy_target(example)).flatten().tolist()
-    policy_out = pad_array(policy_out, max_policy_sequence, 0.0)
-    policy_out = numpy.reshape(policy_out, (-1, num_actions))
-
-    policy_mask_out = numpy.array(ex_input[FEATURE_MOVE_MASK][:]).flatten().tolist()
-    policy_mask_out = pad_array(policy_mask_out, max_policy_sequence, 0.0)
-    policy_mask_out = numpy.reshape(policy_mask_out, (-1, num_actions))
-
-    inputs[FEATURE_NODE_COUNT] = len(ex_input[FEATURE_BWD_VECTORS])
-    inputs[FEATURE_MOVES_REMAINING] = ex_input[FEATURE_MOVES_REMAINING]
-    inputs[FEATURE_LAST_RULE] = ex_input[FEATURE_LAST_RULE]
-    inputs[FEATURE_MOVE_COUNTER] = ex_input[FEATURE_MOVE_COUNTER]
-    inputs[FEATURE_PROBLEM_TYPE] = ex_input[FEATURE_PROBLEM_TYPE]
-    inputs[FEATURE_MOVE_MASK] = policy_mask_out
-    outputs = {
-        TENSOR_KEY_PI: policy_out,
-        TENSOR_KEY_VALUE: [example.discounted],
-        TENSOR_KEY_NODE_CTRL: [calculate_chaos_node_control_signal(example)],
-        TENSOR_KEY_GROUPING_CTRL: [calculate_grouping_control_signal(example)],
-        TENSOR_KEY_GROUP_PREDICT: [calculate_group_prediction_signal(example)],
-        TENSOR_KEY_REWARD_PREDICT: calculate_reward_prediction_signal(example),
-    }
-    # print(f"node_ctrl: {outputs[TENSOR_KEY_NODE_CTRL]}")
-    # print(f"grouping_ctrl: {outputs[TENSOR_KEY_GROUPING_CTRL]}")
-    # print(f"group_prediction: {outputs[TENSOR_KEY_GROUP_PREDICT]}")
-    # print(f"reward_prediction: {outputs[TENSOR_KEY_REWARD_PREDICT]}")
-    # print(f"inputs pi_mask = {inputs[FEATURE_MOVE_MASK]}")
-    return inputs, outputs
-
-
-def pad_array(A, max_length, value=0, backwards=False, cleanup=False):
-    """Pad a list to the given size with the given padding value
-    
-    If backwards=True the input will be reversed after padding, and 
-    the output will be reversed after padding, to correctly pad for 
-    LSTMs, e.g. "4x+2----" padded backwards would be "----2+x4"
-    """
-    if backwards:
-        A.reverse()
-    while len(A) < max_length:
-        A.append(value)
-    if backwards:
-        A.reverse()
-    if cleanup is True:
-        A = np.array(A).tolist()
-    return A
-
-
-def get_max_lengths(examples: List[MathyEnvObservation]):
-    """Get the max sequence lengths for a set of examples.
-    
-    Returns a tuple of(max_pi_len, max_tokens_len)"""
-    tokens_lengths = []
-    pi_lengths = []
-    for ex in examples:
-        tokens_lengths.append(len(ex.features[FEATURE_BWD_VECTORS]))
-        pi_lengths.append(len(numpy.array(ex.policy).flatten()))
-    max_tokens_sequence = max(tokens_lengths)
-    max_pi_sequence = max(pi_lengths)
-    return max_pi_sequence, max_tokens_sequence

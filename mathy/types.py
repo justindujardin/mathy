@@ -38,24 +38,3 @@ class MathyEnvProblem(NamedTuple):
     complexity: int
     type: str
 
-
-class deprecated_MathyEnvObservation(NamedTuple):
-    """Summarize an environment observation in a named tuple."""
-
-    input: str
-    output: str
-    action: int
-    token: int
-    reward: float
-    discounted: float
-    policy: List[float]
-    features: Any
-    problem: str
-
-
-class deprecated_MathyEnvEpisodeResult(NamedTuple):
-    """Summarize episode history and final result."""
-
-    history: List[deprecated_MathyEnvObservation]
-    episode_reward: float
-    is_win: bool

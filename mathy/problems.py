@@ -340,7 +340,7 @@ def commute_haystack(
         current = noise_vars.pop()
         out_terms.append(f"{maybe_int()}{current}{maybe_power(power_chance)}")
 
-    complexity = total_terms
+    complexity = len(out_terms)
     problem = " + ".join(out_terms)
     return problem, complexity
 

@@ -1,21 +1,8 @@
-from typing import List, Optional, Type
+from typing import Optional, Type
 
 import gym
-import numpy as np
-from gym import spaces
 
-from ..core.expressions import MathTypeKeysMax
-from ..features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_MOVE_MASK,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-)
-from ..mathy_env import MathyEnv, MathyEnvTimeStep
+from ..mathy_env import MathyEnv
 from ..rules.rule import ExpressionChangeRule
 from ..state import (
     MathyEnvState,
@@ -23,13 +10,14 @@ from ..state import (
     RNNStatesFloatList,
     rnn_placeholder_state,
 )
-from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from ..types import MathyEnvProblemArgs
 from ..util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
 
 
 class MathyGymEnv(gym.Env):
-    """"""
+    """A small wrapper around Mathy envs to allow them to work with OpenAI Gym. The
+    agents currently use this env wrapper, but it could be dropped in the future."""
 
     default_rnn_size = 128
     metadata = {"render.modes": ["terminal"]}

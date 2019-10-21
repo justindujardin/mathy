@@ -1,38 +1,12 @@
-import json
-import random
-from collections import namedtuple
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional
 
-import numpy
 import tensorflow as tf
 
-from .helpers import get_term_ex, get_terms
-from .core.expressions import MathExpression, MathTypeKeys, MathTypeKeysMax
+from .core.expressions import MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
-from .core.tokenizer import TokenEOF
-from .core.tree import STOP
-from .features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_MOVE_COUNTER,
-    FEATURE_MOVE_MASK,
-    FEATURE_MOVES_REMAINING,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-    pad_array,
-)
-
-PLAYER_ID_OFFSET = 0
-MOVE_COUNT_OFFSET = 1
-GAME_MODE_OFFSET = 2
+from .util import pad_array
 
 PROBLEM_TYPE_HASH_BUCKETS = 128
-
-INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
-TRAINING_SET_FILE_NAME = "training.jsonl"
 
 NodeIntList = List[int]
 NodeHintMaskIntList = List[int]
@@ -126,6 +100,9 @@ class MathyEnvTimeStep(NamedTuple):
 
 
 def rnn_placeholder_state(rnn_size: int) -> RNNStatesFloatList:
+    """Create a placeholder state for the RNN hidden states in an observation. This
+    is useful because we don't always know the RNN state when we initialize an
+    observation."""
     rnn_state: RNNStatesFloatList = [
         tf.zeros(shape=(1, rnn_size)),
         tf.zeros(shape=(1, rnn_size)),
@@ -134,6 +111,7 @@ def rnn_placeholder_state(rnn_size: int) -> RNNStatesFloatList:
 
 
 def rnn_placeholder_states(rnn_size: int, num_states: int) -> WindowRNNStatesFloatList:
+    """Create a window of RNN placeholder states of the given size"""
     rnn_state: WindowRNNStatesFloatList = [
         [tf.zeros(shape=(1, rnn_size)), tf.zeros(shape=(1, rnn_size))]
         for _ in range(num_states)
@@ -144,6 +122,7 @@ def rnn_placeholder_states(rnn_size: int, num_states: int) -> WindowRNNStatesFlo
 def observations_to_window(
     observations: List[MathyObservation]
 ) -> MathyWindowObservation:
+    """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(
         nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
     )
@@ -163,6 +142,7 @@ def observations_to_window(
 
 
 def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
+    """Combine a sequence of window observations into a batched observation window"""
     output = MathyBatchObservation(
         nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
     )
@@ -195,48 +175,6 @@ def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObserva
     return output
 
 
-class MathAgentState:
-    moves_remaining: int
-    problem: str
-    problem_type: str
-    reward: float
-    history: List[MathyEnvTimeStep]
-    focus_index: int
-    last_action: int
-
-    def __init__(
-        self,
-        moves_remaining,
-        problem,
-        problem_type,
-        reward=0.0,
-        history=None,
-        focus_index=0,
-        last_action=None,
-    ):
-        self.moves_remaining = moves_remaining
-        self.focus_index = focus_index  # TODO: remove this, no longer used
-        self.problem = problem
-        self.last_action = last_action
-        self.reward = reward
-        self.problem_type = problem_type
-        self.history = (
-            history[:] if history is not None else [MathyEnvTimeStep(problem, -1, -1)]
-        )
-
-    @classmethod
-    def copy(cls, from_state):
-        return MathAgentState(
-            moves_remaining=from_state.moves_remaining,
-            problem=from_state.problem,
-            reward=from_state.reward,
-            problem_type=from_state.problem_type,
-            history=from_state.history,
-            focus_index=from_state.focus_index,
-            last_action=from_state.last_action,
-        )
-
-
 class MathyEnvState(object):
     """Class for holding environment state and extracting features
     to be passed to the policy/value neural network.
@@ -249,7 +187,7 @@ class MathyEnvState(object):
     by two different sources.
     """
 
-    agent: MathAgentState
+    agent: "MathyAgentState"
     parser: ExpressionParser
     max_moves: int
     num_rules: int
@@ -266,11 +204,11 @@ class MathyEnvState(object):
         self.max_moves = max_moves
         self.num_rules = num_rules
         if problem is not None:
-            self.agent = MathAgentState(max_moves, problem, problem_type)
+            self.agent = MathyAgentState(max_moves, problem, problem_type)
         elif state is not None:
             self.num_rules = state.num_rules
             self.max_moves = state.max_moves
-            self.agent = MathAgentState.copy(state.agent)
+            self.agent = MathyAgentState.copy(state.agent)
         else:
             raise ValueError("either state or a problem must be provided")
         # Ensure a string made it into the problem slot
@@ -383,3 +321,48 @@ class MathyEnvState(object):
         """Generate an empty batch of observations that can be passed
         through the model """
         return windows_to_batch([self.to_empty_window(window_size, rnn_size)])
+
+
+class MathyAgentState:
+    """The state related to an agent for a given environment state"""
+
+    moves_remaining: int
+    problem: str
+    problem_type: str
+    reward: float
+    history: List[MathyEnvTimeStep]
+    focus_index: int
+    last_action: int
+
+    def __init__(
+        self,
+        moves_remaining,
+        problem,
+        problem_type,
+        reward=0.0,
+        history=None,
+        focus_index=0,
+        last_action=None,
+    ):
+        self.moves_remaining = moves_remaining
+        self.focus_index = focus_index  # TODO: remove this, no longer used
+        self.problem = problem
+        self.last_action = last_action
+        self.reward = reward
+        self.problem_type = problem_type
+        self.history = (
+            history[:] if history is not None else [MathyEnvTimeStep(problem, -1, -1)]
+        )
+
+    @classmethod
+    def copy(cls, from_state):
+        return MathyAgentState(
+            moves_remaining=from_state.moves_remaining,
+            problem=from_state.problem,
+            reward=from_state.reward,
+            problem_type=from_state.problem_type,
+            history=from_state.history,
+            focus_index=from_state.focus_index,
+            last_action=from_state.last_action,
+        )
+
