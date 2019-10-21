@@ -1,3 +1,8 @@
+# TF 2.0 Keras Multi-Head Attention
+# Copyright (c) 2018 Zhao HG
+# License: MIT
+# Source: https://pypi.org/project/keras-self-attention/
+# Note: Inlined because tensorflow needs the `tensorflow.keras` import variants
 import tensorflow.keras.backend as K
 from tensorflow import keras
 

@@ -2,21 +2,9 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from ..tensorflow.layers.attention_stack import MultiHeadAttentionStack
-from ..tensorflow.layers.resnet_stack import ResNetStack
-from ...core.expressions import MathTypeKeysMax
-from ...features import (
-    FEATURE_BWD_VECTORS,
-    FEATURE_FWD_VECTORS,
-    FEATURE_LAST_BWD_VECTORS,
-    FEATURE_LAST_FWD_VECTORS,
-    FEATURE_LAST_RULE,
-    FEATURE_MOVE_COUNTER,
-    FEATURE_MOVES_REMAINING,
-    FEATURE_NODE_COUNT,
-    FEATURE_PROBLEM_TYPE,
-)
-from ...state import MathyWindowObservation
+from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
+from ..core.expressions import MathTypeKeysMax
+from ..state import MathyWindowObservation
 
 
 class MathyEmbedding(tf.keras.layers.Layer):

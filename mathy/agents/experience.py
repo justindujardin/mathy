@@ -1,14 +1,13 @@
 """Implementation adapted from miyosuda/unreal:
 
 https://github.com/miyosuda/unreal/tree/master/train"""
-import math
 from collections import deque
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import numpy as np
 
-from ...util import GameRewards
-from ...gym import MathyGymEnv
+from ..gym import MathyGymEnv
+from ..util import GameRewards
 
 
 class ExperienceFrame(object):

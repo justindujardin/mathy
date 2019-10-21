@@ -1,7 +1,7 @@
 from multiprocessing import Queue
 from typing import List, Optional
 
-from ...state import (
+from ..state import (
     MathyBatchObservation,
     MathyEnvState,
     MathyObservation,

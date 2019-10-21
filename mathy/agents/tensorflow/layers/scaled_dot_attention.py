@@ -1,3 +1,8 @@
+# TF 2.0 Keras Scaled Dot Product Attention
+# Copyright (c) 2018 Zhao HG
+# License: MIT
+# Source: https://pypi.org/project/keras-self-attention/
+# Note: Inlined because tensorflow needs the `tensorflow.keras` import variants
 from tensorflow import keras
 import tensorflow.keras.backend as K
 

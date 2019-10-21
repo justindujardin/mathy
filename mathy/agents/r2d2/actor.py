@@ -12,8 +12,8 @@ from ...features import calculate_grouping_control_signal
 from ...state import MathyEnvState
 from ...teacher import Teacher
 from .config import MathyArgs
-from .episode_memory import EpisodeMemory
-from .experience import Experience, ExperienceFrame
+from ..episode_memory import EpisodeMemory
+from ..experience import Experience, ExperienceFrame
 from .model import MathyModel
 from .util import MPClass, record
 

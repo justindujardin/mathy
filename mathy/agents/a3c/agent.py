@@ -10,7 +10,7 @@ from colr import color
 
 from ...state import MathyEnvState, observations_to_window
 from ...teacher import Student, Teacher, Topic
-from ..r2d2.experience import Experience, ExperienceFrame
+from ..experience import Experience, ExperienceFrame
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs
 from .worker import A3CWorker

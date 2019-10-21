@@ -12,17 +12,13 @@ import tensorflow as tf
 
 from ...features import calculate_grouping_control_signal
 from ...gym.mathy_gym_env import MathyGymEnv
-from ...state import (
-    MathyEnvState,
-    MathyObservation,
-    MathyWindowObservation,
-    observations_to_window,
-)
+from ...state import (MathyEnvState, MathyObservation, MathyWindowObservation,
+                      observations_to_window)
 from ...teacher import Teacher
 from ...util import GameRewards
+from ..episode_memory import EpisodeMemory
+from ..experience import Experience, ExperienceFrame
 from ..mcts import MCTS
-from ..r2d2.episode_memory import EpisodeMemory
-from ..r2d2.experience import Experience, ExperienceFrame
 from ..tensorflow.trfl import discrete_policy_entropy_loss
 from .actor_critic_model import ActorCriticModel
 from .config import A3CArgs

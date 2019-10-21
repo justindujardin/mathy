@@ -9,9 +9,9 @@ from colr import color
 
 from ...state import MathyEnvState
 from ...teacher import Student, Teacher, Topic
+from ..experience import Experience, ExperienceFrame
 from .actor import MathyActor
 from .config import MathyArgs
-from .experience import Experience, ExperienceFrame
 from .learner import MathyLearner
 from .model import MathyModel
 

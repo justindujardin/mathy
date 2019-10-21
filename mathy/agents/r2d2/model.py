@@ -8,8 +8,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
 
 from ...state import MathyBatchObservation
-from ..a3c.embedding import MathyEmbedding
-from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
+from ..embedding import MathyEmbedding
 from .config import MathyArgs
 
 

@@ -23,7 +23,7 @@ class A3CArgs(BaseModel):
     # Size at which it's okay to start sampling from the memory
     ready_at: int = 256
 
-    lr: float = 3e-4
+    lr: float = 3e-5
     update_freq: int = 25
     max_eps: int = 15000
     gamma: float = 0.99

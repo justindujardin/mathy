@@ -18,11 +18,11 @@ from ...state import (MathyBatchObservation, MathyEnvState, MathyObservation,
                       windows_to_batch)
 from ...teacher import Student, Teacher, Topic
 from ...util import GameRewards
+from ..episode_memory import EpisodeMemory
 from ..tensorflow.trfl import (discrete_policy_entropy_loss,
                                discrete_policy_gradient_loss)
 from .config import MathyArgs
-from .episode_memory import EpisodeMemory
-from .experience import Experience, ExperienceFrame
+from ..experience import Experience, ExperienceFrame
 from .model import MathyModel
 from .util import MPClass, record, record_losses
 

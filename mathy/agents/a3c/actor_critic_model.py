@@ -13,7 +13,7 @@ from ..tensorflow.layers.math_policy_dropout import MathPolicyDropout
 from ..tensorflow.layers.math_policy_resnet import MathPolicyResNet
 from ..tensorflow.layers.resnet_block import ResNetBlock
 from ...state import MathyWindowObservation
-from .embedding import MathyEmbedding
+from ..embedding import MathyEmbedding
 
 
 class PolicySequences(tf.keras.layers.Layer):
