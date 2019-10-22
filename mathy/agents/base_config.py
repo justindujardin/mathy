@@ -92,11 +92,11 @@ class BaseConfig(BaseModel):
     num_workers: int = 3
 
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 25
+    teacher_evaluation_steps = 3
     # If the agent wins >= this value, promote to the next difficulty class
     teacher_promote_wins = 0.80
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.33
+    teacher_demote_wins = 0.30
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

@@ -8,7 +8,7 @@ from .mcts import MCTS
 
 
 class ActionSelector:
-    """An episode-specific stategy action using some user-defined method"""
+    """An episode-specific selector of actions"""
 
     def __init__(self, *, model: ActorCriticModel, episode: int, worker_id: int):
         self.model = model
@@ -24,7 +24,7 @@ class ActionSelector:
         last_reward: float,
         last_rnn_state: List[float],
     ) -> int:
-        return 0
+        raise NotImplementedError(self.select)
 
 
 class A3CGreedyActionSelector(ActionSelector):

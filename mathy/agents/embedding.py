@@ -131,7 +131,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         #
         # [Batch, 1] => [Batch, 1, 1]
         time_with_batch = time[:, tf.newaxis, :]
-        # Repeat the type values for each node in the sequence
+        # Repeat the time values for each node in the sequence
         #
         # [Batch, 1, 1] => [Batch, len(Sequence), 1]
         time_tiled = tf.tile(time_with_batch, [1, sequence_length, 1])
