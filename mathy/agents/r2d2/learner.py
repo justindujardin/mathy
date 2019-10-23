@@ -3,15 +3,11 @@ import os
 import time
 from multiprocessing import Queue
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 import gym
 import numpy as np
 import tensorflow as tf
-from colr import color
-
-from ...core.expressions import MathTypeKeysMax
-from ...features import calculate_grouping_control_signal
 from ...state import (
     MathyBatchObservation,
     MathyEnvState,
@@ -20,17 +16,14 @@ from ...state import (
     observations_to_window,
     windows_to_batch,
 )
-from ...teacher import Student, Teacher, Topic
+from ...teacher import Teacher
 from ...util import GameRewards
 from ..episode_memory import EpisodeMemory
-from ..tensorflow.trfl import (
-    discrete_policy_entropy_loss,
-    discrete_policy_gradient_loss,
-)
+from ..tensorflow.trfl import discrete_policy_entropy_loss
 from ..base_config import BaseConfig
 from ..experience import Experience, ExperienceFrame
 from ..actor_critic_model import ActorCriticModel
-from .util import MPClass, record, record_losses
+from .util import MPClass, record_losses
 
 
 class MathyLearner(MPClass):

@@ -19,7 +19,7 @@ class MathyTrainer:
     def __init__(self, args: BaseConfig):
         self.args = args
         self.experience = Experience(
-            history_size=self.args.replay_size, ready_at=self.args.replay_ready
+            history_size=self.args.history_size, ready_at=self.args.ready_at
         )
         if self.args.verbose:
             print(f"Trainer: {os.path.join(args.model_dir, args.model_name)}")
