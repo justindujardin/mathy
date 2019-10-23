@@ -152,25 +152,31 @@ class A3CWorker(threading.Thread):
                 pass
 
             reward = self.run_episode(episode_memory)
-            win_pct = self.teacher.report_result(self.worker_idx, reward)
-            if win_pct is not None:
-                with self.writer.as_default():
-                    student = self.teacher.get_student(self.worker_idx)
-                    difficulty = student.topics[student.topic].difficulty
-                    if difficulty == "easy":
-                        difficulty = 0.0
-                    elif difficulty == "normal":
-                        difficulty = 0.5
-                    elif difficulty == "hard":
-                        difficulty = 1.0
-                    step = self.global_model.global_step
-                    if self.worker_idx == 0:
-                        tf.summary.scalar(
-                            f"{student.topic}/success_rate", data=win_pct, step=step
-                        )
-                        tf.summary.scalar(
-                            f"{student.topic}/difficulty", data=difficulty, step=step
-                        )
+            if (
+                A3CWorker.global_episode
+                > self.args.teacher_start_evaluations_at_episode
+            ):
+                win_pct = self.teacher.report_result(self.worker_idx, reward)
+                if win_pct is not None:
+                    with self.writer.as_default():
+                        student = self.teacher.get_student(self.worker_idx)
+                        difficulty = student.topics[student.topic].difficulty
+                        if difficulty == "easy":
+                            difficulty = 0.0
+                        elif difficulty == "normal":
+                            difficulty = 0.5
+                        elif difficulty == "hard":
+                            difficulty = 1.0
+                        step = self.global_model.global_step
+                        if self.worker_idx == 0:
+                            tf.summary.scalar(
+                                f"{student.topic}/success_rate", data=win_pct, step=step
+                            )
+                            tf.summary.scalar(
+                                f"{student.topic}/difficulty",
+                                data=difficulty,
+                                step=step,
+                            )
 
             self.iteration += 1
             # TODO: Make this a subprocess? Python threads won't scale up well to

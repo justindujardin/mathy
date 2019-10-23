@@ -91,6 +91,8 @@ class BaseConfig(BaseModel):
     # The number of worker agents to create.
     num_workers: int = 3
 
+    # The "Teacher" will start evaluating after this many initial episodes
+    teacher_start_evaluations_at_episode = 100
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
     teacher_evaluation_steps = 3
     # If the agent wins >= this value, promote to the next difficulty class
