@@ -700,17 +700,8 @@ class ConstantExpression(MathExpression):
 
     @property
     def type_id(self):
-        # NOTE: Trying out no constant values exposed to model. The idea here
-        #       is that matybe this limited precision representation is making
-        #       it hard for the model to understand the "constantness" of the
-        #       vectors because there are 10 variations on it. When we consider
-        #       it, the constant value isn't always useful, and is only really
-        #       required for tasks that involve arithmetic or factoring. Mathy
-        #       does arithmetic and picking factors outside of the actions, so
-        #       we shouldn't need to encode it in the types.
-        return MathTypeKeys[f"constant"]
-        # id = f"_{int(self.value % 10)}" if self.value is not None else ""
-        # return MathTypeKeys[f"constant{id}"]
+        id = f"_{int(self.value % 10)}" if self.value is not None else ""
+        return MathTypeKeys[f"constant{id}"]
 
     def __init__(self, value=None):
         super().__init__()
