@@ -19,7 +19,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import GameRewards
+from ...util import GameRewards, discount
 from .. import action_selectors
 from ..actor_critic_model import ActorCriticModel
 from ..base_config import BaseConfig
@@ -342,7 +342,7 @@ class A3CWorker(threading.Thread):
             )
 
             window = episode_memory.to_window_observation(last_observation)
-            action = selector.select(
+            action, value = selector.select(
                 last_state=env.state,
                 last_window=window,
                 last_action=last_action,
@@ -378,7 +378,12 @@ class A3CWorker(threading.Thread):
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
             episode_memory.store(
-                last_observation, action, reward, grouping_change, frame
+                state=last_observation,
+                action=action,
+                reward=reward,
+                grouping_change=grouping_change,
+                frame=frame,
+                value=value,
             )
             if time_count == self.args.update_freq or done:
                 keep_experience = bool(
@@ -582,21 +587,18 @@ class A3CWorker(threading.Thread):
     ):
         step = self.global_model.global_step
         if done:
-            reward_sum = 0.0  # terminal
+            bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
             _, values, _ = self.local_model(observations_to_window([observation]))
             # Select the last timestep
             values = values[-1]
-            reward_sum = tf.squeeze(values).numpy()
+            bootstrap_value = tf.squeeze(values).numpy()
 
         # figure out discounted rewards
-        discounted_rewards: List[float] = []
-        # iterate backwards
-        for reward in episode_memory.rewards[::-1]:
-            reward_sum = reward + gamma * reward_sum
-            discounted_rewards.append(reward_sum)
-        discounted_rewards.reverse()
+        discounted_rewards: List[float] = discount(
+            episode_memory.rewards + [bootstrap_value]
+        )
         discounted_rewards = tf.convert_to_tensor(
             value=np.array(discounted_rewards)[:, None], dtype=tf.float32
         )
@@ -614,15 +616,11 @@ class A3CWorker(threading.Thread):
         # Scale entropy loss down
         entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
         entropy_loss = tf.reduce_mean(entropy_loss)
-        # action_values = [r.reward for r in episode_memory.frames]
-        # actions = tf.expand_dims(episode_memory.actions, axis=1)
-        # pi_loss = discrete_policy_gradient_loss(
-        #   trimmed_logits, actions, action_values
-        # )
 
-        # Advantage is the difference between the final calculated discount
-        # rewards, and the current Value function prediction of the rewards
-        advantage = discounted_rewards - values
+        # I believe this is a 1-step lookahead generalized advantage estimation?
+        values = np.asarray(episode_memory.values + [bootstrap_value])
+        advantage = episode_memory.rewards + gamma * values[1:] - values[:-1]
+        advantage = discount(advantage, gamma)
 
         # Value loss
         value_loss = advantage ** 2

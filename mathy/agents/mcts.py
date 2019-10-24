@@ -1,5 +1,5 @@
 import math
-from typing import Any, List
+from typing import Any, List, Tuple
 
 import numpy
 
@@ -50,9 +50,9 @@ class MCTS:
         self.Es = {}  # stores env.get_state_transition ended for env_state s
         self.Vs = {}  # stores env.get_valid_moves for env_state s
 
-    def getActionProb(
+    def estimate_policy(
         self, env_state: MathyEnvState, rnn_state: List[Any], temp: float = 1.0
-    ):
+    ) -> Tuple[List[float], float]:
         """
         This function performs num_mcts_sims simulations of MCTS starting from
         env_state.
@@ -60,9 +60,13 @@ class MCTS:
         Returns:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
+            value: the mean value of this state across all rollouts
         """
+        probs: List[float]
+        values: List[float] = []
         for _ in range(self.num_mcts_sims):
-            self.search(env_state, rnn_state, True)
+            values.append(self.search(env_state, rnn_state, True))
+        value = numpy.asarray(values).mean()
 
         s = self.env.to_hash_key(env_state)
         counts = []
@@ -74,18 +78,18 @@ class MCTS:
 
         if temp == 0:
             bestA = numpy.argmax(counts)
-            probs = [0] * len(counts)
-            probs[bestA] = 1
-            return probs
+            probs = [0.0] * len(counts)
+            probs[bestA] = 1.0
+            return probs, value
 
         counts = [x ** (1.0 / temp) for x in counts]
         count_sum = float(sum(counts))
         if count_sum == 0.0:
             # Arg, no valid moves picked from the tree! Let's go ahead and make each
             valids = numpy.array(self.env.get_valid_moves(env_state))
-            return list(valids / valids.sum())
+            return list(valids / valids.sum()), value
         probs = [x / float(count_sum) for x in counts]
-        return probs
+        return probs, value
 
     def search(self, env_state: MathyEnvState, rnn_state: List[Any], isRootNode=False):
         """
@@ -119,7 +123,7 @@ class MCTS:
             observations = observations_to_window(
                 [env_state.to_observation(valids, rnn_state=rnn_state)]
             )
-            out_policy, action_v = self.model.predict_next(observations)
+            out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
                 self.model.embedding.state_h.numpy(),
                 self.model.embedding.state_c.numpy(),
@@ -128,7 +132,7 @@ class MCTS:
             self.Ps[s] = out_policy
             self.Vs[s] = valids
             self.Ns[s] = 0
-            return action_v
+            return state_v
         else:
             # Use the observed RNN state when this was cached
             out_rnn_state = self.Rs[s]
@@ -170,19 +174,19 @@ class MCTS:
 
         a = numpy.random.choice(all_best)
         next_s, _, _ = self.env.get_next_state(env_state, a, searching=True)
-        action_v = self.search(next_s, out_rnn_state)
+        state_v = self.search(next_s, out_rnn_state)
 
         # state key for next state
         state_key = (s, a)
         if state_key in self.Qsa:
             self.Qsa[state_key] = (
-                self.Nsa[state_key] * self.Qsa[state_key] + action_v
+                self.Nsa[state_key] * self.Qsa[state_key] + state_v
             ) / (self.Nsa[state_key] + 1)
             self.Nsa[state_key] += 1
 
         else:
-            self.Qsa[state_key] = action_v
+            self.Qsa[state_key] = state_v
             self.Nsa[state_key] = 1
 
         self.Ns[s] += 1
-        return action_v
+        return state_v

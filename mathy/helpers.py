@@ -27,9 +27,7 @@ def is_debug_mode():
 
 
 def load_rule_tests(name):
-    rule_file = (
-        Path(__file__).parent / "tests" / "rules" / "{}.json".format(name)
-    )
+    rule_file = Path(__file__).parent / "tests" / "rules" / "{}.json".format(name)
     print(rule_file)
     assert rule_file.is_file() is True
     with open(rule_file, "r") as file:
@@ -419,7 +417,7 @@ class TermEx(NamedTuple):
     exponent: Optional[Union[int, float]]
 
 
-def get_term_ex(node: MathExpression) -> Optional[TermEx]:
+def get_term_ex(node: Optional[MathExpression]) -> Optional[TermEx]:
     """Extract the 3 components of a naturally ordered term. This doesn't care
     about whether the node is part of a larger term, it only looks at its children.
     """

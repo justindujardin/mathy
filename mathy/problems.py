@@ -1,10 +1,77 @@
 import random
-from typing import Tuple
+from typing import Tuple, Optional, Union, List
+from pydantic import BaseModel, Field
 
 operators = list("+*")
 common_variables = list("xyz")
 variables = list("abcdefghijklmnopqrstuvwxyz")
 max_const = 12
+
+
+class MathyTermTemplate(BaseModel):
+    variable: Optional[str] = Field(None, description="the term variable")
+    exponent: Optional[int] = Field(None, description="the term exponent")
+
+    def make(self) -> str:
+        return mathy_term_string(
+            coefficient=maybe_int(), exponent=self.exponent, variable=self.variable
+        )
+
+
+class MathyProblemTerm(MathyTermTemplate):
+    coefficient: Optional[Union[float, int]] = None
+
+
+MathyExcludedTermTemplates = Optional[List[MathyTermTemplate]]
+
+
+def mathy_term_string(
+    *,
+    coefficient: Optional[Union[int, float]] = None,
+    exponent: Optional[Union[int, float]] = None,
+    variable: Optional[str] = None,
+) -> str:
+    pieces = []
+    if coefficient is not None:
+        pieces.append(f"{coefficient}")
+    if variable is not None:
+        pieces.append(f"{variable}")
+    if exponent is not None:
+        pieces.append(f"^{exponent}")
+    return "".join(pieces)
+
+
+def get_rand_term_templates(
+    num_templates: int,
+    exclude_like: MathyExcludedTermTemplates = None,
+    common_variables=False,
+    exponent_probability=0.5,
+) -> List[MathyTermTemplate]:
+    result: List[MathyTermTemplate] = []
+
+    exclude: List[str] = []
+    if exclude_like is not None:
+        exclude = [
+            mathy_term_string(variable=t.variable, exponent=t.exponent)
+            for t in exclude_like
+        ]
+
+    failures = 0
+    while len(result) < num_templates:
+        if failures > 100:
+            raise EnvironmentError(
+                f"failed to generate a random term after {failures} tries!"
+            )
+        variable = rand_var(common_variables)
+        exponent = maybe_int(exponent_probability * 100, None)
+        key = mathy_term_string(variable=variable, exponent=exponent)
+        if key not in exclude:
+            result.append(MathyTermTemplate(variable=variable, exponent=exponent))
+            exclude.append(key)
+        else:
+            failures += 1
+    random.shuffle(result)
+    return result
 
 
 def rand_bool(percent_chance=None):
@@ -19,19 +86,19 @@ def rand_var(common=False):
     return variables[random.randint(0, len(variables) - 1)]
 
 
-def maybe_var(percent_chance=80, common_var=False):
-    return rand_var(common_var) if rand_bool(percent_chance) else ""
+def maybe_var(percent_chance=80, common_var=False, or_else=""):
+    return rand_var(common_var) if rand_bool(percent_chance) else or_else
 
 
-def maybe_int(percent_chance=80):
-    return rand_int() if rand_bool(percent_chance) else ""
+def maybe_int(percent_chance=80, or_else=""):
+    return rand_int() if rand_bool(percent_chance) else or_else
 
 
-def maybe_power(percent_chance=80, max_power=4):
+def maybe_power(percent_chance=80, max_power=4, or_else=""):
     if rand_bool(percent_chance):
         return "^{}".format(random.randint(2, max_power))
     else:
-        return ""
+        return or_else
 
 
 def rand_int():

@@ -13,24 +13,35 @@ from .experience import Experience, ExperienceFrame
 
 
 class EpisodeMemory(object):
+    # Observation from the environment
     observations: List[MathyObservation]
+    # Action taken in the environment
     actions: List[int]
+    # Reward from the environmnet
     rewards: List[float]
+    # Estimated value from the model
+    values: List[float]
+    # Experience frame for replay
     frames: List[ExperienceFrame]
+    # Grouping Control error from the environment
     grouping_changes: List[float]
 
     def __init__(self, experience: Experience, exp_out: Optional[Queue] = None):
         self.experience = experience
         self.exp_out = exp_out
-        self.observations = []
-        self.frames = []
-        self.actions = []
-        self.rewards = []
-        self.grouping_changes = []
+        self.clear()
 
     @property
     def ready(self) -> bool:
         return len(self.observations) > 3
+
+    def clear(self):
+        self.observations = []
+        self.frames = []
+        self.actions = []
+        self.rewards = []
+        self.values = []
+        self.grouping_changes = []
 
     def get_current_batch(
         self, current_observation: MathyObservation, mathy_state: MathyEnvState
@@ -53,16 +64,19 @@ class EpisodeMemory(object):
 
     def store(
         self,
-        state,
+        *,
+        state: MathyObservation,
         action: int,
         reward: float,
         grouping_change: float,
         frame: ExperienceFrame,
+        value: float,
     ):
         self.observations.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.frames.append(frame)
+        self.values.append(value)
         self.grouping_changes.append(grouping_change)
 
     def commit_frames(
@@ -86,10 +100,3 @@ class EpisodeMemory(object):
         for f in self.frames:
             self.experience.add_frame(f)
         self.frames = []
-
-    def clear(self):
-        self.observations = []
-        self.actions = []
-        self.rewards = []
-        self.frames = []
-        self.grouping_changes = []

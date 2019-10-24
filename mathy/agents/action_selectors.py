@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class ActionSelector:
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
+    ) -> Tuple[int, float]:
         raise NotImplementedError(self.select)
 
 
@@ -36,9 +36,9 @@ class A3CGreedyActionSelector(ActionSelector):
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
-        probs, _ = self.model.predict_next(last_window)
-        return np.argmax(probs)
+    ) -> Tuple[int, float]:
+        probs, value = self.model.predict_next(last_window)
+        return np.argmax(probs), float(value)
 
 
 class A3CEpsilonGreedyActionSelector(ActionSelector):
@@ -56,9 +56,9 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
+    ) -> Tuple[int, float]:
 
-        probs, _ = self.model.predict_next(last_window)
+        probs, value = self.model.predict_next(last_window)
         last_move_mask = last_window.mask[-1]
         # Apply noise to the root node (like AlphaGoZero MCTS)
         if self.use_noise is True:
@@ -80,7 +80,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
             action = np.random.choice(len(actions), p=actions)
         else:
             action = np.argmax(probs)
-        return action
+        return action, float(value)
 
 
 class MCTSActionSelector(ActionSelector):
@@ -96,9 +96,9 @@ class MCTSActionSelector(ActionSelector):
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
-        probs = self.mcts.getActionProb(last_state, last_rnn_state)
-        return np.argmax(probs)
+    ) -> Tuple[int, float]:
+        probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
+        return np.argmax(probs), value
 
 
 class MCTSRecoveryActionSelector(MCTSActionSelector):
@@ -115,11 +115,11 @@ class MCTSRecoveryActionSelector(MCTSActionSelector):
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
+    ) -> Tuple[int, float]:
         last_time = last_window.time[-1][0]
         if last_time >= self.recover_threshold:
-            probs = self.mcts.getActionProb(last_state, last_rnn_state)
-            return np.argmax(probs)
+            probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
+            return np.argmax(probs), value
         return self.base_selector.select(
             last_state=last_state,
             last_window=last_window,
@@ -144,7 +144,7 @@ class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
         last_action: int,
         last_reward: float,
         last_rnn_state: List[float],
-    ) -> int:
+    ) -> Tuple[int, float]:
         if self.use_mcts is False:
             return super(UnrealMCTSActionSelector, self).select(
                 last_state=last_state,
@@ -153,5 +153,5 @@ class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
                 last_reward=last_reward,
                 last_rnn_state=last_rnn_state,
             )
-        probs = self.mcts.getActionProb(last_state, last_rnn_state)
-        return np.argmax(probs)
+        probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
+        return np.argmax(probs), value
