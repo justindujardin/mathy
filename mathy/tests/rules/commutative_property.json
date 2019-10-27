@@ -1,6 +1,11 @@
 {
   "valid": [
     {
+      "input": "(5 + 12) * a",
+      "target": "(5 + 12) * a",
+      "output": "a * (5 + 12)"
+    },
+    {
       "input": "2b^4 * 3x",
       "target": "2b^4",
       "output": "(b^4 * 2) * 3x",

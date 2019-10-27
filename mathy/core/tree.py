@@ -151,8 +151,10 @@ class BinaryTreeNode:
     # making sure that the proper parent assignments also take place.
 
     # Set the left node to the passed `child`
-    def set_left(self, child) -> "BinaryTreeNode":
-        if self.left is not None:
+    def set_left(
+        self, child: "BinaryTreeNode", clear_old_child_parent=False
+    ) -> "BinaryTreeNode":
+        if self.left is not None and clear_old_child_parent:
             self.left.parent = None
         self.left = child
         if self.left:
@@ -161,8 +163,10 @@ class BinaryTreeNode:
         return self
 
     # Set the right node to the passed `child`
-    def set_right(self, child) -> "BinaryTreeNode":
-        if self.right is not None:
+    def set_right(
+        self, child: "BinaryTreeNode", clear_old_child_parent=False
+    ) -> "BinaryTreeNode":
+        if self.right is not None and clear_old_child_parent:
             self.right.parent = None
         self.right = child
         if self.right:
