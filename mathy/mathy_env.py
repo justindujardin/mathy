@@ -176,7 +176,7 @@ class MathyEnv:
             sorted([f"{h.raw}" for h in env_state.agent.history])
         ):
             list_count = len(list(group))
-            if list_count <= 1:
+            if list_count <= 1 or key != expression.raw:
                 continue
 
             # NOTE: the reward is scaled by how many times this state has been visited
