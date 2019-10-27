@@ -5,6 +5,7 @@ import tensorflow as tf
 from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
 from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
+from .tensorflow.layers.positional_embedding import TrigPosEmbedding
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
@@ -28,6 +29,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.bottleneck_norm = tf.keras.layers.LayerNormalization(
             name="combined_features_normalize"
         )
+        self.positional_embedding = TrigPosEmbedding(name="token_pos_embed")
         self.attention = MultiHeadAttentionStack(
             num_heads=2,
             num_layers=3,
@@ -109,6 +111,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
 
         query = self.token_embedding(input)
         query = tf.reshape(query, [batch_size, sequence_length, -1])
+        query = self.positional_embedding(query)
 
         #
         # Aux features
