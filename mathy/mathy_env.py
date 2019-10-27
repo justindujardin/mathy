@@ -6,7 +6,7 @@ from tf_agents.trajectories import time_step
 
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
-from .helpers import TermEx, get_term_ex
+from .helpers import TermEx, compare_expression_string_values, get_term_ex
 from .rules import (
     AssociativeSwapRule,
     BaseRule,
@@ -71,6 +71,13 @@ class MathyEnv:
     def action_size(self) -> int:
         """Return the number of available actions"""
         return len(self.rules)
+
+    def finalize_state(self, state: MathyEnvState):
+        """Perform final checks on a problem state, to ensure the episode yielded results
+        that are uncorrupted by transformation errors. """
+        from_timestep: MathyEnvTimeStep = state.agent.history[0]
+        to_timestep: MathyEnvTimeStep = state.agent.history[-1]
+        compare_expression_string_values(str(from_timestep.raw), str(to_timestep.raw))
 
     def get_env_namespace(self) -> str:
         """Return a unique dot namespaced string representing the current

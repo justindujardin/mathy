@@ -1,9 +1,10 @@
-from typing import Optional, Type
+from typing import Optional, Type, List
 
 import gym
-
+import tensorflow as tf
 from ..mathy_env import MathyEnv
 from ..rules.rule import ExpressionChangeRule
+from ..core.expressions import MathExpression
 from ..state import (
     MathyEnvState,
     MathyObservation,
@@ -13,6 +14,8 @@ from ..state import (
 from ..types import MathyEnvProblemArgs
 from ..util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
+import numpy as np
+import math
 
 
 class MathyGymEnv(gym.Env):
@@ -20,7 +23,7 @@ class MathyGymEnv(gym.Env):
     agents currently use this env wrapper, but it could be dropped in the future."""
 
     default_rnn_size = 128
-    metadata = {"render.modes": ["terminal"]}
+    metadata = {"render.modes": ["terminal", "attention"]}
     mathy: MathyEnv
     state: Optional[MathyEnvState]
     problem: Optional[str]
@@ -76,6 +79,10 @@ class MathyGymEnv(gym.Env):
         self.last_action = -1
         self.last_change = None
         self.last_reward = 0.0
+        # If the episode is being reset because it ended, assert the validity
+        # of the last problem outcome
+        if self.state is not None:
+            self.mathy.finalize_state(self.state)
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
@@ -109,7 +116,25 @@ class MathyGymEnv(gym.Env):
         self.action_space.mask = action_mask
         return observation
 
-    def render(self, mode="terminal"):
+    def render(self, mode="terminal", data=None):
+        if mode == "attention" and self.last_change is not None:
+            assert data is not None, "attention weights required for this render mode"
+            attention_layers = [d.numpy() for d in data]
+            nodes = self.last_change.result.toList()
+            for layer in attention_layers:
+                multi_head_layer = np.array(layer)
+                # NOTE: this is kind of gross, but I'm not sure how to print all the
+                # layer<->heads without interaction to conditionally show them or
+                # massive output spam. If you were looking at one state it would be
+                # fine, but as a sequence of states in solving a problem, it's really
+                # spammy.
+                #
+                # TODO: As a hack we mean the whole thing along two axes :shrug:
+                mean_weights = multi_head_layer.mean(axis=0).mean(axis=0)
+                # Parse the expression, and associate the weights with it
+                for i, node in enumerate(nodes):
+                    node.set_weight(mean_weights[i])
+
         action_name = "initial"
         token_index = -1
         if self.last_action != -1 and self.last_change is not None:

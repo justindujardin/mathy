@@ -531,9 +531,9 @@ def factor_add_terms_ex(left_term: TermEx, right_term: TermEx):
     # If there are variables, we want to extract them, so
     # the smallest number to factor out. TODO: is this okay?
     if has_left or has_right:
-        best = numpy.min(common)
+        best = np.min(common)
     else:
-        best = numpy.max(common)
+        best = np.max(common)
     result = FactorResult()
     result.best = best
     result.left = l_factors[best]
