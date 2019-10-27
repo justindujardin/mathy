@@ -1,5 +1,14 @@
+from typing import Dict
+import numpy as np
+from ..core.expressions import MathExpression, VariableExpression
 from ..core.parser import ExpressionParser
-from ..helpers import get_terms, terms_are_like, load_rule_tests
+from ..helpers import (
+    get_terms,
+    terms_are_like,
+    load_rule_tests,
+    compare_expression_values,
+    compare_expression_string_values,
+)
 from ..rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -23,7 +32,7 @@ def run_rule_tests(name, rule_class, callback=None):
     based on given input examples.
 
     When debugging a problem it can be useful to provide a "callback" function
-    and add a `"debug": true` value to the example in the rules json file you 
+    and add a `"debug": true` value to the example in the rules json file you
     want to debug. Then you set a breakpoint and step out of your callback function
     into the parsing/evaluation of the debug example.
     """
@@ -35,6 +44,7 @@ def run_rule_tests(name, rule_class, callback=None):
             callback(ex)
         rule = init_rule_for_test(ex, rule_class)
         expression = parser.parse(ex["input"]).clone()
+        before = expression.clone()
         print(ex)
         if "target" in ex:
             nodes = rule.find_nodes(expression)
@@ -48,7 +58,13 @@ def run_rule_tests(name, rule_class, callback=None):
         if node is None:
             assert "expected to find node but did not for" == str(expression)
         change = rule.apply_to(node)
-        assert str(change.result.get_root()).strip() == ex["output"]
+        after = change.result.get_root()
+        # Compare the values of the in-memory expressions output from the rule
+        compare_expression_values(before, after)
+        # Parse the output strings to new expressions, and compare the values
+        compare_expression_string_values(str(before), str(after))
+        assert str(after).strip() == ex["output"]
+
     for ex in tests["invalid"]:
         # Trigger the debug callback so the user can step over into the useful stuff
         if callback is not None:

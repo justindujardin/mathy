@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Union
 
-import numpy
+import numpy as np
 
 from .core.expressions import (
     AddExpression,
@@ -17,6 +17,7 @@ from .core.expressions import (
     SubtractExpression,
     VariableExpression,
 )
+from .core.parser import ExpressionParser
 from .core.tree import LEFT
 
 
@@ -32,6 +33,53 @@ def load_rule_tests(name):
     assert rule_file.is_file() is True
     with open(rule_file, "r") as file:
         return json.load(file)
+
+
+def compare_expression_string_values(from_expression: str, to_expression: str):
+    """Compare and evaluate two expressions strings to verify they have the
+    same value"""
+    parser = ExpressionParser()
+    return compare_expression_values(
+        parser.parse(from_expression), parser.parse(to_expression)
+    )
+
+
+def compare_expression_values(
+    from_expression: MathExpression, to_expression: MathExpression
+):
+    """Compare and evaluate two expressions to verify they have the same value"""
+    vars_from: set = set()
+    vars_to: set = set()
+    for v in from_expression.findByType(VariableExpression):
+        vars_from.add(v.identifier)
+    for v in to_expression.findByType(VariableExpression):
+        vars_to.add(v.identifier)
+    # If there are not the same unique vars in the two expressions, something
+    # bad happened, and the two expressions can only coincidentally be equal
+    # in value.
+    assert len(vars_from) == len(
+        vars_to
+    ), f"unique variable count changed: ({len(vars_from)} != {len(vars_to)})"
+
+    sorted_from = list(vars_from)
+    sorted_from.sort()
+    sorted_to = list(vars_from)
+    sorted_to.sort()
+    assert (
+        sorted_from == sorted_to
+    ), f"unique variables changed: ({sorted_from} != {sorted_to})"
+
+    # Generate random values for each variable, and then evaluate the expressions
+    eval_context: Dict[str, int] = {}
+    for var in vars_from:
+        eval_context[var] = np.random.randint(1, 100)
+
+    value_from = from_expression.evaluate(eval_context)
+    value_to = to_expression.evaluate(eval_context)
+
+    assert (
+        value_from == value_to
+    ), f"expression value changed: ({value_from} != {value_to})"
 
 
 def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:
@@ -65,7 +113,7 @@ def factor(value) -> Dict[int, int]:
     if value == 0 or math.isnan(value):
         return {}
 
-    sqrt = numpy.sqrt(value)
+    sqrt = np.sqrt(value)
     if math.isnan(sqrt):
         return {}
 
