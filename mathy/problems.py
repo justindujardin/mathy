@@ -64,6 +64,9 @@ def get_rand_term_templates(
             )
         variable = rand_var(common_variables)
         exponent = maybe_int(exponent_probability * 100, None)
+        # Don't generate x^1
+        if exponent == 1:
+            exponent = 2
         key = mathy_term_string(variable=variable, exponent=exponent)
         if key not in exclude:
             result.append(MathyTermTemplate(variable=variable, exponent=exponent))

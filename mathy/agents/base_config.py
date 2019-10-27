@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel
@@ -24,7 +23,7 @@ class BaseConfig(BaseModel):
     # Size at which it's okay to start sampling from the memory
     ready_at: int = 256
 
-    lr: float = 3e-5
+    lr: float = 5e-5
 
     # Update frequencey for the Worker to sync with the Main model. This has different
     # meaning for different agents:
@@ -33,7 +32,7 @@ class BaseConfig(BaseModel):
     #   episode before syncing the replay buffer and gradients.
     # - for R2D2 agents this value indicates the number of episodes to run between
     #   syncing the latest model from the learner process.
-    update_freq: int = 25
+    update_freq: int = 20
     max_eps: int = 15000
     gamma: float = 0.99
 
@@ -81,7 +80,7 @@ class BaseConfig(BaseModel):
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.4
+    e_greedy_max = 0.1
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -92,9 +91,9 @@ class BaseConfig(BaseModel):
     num_workers: int = 3
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 100
+    teacher_start_evaluations_at_episode = 25
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 3
+    teacher_evaluation_steps = 10
     # If the agent wins >= this value, promote to the next difficulty class
     teacher_promote_wins = 0.80
     # If the agent loses >= this value, demot to the previous difficulty class

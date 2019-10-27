@@ -1,19 +1,17 @@
-from typing import Any, List, Optional, Type, Union, Dict
+from typing import Any, Dict, List, Optional, Type, Union
 
 from numpy import random
 from numpy.random import randint
 from tf_agents.trajectories import time_step
-from ..helpers import get_term_ex, get_terms, TermEx
 
-from ..state import MathyEnvState, MathyObservation, MathyEnvTimeStep
-from ..rules.rule import BaseRule
 from ..core.expressions import MathExpression
+from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnvProblem
 from ..problems import (
     combine_terms_in_place,
     get_rand_term_templates,
-    mathy_term_string,
     get_rand_vars,
+    mathy_term_string,
     maybe_int,
     maybe_power,
     rand_bool,
@@ -21,8 +19,19 @@ from ..problems import (
     rand_var,
     split_in_two_random,
 )
-from ..util import GameRewards
+from ..rules import (
+    AssociativeSwapRule,
+    BaseRule,
+    CommutativeSwapRule,
+    ConstantsSimplifyRule,
+    DistributiveFactorOutRule,
+    DistributiveMultiplyRule,
+    VariableMultiplyRule,
+)
+from ..rules.rule import BaseRule
+from ..state import MathyEnvState, MathyEnvTimeStep, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from ..util import GameRewards
 from .polynomial_simplification import MathyPolynomialSimplificationEnv
 
 
@@ -38,6 +47,29 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
     that can identify like terms in a large expression tree.
     """
 
+    def __init__(self, **kwargs):
+        super(MathyPolynomialLikeTermsHaystackEnv, self).__init__(**kwargs)
+        for rule in self.rules:
+            # Override commutative swap bias to let the agent understand
+            # which nodes are terms through commutative swap
+            if isinstance(rule, CommutativeSwapRule):
+                rule.preferred = True
+
+    def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
+        return [
+            CommutativeSwapRule,
+            AssociativeSwapRule,
+            DistributiveFactorOutRule,
+            DistributiveMultiplyRule,
+            ConstantsSimplifyRule,
+            VariableMultiplyRule,
+        ]
+
+    def max_moves_fn(
+        self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
+    ) -> int:
+        return problem.complexity
+
     def transition_fn(
         self,
         env_state: MathyEnvState,
@@ -48,11 +80,15 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
         agent = env_state.agent
         if len(agent.history) == 0:
             return None
-
-        last_timestep: MathyEnvTimeStep = agent.history[-1]
-
-        action_node = self.get_token_at_index(expression, last_timestep.focus)
+        # History gets pushed before this fn, so history[-1] is the current state,
+        # and history[-2] is the previous state. Find the previous state node we
+        # acted on, and compare to that.
+        curr_timestep: MathyEnvTimeStep = agent.history[-1]
+        last_timestep: MathyEnvTimeStep = agent.history[-2]
+        expression = self.parser.parse(last_timestep.raw)
+        action_node = self.get_token_at_index(expression, curr_timestep.focus)
         touched_term = get_term_ex(action_node)
+
         term_nodes = get_terms(expression)
         # We have the token_index of the term that was acted on, now we have to see
         # if that term has any like siblings (not itself). We do this by ignoring the
@@ -71,6 +107,8 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
                 continue
 
             key = mathy_term_string(variable=ex.variable, exponent=ex.exponent)
+            if key == "":
+                key = "const"
             if key not in like_counts:
                 like_counts[key] = 1
             else:
@@ -84,10 +122,6 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
         for key in all_indices.keys():
             if len(all_indices[key]) > 1:
                 like_indices = all_indices[key]
-        assert (
-            like_indices is not None and len(like_indices) > 1
-        ), "must have at least one group of like terms"
-
         if action_node is not None and touched_term is not None:
             touched_key = mathy_term_string(
                 variable=touched_term.variable, exponent=touched_term.exponent
@@ -96,12 +130,17 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
                 action_node.all_changed()
                 return time_step.termination(features, self.get_win_signal(env_state))
 
-        distances = []
-        for index in like_indices:
-            distances.append(abs(index - action_node.r_index))  # type:ignore
-        loss_magnitude = min(distances) / max_index
-        lose_signal = GameRewards.LOSE - loss_magnitude
-        return time_step.termination(features, lose_signal)
+        if env_state.agent.moves_remaining <= 0:
+            distances = []
+            if like_indices is not None:
+                for index in like_indices:
+                    distances.append(abs(index - action_node.r_index))  # type:ignore
+                loss_magnitude = min(distances) / max_index
+            else:
+                loss_magnitude = 1.0
+            lose_signal = GameRewards.LOSE - loss_magnitude
+            return time_step.termination(features, lose_signal)
+        return None
 
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.haystack.like.terms"
@@ -132,11 +171,12 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
         random.shuffle(out_terms)
         problem = f" + ".join(out_terms)
         return problem
+        # return "5i + i + 9i^2"
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:
             text = self.make_problem(
-                min_terms=3, max_terms=6, like_terms=2, exponent_probability=0.3
+                min_terms=3, max_terms=8, like_terms=2, exponent_probability=0.3
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             text = self.make_problem(
@@ -148,4 +188,4 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
-        return MathyEnvProblem(text, 1, self.get_env_namespace())
+        return MathyEnvProblem(text, 2, self.get_env_namespace())

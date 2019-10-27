@@ -46,11 +46,13 @@ class Teacher:
         topic_names: List[str],
         num_students: int = 1,
         difficulty: Optional[str] = None,
+        direct_student_zero: bool = False,
         eval_window: int = 50,
         win_threshold: float = 0.95,
         lose_threshold: float = 0.34,
     ):
         self.topic_names = topic_names
+        self.direct_student_zero = direct_student_zero
         self.eval_window = eval_window
         self.win_threshold = win_threshold
         self.lose_threshold = lose_threshold
@@ -131,7 +133,7 @@ class Teacher:
                 )
             topic.reset_counts()
             # Set a new directed focus for the student 0
-            if student_id == 0:
+            if student_id == 0 and self.direct_student_zero:
                 self.directed_topic = self.get_directed_topic(win_ratio)
 
             return win_ratio
@@ -141,7 +143,7 @@ class Teacher:
         student = self.get_student(student_id)
         # The console printing student is special, it trains in everything
         len_topics = len(self.topic_names)
-        if student_id == 0:
+        if self.direct_student_zero and student_id == 0:
             student.topic = self.directed_topic
         else:
             student.topic = self.topic_names[iteration % len_topics]
