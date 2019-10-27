@@ -26,6 +26,7 @@ class MultiHeadAttention(keras.layers.Layer):
         kernel_constraint=None,
         bias_constraint=None,
         history_only=False,
+        return_attention=False,
         **kwargs
     ):
         """Initialize the layer.
@@ -39,6 +40,7 @@ class MultiHeadAttention(keras.layers.Layer):
         :param kernel_constraint: Constraints for linear mappings.
         :param bias_constraint: Constraints for linear mappings.
         :param history_only: Whether to only use history in attention layer.
+        :param return_attention: Whether to return attention weights.
         """
         self.supports_masking = True
         self.head_num = head_num
@@ -51,6 +53,7 @@ class MultiHeadAttention(keras.layers.Layer):
         self.kernel_constraint = keras.constraints.get(kernel_constraint)
         self.bias_constraint = keras.constraints.get(bias_constraint)
         self.history_only = history_only
+        self.return_attention = return_attention
 
         self.Wq, self.Wk, self.Wv, self.Wo = None, None, None, None
         self.bq, self.bk, self.bv, self.bo = None, None, None, None
@@ -68,6 +71,7 @@ class MultiHeadAttention(keras.layers.Layer):
             "kernel_constraint": keras.constraints.serialize(self.kernel_constraint),
             "bias_constraint": keras.constraints.serialize(self.bias_constraint),
             "history_only": self.history_only,
+            "return_attention": self.return_attention,
         }
         base_config = super(MultiHeadAttention, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -211,7 +215,9 @@ class MultiHeadAttention(keras.layers.Layer):
             k = self.activation(k)
             v = self.activation(v)
         y = ScaledDotProductAttention(
-            history_only=self.history_only, name="%s-Attention" % self.name
+            history_only=self.history_only,
+            name="%s-Attention" % self.name,
+            return_attention=self.return_attention,
         )(
             inputs=[
                 self._reshape_to_batches(q, self.head_num),
@@ -224,6 +230,9 @@ class MultiHeadAttention(keras.layers.Layer):
                 self._reshape_mask(v_mask, self.head_num),
             ],
         )
+        if self.return_attention:
+            y, a = y
+            a = self._reshape_from_batches(a, self.head_num)
         y = self._reshape_from_batches(y, self.head_num)
         y = K.dot(y, self.Wo)
         if self.use_bias:
@@ -236,4 +245,6 @@ class MultiHeadAttention(keras.layers.Layer):
         if output_shape[1] is not None:
             output_shape = (-1,) + output_shape[1:]
             y = K.reshape(y, output_shape)
+        if self.return_attention:
+            return y, a
         return y

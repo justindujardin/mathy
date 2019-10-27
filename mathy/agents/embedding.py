@@ -25,11 +25,15 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.bottleneck = tf.keras.layers.Dense(
             self.lstm_units, name="combined_features", activation="relu"
         )
-        self.bottleneck_norm = tf.keras.layers.BatchNormalization(
+        self.bottleneck_norm = tf.keras.layers.LayerNormalization(
             name="combined_features_normalize"
         )
         self.attention = MultiHeadAttentionStack(
-            num_heads=8, num_layers=3, name="self_attention", attn_width=self.lstm_units
+            num_heads=2,
+            num_layers=3,
+            name="self_attention",
+            attn_width=self.lstm_units,
+            return_attention=True,
         )
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
@@ -147,10 +151,12 @@ class MathyEmbedding(tf.keras.layers.Layer):
             axis=-1,
         )
         # use a bottleneck so that we know the dimensions fit the attention layer below
-        time_out = self.bottleneck_norm(self.bottleneck(time_out))
+        time_out = self.bottleneck(time_out)
 
         # Self-attention
-        time_out = self.attention([time_out, time_out, time_out])
+        time_out, self.attention_weights = self.attention(
+            [time_out, time_out, time_out]
+        )
 
         # LSTM for temporal dependencies
         state_h = tf.tile(features.rnn_state[0][-1], [sequence_length, 1])

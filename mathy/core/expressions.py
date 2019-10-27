@@ -1,7 +1,8 @@
-from typing import Union
+from typing import Union, Optional
 from .tree import BinaryTreeNode, STOP
 import numpy
 from colr import color
+import math
 
 OOO_FUNCTION = 4
 OOO_PARENS = 3
@@ -94,9 +95,13 @@ class MathExpression(BinaryTreeNode):
         """Color to use for this node when rendering it as changed with `.colored`"""
         return "green"
 
+    _rendering_change: bool
+    _attention_weight: Optional[float]
+
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
         self._rendering_change = None
+        self._attention_weight = None
         self._changed = False
         self.classes = [self.id]
         self.cloned_node = None
@@ -124,8 +129,25 @@ class MathExpression(BinaryTreeNode):
 
     def with_color(self, text: str, style="bright") -> str:
         """Render a string that is colored if the boolean input is True"""
-        if self._rendering_change is True and self._changed is True:
-            return color(text, fore=self.color, style=style)
+        if self._rendering_change is True:
+            weight = self._attention_weight
+            weight_str = (
+                "{0: .4f}".format(abs(weight * 3)) if weight is not None else "0.0"
+            )
+            token_weight = float(weight_str)
+            r_i = 255
+            g_i = 255
+            b_i = 255
+            att_intensity = int(255 * min(token_weight, 1))
+            if weight is not None and not math.isclose(weight, 0.0, abs_tol=0.1):
+                if self._changed is False:
+                    g_i -= att_intensity
+                b_i -= att_intensity
+            elif self._changed is True:
+                r_i = 0
+                b_i = 0
+                g_i = 200
+            return color(text=text, fore=(r_i, g_i, b_i))
         return text
 
     def add_class(self, classes):
@@ -137,6 +159,13 @@ class MathExpression(BinaryTreeNode):
         if type(classes) == str:
             classes = [classes]
         self.classes = list(set(self.classes).union(classes))
+        return self
+
+    def set_weight(self, weight: float) -> "MathExpression":
+        """Associate a weight with this node. This is used when rendering attention
+        weights on expression nodes. """
+        assert weight >= 0.0 and weight <= 1.0, "weights must be in 0-1 range"
+        self._attention_weight = weight
         return self
 
     def count_nodes(self):
@@ -285,33 +314,6 @@ class MathExpression(BinaryTreeNode):
             self.cloned_node = result
 
         return result
-
-    def get_terms(self):
-        """Get any terms that are children of this node. Returns a list of expressions"""
-        terms = []
-
-        def visit_fn(node, depth, data):
-            # If the parent is not an Add/Sub/Equal, not a term.
-            if (
-                not (isinstance(node.parent, AddExpression))
-                and not (isinstance(node.parent, SubtractExpression))
-                and not (isinstance(node.parent, EqualExpression))
-            ):
-                return
-
-            # If the node is an Add/Sub/Equal, not a term.
-            if (
-                isinstance(node, AddExpression)
-                or isinstance(node, SubtractExpression)
-                or isinstance(node, EqualExpression)
-            ):
-                return
-
-            # Otherwise, looks good.
-            return terms.append(node)
-
-        self.visit_preorder(visit_fn)
-        return terms
 
 
 class UnaryExpression(MathExpression):

@@ -108,6 +108,9 @@ class BaseConfig(BaseModel):
     # to find problems.
     print_training: bool = False
 
+    # Print mode for output. "terminal" is the default, also supports "attention"
+    print_mode: str = "attention"
+
     # When training on the experience replay buffer, burn-in the stored RNN states
     # against the current model for (n) steps before processing the replay examples
     unreal_burn_in_steps: int = 1

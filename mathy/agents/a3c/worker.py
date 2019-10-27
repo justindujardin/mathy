@@ -326,7 +326,9 @@ class A3CWorker(threading.Thread):
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
-                env.render("terminal")
+                env.render(
+                    self.args.print_mode, self.local_model.embedding.attention_weights
+                )
             # store rnn state for replay training
             rnn_state_h = self.local_model.embedding.state_h.numpy()
             rnn_state_c = self.local_model.embedding.state_c.numpy()
@@ -394,14 +396,19 @@ class A3CWorker(threading.Thread):
                 elif self.args.action_strategy == "mcts_e_unreal":
                     unreal = cast(action_selectors.UnrealMCTSActionSelector, selector)
                     keep_experience = unreal.use_mcts or not self.experience.is_full()
+
+                if done and self.args.print_training and self.worker_idx == 0:
+                    env.render(
+                        self.args.print_mode,
+                        self.local_model.embedding.attention_weights,
+                    )
+
                 self.update_global_network(
                     done, observation, episode_memory, keep_experience=keep_experience
                 )
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
-                    if self.args.print_training and self.worker_idx == 0:
-                        env.render("terminal")
                     self.finish_episode(ep_reward, ep_steps, env.state)
 
             ep_steps += 1
