@@ -83,7 +83,6 @@ def main(
     topics_list = topics.split(",")
     args = BaseConfig(
         verbose=True,
-        update_freq=128,
         train=not evaluate,
         difficulty=difficulty,
         action_strategy=strategy,

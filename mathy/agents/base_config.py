@@ -23,7 +23,7 @@ class BaseConfig(BaseModel):
     # Size at which it's okay to start sampling from the memory
     ready_at: int = 256
 
-    lr: float = 5e-5
+    lr: float = 2e-5
 
     # Update frequencey for the Worker to sync with the Main model. This has different
     # meaning for different agents:
@@ -73,10 +73,10 @@ class BaseConfig(BaseModel):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.1
+    entropy_loss_scaling = 0.25
 
     # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 0.1
+    aux_tasks_weight_scale = 0.25
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
@@ -89,6 +89,10 @@ class BaseConfig(BaseModel):
 
     # The number of worker agents to create.
     num_workers: int = 3
+
+    # The lambda value for generalized lambda returns to calculate value loss
+    # 0.0 = bootstrap values, 1.0 = discounted
+    td_lambda: float = 0.5
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 25

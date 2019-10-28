@@ -1,6 +1,7 @@
 import tensorflow as tf
 from .densenet_block import DenseNetBlock
 from typing import List, Optional
+from ..swish import swish
 
 
 class DenseNetStack(tf.keras.layers.Layer):
@@ -21,7 +22,7 @@ class DenseNetStack(tf.keras.layers.Layer):
         random_seed=1337,
         layer_scaling_factor=0.75,
         share_weights=False,
-        activation="relu",
+        activation=swish,
         output_transform: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):

@@ -26,7 +26,7 @@ from ..base_config import BaseConfig
 from ..episode_memory import EpisodeMemory
 from ..experience import Experience, ExperienceFrame
 from ..mcts import MCTS
-from ..tensorflow.trfl import discrete_policy_entropy_loss
+from ..tensorflow.trfl import discrete_policy_entropy_loss, td_lambda
 from .util import record, truncate
 
 
@@ -105,6 +105,12 @@ class A3CWorker(threading.Thread):
                 )
 
         print(f"[#{worker_idx}] e: {self.epsilon} topics: {self.args.topics}")
+
+    @property
+    def tb_prefix(self) -> str:
+        if self.worker_idx == 0:
+            return "agent"
+        return f"workers/{self.worker_idx}"
 
     @property
     def epsilon(self) -> float:
@@ -449,7 +455,7 @@ class A3CWorker(threading.Thread):
 
             # Track global model metrics
             tf.summary.scalar(
-                f"rewards/mean_episode_reward",
+                f"agent/mean_episode_reward",
                 data=A3CWorker.global_moving_average_reward,
                 step=step,
             )
@@ -467,6 +473,17 @@ class A3CWorker(threading.Thread):
                     tf.summary.histogram(
                         var.name, var, step=self.global_model.global_step
                     )
+                # Write out current LSTM hidden/cell states
+                tf.summary.histogram(
+                    "agent/lstm_c",
+                    self.local_model.embedding.state_c,
+                    step=self.global_model.global_step,
+                )
+                tf.summary.histogram(
+                    "agent/lstm_h",
+                    self.local_model.embedding.state_h,
+                    step=self.global_model.global_step,
+                )
 
     def update_global_network(
         self,
@@ -543,48 +560,6 @@ class A3CWorker(threading.Thread):
                 A3CWorker.global_episode += 1
                 self.global_model.save()
 
-    def loss_normalize(self, loss, epsilon=1e-5):
-        """Loss normalization trick from Hvass Labs:
-        https://github.com/tensorflow/tensorflow/issues/6414#issuecomment-286118241
-        """
-        update_condition: bool = self.global_model.global_step.numpy() % 10 == 0
-        # Variable used for storing the scalar-value of the loss-function.
-        loss_value = tf.Variable(1.0)
-
-        # Expression used for either updating the scalar-value or
-        # just re-using the old value.
-        # Note that when loss_value.assign(loss) is evaluated, it
-        # first evaluates the loss-function which is a TensorFlow
-        # expression, and then assigns the resulting scalar-value to
-        # the loss_value variable.
-        loss_value_updated = tf.cond(
-            update_condition, lambda: loss_value.assign(loss), lambda: loss_value
-        )
-
-        # Expression for the normalized loss-function.
-        loss_normalized = loss / (loss_value_updated + epsilon)
-
-        return loss_normalized
-
-    def soften_policy_targets(self, hard_targets, observations: List[MathyObservation]):
-        policy = np.array(hard_targets[:], dtype="float32")
-        for i, timestep in enumerate(policy):
-            observation = observations[i]
-            # The policy coming from the network will usually already include weight
-            # for each active rule, but we want the model to be less sure of itself
-            # with the targets so we adjust the policy weightings slightly.
-            policy_mask = np.array(observation.mask[:], dtype="float32")
-            # assert numpy.count_nonzero(policy_mask) == numpy.count_nonzero(policy)
-            # The policy mask has 0.0 and 1.0 values. We scale the mask down so that
-            # 1 becomes smaller, and then we elementwise add the policy and the mask to
-            # increment each valid action by the scaled value
-            policy_soft = timestep + (policy_mask * 0.01)
-            # Finally we re-normalize the values so that they sum to 1.0 like they
-            # did before we incremented them.
-            policy_soft /= np.sum(policy_soft)
-            policy[i] = policy_soft
-        return tf.convert_to_tensor(policy)
-
     def compute_policy_value_loss(
         self,
         done: bool,
@@ -602,10 +577,11 @@ class A3CWorker(threading.Thread):
             values = values[-1]
             bootstrap_value = tf.squeeze(values).numpy()
 
-        # figure out discounted rewards
-        discounted_rewards: List[float] = discount(
-            episode_memory.rewards + [bootstrap_value]
-        )
+        discounted_rewards: List[float] = []
+        for reward in episode_memory.rewards[::-1]:
+            bootstrap_value = reward + gamma * bootstrap_value
+            discounted_rewards.append(bootstrap_value)
+        discounted_rewards.reverse()
         discounted_rewards = tf.convert_to_tensor(
             value=np.array(discounted_rewards)[:, None], dtype=tf.float32
         )
@@ -624,60 +600,45 @@ class A3CWorker(threading.Thread):
         entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
         entropy_loss = tf.reduce_mean(entropy_loss)
 
-        # I believe this is a 1-step lookahead generalized advantage estimation?
-        values = np.asarray(episode_memory.values + [bootstrap_value])
-        advantage = episode_memory.rewards + gamma * values[1:] - values[:-1]
-        advantage = discount(advantage, gamma)
+        rewards_tensor = tf.convert_to_tensor(episode_memory.rewards, dtype=tf.float32)
+        rewards_tensor = tf.expand_dims(rewards_tensor, 1)
+        pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
+        bootstrap_value = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
 
+        lambda_loss = td_lambda(
+            state_values=values,
+            rewards=rewards_tensor,
+            pcontinues=pcontinues,
+            bootstrap_value=bootstrap_value,
+            lambda_=self.args.td_lambda,
+        )
+        advantage = lambda_loss.extra.temporal_differences
         # Value loss
-        value_loss = advantage ** 2
-        value_loss = tf.reduce_mean(value_loss)
+        value_loss = tf.reduce_mean(lambda_loss.loss)
 
         # Policy Loss
-
-        action_targets = tf.one_hot(
-            episode_memory.actions, depth=self.action_size * sequence_length
+        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=episode_memory.actions, logits=policy_logits
         )
-        # NOTE: only because we need to do batch-length trimming on the ops inside
-        soften = False
-        if soften:
-            action_targets = self.soften_policy_targets(
-                action_targets, episode_memory.observations
-            )
-            policy_loss = tf.nn.softmax_cross_entropy_with_logits(
-                labels=action_targets, logits=policy_logits
-            )
-        else:
-            policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=episode_memory.actions, logits=policy_logits
-            )
 
         policy_loss *= tf.stop_gradient(advantage)
         policy_loss = tf.reduce_mean(policy_loss)
-        # Scale the policy loss down by the sequence length to avoid exploding losses
-        policy_loss /= sequence_length
 
-        total_loss = value_loss * 0.5 + policy_loss + entropy_loss
+        # Scale the policy/value losses down by the sequence length to normalize
+        # for combination with aux losses.
+        policy_loss /= sequence_length
+        value_loss /= sequence_length
+
+        total_loss = value_loss + policy_loss + entropy_loss
+        prefix = self.tb_prefix
+        tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)
+        tf.summary.scalar(f"{prefix}/value_loss", data=value_loss, step=step)
+        tf.summary.scalar(f"{prefix}/entropy_loss", data=entropy_loss, step=step)
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/losses/policy_loss", data=policy_loss, step=step
+            f"{prefix}/advantage", data=tf.reduce_mean(advantage), step=step
         )
         tf.summary.scalar(
-            f"worker_{self.worker_idx}/losses/value_loss", data=value_loss, step=step
-        )
-        tf.summary.scalar(
-            f"worker_{self.worker_idx}/losses/entropy_loss",
-            data=entropy_loss,
-            step=step,
-        )
-        tf.summary.scalar(
-            f"worker_{self.worker_idx}/advantage",
-            data=tf.reduce_mean(advantage),
-            step=step,
-        )
-        tf.summary.scalar(
-            f"worker_{self.worker_idx}/entropy",
-            data=tf.reduce_mean(h_loss.extra.entropy),
-            step=step,
+            f"{prefix}/entropy", data=tf.reduce_mean(h_loss.extra.entropy), step=step
         )
 
         return (policy_loss, value_loss, entropy_loss, total_loss, discounted_rewards)
@@ -799,15 +760,11 @@ class A3CWorker(threading.Thread):
                     aux_losses["vr"] = vr_loss
             for key in aux_losses.keys():
                 tf.summary.scalar(
-                    f"worker_{self.worker_idx}/losses/{key}_loss",
-                    data=aux_losses[key],
-                    step=step,
+                    f"{self.tb_prefix}/{key}_loss", data=aux_losses[key], step=step
                 )
 
             tf.summary.scalar(
-                f"worker_{self.worker_idx}/losses/total_loss",
-                data=total_loss,
-                step=step,
+                f"{self.tb_prefix}/total_loss", data=total_loss, step=step
             )
 
         return pi_loss, v_loss, h_loss, aux_losses, total_loss

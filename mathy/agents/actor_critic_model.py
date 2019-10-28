@@ -6,6 +6,7 @@ from typing import Any, Optional, Tuple
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
+from .tensorflow.swish import swish
 
 from ..state import MathyWindowObservation
 from .base_config import BaseConfig
@@ -17,7 +18,10 @@ class PolicySequences(tf.keras.layers.Layer):
         super(PolicySequences, self).__init__(**kwargs)
         self.num_predictions = num_predictions
         self.logits = tf.keras.layers.Dense(
-            num_predictions, name="pi_logits_dense", kernel_initializer="he_uniform"
+            num_predictions,
+            name="pi_logits_dense",
+            kernel_initializer="he_uniform",
+            activation=swish,
         )
 
     def compute_output_shape(self, input_shape):
@@ -59,12 +63,17 @@ class ActorCriticModel(tf.keras.Model):
 
     def build_policy_value(self):
         """A3C policy/value network"""
-        self.value_logits = tf.keras.layers.Dense(1, name="policy_value/value_logits")
+        self.value_logits = tf.keras.layers.Dense(
+            1, name="policy_value/value_logits", activation=swish
+        )
         self.policy_logits = TimeDistributed(
             PolicySequences(self.predictions), name="policy_value/policy_logits"
         )
-        self.normalize = tf.keras.layers.BatchNormalization(
-            name="policy_value/logits_batch_norm"
+        self.normalize_v = tf.keras.layers.LayerNormalization(
+            name="policy_value/value_layer_norm"
+        )
+        self.normalize_pi = tf.keras.layers.LayerNormalization(
+            name="policy_value/policy_layer_norm"
         )
 
     def build_reward_prediction(self):
@@ -88,8 +97,8 @@ class ActorCriticModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs, sequence_length = self.embedding(inputs)
-        values = self.value_logits(tf.reduce_mean(sequence_inputs, axis=1))
-        logits = self.normalize(self.policy_logits(sequence_inputs))
+        values = tf.reduce_mean(self.value_logits(sequence_inputs), axis=1)
+        logits = self.normalize_pi(self.policy_logits(sequence_inputs))
 
         # NOTE: Use tanh to constrain logits values before masking
         #
@@ -135,7 +144,7 @@ class ActorCriticModel(tf.keras.Model):
             tf.equal(mask_logits, tf.constant(0.0)),
             tf.fill(trim_logits.shape, -1000000.0),
             mask_logits,
-        ).numpy()
+        )
 
         return trim_logits, negative_mask_logits
 
@@ -144,7 +153,7 @@ class ActorCriticModel(tf.keras.Model):
     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         logits, values, masked = self.call(inputs)
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
-        probs = tf.nn.softmax(flat_logits).numpy()
+        probs = tf.nn.softmax(flat_logits)
         return logits, values, probs
 
     def predict_next(
@@ -156,8 +165,8 @@ class ActorCriticModel(tf.keras.Model):
         # take the last timestep
         masked = masked[-1]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
-        probs = tf.nn.softmax(flat_logits).numpy()
-        return probs, tf.squeeze(values[-1]).numpy()
+        probs = tf.nn.softmax(flat_logits)
+        return probs, tf.squeeze(values[-1])
 
     def predict_next_reward(self, inputs: MathyWindowObservation) -> tf.Tensor:
         """Reward prediction for auxiliary tasks. Given an input sequence of

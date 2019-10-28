@@ -1,5 +1,6 @@
 import tensorflow as tf
 from typing import List
+from ..swish import swish
 
 
 class DenseNetBlock(tf.keras.layers.Layer):
@@ -9,17 +10,13 @@ class DenseNetBlock(tf.keras.layers.Layer):
     def __init__(self, units=128, num_layers=2, use_shared=False, **kwargs):
         super(DenseNetBlock, self).__init__(**kwargs)
         self.use_shared = use_shared
-        self.activate = tf.keras.layers.Activation("relu", name="relu")
-        self.normalize = tf.keras.layers.BatchNormalization()
+        self.normalize = tf.keras.layers.LayerNormalization(
+            name=f"{self.name}_layer_norm"
+        )
         self.dense = tf.keras.layers.Dense(
-            units, use_bias=False, name=f"{self.name}_dense"
+            units, name=f"{self.name}_denseblock", activation=swish
         )
         self.concat = tf.keras.layers.Concatenate(name=f"{self.name}_concat")
-
-        self.activate = tf.keras.layers.Activation("relu", name="relu")
-        self.normalize = tf.keras.layers.BatchNormalization()
-        self.dense = tf.keras.layers.Dense(units, use_bias=False, name="resdense")
-        self.combine = tf.keras.layers.Add(name=f"{self.name}_add")
 
     def do_op(self, input_tensor: tf.Tensor, previous_tensors: List[tf.Tensor]):
         inputs = previous_tensors[:]
@@ -27,7 +24,7 @@ class DenseNetBlock(tf.keras.layers.Layer):
         # concatenate the input and previous layer inputs
         if (len(inputs)) > 1:
             input_tensor = self.concat(inputs)
-        return self.normalize(self.activate(self.dense(input_tensor)))
+        return self.normalize(self.dense(input_tensor))
 
     def call(self, input_tensor: tf.Tensor, previous_tensors: List[tf.Tensor]):
         if self.use_shared:

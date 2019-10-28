@@ -6,7 +6,7 @@ from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
 from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
 from .tensorflow.layers.positional_embedding import TrigPosEmbedding
-
+from .tensorflow.swish import swish
 
 class MathyEmbedding(tf.keras.layers.Layer):
     def __init__(
@@ -24,7 +24,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             mask_zero=True,
         )
         self.bottleneck = tf.keras.layers.Dense(
-            self.lstm_units, name="combined_features", activation="relu"
+            self.lstm_units, name="combined_features", activation=swish
         )
         self.bottleneck_norm = tf.keras.layers.LayerNormalization(
             name="combined_features_normalize"
