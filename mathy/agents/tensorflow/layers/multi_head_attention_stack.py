@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from .multi_head_attention import MultiHeadAttention
 from .densenet_stack import DenseNetStack
+from ..swish import swish
 
 
 class MultiHeadAttentionStack(tf.keras.layers.Layer):
@@ -25,7 +26,9 @@ class MultiHeadAttentionStack(tf.keras.layers.Layer):
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
         self.memory = DenseNetStack(
             name=f"{self.name}_densenet",
-            output_transform=tf.keras.layers.Dense(units=attn_width),
+            output_transform=tf.keras.layers.Dense(
+                units=attn_width, activation=swish, kernel_initializer="he_normal",
+            ),
         )
         self.stack = []
         for i in range(self.stack_height):

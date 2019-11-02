@@ -30,10 +30,7 @@ class DenseNetStack(tf.keras.layers.Layer):
         self.layer_scaling_factor = layer_scaling_factor
         self.num_layers = num_layers
         self.output_transform = output_transform
-        if activation is not None:
-            self.activate = tf.keras.layers.Activation(activation)
-        else:
-            self.activate = None
+        self.activate = activation
         self.concat = tf.keras.layers.Concatenate()
         block_units = int(self.units)
         self.dense_stack = [

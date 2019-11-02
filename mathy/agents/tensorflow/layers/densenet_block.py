@@ -14,7 +14,10 @@ class DenseNetBlock(tf.keras.layers.Layer):
             name=f"{self.name}_layer_norm"
         )
         self.dense = tf.keras.layers.Dense(
-            units, name=f"{self.name}_denseblock", activation=swish
+            units,
+            name=f"{self.name}_denseblock",
+            activation=swish,
+            kernel_initializer="he_normal",
         )
         self.concat = tf.keras.layers.Concatenate(name=f"{self.name}_concat")
 

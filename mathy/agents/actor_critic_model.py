@@ -20,8 +20,8 @@ class PolicySequences(tf.keras.layers.Layer):
         self.logits = tf.keras.layers.Dense(
             num_predictions,
             name="pi_logits_dense",
-            kernel_initializer="he_uniform",
-            activation=swish,
+            kernel_initializer="he_normal",
+            activation=None,
         )
 
     def compute_output_shape(self, input_shape):
@@ -64,7 +64,10 @@ class ActorCriticModel(tf.keras.Model):
     def build_policy_value(self):
         """A3C policy/value network"""
         self.value_logits = tf.keras.layers.Dense(
-            1, name="policy_value/value_logits", activation=swish
+            1,
+            name="policy_value/value_logits",
+            kernel_initializer="he_normal",
+            activation=None,
         )
         self.policy_logits = TimeDistributed(
             PolicySequences(self.predictions), name="policy_value/policy_logits"
@@ -99,21 +102,6 @@ class ActorCriticModel(tf.keras.Model):
         sequence_inputs, sequence_length = self.embedding(inputs)
         values = tf.reduce_mean(self.value_logits(sequence_inputs), axis=1)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
-
-        # NOTE: Use tanh to constrain logits values before masking
-        #
-        # This keeps gradients from gradually pushing logits to extremes
-        # and keeps policy loss magnitudes roughly equal to the loss values
-        # from auxiliary tasks. In this way no task totally washes out the
-        # loss of another.
-        #
-        # Practically I have observed this is critical for model stability
-        # in cases where you overtrain a task. Without it the a3c agent
-        # will get to a really nice reward average and then slowly diverge
-        # as the model overfits the logits to large values. In extreme cases
-        # this can lead to values that don't mask properly with our large
-        # negative value.
-        logits = tf.keras.activations.tanh(logits)
         trimmed_logits, mask_logits = self.apply_pi_mask(
             logits, features_window, sequence_length
         )

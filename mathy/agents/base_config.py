@@ -34,6 +34,8 @@ class BaseConfig(BaseModel):
     #   syncing the latest model from the learner process.
     update_freq: int = 20
     max_eps: int = 15000
+    # How often to write histograms to tensorboard (in training steps)
+    summary_interval: int = 100
     gamma: float = 0.99
 
     # Strategy for introducing MCTS into the A3C agent training process
@@ -73,10 +75,10 @@ class BaseConfig(BaseModel):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.25
+    entropy_loss_scaling = 0.1
 
     # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 0.25
+    aux_tasks_weight_scale = 0.1
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
@@ -92,7 +94,7 @@ class BaseConfig(BaseModel):
 
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.5
+    td_lambda: float = 0.95
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 25
@@ -101,7 +103,7 @@ class BaseConfig(BaseModel):
     # If the agent wins >= this value, promote to the next difficulty class
     teacher_promote_wins = 0.80
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.30
+    teacher_demote_wins = 0.50
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

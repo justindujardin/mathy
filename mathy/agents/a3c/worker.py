@@ -464,8 +464,7 @@ class A3CWorker(threading.Thread):
         if self.worker_idx != 0:
             return
         step = self.global_model.global_step.numpy()
-        summary_interval = 500
-        next_write = self.last_histogram_write + summary_interval
+        next_write = self.last_histogram_write + self.args.summary_interval
         if step >= next_write or self.last_histogram_write == -1:
             with self.writer.as_default():
                 self.last_histogram_write = step

@@ -8,6 +8,7 @@ from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStac
 from .tensorflow.layers.positional_embedding import TrigPosEmbedding
 from .tensorflow.swish import swish
 
+
 class MathyEmbedding(tf.keras.layers.Layer):
     def __init__(
         self, units: int, lstm_units: int, extract_window: Optional[int] = 3, **kwargs
@@ -24,7 +25,10 @@ class MathyEmbedding(tf.keras.layers.Layer):
             mask_zero=True,
         )
         self.bottleneck = tf.keras.layers.Dense(
-            self.lstm_units, name="combined_features", activation=swish
+            self.lstm_units,
+            name="combined_features",
+            activation=swish,
+            kernel_initializer="he_normal",
         )
         self.bottleneck_norm = tf.keras.layers.LayerNormalization(
             name="combined_features_normalize"
@@ -39,7 +43,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
-            name="timestep_lstm",
+            name="lstm",
             return_sequences=True,
             time_major=True,
             return_state=True,

@@ -2,28 +2,14 @@ keras
 numpy
 plac
 ujson
-tensorflow==2.0.0-b1
+tensorflow>=2.0.0
 gast==0.2.2 # because: https://github.com/tensorflow/tensorflow/issues/32319#issuecomment-529164054
 
+tensorboard
 tf-agents-nightly
-tb-nightly
 tqdm
 colr
 pydantic
 
 # Custom envs
 gym
-
-
-# dev 
-matplotlib
-black
-flake8
-graphviz
-snakeviz
-
-pydot
-# Docs 
-mkdocs
-mkdocs-material
-markdown-include
