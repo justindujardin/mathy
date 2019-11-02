@@ -5,7 +5,7 @@ from tf_agents.trajectories import time_step
 from ..core.expressions import MathExpression
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..problems import binomial_times_binomial, binomial_times_monomial
+from ..problems import binomial_times_binomial, binomial_times_monomial, rand_bool
 from ..rules import (
     BaseRule,
     ConstantsSimplifyRule,
@@ -53,7 +53,15 @@ class MathyBinomialDistributionEnv(MathyEnv):
         """Given a set of parameters to control term generation, produce
         2 binomials expressions connected by a multiplication. """
         if params.difficulty == MathyEnvDifficulty.easy:
-            text, complexity = binomial_times_monomial(min_vars=2, max_vars=3)
+            if rand_bool(50):
+                text, complexity = binomial_times_monomial(min_vars=2, max_vars=3)
+            else:
+                text, complexity = binomial_times_binomial(
+                    min_vars=2,
+                    max_vars=3,
+                    powers_probability=0.1,
+                    like_variables_probability=0.5,
+                )
         elif params.difficulty == MathyEnvDifficulty.normal:
             text, complexity = binomial_times_binomial(
                 min_vars=2,

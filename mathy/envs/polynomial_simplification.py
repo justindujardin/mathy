@@ -19,6 +19,13 @@ from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import GameRewards
 
 
+class PolyPerturbations:
+    # sketch
+    alpha_terms = "an integer the max number of main terms in an environment"
+    beta_terms = "an integer the max number of secondary terms in an environment. depends on the env."
+    gamma_terms = "an integer the max number of tertiary terms in an environment. depends on the env."
+
+
 class MathyPolynomialSimplificationEnv(MathyEnv):
     """A Mathy environment for simplifying polynomial expressions.
 
@@ -33,7 +40,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         if config.difficulty == MathyEnvDifficulty.easy:
             multiplier = 3
         else:
-            multiplier = 4
+            multiplier = 3
         return problem.complexity * multiplier
 
     def get_env_namespace(self) -> str:
@@ -74,7 +81,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
         if params.difficulty == MathyEnvDifficulty.easy:
-            num_terms = randint(2, 5)
+            num_terms = randint(2, 7)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
                 num_terms,

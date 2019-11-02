@@ -37,15 +37,15 @@ class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
         """
 
         if params.difficulty == MathyEnvDifficulty.easy:
-            num_terms = randint(2, 4)
-            scaling = uniform(0.5, 1.0)
+            num_terms = randint(2, 6)
+            scaling = uniform(0.5, 0.9)
             text, complexity = simplify_multiple_terms(
                 num_terms,
                 op="*",
                 optional_var=True,
                 inner_terms_scaling=scaling,
                 powers_probability=0.4,
-                noise_probability=0.1,
+                noise_probability=0.2,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             num_terms = randint(3, 6)
