@@ -47,6 +47,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         self.epsilon = epsilon
         self.noise_alpha = 0.3
         self.use_noise = True
+        self.first_step = True
 
     def select(
         self,
@@ -61,14 +62,13 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         probs, value = self.model.predict_next(last_window)
         last_move_mask = last_window.mask[-1]
         # Apply noise to the root node (like AlphaGoZero MCTS)
-        if self.use_noise is True:
+        if self.use_noise is True and self.first_step is True:
             noise = np.random.dirichlet([self.noise_alpha] * len(probs))
             noise = noise * np.array(last_move_mask)
             probs += noise
             pi_sum = np.sum(probs)
             if pi_sum > 0:
                 probs /= pi_sum
-
             self.first_step = False
 
         no_random = bool(self.worker_id == 0)
