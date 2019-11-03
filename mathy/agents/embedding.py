@@ -11,9 +11,15 @@ from .tensorflow.swish import swish
 
 class MathyEmbedding(tf.keras.layers.Layer):
     def __init__(
-        self, units: int, lstm_units: int, extract_window: Optional[int] = 3, **kwargs
+        self,
+        units: int,
+        lstm_units: int,
+        extract_window: Optional[int] = None,
+        time_major: bool = True,
+        **kwargs
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
+        self.time_major = time_major
         self.units = units
         self.extract_window = extract_window
         self.lstm_units = lstm_units
@@ -24,8 +30,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="nodes_embedding",
             mask_zero=True,
         )
+        self.attend_size = self.lstm_units // 8
         self.bottleneck = tf.keras.layers.Dense(
-            self.lstm_units,
+            self.attend_size,
             name="combined_features",
             activation=swish,
             kernel_initializer="he_normal",
@@ -35,18 +42,19 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         self.positional_embedding = TrigPosEmbedding(name="token_pos_embed")
         self.attention = MultiHeadAttentionStack(
-            num_heads=2,
-            num_layers=3,
+            num_heads=4,
+            num_layers=1,
             name="self_attention",
-            attn_width=self.lstm_units,
+            attn_width=self.attend_size,
             return_attention=True,
         )
         self.time_lstm = tf.keras.layers.LSTM(
             self.lstm_units,
             name="lstm",
             return_sequences=True,
-            time_major=True,
+            time_major=self.time_major,
             return_state=True,
+            unroll=True,
         )
 
     def init_rnn_state(self):
@@ -153,7 +161,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
                 tf.cast(type_tiled, dtype=tf.float32),
                 time_tiled,
                 query,
-                tf.cast(move_mask + hint_mask, dtype=tf.float32),
+                # tf.cast(move_mask + hint_mask, dtype=tf.float32),
             ],
             axis=-1,
         )
@@ -166,8 +174,13 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
 
         # LSTM for temporal dependencies
-        state_h = tf.tile(features.rnn_state[0][-1], [sequence_length, 1])
-        state_c = tf.tile(features.rnn_state[1][-1], [sequence_length, 1])
+        if self.time_major:
+            state_h = tf.tile(features.rnn_state[0][-1], [sequence_length, 1])
+            state_c = tf.tile(features.rnn_state[1][-1], [sequence_length, 1])
+        else:
+            state_h = tf.concat(features.rnn_state[0], axis=0)
+            state_c = tf.concat(features.rnn_state[1], axis=0)
+
         time_out, state_h, state_c = self.time_lstm(
             time_out, initial_state=[state_h, state_c]
         )

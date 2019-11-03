@@ -39,7 +39,7 @@ class A3CAgent:
             os.path.join(self.args.model_dir, "tensorboard")
         )
         # Clip gradients: https://youtu.be/yCC09vCHzF8?t=3885
-        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr, clipnorm=40.0)
+        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.global_model = ActorCriticModel(
             args=args, predictions=self.action_size, optimizer=self.optimizer
         )

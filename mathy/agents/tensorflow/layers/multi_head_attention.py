@@ -232,7 +232,6 @@ class MultiHeadAttention(keras.layers.Layer):
         )
         if self.return_attention:
             y, a = y
-            a = self._reshape_from_batches(a, self.head_num)
         y = self._reshape_from_batches(y, self.head_num)
         y = K.dot(y, self.Wo)
         if self.use_bias:

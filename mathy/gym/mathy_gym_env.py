@@ -133,7 +133,10 @@ class MathyGymEnv(gym.Env):
                 mean_weights = multi_head_layer.mean(axis=0).mean(axis=0)
                 # Parse the expression, and associate the weights with it
                 for i, node in enumerate(nodes):
-                    node.set_weight(mean_weights[i])
+                    if i < len(mean_weights):
+                        node.set_weight(mean_weights[i])
+                    else:
+                        node.set_weight(0.0)
 
         action_name = "initial"
         token_index = -1

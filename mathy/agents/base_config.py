@@ -23,7 +23,7 @@ class BaseConfig(BaseModel):
     # Size at which it's okay to start sampling from the memory
     ready_at: int = 256
 
-    lr: float = 2e-5
+    lr: float = 3e-4
 
     # Update frequencey for the Worker to sync with the Main model. This has different
     # meaning for different agents:
@@ -32,11 +32,17 @@ class BaseConfig(BaseModel):
     #   episode before syncing the replay buffer and gradients.
     # - for R2D2 agents this value indicates the number of episodes to run between
     #   syncing the latest model from the learner process.
-    update_freq: int = 20
+    update_freq: int = 64
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
     gamma: float = 0.99
+
+    # How many times to think about the initial state before acting.
+    # (intuition) is that the LSTM updates the state each time it processes
+    # the init sequence meaning that it gets more time to fine-tune the hidden
+    # and cell states for the particular problem.
+    num_thinking_steps_begin: int = 3
 
     # Strategy for introducing MCTS into the A3C agent training process
     #

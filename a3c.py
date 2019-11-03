@@ -62,6 +62,7 @@ tf.compat.v1.logging.set_verbosity("CRITICAL")
         int,
     ),
     lstm_units=("Number of dimensions to use for LSTM layers", "option", None, int),
+    max_eps=("Maximum number of episodes to run", "option", None, int),
     show=("Show the agents step-by-step directions", "flag", False, bool),
     profile=("Set to gather profiler outputs for the A3C workers", "flag", False, bool),
     evaluate=("Set when evaluation is desired", "flag", False, bool),
@@ -77,6 +78,7 @@ def main(
     strategy: str = "a3c",
     difficulty: Optional[str] = None,
     profile: bool = False,
+    max_eps: Optional[int] = None,
     show: bool = False,
     evaluate: bool = False,
 ):
@@ -96,6 +98,9 @@ def main(
         profile=profile,
         print_training=show,
     )
+    if max_eps is not None:
+        args.max_eps = max_eps
+
     agent = A3CAgent(args)
     if not evaluate:
         agent.train()

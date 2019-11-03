@@ -24,12 +24,19 @@ class MultiHeadAttentionStack(tf.keras.layers.Layer):
         self.norm = tf.keras.layers.LayerNormalization(name=f"{self.name}_layer_norm")
         self.add = tf.keras.layers.Add()
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
-        self.memory = DenseNetStack(
-            name=f"{self.name}_densenet",
-            output_transform=tf.keras.layers.Dense(
-                units=attn_width, activation=swish, kernel_initializer="he_normal",
-            ),
+        self.memory = tf.keras.layers.Dense(
+            units=attn_width,
+            activation=swish,
+            kernel_initializer="he_normal",
+            name="attn_transform",
         )
+
+        # self.memory = DenseNetStack(
+        #     name=f"{self.name}_densenet",
+        #     output_transform=tf.keras.layers.Dense(
+        #         units=attn_width, activation=swish, kernel_initializer="he_normal",
+        #     ),
+        # )
         self.stack = []
         for i in range(self.stack_height):
             self.stack.append(

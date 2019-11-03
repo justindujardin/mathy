@@ -38,9 +38,11 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
         if config.difficulty == MathyEnvDifficulty.easy:
-            multiplier = 3
+            multiplier = 6
+        elif config.difficulty == MathyEnvDifficulty.normal:
+            multiplier = 5
         else:
-            multiplier = 3
+            multiplier = 4
         return problem.complexity * multiplier
 
     def get_env_namespace(self) -> str:
