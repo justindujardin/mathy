@@ -320,24 +320,25 @@ class A3CWorker(threading.Thread):
         selector = self.build_episode_selector(env)
 
         # Set RNN to 0 state for start of episode
-        self.local_model.embedding.reset_rnn_state()
+        selector.model.embedding.reset_rnn_state()
 
-        # Start with the "init" sequence
-        rnn_state_h = self.local_model.embedding.state_h.numpy()
-        rnn_state_c = self.local_model.embedding.state_c.numpy()
-        seq_start = env.start_observation([rnn_state_h, rnn_state_c])
-        self.local_model.predict_next(
-            observations_to_window([seq_start, last_observation])
-        )
+        # Start with the "init" sequence [n] times
+        for i in range(self.args.num_thinking_steps_begin):
+            rnn_state_h = selector.model.embedding.state_h.numpy()
+            rnn_state_c = selector.model.embedding.state_c.numpy()
+            seq_start = env.start_observation([rnn_state_h, rnn_state_c])
+            selector.model.predict_next(
+                observations_to_window([seq_start, last_observation])
+            )
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
                 env.render(
-                    self.args.print_mode, self.local_model.embedding.attention_weights
+                    self.args.print_mode, selector.model.embedding.attention_weights
                 )
             # store rnn state for replay training
-            rnn_state_h = self.local_model.embedding.state_h.numpy()
-            rnn_state_c = self.local_model.embedding.state_c.numpy()
+            rnn_state_h = selector.model.embedding.state_h.numpy()
+            rnn_state_c = selector.model.embedding.state_c.numpy()
             last_rnn_state = [rnn_state_h, rnn_state_c]
             # named tuples are read-only, so add rnn state to a new copy
             last_observation = MathyObservation(
@@ -349,6 +350,24 @@ class A3CWorker(threading.Thread):
                 rnn_state=last_rnn_state,
             )
 
+            # memory_context_h = []
+            # memory_context_c = []
+            # for obs in episode_memory.observations:
+            #     memory_context_h.append(obs.rnn_state[0])
+            #     memory_context_c.append(obs.rnn_state[1])
+            # if len(episode_memory.observations) > 0:
+            #     # Take the mean of the historical states:
+            #     memory_context_h = np.array(memory_context_h).mean(axis=0)
+            #     memory_context_c = np.array(memory_context_c).mean(axis=0)
+            # else:
+            #     memory_context_h = np.zeros([1, self.args.lstm_units])
+            #     memory_context_c = np.zeros([1, self.args.lstm_units])
+            # memory_context_h = tf.convert_to_tensor(memory_context_h)
+            # memory_context_c = tf.convert_to_tensor(memory_context_c)
+
+            # before_rnn_state_h = selector.model.embedding.state_h.numpy()
+            # before_rnn_state_c = selector.model.embedding.state_c.numpy()
+
             window = episode_memory.to_window_observation(last_observation)
             action, value = selector.select(
                 last_state=env.state,
@@ -357,12 +376,18 @@ class A3CWorker(threading.Thread):
                 last_reward=last_reward,
                 last_rnn_state=last_rnn_state,
             )
-            # store rnn state for replay training
-            rnn_state_h = self.local_model.embedding.state_h.numpy()
-            rnn_state_c = self.local_model.embedding.state_c.numpy()
-
             # Take an env step
             observation, reward, done, _ = env.step(action)
+            rnn_state_h = selector.model.embedding.state_h.numpy()
+            rnn_state_c = selector.model.embedding.state_c.numpy()
+
+            # TODO: make this a unit test, check that EpisodeMemory states are not equal
+            #       across time steps.
+            # compare_states_h = tf.math.equal(before_rnn_state_h,rnn_state_h)
+            # compare_states_c = tf.math.equal(before_rnn_state_h,rnn_state_h)
+            # assert before_rnn_state_h != rnn_state_h
+            # assert before_rnn_state_c != rnn_state_c
+
             observation = MathyObservation(
                 nodes=observation.nodes,
                 mask=observation.mask,
@@ -406,8 +431,33 @@ class A3CWorker(threading.Thread):
                 if done and self.args.print_training and self.worker_idx == 0:
                     env.render(
                         self.args.print_mode,
-                        self.local_model.embedding.attention_weights,
+                        selector.model.embedding.attention_weights,
                     )
+
+                # TODO: Make this a unit test?
+                # Check that the LSTM h/c states changed over time in the episode.
+                #
+                # NOTE: in practice it seems every once in a while the state doesn't
+                # change, and I suppose this makes sense if the LSTM thought the
+                # existing state was... fine?
+                #
+                # check_rnn = None
+                # for obs in episode_memory.observations:
+                #     if check_rnn is not None:
+                #         h_equal_indices = (
+                #             tf.squeeze(tf.math.equal(obs.rnn_state[0], check_rnn[0]))
+                #             .numpy()
+                #             .tolist()
+                #         )
+                #         c_equal_indices = (
+                #             tf.squeeze(tf.math.equal(obs.rnn_state[1], check_rnn[1]))
+                #             .numpy()
+                #             .tolist()
+                #         )
+                #         assert False in h_equal_indices
+                #         assert False in c_equal_indices
+
+                #     check_rnn = obs.rnn_state
 
                 self.update_global_network(
                     done, observation, episode_memory, keep_experience=keep_experience
@@ -513,7 +563,21 @@ class A3CWorker(threading.Thread):
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
-        self.optimizer.apply_gradients(zip(grads, self.global_model.trainable_weights))
+
+        zipped_gradients = zip(grads, self.global_model.trainable_weights)
+        # Assert that we always have some gradient flow in each trainable var
+
+        # TODO: Make this a unit test. It degrades performance at train time
+        # for grad, var in zipped_gradients:
+        #     nonzero_grads = tf.math.count_nonzero(grad).numpy()
+        #     grad_sum = tf.math.reduce_sum(grad).numpy()
+        #     # if "lstm" in var.name and self.worker_idx == 0:
+        #     #     print(f"[{var.name}] {grad_sum}")
+        #     if nonzero_grads == 0:
+        #         tf.print(grad_sum)
+        #         raise ValueError(f"{var.name} has no gradient")
+
+        self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
         episode_memory.clear()
@@ -620,7 +684,7 @@ class A3CWorker(threading.Thread):
             labels=episode_memory.actions, logits=policy_logits
         )
 
-        policy_loss *= tf.stop_gradient(advantage)
+        policy_loss *= advantage
         policy_loss = tf.reduce_mean(policy_loss)
 
         # Scale the policy/value losses down by the sequence length to normalize
