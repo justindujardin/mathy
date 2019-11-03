@@ -185,9 +185,11 @@ class MathyEnv:
                 continue
 
             # NOTE: the reward is scaled by how many times this state has been visited
+            #       up to (n) times
+            multiplier = min(list_count, 3)
             return time_step.transition(
                 features,
-                reward=GameRewards.PREVIOUS_LOCATION * list_count,
+                reward=GameRewards.PREVIOUS_LOCATION * multiplier,
                 discount=self.discount,
             )
 
