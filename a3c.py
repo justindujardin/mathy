@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
+import random
 
+random.seed(1337)
 np.random.seed(1337)
 tf.random.set_seed(1337)
 
@@ -74,7 +76,7 @@ def main(
     workers: int = cpu_count(),
     units: int = 64,
     embedding_units: int = 512,
-    lstm_units: int = 256,
+    lstm_units: int = 512,
     strategy: str = "a3c",
     difficulty: Optional[str] = None,
     profile: bool = False,
