@@ -103,15 +103,9 @@ class MathyGymEnv(gym.Env):
 
     def _observe(self, state: MathyEnvState) -> MathyObservation:
         """Observe the environment at the given state, updating the observation
-        space and action space for the given state."""
+        space and action space for the given state. """
         action_mask = self.mathy.get_valid_moves(state)
-        hint_mask = self.mathy.get_hint_mask(state)
-        observation = state.to_observation(
-            move_mask=action_mask,
-            hint_mask=hint_mask,
-            rnn_state=rnn_placeholder_state(self.rnn_size),
-        )
-        # Update masked action space
+        observation = self.mathy.state_to_observation(state, rnn_size=self.rnn_size)
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
         return observation

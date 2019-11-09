@@ -15,11 +15,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         extract_window: Optional[int] = None,
-        time_major: bool = True,
         **kwargs
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
-        self.time_major = time_major
         self.units = units
         self.extract_window = extract_window
         self.lstm_units = lstm_units
@@ -30,10 +28,16 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="nodes_embedding",
             mask_zero=True,
         )
-        self.attend_size = self.lstm_units // 8
-        self.bottleneck = tf.keras.layers.Dense(
+        self.attend_size = self.lstm_units // 2
+        self.attn_bottleneck = tf.keras.layers.Dense(
             self.attend_size,
-            name="combined_features",
+            name="in_bottleneck",
+            activation=swish,
+            kernel_initializer="he_normal",
+        )
+        self.bottleneck = tf.keras.layers.Dense(
+            self.lstm_units,
+            name="out_bottleneck",
             activation=swish,
             kernel_initializer="he_normal",
         )
@@ -52,7 +56,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             self.lstm_units,
             name="lstm",
             return_sequences=True,
-            time_major=self.time_major,
+            time_major=True,
             return_state=True,
             unroll=True,
         )
@@ -96,6 +100,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
                 type=burn_in_window.type,
                 time=burn_in_window.time,
                 rnn_state=[burn_in_state_h, burn_in_state_c],
+                rnn_history=burn_in_window.rnn_history,
             )
             result: Tuple[tf.Tensor, tf.Tensor] = self.call(
                 burn_in_window, burn_in_steps=0, return_rnn_states=True
@@ -124,17 +129,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
         query = self.token_embedding(input)
         query = tf.reshape(query, [batch_size, sequence_length, -1])
         query = self.positional_embedding(query)
-
-        #
-        # Aux features
-        #
-        move_mask = tf.convert_to_tensor(features.mask)
-        hint_mask = tf.convert_to_tensor(features.hints)
-        if batch_size == 1:
-            move_mask = move_mask[tf.newaxis, :, :]
-            hint_mask = hint_mask[tf.newaxis, :, :]
-        move_mask = tf.reshape(move_mask, [batch_size, sequence_length, -1])
-        hint_mask = tf.reshape(hint_mask, [batch_size, sequence_length, -1])
 
         # Reshape the "type" information and combine it with each node in the
         # sequence so the nodes have context for the current task
@@ -165,33 +159,49 @@ class MathyEmbedding(tf.keras.layers.Layer):
             ],
             axis=-1,
         )
-        # use a bottleneck so that we know the dimensions fit the attention layer below
-        time_out = self.bottleneck(time_out)
 
-        # Self-attention
+        # Transform our combined features into a consistent size
+        time_out = self.attn_bottleneck(time_out)
+        # Perform self-attention over the features
         time_out, self.attention_weights = self.attention(
             [time_out, time_out, time_out]
         )
+        # Reduce the nodes sequence dimension to avoid having a large tiled
+        # LSTM hidden/cell state.
+        time_out = tf.expand_dims(tf.reduce_sum(time_out, axis=1), axis=1)
 
-        # LSTM for temporal dependencies
-        if self.time_major:
-            state_h = tf.tile(features.rnn_state[0][-1], [sequence_length, 1])
-            state_c = tf.tile(features.rnn_state[1][-1], [sequence_length, 1])
-        else:
-            state_h = tf.concat(features.rnn_state[0], axis=0)
-            state_c = tf.concat(features.rnn_state[1], axis=0)
-
+        state_h = features.rnn_state[0][0]
+        state_c = features.rnn_state[1][0]
         time_out, state_h, state_c = self.time_lstm(
             time_out, initial_state=[state_h, state_c]
         )
+
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
 
+        # Concatenate the RNN output state with our historical RNN state
+        # See: https://arxiv.org/pdf/1810.04437.pdf
+        rnn_state_with_history = tf.concat(
+            [
+                state_h,
+                state_c,
+                features.rnn_history[0][-1],
+                features.rnn_history[1][-1],
+            ],
+            axis=1,
+        )
+        sequence_out = tf.tile(
+            tf.expand_dims(rnn_state_with_history, axis=0),
+            [batch_size, sequence_length, 1],
+        )
+        # we flattened the input state and tiled it, add positional information
+        # back in before the final transformation.
+        sequence_out = self.positional_embedding(sequence_out)
+        sequence_out = self.bottleneck(sequence_out)
+
         # For burn-in we only want the RNN states
         if return_rnn_states:
-            state_h = tf.tile(state_h[-1:], [batch_size, 1])
-            state_c = tf.tile(state_c[-1:], [batch_size, 1])
             return (state_h, state_c)
 
         # Return the embeddings and sequence length
-        return (time_out, sequence_length)
+        return (sequence_out, sequence_length)

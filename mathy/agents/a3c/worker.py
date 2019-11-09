@@ -340,6 +340,7 @@ class A3CWorker(threading.Thread):
             rnn_state_h = selector.model.embedding.state_h.numpy()
             rnn_state_c = selector.model.embedding.state_c.numpy()
             last_rnn_state = [rnn_state_h, rnn_state_c]
+
             # named tuples are read-only, so add rnn state to a new copy
             last_observation = MathyObservation(
                 nodes=last_observation.nodes,
@@ -348,23 +349,8 @@ class A3CWorker(threading.Thread):
                 type=last_observation.type,
                 time=last_observation.time,
                 rnn_state=last_rnn_state,
+                rnn_history=episode_memory.rnn_weighted_history(self.args.lstm_units),
             )
-
-            # memory_context_h = []
-            # memory_context_c = []
-            # for obs in episode_memory.observations:
-            #     memory_context_h.append(obs.rnn_state[0])
-            #     memory_context_c.append(obs.rnn_state[1])
-            # if len(episode_memory.observations) > 0:
-            #     # Take the mean of the historical states:
-            #     memory_context_h = np.array(memory_context_h).mean(axis=0)
-            #     memory_context_c = np.array(memory_context_c).mean(axis=0)
-            # else:
-            #     memory_context_h = np.zeros([1, self.args.lstm_units])
-            #     memory_context_c = np.zeros([1, self.args.lstm_units])
-            # memory_context_h = tf.convert_to_tensor(memory_context_h)
-            # memory_context_c = tf.convert_to_tensor(memory_context_c)
-
             # before_rnn_state_h = selector.model.embedding.state_h.numpy()
             # before_rnn_state_c = selector.model.embedding.state_c.numpy()
 
@@ -395,10 +381,13 @@ class A3CWorker(threading.Thread):
                 type=observation.type,
                 time=observation.time,
                 rnn_state=[rnn_state_h, rnn_state_c],
+                rnn_history=episode_memory.rnn_weighted_history(self.args.lstm_units),
             )
 
             new_text = env.state.agent.problem
-            grouping_change = calculate_grouping_control_signal(last_text, new_text)
+            grouping_change = calculate_grouping_control_signal(
+                last_text, new_text, clip_at_zero=True
+            )
             ep_reward += reward
             frame = ExperienceFrame(
                 state=last_observation,
@@ -411,7 +400,7 @@ class A3CWorker(threading.Thread):
                 rnn_state=[rnn_state_h, rnn_state_c],
             )
             episode_memory.store(
-                state=last_observation,
+                observation=last_observation,
                 action=action,
                 reward=reward,
                 grouping_change=grouping_change,
@@ -690,7 +679,7 @@ class A3CWorker(threading.Thread):
         # Scale the policy/value losses down by the sequence length to normalize
         # for combination with aux losses.
         policy_loss /= sequence_length
-        value_loss /= sequence_length
+        # value_loss /= sequence_length
 
         total_loss = value_loss + policy_loss + entropy_loss
         prefix = self.tb_prefix
@@ -722,7 +711,13 @@ class A3CWorker(threading.Thread):
 
     def rp_samples(self) -> Tuple[MathyWindowObservation, List[float]]:
         output = MathyWindowObservation(
-            nodes=[], mask=[], hints=[], type=[], rnn_state=[[], []], time=[]
+            nodes=[],
+            mask=[],
+            hints=[],
+            type=[],
+            rnn_state=[[], []],
+            rnn_history=[[], []],
+            time=[],
         )
         reward: float = 0.0
         if self.experience.is_full() is False:

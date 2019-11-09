@@ -6,12 +6,7 @@ from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from mathy import (
-    MathyEnv,
-    deprecated_MathyEnvEpisodeResult,
-    deprecated_MathyEnvObservation,
-    MathyEnvState,
-)
+from mathy import MathyEnv, MathyEnvState
 from mathy.agents.tensorflow.controller import MathModel
 from mathy.agents.tensorflow.training.actor_mcts import ActorMCTS
 from mathy.agents.tensorflow.training.mcts import MCTS

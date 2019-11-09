@@ -46,6 +46,7 @@ class MathyObservation(NamedTuple):
     type: ProblemTypeIntList
     time: ProblemTimeFloatList
     rnn_state: RNNStatesFloatList
+    rnn_history: RNNStatesFloatList
 
 
 class MathyWindowObservation(NamedTuple):
@@ -65,6 +66,7 @@ class MathyWindowObservation(NamedTuple):
     type: WindowProblemTypeIntList
     time: WindowProblemTimeFloatList
     rnn_state: WindowRNNStatesFloatList
+    rnn_history: WindowRNNStatesFloatList
 
 
 class MathyBatchObservation(NamedTuple):
@@ -84,6 +86,7 @@ class MathyBatchObservation(NamedTuple):
     type: BatchProblemTypeIntList
     time: BatchProblemTimeFloatList
     rnn_state: BatchRNNStatesFloatList
+    rnn_history: BatchRNNStatesFloatList
 
 
 class MathyEnvTimeStep(NamedTuple):
@@ -120,11 +123,17 @@ def rnn_placeholder_states(rnn_size: int, num_states: int) -> WindowRNNStatesFlo
 
 
 def observations_to_window(
-    observations: List[MathyObservation]
+    observations: List[MathyObservation],
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(
-        nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
+        nodes=[],
+        mask=[],
+        hints=[],
+        type=[],
+        time=[],
+        rnn_state=[[], []],
+        rnn_history=[[], []],
     )
     max_length: int = max([len(o.nodes) for o in observations])
     max_mask_length: int = max([len(o.mask) for o in observations])
@@ -138,13 +147,21 @@ def observations_to_window(
         output.time.append(obs.time)
         output.rnn_state[0].append(obs.rnn_state[0])
         output.rnn_state[1].append(obs.rnn_state[1])
+        output.rnn_history[0].append(obs.rnn_history[0])
+        output.rnn_history[1].append(obs.rnn_history[1])
     return output
 
 
 def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
     """Combine a sequence of window observations into a batched observation window"""
     output = MathyBatchObservation(
-        nodes=[], mask=[], hints=[], type=[], time=[], rnn_state=[[], []]
+        nodes=[],
+        mask=[],
+        hints=[],
+        type=[],
+        time=[],
+        rnn_state=[[], []],
+        rnn_history=[[], []],
     )
     max_length = 0
     max_mask_length = 0
@@ -262,6 +279,7 @@ class MathyEnvState(object):
             type=hash,
             time=[0.0],
             rnn_state=rnn_state,
+            rnn_history=rnn_placeholder_state(len(rnn_state[0][0])),
         )
 
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
@@ -277,6 +295,7 @@ class MathyEnvState(object):
             type=hash,
             time=[0.0],
             rnn_state=rnn_placeholder_state(rnn_size),
+            rnn_history=rnn_placeholder_state(rnn_size),
         )
 
     def to_observation(
@@ -284,11 +303,14 @@ class MathyEnvState(object):
         move_mask: NodeMaskIntList,
         hint_mask: Optional[NodeHintMaskIntList] = None,
         rnn_state: Optional[RNNStatesFloatList] = None,
+        rnn_history: Optional[RNNStatesFloatList] = None,
     ) -> MathyObservation:
         if hint_mask is None:
             hint_mask = move_mask
         if rnn_state is None:
             rnn_state = rnn_placeholder_state(128)
+        if rnn_history is None:
+            rnn_history = rnn_placeholder_state(128)
         expression = self.parser.parse(self.agent.problem)
         nodes: List[MathExpression] = expression.toList()
         vectors: NodeIntList = [t.type_id for t in nodes]
@@ -306,6 +328,7 @@ class MathyEnvState(object):
             type=self.problem_hash(),
             time=[time],
             rnn_state=rnn_state,
+            rnn_history=rnn_history,
         )
 
     def to_empty_window(self, samples: int, rnn_size: int) -> MathyWindowObservation:

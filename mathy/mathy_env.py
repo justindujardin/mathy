@@ -17,7 +17,13 @@ from .rules import (
     ExpressionChangeRule,
     VariableMultiplyRule,
 )
-from .state import MathyEnvState, MathyEnvTimeStep, MathyObservation
+from .state import (
+    MathyEnvState,
+    MathyEnvTimeStep,
+    MathyObservation,
+    RNNStatesFloatList,
+    rnn_placeholder_state,
+)
 from .types import MathyEnvProblem, MathyEnvProblemArgs
 from .util import GameRewards
 
@@ -125,6 +131,32 @@ class MathyEnv:
         This is implemented per environment such that each environment can
         generate its own dataset with no required configuration."""
         raise NotImplementedError("This must be implemented in a subclass")
+
+    def state_to_observation(
+        self,
+        state: MathyEnvState,
+        rnn_size: Optional[int] = None,
+        rnn_state: Optional[RNNStatesFloatList] = None,
+        rnn_history: Optional[RNNStatesFloatList] = None,
+    ) -> MathyObservation:
+        """Convert an environment state into an observation that can be used
+        by a training agent."""
+
+        if rnn_size is None and rnn_state is None:
+            raise ValueError("one of rnn_state or rnn_size must be specified")
+        if rnn_size is not None and rnn_state is None:
+            rnn_state = rnn_placeholder_state(rnn_size)
+        if rnn_size is not None and rnn_history is None:
+            rnn_history = rnn_placeholder_state(rnn_size)
+        action_mask = self.get_valid_moves(state)
+        hint_mask = self.get_hint_mask(state)
+        observation = state.to_observation(
+            move_mask=action_mask,
+            hint_mask=hint_mask,
+            rnn_state=rnn_state,
+            rnn_history=rnn_history,
+        )
+        return observation
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for completing the episode. This is done

@@ -26,6 +26,17 @@ def test_teacher_evaluation_window_win_loss_record():
     assert student.topics[student.topic].negatives == 1
 
 
+def test_teacher_evaluation_objects():
+    teacher = Teacher(topic_names, eval_window=10)
+    # Report win/loss
+    teacher.report_result(me, 1.0)
+    teacher.report_result(me, -0.1)
+    teacher.report_result(me, 1.0)
+
+    student: Student = teacher.get_student(me)
+    assert student.topics[student.topic].positives == 2
+    assert student.topics[student.topic].negatives == 1
+
 
 def test_teacher_evaluation_window_change_difficulty():
     teacher = Teacher(
