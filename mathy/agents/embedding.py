@@ -15,11 +15,15 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         extract_window: Optional[int] = None,
+        episode_reset_state_h: Optional[bool] = False,
+        episode_reset_state_c: Optional[bool] = True,
         **kwargs
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.units = units
         self.extract_window = extract_window
+        self.episode_reset_state_h = episode_reset_state_h
+        self.episode_reset_state_c = episode_reset_state_c
         self.lstm_units = lstm_units
         self.init_rnn_state()
         self.token_embedding = tf.keras.layers.Embedding(
@@ -74,13 +78,18 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="embedding/rnn/agent_state_h",
         )
 
-    def reset_rnn_state(self):
+    def reset_rnn_state(self, force: bool = False):
         """Zero out the RNN state for a new episode"""
-        self.state_c.assign(tf.zeros([1, self.lstm_units]))
-        self.state_h.assign(tf.zeros([1, self.lstm_units]))
+        if self.episode_reset_state_h or force is True:
+            self.state_h.assign(tf.zeros([1, self.lstm_units]))
+        if self.episode_reset_state_c or force is True:
+            self.state_c.assign(tf.zeros([1, self.lstm_units]))
 
     def call(
-        self, features: MathyWindowObservation, burn_in_steps=0, return_rnn_states=False
+        self,
+        features: MathyWindowObservation,
+        burn_in_steps: int = 0,
+        return_rnn_states: bool = False,
     ) -> Union[Tuple[tf.Tensor, int], Tuple[tf.Tensor, tf.Tensor]]:
         batch_size = len(features.nodes)  # noqa
         sequence_length = len(features.nodes[0])
@@ -163,15 +172,13 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # Transform our combined features into a consistent size
         time_out = self.attn_bottleneck(time_out)
         # Perform self-attention over the features
-        time_out, self.attention_weights = self.attention(
+        attended_sequence, self.attention_weights = self.attention(
             [time_out, time_out, time_out]
         )
-        # Reduce the nodes sequence dimension to avoid having a large tiled
-        # LSTM hidden/cell state.
-        time_out = tf.expand_dims(tf.reduce_sum(time_out, axis=1), axis=1)
 
-        state_h = features.rnn_state[0][0]
-        state_c = features.rnn_state[1][0]
+        # Tile the LSTM state to match the timestep batch sequence length
+        state_h = tf.tile(features.rnn_state[0][0], [sequence_length, 1])
+        state_c = tf.tile(features.rnn_state[1][0], [sequence_length, 1])
         time_out, state_h, state_c = self.time_lstm(
             time_out, initial_state=[state_h, state_c]
         )
@@ -182,21 +189,15 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # Concatenate the RNN output state with our historical RNN state
         # See: https://arxiv.org/pdf/1810.04437.pdf
         rnn_state_with_history = tf.concat(
-            [
-                state_h,
-                state_c,
-                features.rnn_history[0][-1],
-                features.rnn_history[1][-1],
-            ],
-            axis=1,
+            [state_h[-1:], features.rnn_history[0][0]], axis=-1
         )
-        sequence_out = tf.tile(
+        lstm_context = tf.tile(
             tf.expand_dims(rnn_state_with_history, axis=0),
             [batch_size, sequence_length, 1],
         )
-        # we flattened the input state and tiled it, add positional information
-        # back in before the final transformation.
-        sequence_out = self.positional_embedding(sequence_out)
+        # Combine the output LSTM states with the historical average LSTM states
+        # and concatenate it with the attended input sequence.
+        sequence_out = tf.concat([attended_sequence, lstm_context], axis=-1)
         sequence_out = self.bottleneck(sequence_out)
 
         # For burn-in we only want the RNN states

@@ -74,9 +74,9 @@ def main(
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
-    units: int = 64,
-    embedding_units: int = 512,
-    lstm_units: int = 512,
+    units: int = 128,
+    embedding_units: int = 128,
+    lstm_units: int = 256,
     strategy: str = "a3c",
     difficulty: Optional[str] = None,
     profile: bool = False,
@@ -108,8 +108,6 @@ def main(
         agent.train()
     else:
         agent.play(loop=True)
-
-    pass
 
 
 if __name__ == "__main__":

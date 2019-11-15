@@ -42,7 +42,7 @@ class BaseConfig(BaseModel):
     # (intuition) is that the LSTM updates the state each time it processes
     # the init sequence meaning that it gets more time to fine-tune the hidden
     # and cell states for the particular problem.
-    num_thinking_steps_begin: int = 3
+    num_thinking_steps_begin: int = 1
 
     # Strategy for introducing MCTS into the A3C agent training process
     #
@@ -100,7 +100,7 @@ class BaseConfig(BaseModel):
 
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.95
+    td_lambda: float = 0.3
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 25
