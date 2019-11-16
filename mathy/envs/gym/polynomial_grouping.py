@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.polynomial_grouping import MathyPolynomialGroupingEnv
+from ..polynomial_grouping import MathyPolynomialGroupingEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 #
 # Group like terms
@@ -41,13 +41,13 @@ class PolynomialGroupingHard(GymPolynomialGrouping):
 
 register(
     id="mathy-poly-grouping-easy-v0",
-    entry_point="mathy.gym.envs:PolynomialGroupingEasy",
+    entry_point="mathy.envs.gym:PolynomialGroupingEasy",
 )
 register(
     id="mathy-poly-grouping-normal-v0",
-    entry_point="mathy.gym.envs:PolynomialGroupingNormal",
+    entry_point="mathy.envs.gym:PolynomialGroupingNormal",
 )
 register(
     id="mathy-poly-grouping-hard-v0",
-    entry_point="mathy.gym.envs:PolynomialGroupingHard",
+    entry_point="mathy.envs.gym:PolynomialGroupingHard",
 )

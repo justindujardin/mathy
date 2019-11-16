@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.complex_term_simplification import MathyComplexTermSimplificationEnv
+from ..complex_term_simplification import MathyComplexTermSimplificationEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 
 class GymComplexTerms(MathyGymEnv):
@@ -35,7 +35,7 @@ class ComplexTermsHard(GymComplexTerms):
         )
 
 
-register(id="mathy-complex-easy-v0", entry_point="mathy.gym.envs:ComplexTermsEasy")
-register(id="mathy-complex-normal-v0", entry_point="mathy.gym.envs:ComplexTermsNormal")
-register(id="mathy-complex-hard-v0", entry_point="mathy.gym.envs:ComplexTermsHard")
+register(id="mathy-complex-easy-v0", entry_point="mathy.envs.gym:ComplexTermsEasy")
+register(id="mathy-complex-normal-v0", entry_point="mathy.envs.gym:ComplexTermsNormal")
+register(id="mathy-complex-hard-v0", entry_point="mathy.envs.gym:ComplexTermsHard")
 

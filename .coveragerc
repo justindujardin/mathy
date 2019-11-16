@@ -1,2 +1,5 @@
 [run]
-omit = mathy/tests/**
+omit =
+    # omit anything in a tests folder
+    */tests/*
+    */trfl/*

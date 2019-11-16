@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.polynomial_like_terms_haystack import MathyPolynomialLikeTermsHaystackEnv
+from ..polynomial_like_terms_haystack import MathyPolynomialLikeTermsHaystackEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 #
 # Identify like terms in a haystack
@@ -41,13 +41,13 @@ class PolynomialLikeTermsHaystackHard(GymPolynomialLikeTermsHaystack):
 
 register(
     id="mathy-poly-like-terms-haystack-easy-v0",
-    entry_point="mathy.gym.envs:PolynomialLikeTermsHaystackEasy",
+    entry_point="mathy.envs.gym:PolynomialLikeTermsHaystackEasy",
 )
 register(
     id="mathy-poly-like-terms-haystack-normal-v0",
-    entry_point="mathy.gym.envs:PolynomialLikeTermsHaystackNormal",
+    entry_point="mathy.envs.gym:PolynomialLikeTermsHaystackNormal",
 )
 register(
     id="mathy-poly-like-terms-haystack-hard-v0",
-    entry_point="mathy.gym.envs:PolynomialLikeTermsHaystackHard",
+    entry_point="mathy.envs.gym:PolynomialLikeTermsHaystackHard",
 )

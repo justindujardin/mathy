@@ -17,7 +17,7 @@ class MathyEnvDifficulty(str, Enum):
     hard: str = Schema(  # type:ignore
         default="hard",
         title="Hard Problems",
-        description="Difficult problems that have intentionally large expression trees.",
+        description="Difficult problems that have intentionally large expressions",
     )
 
 

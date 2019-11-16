@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.polynomial_commute_like_terms import MathyPolynomialCommuteLikeTermsEnv
+from ..polynomial_commute_like_terms import MathyPolynomialCommuteLikeTermsEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 #
 # Combine like terms without commuting
@@ -41,13 +41,13 @@ class PolynomialCommuteLikeTermsHard(GymPolynomialCommuteLikeTerms):
 
 register(
     id="mathy-poly-commute-easy-v0",
-    entry_point="mathy.gym.envs:PolynomialCommuteLikeTermsEasy",
+    entry_point="mathy.envs.gym:PolynomialCommuteLikeTermsEasy",
 )
 register(
     id="mathy-poly-commute-normal-v0",
-    entry_point="mathy.gym.envs:PolynomialCommuteLikeTermsNormal",
+    entry_point="mathy.envs.gym:PolynomialCommuteLikeTermsNormal",
 )
 register(
     id="mathy-poly-commute-hard-v0",
-    entry_point="mathy.gym.envs:PolynomialCommuteLikeTermsHard",
+    entry_point="mathy.envs.gym:PolynomialCommuteLikeTermsHard",
 )

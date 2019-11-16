@@ -42,7 +42,7 @@
       "args": [
         "poly",
         "training/dev",
-        "-workers=2",
+        "-workers=1",
         // "-show",
         "-difficulty=easy"
       ]
@@ -65,11 +65,12 @@
         "--pyargs",
         "mathy",
         "-k",
-        // "test_mathy_env_valid_rules"
+        "test_adr"
+        // "test_episode_memory"
         // "test_parser_to_string"
         // "test_mathy_features_hierarchy"
         // "test_associative_property"
-        "test_commutative_property"
+        // "test_commutative_property"
       ]
     },
     {

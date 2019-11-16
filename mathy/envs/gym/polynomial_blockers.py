@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.polynomial_blockers import MathyPolynomialBlockersEnv
+from ..polynomial_blockers import MathyPolynomialBlockersEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 #
 # Commute + simplify with blockers
@@ -41,13 +41,13 @@ class PolynomialBlockersHard(GymPolynomialBlockers):
 
 register(
     id="mathy-poly-blockers-easy-v0",
-    entry_point="mathy.gym.envs:PolynomialBlockersEasy",
+    entry_point="mathy.envs.gym:PolynomialBlockersEasy",
 )
 register(
     id="mathy-poly-blockers-normal-v0",
-    entry_point="mathy.gym.envs:PolynomialBlockersNormal",
+    entry_point="mathy.envs.gym:PolynomialBlockersNormal",
 )
 register(
     id="mathy-poly-blockers-hard-v0",
-    entry_point="mathy.gym.envs:PolynomialBlockersHard",
+    entry_point="mathy.envs.gym:PolynomialBlockersHard",
 )

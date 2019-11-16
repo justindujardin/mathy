@@ -5,7 +5,6 @@ import tensorflow as tf
 from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
 from .swish_activation import swish
-from .layers.densenet_stack import DenseNetStack
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
@@ -31,17 +30,11 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="nodes_embedding",
             mask_zero=True,
         )
-        self.dense_td = tf.keras.layers.Dense(
+        self.in_transform = tf.keras.layers.Dense(
             self.units,
-            name="dense_td",
+            name="in_transform",
             activation=swish,
             kernel_initializer="he_normal",
-        )
-        self.in_transform = DenseNetStack(
-            self.units,
-            num_layers=4,
-            name="in_transform",
-            output_transform=self.dense_td,
         )
         self.output_dense = tf.keras.layers.Dense(
             self.units,
@@ -49,9 +42,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             activation=swish,
             kernel_initializer="he_normal",
         )
-        self.lstm_norm = tf.keras.layers.LayerNormalization(
-            name="lstm_layer_norm", axis=-1
-        )
+        self.lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_layer_norm")
         self.lstm_combine = tf.keras.layers.Add(name="lstm_stack_combine")
         self.num_lstms = 3
         self.lstms = [

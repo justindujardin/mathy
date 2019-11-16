@@ -1,18 +1,17 @@
 from typing import Optional, Type, List
 
 import gym
-import tensorflow as tf
-from ..mathy_env import MathyEnv
-from ..rules.rule import ExpressionChangeRule
-from ..core.expressions import MathExpression
-from ..state import (
+from ...mathy_env import MathyEnv
+from ...rules.rule import ExpressionChangeRule
+from ...core.expressions import MathExpression
+from ...state import (
     MathyEnvState,
     MathyObservation,
     RNNStatesFloatList,
     rnn_placeholder_state,
 )
-from ..types import MathyEnvProblemArgs
-from ..util import is_terminal_transition
+from ...types import MathyEnvProblemArgs
+from ...util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
 import numpy as np
 import math

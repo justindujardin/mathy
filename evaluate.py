@@ -5,18 +5,19 @@ import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import plac
-import tensorflow as tf
 from tqdm import trange
 
 from mathy.agents.a3c import A3CAgent, BaseConfig
 from mathy.agents.mcts import MCTS
-from mathy.gym import MathyGymEnv
+from mathy.env.gym import MathyGymEnv
 
 __mcts: Optional[MCTS] = None
 __agent: Optional[A3CAgent] = None
 
 
 def mathy_load_a3c(env_name: str, gym_env: MathyGymEnv, model: str):
+    import tensorflow as tf
+
     global __agent
     if __agent is None:
         import os

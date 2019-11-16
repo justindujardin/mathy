@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.binomial_distribution import MathyBinomialDistributionEnv
+from ..binomial_distribution import MathyBinomialDistributionEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 
 class GymBinomialDistribution(MathyGymEnv):
@@ -35,6 +35,6 @@ class BinomialsHard(GymBinomialDistribution):
         )
 
 
-register(id="mathy-binomial-easy-v0", entry_point="mathy.gym.envs:BinomialsEasy")
-register(id="mathy-binomial-normal-v0", entry_point="mathy.gym.envs:BinomialsNormal")
-register(id="mathy-binomial-hard-v0", entry_point="mathy.gym.envs:BinomialsHard")
+register(id="mathy-binomial-easy-v0", entry_point="mathy.envs.gym:BinomialsEasy")
+register(id="mathy-binomial-normal-v0", entry_point="mathy.envs.gym:BinomialsNormal")
+register(id="mathy-binomial-hard-v0", entry_point="mathy.envs.gym:BinomialsHard")

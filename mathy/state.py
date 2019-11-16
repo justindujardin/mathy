@@ -1,7 +1,7 @@
-from typing import List, NamedTuple, Optional, Dict
+from typing import Dict, List, NamedTuple, Optional
 
-import tensorflow as tf
 import numpy as np
+
 from .core.expressions import ConstantExpression, MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
 from .util import pad_array
@@ -249,6 +249,9 @@ class MathyEnvState(object):
         return out_state
 
     def problem_hash(self) -> ProblemTypeIntList:
+        # NOTE: import delayed to enable MP
+        import tensorflow as tf
+
         global _problem_hash_cache
         if _problem_hash_cache is None:
             _problem_hash_cache = {}

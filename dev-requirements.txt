@@ -1,5 +1,6 @@
 mypy
 pytest
+pytest-cov
 matplotlib
 black
 flake8

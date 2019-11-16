@@ -8,7 +8,7 @@ tf.random.set_seed(1337)
 
 from mathy.agents.base_config import BaseConfig
 from mathy.agents.a3c import A3CAgent
-from mathy import gym  # noqa
+from mathy.envs import gym  # noqa
 from typing import Optional
 import plac
 from multiprocessing import cpu_count
@@ -74,9 +74,9 @@ def main(
     model_dir: str,
     transfer_from: Optional[str] = None,
     workers: int = cpu_count(),
-    units: int = 128,
-    embedding_units: int = 128,
-    lstm_units: int = 256,
+    units: int = 32,
+    embedding_units: int = 512,
+    lstm_units: int = 128,
     strategy: str = "a3c",
     difficulty: Optional[str] = None,
     profile: bool = False,

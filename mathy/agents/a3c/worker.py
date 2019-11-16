@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 
 from ...features import calculate_grouping_control_signal
-from ...gym.mathy_gym_env import MathyGymEnv
+from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
     MathyEnvState,
     MathyObservation,

@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
-from ...envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..polynomial_simplification import MathyPolynomialSimplificationEnv
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..mathy_gym_env import MathyGymEnv
+from .mathy_gym_env import MathyGymEnv
 
 
 class GymPolynomialSimplification(MathyGymEnv):
@@ -35,6 +35,6 @@ class PolynomialsHard(GymPolynomialSimplification):
         )
 
 
-register(id="mathy-poly-easy-v0", entry_point="mathy.gym.envs:PolynomialsEasy")
-register(id="mathy-poly-normal-v0", entry_point="mathy.gym.envs:PolynomialsNormal")
-register(id="mathy-poly-hard-v0", entry_point="mathy.gym.envs:PolynomialsHard")
+register(id="mathy-poly-easy-v0", entry_point="mathy.envs.gym:PolynomialsEasy")
+register(id="mathy-poly-normal-v0", entry_point="mathy.envs.gym:PolynomialsNormal")
+register(id="mathy-poly-hard-v0", entry_point="mathy.envs.gym:PolynomialsHard")

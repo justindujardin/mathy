@@ -17,7 +17,6 @@ def get_memory(
             action=0,
             reward=0.0,
             grouping_change=0.0,
-            frame=None,  # type:ignore
             value=0.0,
         )
     return memory, env
@@ -64,7 +63,6 @@ def test_episode_memory_rnn_history():
             action=0.0,
             reward=0.0,
             grouping_change=0.0,
-            frame=None,
             value=0.0,
         )
     # Fetch and check the weighted RNN history value
