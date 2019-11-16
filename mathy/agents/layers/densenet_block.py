@@ -1,6 +1,6 @@
 import tensorflow as tf
 from typing import List
-from ..swish import swish
+from ..swish_activation import swish
 
 
 class DenseNetBlock(tf.keras.layers.Layer):

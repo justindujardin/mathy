@@ -24,9 +24,8 @@ from .. import action_selectors
 from ..actor_critic_model import ActorCriticModel
 from ..base_config import BaseConfig
 from ..episode_memory import EpisodeMemory
-from ..experience import Experience, ExperienceFrame
 from ..mcts import MCTS
-from ..tensorflow.trfl import discrete_policy_entropy_loss, td_lambda
+from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .util import record, truncate
 
 
@@ -68,12 +67,6 @@ class A3CWorker(threading.Thread):
         self.result_queue = result_queue
         self.experience_queue = experience_queue
         self.cmd_queue = cmd_queue
-        history_size = self.args.history_size
-        if worker_idx == 0:
-            history_size = self.args.greedy_history_size
-        self.experience = Experience(
-            history_size=history_size, ready_at=self.args.ready_at
-        )
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
@@ -90,19 +83,6 @@ class A3CWorker(threading.Thread):
         )
         self.reset_episode_loss()
         self.last_histogram_write = -1
-
-        # Sanity check
-        if self.args.action_strategy == "mcts_e_unreal":
-            if self.args.num_workers == 1:
-                raise EnvironmentError(
-                    "You are attempting to use MCTS with an UNREAL style agent, "
-                    "but you have only enabled 1 worker. This configuration requires "
-                    "at minimum 2 workers, because MCTS is not run on worker_0. This "
-                    "is to keep the true Greedy worker training/reporting outputs "
-                    "consistently. It's also helpful to see the strength of the model "
-                    "without the tree search. We don't want to ship a 1000x slower "
-                    "model at runtime just to solve basic problems."
-                )
 
         print(f"[#{worker_idx}] e: {self.epsilon} topics: {self.args.topics}")
 
@@ -142,18 +122,15 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory(self.experience, self.experience_queue)
+        episode_memory = EpisodeMemory()
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
             try:
                 ctrl, data = self.cmd_queue.get_nowait()
-                if ctrl == "experience":
-                    for frame in data:
-                        self.experience.add_frame(frame)
-                    # total = self.experience.frame_count
-                    # print(f"[#{self.worker_idx}] in({len(data)}) total({total})")
+                if ctrl == "noop":
+                    pass
             except queue.Empty:
                 pass
 
@@ -166,22 +143,10 @@ class A3CWorker(threading.Thread):
                 if win_pct is not None:
                     with self.writer.as_default():
                         student = self.teacher.get_student(self.worker_idx)
-                        difficulty = student.topics[student.topic].difficulty
-                        if difficulty == "easy":
-                            difficulty = 0.0
-                        elif difficulty == "normal":
-                            difficulty = 0.5
-                        elif difficulty == "hard":
-                            difficulty = 1.0
                         step = self.global_model.global_step
                         if self.worker_idx == 0:
                             tf.summary.scalar(
-                                f"{student.topic}/success_rate", data=win_pct, step=step
-                            )
-                            tf.summary.scalar(
-                                f"{student.topic}/difficulty",
-                                data=difficulty,
-                                step=step,
+                                f"win_rate/{student.topic}", data=win_pct, step=step
                             )
 
             self.iteration += 1
@@ -214,31 +179,7 @@ class A3CWorker(threading.Thread):
                 epsilon=epsilon,
             )
         selector: action_selectors.ActionSelector
-        if mcts is not None and self.args.action_strategy == "mcts_e_unreal":
-            if (
-                self.args.use_reward_prediction is False
-                and self.args.use_value_replay is False
-            ):
-                raise EnvironmentError(
-                    "This model is not configured for reward prediction/value replay. "
-                    "To use UNREAL MCTS you must enable at least one UNREAL aux task."
-                )
-
-            selector = action_selectors.UnrealMCTSActionSelector(
-                model=self.global_model,
-                worker_id=self.worker_idx,
-                mcts=mcts,
-                epsilon=self.args.unreal_mcts_epsilon,
-                episode=A3CWorker.global_episode,
-            )
-        elif mcts is not None and self.args.action_strategy == "mcts":
-            selector = action_selectors.MCTSActionSelector(
-                model=self.global_model,
-                worker_id=self.worker_idx,
-                mcts=mcts,
-                episode=A3CWorker.global_episode,
-            )
-        elif mcts is not None and self.args.action_strategy == "mcts_worker_0":
+        if mcts is not None and self.args.action_strategy == "mcts_worker_0":
             if self.worker_idx == 0:
                 selector = action_selectors.MCTSActionSelector(
                     model=self.global_model,
@@ -282,7 +223,7 @@ class A3CWorker(threading.Thread):
                     episode=A3CWorker.global_episode,
                 ),
             )
-        elif self.args.action_strategy in ["a3c", "unreal"]:
+        elif self.args.action_strategy in ["a3c"]:
             selector = action_selectors.A3CEpsilonGreedyActionSelector(
                 model=self.global_model,
                 worker_id=self.worker_idx,
@@ -333,9 +274,7 @@ class A3CWorker(threading.Thread):
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
-                env.render(
-                    self.args.print_mode, selector.model.embedding.attention_weights
-                )
+                env.render(self.args.print_mode, None)
             # store rnn state for replay training
             rnn_state_h = selector.model.embedding.state_h.numpy()
             rnn_state_c = selector.model.embedding.state_c.numpy()
@@ -345,7 +284,7 @@ class A3CWorker(threading.Thread):
             last_observation = MathyObservation(
                 nodes=last_observation.nodes,
                 mask=last_observation.mask,
-                hints=last_observation.hints,
+                values=last_observation.values,
                 type=last_observation.type,
                 time=last_observation.time,
                 rnn_state=last_rnn_state,
@@ -377,7 +316,7 @@ class A3CWorker(threading.Thread):
             observation = MathyObservation(
                 nodes=observation.nodes,
                 mask=observation.mask,
-                hints=observation.hints,
+                values=observation.values,
                 type=observation.type,
                 time=observation.time,
                 rnn_state=[rnn_state_h, rnn_state_c],
@@ -389,39 +328,16 @@ class A3CWorker(threading.Thread):
                 last_text, new_text, clip_at_zero=True
             )
             ep_reward += reward
-            frame = ExperienceFrame(
-                state=last_observation,
-                reward=reward,
-                action=action,
-                terminal=done,
-                grouping_change=grouping_change,
-                last_action=last_action,
-                last_reward=last_reward,
-                rnn_state=[rnn_state_h, rnn_state_c],
-            )
             episode_memory.store(
                 observation=last_observation,
                 action=action,
                 reward=reward,
                 grouping_change=grouping_change,
-                frame=frame,
                 value=value,
             )
             if time_count == self.args.update_freq or done:
-                keep_experience = bool(
-                    self.args.use_value_replay or self.args.use_reward_prediction
-                )
-                if self.args.action_strategy == "unreal":
-                    keep_experience = True
-                elif self.args.action_strategy == "mcts_e_unreal":
-                    unreal = cast(action_selectors.UnrealMCTSActionSelector, selector)
-                    keep_experience = unreal.use_mcts or not self.experience.is_full()
-
                 if done and self.args.print_training and self.worker_idx == 0:
-                    env.render(
-                        self.args.print_mode,
-                        selector.model.embedding.attention_weights,
-                    )
+                    env.render(self.args.print_mode, None)
 
                 # TODO: Make this a unit test?
                 # Check that the LSTM h/c states changed over time in the episode.
@@ -448,9 +364,7 @@ class A3CWorker(threading.Thread):
 
                 #     check_rnn = obs.rnn_state
 
-                self.update_global_network(
-                    done, observation, episode_memory, keep_experience=keep_experience
-                )
+                self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
@@ -524,11 +438,7 @@ class A3CWorker(threading.Thread):
                 )
 
     def update_global_network(
-        self,
-        done: bool,
-        observation: MathyObservation,
-        episode_memory: EpisodeMemory,
-        keep_experience: bool,
+        self, done: bool, observation: MathyObservation, episode_memory: EpisodeMemory,
     ):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
@@ -538,7 +448,6 @@ class A3CWorker(threading.Thread):
                 observation=observation,
                 episode_memory=episode_memory,
                 gamma=self.args.gamma,
-                keep_experience=keep_experience,
             )
             pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
         self.ep_loss += total_loss
@@ -640,6 +549,8 @@ class A3CWorker(threading.Thread):
 
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
+        # Reset the states to process the whole sequence
+        self.local_model.embedding.reset_rnn_state()
         inputs = episode_memory.to_episode_window()
         logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
 
@@ -709,75 +620,12 @@ class A3CWorker(threading.Thread):
             loss = tf.clip_by_value(loss, -1.0, 1.0)
         return loss
 
-    def rp_samples(self) -> Tuple[MathyWindowObservation, List[float]]:
-        output = MathyWindowObservation(
-            nodes=[],
-            mask=[],
-            hints=[],
-            type=[],
-            rnn_state=[[], []],
-            rnn_history=[[], []],
-            time=[],
-        )
-        reward: float = 0.0
-        if self.experience.is_full() is False:
-            return output, [reward]
-
-        frames = self.experience.sample_rp_sequence()
-        states = [frame.state for frame in frames[:-1]]
-        target_reward = frames[-1].reward
-        if math.isclose(target_reward, GameRewards.TIMESTEP):
-            sample_label = 0  # zero
-        elif target_reward > 0:
-            sample_label = 1  # positive
-        else:
-            sample_label = 2  # negative
-        return observations_to_window(states), [sample_label]
-
-    def compute_reward_prediction_loss(
-        self, done, observation: MathyObservation, episode_memory: EpisodeMemory
-    ):
-        if not self.experience.is_full():
-            return tf.constant(0.0)
-        max_steps = 3
-        rp_losses = []
-        for i in range(max_steps):
-            input, label = self.rp_samples()
-            rp_output = self.local_model.predict_next_reward(input)
-            rp_losses.append(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=rp_output, labels=label
-                )
-            )
-        return tf.reduce_mean(tf.convert_to_tensor(rp_losses))
-
-    def compute_value_replay_loss(
-        self, done, observation: MathyObservation, episode_memory: EpisodeMemory
-    ):
-        if not self.experience.is_full():
-            return tf.constant(0.0)
-        sample_size = 12
-        frames: List[ExperienceFrame] = self.experience.sample_sequence(sample_size)
-        states = []
-        discounted_rewards = []
-        for frame in frames:
-            states.append(frame.state)
-            discounted_rewards.append(frame.discounted)
-        discounted_rewards = tf.convert_to_tensor(discounted_rewards)
-        observation_window = observations_to_window(states)
-        vr_values = self.local_model.predict_value_replays(observation_window)
-        advantage = discounted_rewards - vr_values
-        # Value loss
-        value_loss = advantage ** 2
-        return tf.reduce_mean(tf.convert_to_tensor(value_loss))
-
     def compute_loss(
         self,
         *,
         done: bool,
         observation: MathyObservation,
         episode_memory: EpisodeMemory,
-        keep_experience=False,
         gamma=0.99,
     ):
         with self.writer.as_default():
@@ -787,11 +635,6 @@ class A3CWorker(threading.Thread):
             )
             pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
             aux_losses = {}
-            use_replay = self.args.use_reward_prediction or self.args.use_value_replay
-            # Skip over the experience replay buffers if not using Aux tasks because
-            # they add extra memory overhead to hold on to the frames.
-            if use_replay is True and keep_experience is True:
-                episode_memory.commit_frames(self.worker_idx, discounted_rewards)
             aux_weight = self.args.aux_tasks_weight_scale
 
             if self.args.use_grouping_control:
@@ -801,21 +644,6 @@ class A3CWorker(threading.Thread):
                 gc_loss *= aux_weight
                 total_loss += gc_loss
                 aux_losses["gc"] = gc_loss
-            if self.experience.is_full():
-                if self.args.use_reward_prediction:
-                    rp_loss = self.compute_reward_prediction_loss(
-                        done, observation, episode_memory
-                    )
-                    rp_loss *= aux_weight
-                    total_loss += rp_loss
-                    aux_losses["rp"] = rp_loss
-                if self.args.use_value_replay:
-                    vr_loss = self.compute_value_replay_loss(
-                        done, observation, episode_memory
-                    )
-                    vr_loss *= aux_weight
-                    total_loss += vr_loss
-                    aux_losses["vr"] = vr_loss
             for key in aux_losses.keys():
                 tf.summary.scalar(
                     f"{self.tb_prefix}/{key}_loss", data=aux_losses[key], step=step

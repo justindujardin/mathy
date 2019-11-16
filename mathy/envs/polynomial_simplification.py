@@ -37,12 +37,12 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        if config.difficulty == MathyEnvDifficulty.easy:
-            multiplier = 6
-        elif config.difficulty == MathyEnvDifficulty.normal:
-            multiplier = 5
-        else:
+        if problem.complexity < 7:
+            multiplier = 3
+        elif problem.complexity < 12:
             multiplier = 4
+        else:
+            multiplier = 3
         return problem.complexity * multiplier
 
     def get_env_namespace(self) -> str:

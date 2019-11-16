@@ -149,12 +149,8 @@ class MathyEnv:
         if rnn_size is not None and rnn_history is None:
             rnn_history = rnn_placeholder_state(rnn_size)
         action_mask = self.get_valid_moves(state)
-        hint_mask = self.get_hint_mask(state)
         observation = state.to_observation(
-            move_mask=action_mask,
-            hint_mask=hint_mask,
-            rnn_state=rnn_state,
-            rnn_history=rnn_history,
+            move_mask=action_mask, rnn_state=rnn_state, rnn_history=rnn_history,
         )
         return observation
 
@@ -411,16 +407,16 @@ class MathyEnv:
         node_list: List[MathExpression] = expression.toList()
         node_count = len(node_list)
         rule_count = len(self.rules)
-        hints = [0] * rule_count * node_count
+        values = [0] * rule_count * node_count
         for index, node in enumerate(node_list):
             term: Optional[TermEx] = get_term_ex(node)
             if term is None:
                 continue
             # The move mask indicates valid node/rule combinations
-            # for the hints we mark all rules on any term node
+            # for the values we mark all rules on any term node
             for i in range(rule_count):
-                hints[(index * rule_count) + i] = 1
-        return hints
+                values[(index * rule_count) + i] = 1
+        return values
 
     def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:
         """Get a vector the length of the number of valid rules that is

@@ -4,9 +4,8 @@ import tensorflow as tf
 
 from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
-from .tensorflow.layers.multi_head_attention_stack import MultiHeadAttentionStack
-from .tensorflow.layers.positional_embedding import TrigPosEmbedding
-from .tensorflow.swish import swish
+from .swish_activation import swish
+from .layers.densenet_stack import DenseNetStack
 
 
 class MathyEmbedding(tf.keras.layers.Layer):
@@ -15,9 +14,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         extract_window: Optional[int] = None,
-        episode_reset_state_h: Optional[bool] = False,
+        episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
-        **kwargs
+        **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.units = units
@@ -32,38 +31,39 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="nodes_embedding",
             mask_zero=True,
         )
-        self.attend_size = self.lstm_units // 2
-        self.attn_bottleneck = tf.keras.layers.Dense(
-            self.attend_size,
-            name="in_bottleneck",
+        self.dense_td = tf.keras.layers.Dense(
+            self.units,
+            name="dense_td",
             activation=swish,
             kernel_initializer="he_normal",
         )
-        self.bottleneck = tf.keras.layers.Dense(
-            self.lstm_units,
-            name="out_bottleneck",
+        self.in_transform = DenseNetStack(
+            self.units,
+            num_layers=4,
+            name="in_transform",
+            output_transform=self.dense_td,
+        )
+        self.output_dense = tf.keras.layers.Dense(
+            self.units,
+            name="dense_embeddings_out",
             activation=swish,
             kernel_initializer="he_normal",
         )
-        self.bottleneck_norm = tf.keras.layers.LayerNormalization(
-            name="combined_features_normalize"
+        self.lstm_norm = tf.keras.layers.LayerNormalization(
+            name="lstm_layer_norm", axis=-1
         )
-        self.positional_embedding = TrigPosEmbedding(name="token_pos_embed")
-        self.attention = MultiHeadAttentionStack(
-            num_heads=4,
-            num_layers=1,
-            name="self_attention",
-            attn_width=self.attend_size,
-            return_attention=True,
-        )
-        self.time_lstm = tf.keras.layers.LSTM(
-            self.lstm_units,
-            name="lstm",
-            return_sequences=True,
-            time_major=True,
-            return_state=True,
-            unroll=True,
-        )
+        self.lstm_combine = tf.keras.layers.Add(name="lstm_stack_combine")
+        self.num_lstms = 3
+        self.lstms = [
+            tf.keras.layers.LSTM(
+                self.lstm_units,
+                name=f"lstm_{i}",
+                return_sequences=True,
+                time_major=True,
+                return_state=True,
+            )
+            for i in range(self.num_lstms)
+        ]
 
     def init_rnn_state(self):
         """Track RNN states with variables in the graph"""
@@ -93,28 +93,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
     ) -> Union[Tuple[tf.Tensor, int], Tuple[tf.Tensor, tf.Tensor]]:
         batch_size = len(features.nodes)  # noqa
         sequence_length = len(features.nodes[0])
-        type = tf.convert_to_tensor(features.type)
-        time = tf.convert_to_tensor(features.time)
         input = tf.convert_to_tensor(features.nodes)
-
-        # Do any specified burn-in steps (for off-policy RNN state correction)
-        burn_in_window = features
-        burn_in_state_h = features.rnn_state[0]
-        burn_in_state_c = features.rnn_state[1]
-        for i in range(burn_in_steps):
-            burn_in_window = MathyWindowObservation(
-                nodes=burn_in_window.nodes,
-                mask=burn_in_window.mask,
-                hints=burn_in_window.hints,
-                type=burn_in_window.type,
-                time=burn_in_window.time,
-                rnn_state=[burn_in_state_h, burn_in_state_c],
-                rnn_history=burn_in_window.rnn_history,
-            )
-            result: Tuple[tf.Tensor, tf.Tensor] = self.call(
-                burn_in_window, burn_in_steps=0, return_rnn_states=True
-            )
-            burn_in_state_h, burn_in_state_c = result
+        values = tf.convert_to_tensor(features.values)
 
         #
         # Contextualize nodes by expanding their integers to include (n) neighbors
@@ -134,55 +114,25 @@ class MathyEmbedding(tf.keras.layers.Layer):
         else:
             # Add an empty dimension (usually used by the extract window depth)
             input = tf.expand_dims(input, axis=-1)
+            values = tf.expand_dims(values, axis=-1)
 
         query = self.token_embedding(input)
         query = tf.reshape(query, [batch_size, sequence_length, -1])
-        query = self.positional_embedding(query)
-
-        # Reshape the "type" information and combine it with each node in the
-        # sequence so the nodes have context for the current task
-        #
-        # [Batch, len(Type)] => [Batch, 1, len(Type)]
-        type_with_batch = type[:, tf.newaxis, :]
-        # Repeat the type values for each node in the sequence
-        #
-        # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
-        type_tiled = tf.tile(type_with_batch, [1, sequence_length, 1])
-
-        # Reshape the "time" information so it has a time axis
-        #
-        # [Batch, 1] => [Batch, 1, 1]
-        time_with_batch = time[:, tf.newaxis, :]
-        # Repeat the time values for each node in the sequence
-        #
-        # [Batch, 1, 1] => [Batch, len(Sequence), 1]
-        time_tiled = tf.tile(time_with_batch, [1, sequence_length, 1])
-
-        # Combine the LSTM outputs with the contextual features
-        time_out = tf.concat(
-            [
-                tf.cast(type_tiled, dtype=tf.float32),
-                time_tiled,
-                query,
-                # tf.cast(move_mask + hint_mask, dtype=tf.float32),
-            ],
-            axis=-1,
-        )
-
-        # Transform our combined features into a consistent size
-        time_out = self.attn_bottleneck(time_out)
-        # Perform self-attention over the features
-        attended_sequence, self.attention_weights = self.attention(
-            [time_out, time_out, time_out]
-        )
+        query = tf.concat([query, values], axis=-1)
+        query = self.in_transform(query)
 
         # Tile the LSTM state to match the timestep batch sequence length
         state_h = tf.tile(features.rnn_state[0][0], [sequence_length, 1])
         state_c = tf.tile(features.rnn_state[1][0], [sequence_length, 1])
-        time_out, state_h, state_c = self.time_lstm(
-            time_out, initial_state=[state_h, state_c]
-        )
-
+        lstm_outs = []
+        lstm_out = query
+        for lstm in self.lstms:
+            lstm_out, state_h, state_c = lstm(
+                lstm_out, initial_state=[state_h, state_c]
+            )
+            lstm_out = self.lstm_norm(lstm_out)
+            lstm_outs.append(lstm_out)
+        query = self.lstm_combine(lstm_outs)
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
 
@@ -197,8 +147,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         )
         # Combine the output LSTM states with the historical average LSTM states
         # and concatenate it with the attended input sequence.
-        sequence_out = tf.concat([attended_sequence, lstm_context], axis=-1)
-        sequence_out = self.bottleneck(sequence_out)
+        sequence_out = tf.concat([query, lstm_context], axis=-1)
+        sequence_out = self.output_dense(sequence_out)
 
         # For burn-in we only want the RNN states
         if return_rnn_states:

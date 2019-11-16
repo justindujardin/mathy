@@ -1,7 +1,7 @@
 import tensorflow as tf
 from .densenet_block import DenseNetBlock
 from typing import List, Optional
-from ..swish import swish
+from ..swish_activation import swish
 
 
 class DenseNetStack(tf.keras.layers.Layer):

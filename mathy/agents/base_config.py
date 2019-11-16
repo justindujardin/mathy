@@ -16,13 +16,6 @@ class BaseConfig(BaseModel):
     train: bool = False
     verbose: bool = False
 
-    # The history size for the greedy worker
-    greedy_history_size: int = 1024
-    # History size for exploratory workers
-    history_size: int = 512
-    # Size at which it's okay to start sampling from the memory
-    ready_at: int = 256
-
     lr: float = 3e-4
 
     # Update frequencey for the Worker to sync with the Main model. This has different
@@ -42,7 +35,7 @@ class BaseConfig(BaseModel):
     # (intuition) is that the LSTM updates the state each time it processes
     # the init sequence meaning that it gets more time to fine-tune the hidden
     # and cell states for the particular problem.
-    num_thinking_steps_begin: int = 1
+    num_thinking_steps_begin: int = 3
 
     # Strategy for introducing MCTS into the A3C agent training process
     #
@@ -57,15 +50,6 @@ class BaseConfig(BaseModel):
     #                This adds the strength of MCTS to observation gathering, without
     #                biasing the observed strength of the model (because only worker_0)
     #                reports statistics.
-    #   - "mcts_e_unreal" each worker uses an eGreedy style epsilon check at the
-    #                beginning of each episode. If the value is less than epsilon the
-    #                episode steps will be enhanced using MCTS. The enhanced examples
-    #                are stored to the Experience replace for UNREAL training. This
-    #                causes the buffer to fill more slowly, but the examples in it
-    #                are guaranteed to be high quality compared to a normal agent.
-    #                I hypothesize that filling the buffer with fewer higher-quality
-    #                examples will have the same effect as selecting prioritized
-    #                experiences for replay (as in Ape-X, R2D2, etc)
     #   - "mcts_recover" An average "steps to solve" for each problem type/difficulty is tracked
     #                and when the agent exceeds that step number in a problem, MCTS is applied
     #                for the remaining steps. This is an attempt to convert near miss (all negative)
@@ -73,11 +57,8 @@ class BaseConfig(BaseModel):
     #                the sign-flipping effect of episode loss/wins
     action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
-    mcts_sims: int = 15
+    mcts_sims: int = 150
     mcts_recover_time_threshold: float = 0.66
-    # When using "" action strategy, this is the epsilon that will trigger an MCTS
-    # episode when random is less than it.
-    unreal_mcts_epsilon: float = 0.05
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
@@ -120,17 +101,8 @@ class BaseConfig(BaseModel):
     print_training: bool = False
 
     # Print mode for output. "terminal" is the default, also supports "attention"
-    print_mode: str = "attention"
-
-    # When training on the experience replay buffer, burn-in the stored RNN states
-    # against the current model for (n) steps before processing the replay examples
-    unreal_burn_in_steps: int = 1
-
-    # Whether to use the reward prediction aux task
-    use_reward_prediction = False
-
-    # Whether to use the value replay aux task
-    use_value_replay = False
+    # NOTE: attention is gone (like... the layer)
+    print_mode: str = "terminal"
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

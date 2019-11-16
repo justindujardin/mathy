@@ -11,7 +11,6 @@ from colr import color
 from ...state import MathyEnvState, MathyObservation, observations_to_window
 from ...teacher import Teacher
 from ..actor_critic_model import ActorCriticModel
-from ..experience import Experience
 from ..base_config import BaseConfig
 from .worker import A3CWorker
 
@@ -48,7 +47,6 @@ class A3CAgent:
             env.initial_window(self.args.lstm_units), do_init=True
         )
         self.optimizer.iterations = self.global_model.global_step
-        self.experience = Experience(self.args.history_size, self.args.ready_at)
 
     def train(self):
 
@@ -113,10 +111,11 @@ class A3CAgent:
         current_observation = MathyObservation(
             nodes=current_observation.nodes,
             mask=current_observation.mask,
-            hints=current_observation.hints,
+            values=current_observation.values,
             type=current_observation.type,
             time=current_observation.time,
             rnn_state=[rnn_state_h, rnn_state_c],
+            rnn_history=current_observation.rnn_history,
         )
         observations = [current_observation]
         if last_observation is not None:

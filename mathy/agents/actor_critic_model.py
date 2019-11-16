@@ -6,30 +6,11 @@ from typing import Any, Optional, Tuple
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import TimeDistributed
-from .tensorflow.swish import swish
+from .swish_activation import swish
 
 from ..state import MathyWindowObservation
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
-
-
-class PolicySequences(tf.keras.layers.Layer):
-    def __init__(self, num_predictions=2, **kwargs):
-        super(PolicySequences, self).__init__(**kwargs)
-        self.num_predictions = num_predictions
-        self.logits = tf.keras.layers.Dense(
-            num_predictions,
-            name="pi_logits_dense",
-            kernel_initializer="he_normal",
-            activation=None,
-        )
-
-    def compute_output_shape(self, input_shape):
-        return tf.TensorShape([input_shape[0], self.num_predictions])
-
-    def call(self, input_tensor: tf.Tensor):
-        return self.logits(input_tensor)
-
 
 # TODO: Consider gc as Q network, tf 2.0 basic impl here: https://rubikscode.net/2019/07/08/deep-q-learning-with-python-and-tensorflow-2-0/
 
@@ -52,8 +33,6 @@ class ActorCriticModel(tf.keras.Model):
         self.predictions = predictions
         self.build_shared_network()
         self.build_policy_value()
-        self.build_reward_prediction()
-        self.build_value_replay()
 
     def build_shared_network(self):
         """The shared embedding network for all tasks"""
@@ -69,8 +48,14 @@ class ActorCriticModel(tf.keras.Model):
             kernel_initializer="he_normal",
             activation=None,
         )
+        self.policy_td_dense = tf.keras.layers.Dense(
+            self.predictions,
+            name="policy_value/timestep_dense",
+            kernel_initializer="he_normal",
+            activation=None,
+        )
         self.policy_logits = TimeDistributed(
-            PolicySequences(self.predictions), name="policy_value/policy_logits"
+            self.policy_td_dense, name="policy_value/policy_logits"
         )
         self.normalize_v = tf.keras.layers.LayerNormalization(
             name="policy_value/value_layer_norm"
@@ -78,20 +63,6 @@ class ActorCriticModel(tf.keras.Model):
         self.normalize_pi = tf.keras.layers.LayerNormalization(
             name="policy_value/policy_layer_norm"
         )
-
-    def build_reward_prediction(self):
-        if self.args.use_reward_prediction is False:
-            return
-        self.reward_prediction = tf.keras.layers.Dense(
-            3, name="reward_prediction/class_logits"
-        )
-        self.rp_prepare_values = tf.keras.layers.Dense(
-            self.args.embedding_units, name="reward_prediction/prepare_inputs"
-        )
-
-    def build_value_replay(self):
-        if self.args.use_value_replay is False:
-            return
 
     def call(self, features_window: MathyWindowObservation, apply_mask=True):
         call_print = False
@@ -156,40 +127,6 @@ class ActorCriticModel(tf.keras.Model):
         probs = tf.nn.softmax(flat_logits)
         return probs, tf.squeeze(values[-1])
 
-    def predict_next_reward(self, inputs: MathyWindowObservation) -> tf.Tensor:
-        """Reward prediction for auxiliary tasks. Given an input sequence of
-        observations predict a class for positive, negative or neutral representing
-        the amount of reward that is received at the next state. """
-        if self.args.use_reward_prediction is False:
-            raise EnvironmentError(
-                "This model is not configured to use reward prediction. "
-                "To use reward prediction aux task, set 'use_reward_prediction=True'"
-            )
-
-        rnn_state_h, _ = self.embedding(
-            inputs, burn_in_steps=self.args.unreal_burn_in_steps, return_rnn_states=True
-        )
-        predict_logits = self.reward_prediction(rnn_state_h[-1:])
-        # Output 3 class logits and convert to probabilities with softmax
-        return tf.nn.softmax(predict_logits)
-
-    def predict_value_replays(self, inputs: MathyWindowObservation) -> tf.Tensor:
-        """Value replay aux task that replays historical observations
-        and makes new value predictions using the features learned from
-        the reward prediction task"""
-        if self.args.use_value_replay is False:
-            raise EnvironmentError(
-                "This model is not configured to use value replay. "
-                "To use the value replay aux task, set 'use_value_replay=True'"
-            )
-
-        # Pass the sequence inputs through the shared embedding network
-        sequence_inputs, sequence_length = self.embedding(
-            inputs, burn_in_steps=self.args.unreal_burn_in_steps
-        )
-        values = self.value_logits(sequence_inputs)
-        return values
-
     def maybe_load(self, initial_state=None, do_init=False):
         if initial_state is not None:
             # NOTE: This is needed to properly initialize the trainable vars
@@ -198,10 +135,6 @@ class ActorCriticModel(tf.keras.Model):
             #       not matching gradients when the local_model tries to optimize
             #       against the global_model.
             self.call(initial_state)
-            if self.args.use_reward_prediction:
-                self.predict_next_reward(initial_state)
-            if self.args.use_value_replay:
-                self.predict_value_replays(initial_state)
             self.embedding.call(initial_state)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)

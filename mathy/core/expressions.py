@@ -527,13 +527,6 @@ class AddExpression(BinaryExpression):
 
     @property
     def type_id(self):
-        from ..helpers import get_term_ex
-
-        term_l = get_term_ex(self.left)
-        if term_l is not None:
-            term_r = get_term_ex(self.right)
-            if term_r is not None:
-                return MathTypeKeys["term_connector"]
         return MathTypeKeys["add"]
 
     @property
@@ -580,12 +573,6 @@ class MultiplyExpression(BinaryExpression):
 
     @property
     def type_id(self):
-        from ..helpers import get_term_ex
-
-        # Is the root of a term
-        term = get_term_ex(self)
-        if term is not None:
-            return MathTypeKeys["term_root"]
         return MathTypeKeys["multiply"]
 
     @property

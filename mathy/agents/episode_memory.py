@@ -6,7 +6,6 @@ from ..state import (
     MathyWindowObservation,
     observations_to_window,
 )
-from .experience import Experience, ExperienceFrame
 
 
 class EpisodeMemory(object):
@@ -18,16 +17,10 @@ class EpisodeMemory(object):
     rewards: List[float]
     # Estimated value from the model
     values: List[float]
-    # Experience frame for replay
-    frames: List[ExperienceFrame]
     # Grouping Control error from the environment
     grouping_changes: List[float]
 
-    def __init__(
-        self, experience: Optional[Experience] = None, exp_out: Optional[Queue] = None
-    ):
-        self.experience = experience
-        self.exp_out = exp_out
+    def __init__(self):
         self.clear()
 
     @property
@@ -36,7 +29,6 @@ class EpisodeMemory(object):
 
     def clear(self):
         self.observations = []
-        self.frames = []
         self.actions = []
         self.rewards = []
         self.values = []
@@ -59,38 +51,13 @@ class EpisodeMemory(object):
         action: int,
         reward: float,
         grouping_change: float,
-        frame: ExperienceFrame,
         value: float,
     ):
         self.observations.append(observation)
         self.actions.append(action)
         self.rewards.append(reward)
-        self.frames.append(frame)
         self.values.append(value)
         self.grouping_changes.append(grouping_change)
-
-    def commit_frames(
-        self, worker_index: int, ground_truth_discounted_rewards: List[float]
-    ):
-        """Commit frames to the replay buffer when a terminal state is reached
-        so that we have ground truth rewards rather than predictions for value
-        replay """
-        if self.exp_out is None:
-            raise ValueError(
-                "espisode memory was not given a queue to submit observations to"
-            )
-        # Ensure the data is the right shape
-        assert len(ground_truth_discounted_rewards) == len(
-            self.frames
-        ), "discounted rewards must be for all frames"
-        for frame, reward in zip(self.frames, ground_truth_discounted_rewards):
-            frame.reward = reward
-        # share experience with other workers
-        self.exp_out.put((worker_index, self.frames))
-        if self.experience is not None:
-            for f in self.frames:
-                self.experience.add_frame(f)
-        self.frames = []
 
     def rnn_weighted_history(self, rnn_size):
         # Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
