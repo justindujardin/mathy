@@ -129,25 +129,8 @@ class MathExpression(BinaryTreeNode):
 
     def with_color(self, text: str, style="bright") -> str:
         """Render a string that is colored if the boolean input is True"""
-        if self._rendering_change is True:
-            weight = self._attention_weight
-            weight_str = (
-                "{0: .4f}".format(abs(weight * 3)) if weight is not None else "0.0"
-            )
-            token_weight = float(weight_str)
-            r_i = 255
-            g_i = 255
-            b_i = 255
-            att_intensity = int(255 * min(token_weight, 1))
-            if weight is not None and not math.isclose(weight, 0.0, abs_tol=0.1):
-                if self._changed is False:
-                    g_i -= att_intensity
-                b_i -= att_intensity
-            elif self._changed is True:
-                r_i = 0
-                b_i = 0
-                g_i = 200
-            return color(text=text, fore=(r_i, g_i, b_i))
+        if self._rendering_change is True and self._changed is True:
+            return color(text, fore=self.color, style=style)
         return text
 
     def add_class(self, classes):

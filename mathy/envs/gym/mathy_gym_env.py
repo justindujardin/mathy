@@ -110,27 +110,6 @@ class MathyGymEnv(gym.Env):
         return observation
 
     def render(self, mode="terminal", data=None):
-        if mode == "attention" and self.last_change is not None:
-            assert data is not None, "attention weights required for this render mode"
-            attention_layers = [d.numpy() for d in data]
-            nodes = self.last_change.result.toList()
-            for layer in attention_layers:
-                multi_head_layer = np.array(layer)
-                # NOTE: this is kind of gross, but I'm not sure how to print all the
-                # layer<->heads without interaction to conditionally show them or
-                # massive output spam. If you were looking at one state it would be
-                # fine, but as a sequence of states in solving a problem, it's really
-                # spammy.
-                #
-                # TODO: As a hack we mean the whole thing along two axes :shrug:
-                mean_weights = multi_head_layer.mean(axis=0).mean(axis=0)
-                # Parse the expression, and associate the weights with it
-                for i, node in enumerate(nodes):
-                    if i < len(mean_weights):
-                        node.set_weight(mean_weights[i])
-                    else:
-                        node.set_weight(0.0)
-
         action_name = "initial"
         token_index = -1
         if self.last_action != -1 and self.last_change is not None:
