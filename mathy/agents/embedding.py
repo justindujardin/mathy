@@ -42,19 +42,24 @@ class MathyEmbedding(tf.keras.layers.Layer):
             activation=swish,
             kernel_initializer="he_normal",
         )
-        self.lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_layer_norm")
-        self.lstm_combine = tf.keras.layers.Add(name="lstm_stack_combine")
-        self.num_lstms = 3
-        self.lstms = [
-            tf.keras.layers.LSTM(
-                self.lstm_units,
-                name=f"lstm_{i}",
-                return_sequences=True,
-                time_major=True,
-                return_state=True,
-            )
-            for i in range(self.num_lstms)
-        ]
+        self.time_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_time_norm")
+        self.nodes_lstm_norm = tf.keras.layers.LayerNormalization(
+            name="lstm_nodes_norm"
+        )
+        self.time_lstm = tf.keras.layers.LSTM(
+            self.lstm_units,
+            name="timestep_lstm",
+            return_sequences=True,
+            time_major=True,
+            return_state=True,
+        )
+        self.nodes_lstm = tf.keras.layers.LSTM(
+            self.lstm_units,
+            name="nodes_lstm",
+            return_sequences=True,
+            time_major=False,
+            return_state=True,
+        )
 
     def init_rnn_state(self):
         """Track RNN states with variables in the graph"""
@@ -112,18 +117,21 @@ class MathyEmbedding(tf.keras.layers.Layer):
         query = tf.concat([query, values], axis=-1)
         query = self.in_transform(query)
 
-        # Tile the LSTM state to match the timestep batch sequence length
-        state_h = tf.tile(features.rnn_state[0][0], [sequence_length, 1])
-        state_c = tf.tile(features.rnn_state[1][0], [sequence_length, 1])
-        lstm_outs = []
-        lstm_out = query
-        for lstm in self.lstms:
-            lstm_out, state_h, state_c = lstm(
-                lstm_out, initial_state=[state_h, state_c]
-            )
-            lstm_out = self.lstm_norm(lstm_out)
-            lstm_outs.append(lstm_out)
-        query = self.lstm_combine(lstm_outs)
+        # Add context to each timesteps node vectors first
+        in_state_h = tf.concat(features.rnn_state[0], axis=0)
+        in_state_c = tf.concat(features.rnn_state[1], axis=0)
+        query, nodes_state_h, nodes_state_c = self.nodes_lstm(
+            query, initial_state=[in_state_h, in_state_c]
+        )
+        query = self.nodes_lstm_norm(query)
+
+        state_h = tf.tile(nodes_state_h[-1:], [sequence_length, 1])
+        state_c = tf.tile(nodes_state_c[-1:], [sequence_length, 1])
+        query, state_h, state_c = self.time_lstm(
+            query, initial_state=[state_h, state_c]
+        )
+        query = self.time_lstm_norm(query)
+
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
 

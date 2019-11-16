@@ -19,13 +19,6 @@ from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import GameRewards
 
 
-class PolyPerturbations:
-    # sketch
-    alpha_terms = "an integer the max number of main terms in an environment"
-    beta_terms = "an integer the max number of secondary terms in an environment. depends on the env."
-    gamma_terms = "an integer the max number of tertiary terms in an environment. depends on the env."
-
-
 class MathyPolynomialSimplificationEnv(MathyEnv):
     """A Mathy environment for simplifying polynomial expressions.
 
@@ -37,6 +30,8 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
+        if problem.complexity < 5:
+            multiplier = 4
         if problem.complexity < 7:
             multiplier = 3
         elif problem.complexity < 12:
