@@ -90,7 +90,6 @@ class SelfPlayTrainer:
                         pi,
                         v,
                     ) = samp
-                    # Pad pi batch
                     pi = tf.keras.preprocessing.sequence.pad_sequences(pi)
                     inputs = observations_to_window(
                         [MathyObservation(*o) for o in observation]

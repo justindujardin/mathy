@@ -167,17 +167,18 @@ class PracticeRunner:
             raise NotImplementedError("PracticeRunner.get_game returned None type")
         if predictor is None:
             raise NotImplementedError("PracticeRunner.get_predictor returned None type")
-        env_state, complexity = game.mathy.get_initial_state()
+        game.reset()
+        env_state = game.state
         episode_history: List[Any] = []
         move_count = 0
-        mcts = MCTS(game.mathy, predictor, self.config.cpuct, self.config.num_mcts_sims)
+        mcts = MCTS(game.mathy, predictor, self.config.cpuct, self.config.mcts_sims)
         while True:
             move_count += 1
             env_state, result = self.step(
                 game, env_state, mcts, predictor, move_count, episode_history
             )
             if result is not None:
-                return result + (complexity,)
+                return result + (game.problem,)
 
     def episode_complete(self, episode: int, summary: EpisodeSummary):
         """Called after each episode completes. Useful for things like updating
@@ -209,7 +210,8 @@ class PracticeRunner:
         game = self.get_game()
         new_net = self.get_predictor(game)
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
-        return trainer.train(train_examples, new_net)
+        trainer.train(train_examples, new_net)
+        new_net.save()
 
         # def _lazy_examples():
         #     for ex in train_examples:

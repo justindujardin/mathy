@@ -32,9 +32,7 @@ def self_play_runner(config: SelfPlayConfig):
             from ...agents.policy_value_model import PolicyValueModel
 
             model = PolicyValueModel(args=config, predictions=game.action_space.n)
-            model.compile(
-                loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"]
-            )
+            model.maybe_load()
             return model
 
     print("Practicing {}...".format(config.topics))

@@ -15,8 +15,8 @@
       "justMyCode": false,
       "module": "self_play",
       "args": [
-        "training/dev",
-        "-workers=5"
+        "training/dev_zero",
+        "-workers=3"
       ]
     },
     {
@@ -30,7 +30,7 @@
         "training/dev",
         "-workers=1",
         "-show",
-        "-difficulty=easy"
+        "-difficulty=normal"
       ]
     },
     {
