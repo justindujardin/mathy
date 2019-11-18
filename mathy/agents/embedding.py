@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
-
+import json
 from ..core.expressions import MathTypeKeysMax
 from ..state import MathyWindowObservation
 from .swish_activation import swish
@@ -13,8 +13,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         extract_window: Optional[int] = None,
-        episode_reset_state_h: Optional[bool] = True,
-        episode_reset_state_c: Optional[bool] = True,
+        episode_reset_state_h: Optional[bool] = False,
+        episode_reset_state_c: Optional[bool] = False,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)

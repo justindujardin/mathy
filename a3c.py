@@ -6,7 +6,7 @@ random.seed(1337)
 np.random.seed(1337)
 tf.random.set_seed(1337)
 
-from mathy.agents.base_config import BaseConfig
+from mathy.agents.base_config import A3CConfig
 from mathy.agents.a3c import A3CAgent
 from mathy.envs import gym  # noqa
 from typing import Optional
@@ -85,7 +85,7 @@ def main(
     evaluate: bool = False,
 ):
     topics_list = topics.split(",")
-    args = BaseConfig(
+    args = A3CConfig(
         verbose=True,
         train=not evaluate,
         difficulty=difficulty,

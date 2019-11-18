@@ -10,16 +10,16 @@ from colr import color
 
 from ...state import MathyEnvState, MathyObservation, observations_to_window
 from ...teacher import Teacher
-from ..actor_critic_model import ActorCriticModel
-from ..base_config import BaseConfig
+from ..policy_value_model import PolicyValueModel
+from ..base_config import A3CConfig
 from .worker import A3CWorker
 
 
 class A3CAgent:
 
-    args: BaseConfig
+    args: A3CConfig
 
-    def __init__(self, args: BaseConfig):
+    def __init__(self, args: A3CConfig):
         self.args = args
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
@@ -38,9 +38,7 @@ class A3CAgent:
             os.path.join(self.args.model_dir, "tensorboard")
         )
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
-        self.global_model = ActorCriticModel(
-            args=args, predictions=self.action_size, optimizer=self.optimizer
-        )
+        self.global_model = PolicyValueModel(args=args, predictions=self.action_size)
         # Initialize the global model with a random observation
         self.global_model.maybe_load(
             env.initial_window(self.args.lstm_units), do_init=True

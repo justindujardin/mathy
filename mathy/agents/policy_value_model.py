@@ -12,36 +12,21 @@ from ..state import MathyWindowObservation
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
 
-# TODO: Consider gc as Q network, tf 2.0 basic impl here: https://rubikscode.net/2019/07/08/deep-q-learning-with-python-and-tensorflow-2-0/
 
-
-class ActorCriticModel(tf.keras.Model):
+class PolicyValueModel(tf.keras.Model):
     args: BaseConfig
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
-        self,
-        args: BaseConfig,
-        optimizer: tf.optimizers.Optimizer,
-        predictions=2,
-        initial_state: Any = None,
+        self, args: BaseConfig, predictions=2, initial_state: Any = None,
     ):
-        super(ActorCriticModel, self).__init__()
+        super(PolicyValueModel, self).__init__()
         self.args = args
-        self.optimizer = optimizer
         self.init_global_step()
         self.predictions = predictions
-        self.build_shared_network()
-        self.build_policy_value()
-
-    def build_shared_network(self):
-        """The shared embedding network for all tasks"""
         self.embedding = MathyEmbedding(
             self.args.embedding_units, self.args.lstm_units, name="shared_network"
         )
-
-    def build_policy_value(self):
-        """A3C policy/value network"""
         self.value_logits = tf.keras.layers.Dense(
             1,
             name="policy_value/value_logits",
@@ -65,7 +50,10 @@ class ActorCriticModel(tf.keras.Model):
         )
 
     def call(self, features_window: MathyWindowObservation, apply_mask=True):
+        # print(features_window.numpy())
+        # features_window = MathyWindowObservation(*features_window)
         call_print = False
+        # print(features_window)
         batch_size = len(features_window.nodes)
         start = time.time()
         inputs = features_window
