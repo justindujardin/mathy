@@ -7,7 +7,6 @@ class BaseConfig(BaseModel):
     units: int = 64
     embedding_units: int = 512
     lstm_units: int = 256
-
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
@@ -15,9 +14,25 @@ class BaseConfig(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
-
     lr: float = 3e-4
+    max_eps: int = 15000
+    # How often to write histograms to tensorboard (in training steps)
+    summary_interval: int = 100
+    gamma: float = 0.99
+    # The number of worker agents to create.
+    num_workers: int = 3
+    # The lambda value for generalized lambda returns to calculate value loss
+    # 0.0 = bootstrap values, 1.0 = discounted
+    td_lambda: float = 0.3
+    # Verbose setting to print out worker_0 training steps. Useful for trying
+    # to find problems.
+    print_training: bool = False
+    # Print mode for output. "terminal" is the default, also supports "attention"
+    # NOTE: attention is gone (like... the layer)
+    print_mode: str = "terminal"
 
+
+class A3CConfig(BaseConfig):
     # Update frequencey for the Worker to sync with the Main model. This has different
     # meaning for different agents:
     #
@@ -26,10 +41,6 @@ class BaseConfig(BaseModel):
     # - for R2D2 agents this value indicates the number of episodes to run between
     #   syncing the latest model from the learner process.
     update_freq: int = 64
-    max_eps: int = 15000
-    # How often to write histograms to tensorboard (in training steps)
-    summary_interval: int = 100
-    gamma: float = 0.99
 
     # How many times to think about the initial state before acting.
     # (intuition) is that the LSTM updates the state each time it processes
@@ -60,12 +71,8 @@ class BaseConfig(BaseModel):
     mcts_sims: int = 150
     mcts_recover_time_threshold: float = 0.66
 
-    # NOTE: scaling down h_loss is observed to be important to keep it from
-    #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.1
-
-    # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 0.1
+    # Whether to use the grouping change aux task
+    use_grouping_control = True
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
@@ -79,6 +86,12 @@ class BaseConfig(BaseModel):
     # The number of worker agents to create.
     num_workers: int = 3
 
+    # NOTE: scaling down h_loss is observed to be important to keep it from
+    #       destabilizing the overall loss when it grows very small
+    entropy_loss_scaling = 0.1
+
+    # How much to scale down loss values from auxiliary tasks
+    aux_tasks_weight_scale = 0.1
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
     td_lambda: float = 0.3
@@ -103,6 +116,3 @@ class BaseConfig(BaseModel):
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
-
-    # Whether to use the grouping change aux task
-    use_grouping_control = True

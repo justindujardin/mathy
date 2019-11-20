@@ -1,3 +1,5 @@
+from .mathy_gym_env import *  # noqa
+from .masked_discrete import *  # noqa
 from .binomials import *  # noqa
 from .complex_terms import *  # noqa
 from .polynomial_blockers import *  # noqa

@@ -9,28 +9,14 @@
       "module": "evaluate"
     },
     {
-      "name": "mathy:runner",
+      "name": "mathy:zero",
       "type": "python",
       "request": "launch",
       "justMyCode": false,
-      "module": "runner",
+      "module": "self_play",
       "args": [
-        "training/dev/",
-        "-l",
-        "dev"
-      ]
-    },
-    {
-      "name": "mathy:r2d2",
-      "type": "python",
-      "request": "launch",
-      "justMyCode": false,
-      "module": "r2d2",
-      "args": [
-        "poly-grouping",
-        "training/dev-r2d2",
-        "-workers",
-        "1"
+        "training/dev_zero",
+        "-workers=3"
       ]
     },
     {
@@ -43,8 +29,8 @@
         "poly",
         "training/dev",
         "-workers=1",
-        // "-show",
-        "-difficulty=easy"
+        "-show",
+        "-difficulty=normal"
       ]
     },
     {

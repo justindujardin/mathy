@@ -8,6 +8,28 @@ from ..state import (
 )
 
 
+def rnn_weighted_history(observations: List[MathyObservation], rnn_size: int = 128):
+    # Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
+    #
+    # Take the mean of the previous LSTM states for this episode, which has
+    # contains weighted information where stored states that persisted have
+    # weight proportional to the number of timesteps the LSTM gating mechanism
+    # kept the value in its memory.
+    if len(observations) > 0:
+        in_h = []
+        in_c = []
+        for obs in observations:
+            in_h.append(obs.rnn_state[0])
+            in_c.append(obs.rnn_state[1])
+        # Take the mean of the historical states:
+        memory_context_h = np.array(in_h).mean(axis=0)
+        memory_context_c = np.array(in_c).mean(axis=0)
+    else:
+        memory_context_h = np.zeros([1, rnn_size])
+        memory_context_c = np.zeros([1, rnn_size])
+    return [memory_context_h, memory_context_c]
+
+
 class EpisodeMemory(object):
     # Observation from the environment
     observations: List[MathyObservation]
@@ -60,22 +82,4 @@ class EpisodeMemory(object):
         self.grouping_changes.append(grouping_change)
 
     def rnn_weighted_history(self, rnn_size):
-        # Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
-        #
-        # Take the mean of the previous LSTM states for this episode, which has
-        # contains weighted information where stored states that persisted have
-        # weight proportional to the number of timesteps the LSTM gating mechanism
-        # kept the value in its memory.
-        if len(self.observations) > 0:
-            in_h = []
-            in_c = []
-            for obs in self.observations:
-                in_h.append(obs.rnn_state[0])
-                in_c.append(obs.rnn_state[1])
-            # Take the mean of the historical states:
-            memory_context_h = np.array(in_h).mean(axis=0)
-            memory_context_c = np.array(in_c).mean(axis=0)
-        else:
-            memory_context_h = np.zeros([1, rnn_size])
-            memory_context_c = np.zeros([1, rnn_size])
-        return [memory_context_h, memory_context_c]
+        return rnn_weighted_history(self.observations, rnn_size)

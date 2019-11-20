@@ -21,8 +21,8 @@ from ...state import (
 from ...teacher import Teacher
 from ...util import GameRewards, discount
 from .. import action_selectors
-from ..actor_critic_model import ActorCriticModel
-from ..base_config import BaseConfig
+from ..policy_value_model import PolicyValueModel
+from ..base_config import A3CConfig
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
 from ..trfl import discrete_policy_entropy_loss, td_lambda
@@ -31,7 +31,7 @@ from .util import record, truncate
 
 class A3CWorker(threading.Thread):
 
-    args: BaseConfig
+    args: A3CConfig
 
     # <GLOBAL_VARS>
     global_episode = 0
@@ -45,9 +45,9 @@ class A3CWorker(threading.Thread):
 
     def __init__(
         self,
-        args: BaseConfig,
+        args: A3CConfig,
         action_size: int,
-        global_model: ActorCriticModel,
+        global_model: PolicyValueModel,
         optimizer,
         greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,
@@ -75,9 +75,7 @@ class A3CWorker(threading.Thread):
         first_env = self.teacher.get_env(self.worker_idx, self.iteration)
         self.envs[first_env] = gym.make(first_env)
         self.writer = writer
-        self.local_model = ActorCriticModel(
-            args=args, predictions=self.action_size, optimizer=self.optimizer
-        )
+        self.local_model = PolicyValueModel(args=args, predictions=self.action_size)
         self.local_model.maybe_load(
             self.envs[first_env].initial_window(self.args.lstm_units)
         )
