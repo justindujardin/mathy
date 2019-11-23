@@ -1,3 +1,4 @@
+import pickle
 import os
 import time
 from shutil import copyfile
@@ -5,12 +6,12 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import TimeDistributed
-from .swish_activation import swish
+from tensorflow.python.keras import backend as K
 
-from ..state import MathyWindowObservation
+from ..state import MathyWindowObservation, MathyInputsType, MathyInputs
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
+from .swish_activation import swish
 
 
 class PolicyValueModel(tf.keras.Model):
@@ -18,52 +19,47 @@ class PolicyValueModel(tf.keras.Model):
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
-        self, args: BaseConfig, predictions=2, initial_state: Any = None,
+        self, args: BaseConfig, predictions=2, initial_state: Any = None, **kwargs,
     ):
-        super(PolicyValueModel, self).__init__()
+        super(PolicyValueModel, self).__init__(**kwargs)
+        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.args = args
-        self.init_global_step()
         self.predictions = predictions
         self.embedding = MathyEmbedding(
-            self.args.embedding_units, self.args.lstm_units, name="shared_network"
+            self.args.embedding_units, self.args.lstm_units,
         )
         self.value_logits = tf.keras.layers.Dense(
-            1,
-            name="policy_value/value_logits",
-            kernel_initializer="he_normal",
-            activation=None,
+            1, name="value_logits", kernel_initializer="he_normal", activation=None,
         )
         self.policy_td_dense = tf.keras.layers.Dense(
             self.predictions,
-            name="policy_value/timestep_dense",
+            name="timestep_dense",
             kernel_initializer="he_normal",
             activation=None,
         )
-        self.policy_logits = TimeDistributed(
-            self.policy_td_dense, name="policy_value/policy_logits"
+        self.policy_logits = tf.keras.layers.TimeDistributed(
+            self.policy_td_dense, name="policy_logits"
         )
-        self.normalize_v = tf.keras.layers.LayerNormalization(
-            name="policy_value/value_layer_norm"
-        )
-        self.normalize_pi = tf.keras.layers.LayerNormalization(
-            name="policy_value/policy_layer_norm"
+        self.normalize_pi = tf.keras.layers.LayerNormalization(name="policy_layer_norm")
+        self.loss = tf.Variable(
+            0.0, trainable=False, name="loss_placeholder", dtype=tf.float32
         )
 
-    def call(self, features_window: MathyWindowObservation, apply_mask=True):
-        # print(features_window.numpy())
-        # features_window = MathyWindowObservation(*features_window)
+    def call(self, features_window: MathyInputsType, apply_mask=True):
         call_print = False
-        # print(features_window)
-        batch_size = len(features_window.nodes)
+        nodes = features_window[MathyInputs.nodes]
+        batch_size = (
+            len(nodes)
+            if not isinstance(nodes, (tf.Tensor, np.ndarray))
+            else nodes.shape
+        )
         start = time.time()
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
-        sequence_inputs, sequence_length = self.embedding(inputs)
+        sequence_inputs = self.embedding(inputs)
         values = tf.reduce_mean(self.value_logits(sequence_inputs), axis=1)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
-        trimmed_logits, mask_logits = self.apply_pi_mask(
-            logits, features_window, sequence_length
-        )
+        trimmed_logits, mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = trimmed_logits if not apply_mask else mask_logits
         if call_print is True:
             print(
@@ -74,103 +70,112 @@ class PolicyValueModel(tf.keras.Model):
         return logits, values, mask_result
 
     def apply_pi_mask(
-        self, logits, features_window: MathyWindowObservation, sequence_length: int
+        self, logits, features_window: MathyInputsType,
     ):
         """Take the policy_mask from a batch of features and multiply
-        the policy logits by it to remove any invalid moves from
-        selection"""
-
+        the policy logits by it to remove any invalid moves"""
+        mask = features_window[MathyInputs.mask]
+        logits_shape = tf.shape(logits)
         features_mask = tf.reshape(
-            features_window.mask, (logits.shape[0], -1, self.predictions)
+            mask, (logits_shape[0], -1, self.predictions), name="pi_mask_reshape"
         )
         features_mask = tf.cast(features_mask, dtype=tf.float32)
         # Trim the logits to match the feature mask
         trim_logits = logits[:, : features_mask.shape[1], :]
-        mask_logits = tf.multiply(trim_logits, features_mask)
+        trim_logits_shape = tf.shape(trim_logits)
+        mask_logits = tf.multiply(trim_logits, features_mask, name="mask_logits")
         negative_mask_logits = tf.where(
             tf.equal(mask_logits, tf.constant(0.0)),
-            tf.fill(trim_logits.shape, -1000000.0),
+            tf.fill(trim_logits_shape, -1000000.0),
             mask_logits,
+            name="softmax_negative_logits",
         )
-
         return trim_logits, negative_mask_logits
 
-    def call_masked(
-        self, inputs: MathyWindowObservation
+    @tf.function
+    def call_graph(
+        self, inputs: MathyInputsType
     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        logits, values, masked = self.call(inputs)
-        flat_logits = tf.reshape(tf.squeeze(masked), [-1])
-        probs = tf.nn.softmax(flat_logits)
-        return logits, values, probs
+        """Autograph optimized function"""
+        return self.call(inputs)
 
-    def predict_next(
-        self, inputs: MathyWindowObservation
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs"""
         logits, values, masked = self.call(inputs)
         # take the last timestep
-        masked = masked[-1]
+        masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
         probs = tf.nn.softmax(flat_logits)
         return probs, tf.squeeze(values[-1])
-
-    def maybe_load(self, initial_state=None, do_init=False):
-        if initial_state is not None:
-            # NOTE: This is needed to properly initialize the trainable vars
-            #       for the global model. Each prediction path must be called
-            #       here or you'll get gradient descent errors about variables
-            #       not matching gradients when the local_model tries to optimize
-            #       against the global_model.
-            self.call(initial_state)
-            self.embedding.call(initial_state)
-        if not os.path.exists(self.args.model_dir):
-            os.makedirs(self.args.model_dir)
-        model_path = os.path.join(self.args.model_dir, self.args.model_name)
-
-        if do_init and self.args.init_model_from is not None:
-            init_model_path = os.path.join(
-                self.args.init_model_from, self.args.model_name
-            )
-            if os.path.exists(init_model_path) and not os.path.exists(model_path):
-                print(f"initialize model weights from: {init_model_path}")
-                copyfile(init_model_path, model_path)
-            else:
-                raise ValueError(f"could not initialize model from: {init_model_path}")
-
-        if os.path.exists(model_path):
-            if do_init and self.args.verbose:
-                print("Loading model from: {}".format(model_path))
-            if os.path.exists(model_path):
-                self.load_weights(model_path)
-
-    def init_global_step(self):
-        if not os.path.exists(self.args.model_dir):
-            os.makedirs(self.args.model_dir)
-        name = f"{self.args.model_name}.step"
-        step_path = os.path.join(self.args.model_dir, name)
-        step_num = 0
-        if os.path.exists(step_path):
-            with open(step_path, "r") as f:
-                step_num = int(f.readline())
-        self.global_step = tf.Variable(
-            step_num, trainable=False, name="global_step", dtype=tf.int64
-        )
-        self.save_global_step(step_num)
-
-    def save_global_step(self, step: int = 0):
-        if not os.path.exists(self.args.model_dir):
-            os.makedirs(self.args.model_dir)
-        name = f"{self.args.model_name}.step"
-        step_path = os.path.join(self.args.model_dir, name)
-        with open(step_path, "w") as f:
-            f.write(f"{step}")
 
     def save(self):
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
-        self.save_weights(model_path)
-        step = self.global_step.numpy()
+        if self.args.model_format == "keras":
+            with open(f"{model_path}.optimizer", "wb") as f:
+                pickle.dump(self.optimizer.get_weights(), f)
+            model_path += ".h5"
+        self.save_weights(model_path, save_format=self.args.model_format)
+        step = self.optimizer.iterations.numpy()
         print(f"[save] step({step}) model({model_path})")
-        self.save_global_step(step)
+
+
+def get_or_create_policy_model(
+    args: BaseConfig,
+    env_actions: int,
+    initial_state: Optional[MathyWindowObservation] = None,
+) -> PolicyValueModel:
+
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+    model_path = os.path.join(args.model_dir, args.model_name)
+    # Transfer weights/optimizer from a different model
+    if args.init_model_from is not None:
+        init_model_path = os.path.join(args.init_model_from, args.model_name)
+        if not os.path.exists(model_path):
+            if os.path.exists(init_model_path):
+                print(f"initialize model weights from: {init_model_path}")
+                copyfile(init_model_path, model_path)
+        else:
+            raise ValueError(
+                f"model already exists at: {model_path}, cannot initialize"
+            )
+
+    model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
+    model.compile(optimizer=model.optimizer, loss="mse", metrics=["accuracy"])
+
+    # else:
+    #     model = PolicyValueModel(args=args, predictions=env_actions)
+
+    if initial_state is not None:
+        # NOTE: This is needed to properly initialize the trainable vars
+        #       for the global model. Each prediction path must be called
+        #       here or you'll get gradient descent errors about variables
+        #       not matching gradients when the local_model tries to optimize
+        #       against the global_model.
+        model.predict(initial_state.to_inputs())
+        model.build(initial_state.to_input_shapes())
+
+    if args.model_format == "keras":
+        opt = f"{model_path}.optimizer"
+        mod = f"{model_path}.h5"
+        if os.path.exists(mod):
+            if args.verbose:
+                print(f"Loading keras model and optimizer from: {mod}, {opt}")
+            model.load_weights(mod)
+            model._make_train_function()
+            with open(opt, "rb") as f:
+                weight_values = pickle.load(f)
+
+            model.optimizer.set_weights(weight_values)
+    elif args.model_format == "tf":
+        if os.path.exists(os.path.join(args.model_dir, "checkpoint")):
+            if args.verbose:
+                print("Loading model from: {}".format(model_path))
+            model.load_weights(model_path)
+    else:
+        raise ValueError(f"error: unknown model format ({args.model_format})")
+
+    return model

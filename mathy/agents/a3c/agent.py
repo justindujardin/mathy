@@ -10,7 +10,7 @@ from colr import color
 
 from ...state import MathyEnvState, MathyObservation, observations_to_window
 from ...teacher import Teacher
-from ..policy_value_model import PolicyValueModel
+from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..base_config import A3CConfig
 from .worker import A3CWorker
 
@@ -34,16 +34,20 @@ class A3CAgent:
         )
         env = gym.make(self.teacher.get_env(0, 0))
         self.action_size = env.action_space.n
-        self.writer = tf.summary.create_file_writer(
-            os.path.join(self.args.model_dir, "tensorboard")
+        self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
+        self.writer = tf.summary.create_file_writer(self.log_dir)
+        self.global_model = get_or_create_policy_model(
+            args, self.action_size, env.initial_window(self.args.lstm_units)
         )
-        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
-        self.global_model = PolicyValueModel(args=args, predictions=self.action_size)
-        # Initialize the global model with a random observation
-        self.global_model.maybe_load(
-            env.initial_window(self.args.lstm_units), do_init=True
-        )
-        self.optimizer.iterations = self.global_model.global_step
+        with self.writer.as_default():
+            tf.summary.trace_on(graph=True, profiler=True)
+            self.global_model.call_graph(
+                env.initial_window(self.args.lstm_units).to_inputs()
+            )
+            tf.summary.trace_export(
+                name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
+            )
+            tf.summary.trace_off()
 
     def train(self):
 
@@ -63,7 +67,7 @@ class A3CAgent:
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,
-                optimizer=self.optimizer,
+                optimizer=self.global_model.optimizer,
                 result_queue=res_queue,
                 writer=self.writer,
             )
@@ -98,34 +102,8 @@ class A3CAgent:
         [w.join() for w in workers]
         print("Done. Bye!")
 
-    def choose_action(
-        self, env, state: MathyEnvState, last_observation: MathyObservation
-    ):
-        rnn_state_h = self.global_model.embedding.state_h.numpy()
-        rnn_state_c = self.global_model.embedding.state_c.numpy()
-        # named tuples are read-only, so add rnn state to a new copy
-        current_observation = env._observe(state)
-        current_observation = MathyObservation(
-            nodes=current_observation.nodes,
-            mask=current_observation.mask,
-            values=current_observation.values,
-            type=current_observation.type,
-            time=current_observation.time,
-            rnn_state=[rnn_state_h, rnn_state_c],
-            rnn_history=current_observation.rnn_history,
-        )
-        observations = [current_observation]
-        if last_observation is not None:
-            observations.insert(0, last_observation)
-        policy, value = self.global_model.predict_next(
-            observations_to_window(observations)
-        )
-        action = np.argmax(policy)
-        return action
-
     def play(self, loop=False):
         model = self.global_model
-        model.maybe_load()
         envs = {}
         try:
             episode_counter = 0

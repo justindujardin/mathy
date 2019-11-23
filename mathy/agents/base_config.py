@@ -10,7 +10,8 @@ class BaseConfig(BaseModel):
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
-    model_name: str = "model.h5"
+    model_name: str = "model"
+    model_format: str = "keras"
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
@@ -61,14 +62,11 @@ class A3CConfig(BaseConfig):
     #                This adds the strength of MCTS to observation gathering, without
     #                biasing the observed strength of the model (because only worker_0)
     #                reports statistics.
-    #   - "mcts_recover" An average "steps to solve" for each problem type/difficulty is tracked
-    #                and when the agent exceeds that step number in a problem, MCTS is applied
-    #                for the remaining steps. This is an attempt to convert near miss (all negative)
-    #                episodes into "weak win" ones. The idea is that agents struggle to overcome
-    #                the sign-flipping effect of episode loss/wins
+    #   - "mcts_recover" after a certain point in the episode, use MCTS to try and
+    #                turn a loss into a weak win.
     action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
-    mcts_sims: int = 150
+    mcts_sims: int = 500
     mcts_recover_time_threshold: float = 0.66
 
     # Whether to use the grouping change aux task

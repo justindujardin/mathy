@@ -121,8 +121,12 @@ class MCTS:
             # leaf node
             valids = self.env.get_valid_moves(env_state)
             observations = observations_to_window(
-                [env_state.to_observation(valids, rnn_state=rnn_state)]
-            )
+                [
+                    env_state.to_observation(
+                        valids, rnn_state=rnn_state, rnn_history=rnn_state
+                    )
+                ]
+            ).to_inputs()
             out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
                 self.model.embedding.state_h.numpy(),

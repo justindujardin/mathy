@@ -21,7 +21,7 @@ from ...state import (
 from ...teacher import Teacher
 from ...util import GameRewards, discount
 from .. import action_selectors
-from ..policy_value_model import PolicyValueModel
+from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..base_config import A3CConfig
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
@@ -75,11 +75,13 @@ class A3CWorker(threading.Thread):
         first_env = self.teacher.get_env(self.worker_idx, self.iteration)
         self.envs[first_env] = gym.make(first_env)
         self.writer = writer
-        self.local_model = PolicyValueModel(args=args, predictions=self.action_size)
-        self.local_model.maybe_load(
-            self.envs[first_env].initial_window(self.args.lstm_units)
+        self.local_model = get_or_create_policy_model(
+            args,
+            self.action_size,
+            self.envs[first_env].initial_window(self.args.lstm_units),
         )
         self.reset_episode_loss()
+        self.last_model_write = -1
         self.last_histogram_write = -1
 
         print(f"[#{worker_idx}] e: {self.epsilon} topics: {self.args.topics}")
@@ -141,7 +143,7 @@ class A3CWorker(threading.Thread):
                 if win_pct is not None:
                     with self.writer.as_default():
                         student = self.teacher.get_student(self.worker_idx)
-                        step = self.global_model.global_step
+                        step = self.global_model.optimizer.iterations
                         if self.worker_idx == 0:
                             tf.summary.scalar(
                                 f"win_rate/{student.topic}", data=win_pct, step=step
@@ -267,7 +269,7 @@ class A3CWorker(threading.Thread):
             rnn_state_c = selector.model.embedding.state_c.numpy()
             seq_start = env.start_observation([rnn_state_h, rnn_state_c])
             selector.model.predict_next(
-                observations_to_window([seq_start, last_observation])
+                observations_to_window([seq_start, last_observation]).to_inputs()
             )
 
         while not done and A3CWorker.request_quit is False:
@@ -394,7 +396,7 @@ class A3CWorker(threading.Thread):
 
         # Track metrics for all workers
         name = self.teacher.get_env(self.worker_idx, self.iteration)
-        step = self.global_model.global_step
+        step = self.global_model.optimizer.iterations
         with self.writer.as_default():
             agent_state = last_state.agent
             steps = int(last_state.max_moves - agent_state.moves_remaining)
@@ -414,25 +416,25 @@ class A3CWorker(threading.Thread):
     def maybe_write_histograms(self):
         if self.worker_idx != 0:
             return
-        step = self.global_model.global_step.numpy()
+        step = self.global_model.optimizer.iterations.numpy()
         next_write = self.last_histogram_write + self.args.summary_interval
         if step >= next_write or self.last_histogram_write == -1:
             with self.writer.as_default():
                 self.last_histogram_write = step
                 for var in self.local_model.trainable_variables:
                     tf.summary.histogram(
-                        var.name, var, step=self.global_model.global_step
+                        var.name, var, step=self.global_model.optimizer.iterations
                     )
                 # Write out current LSTM hidden/cell states
                 tf.summary.histogram(
-                    "agent/lstm_c",
+                    "memory/lstm_c",
                     self.local_model.embedding.state_c,
-                    step=self.global_model.global_step,
+                    step=self.global_model.optimizer.iterations,
                 )
                 tf.summary.histogram(
-                    "agent/lstm_h",
+                    "memory/lstm_h",
                     self.local_model.embedding.state_h,
-                    step=self.global_model.global_step,
+                    step=self.global_model.optimizer.iterations,
                 )
 
     def update_global_network(
@@ -502,12 +504,13 @@ class A3CWorker(threading.Thread):
                 episode_reward, episode_steps, last_state
             )
 
-        # We must use a lock to save our model and to print to prevent data races.
-        if A3CWorker.global_episode % A3CWorker.save_every_n_episodes == 0:
-            self.write_global_model()
-        else:
-            A3CWorker.global_episode += 1
+            step = self.global_model.optimizer.iterations.numpy()
+            next_write = self.last_model_write + A3CWorker.save_every_n_episodes
+            if step >= next_write or self.last_model_write == -1:
+                self.last_model_write = step
+                self.write_global_model()
 
+        A3CWorker.global_episode += 1
         self.reset_episode_loss()
 
     def write_global_model(self, increment_episode=True):
@@ -526,12 +529,14 @@ class A3CWorker(threading.Thread):
         episode_memory: EpisodeMemory,
         gamma=0.99,
     ):
-        step = self.global_model.global_step
+        step = self.global_model.optimizer.iterations
         if done:
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model(observations_to_window([observation]))
+            _, values, _ = self.local_model.call(
+                observations_to_window([observation]).to_inputs()
+            )
             # Select the last timestep
             values = values[-1]
             bootstrap_value = tf.squeeze(values).numpy()
@@ -547,9 +552,7 @@ class A3CWorker(threading.Thread):
 
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
-        # Reset the states to process the whole sequence
-        self.local_model.embedding.reset_rnn_state()
-        inputs = episode_memory.to_episode_window()
+        inputs = episode_memory.to_episode_window().to_inputs()
         logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
 
         logits = tf.reshape(logits, [batch_size, -1])
@@ -627,7 +630,7 @@ class A3CWorker(threading.Thread):
         gamma=0.99,
     ):
         with self.writer.as_default():
-            step = self.global_model.global_step
+            step = self.global_model.optimizer.iterations
             loss_tuple = self.compute_policy_value_loss(
                 done, observation, episode_memory
             )

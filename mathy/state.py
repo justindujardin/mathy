@@ -1,4 +1,4 @@
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional, Any
 
 import numpy as np
 
@@ -28,6 +28,22 @@ BatchNodeValuesFloatList = List[WindowNodeValuesFloatList]
 BatchProblemTypeIntList = List[WindowProblemTypeIntList]
 BatchProblemTimeFloatList = List[WindowProblemTimeFloatList]
 BatchRNNStatesFloatList = List[WindowRNNStatesFloatList]
+
+
+# Input type for mathy models
+MathyInputsType = List[Any]
+
+
+class MathyInputs:
+    """Indices into mathy inputs for various feature vectors"""
+
+    nodes = 0
+    mask = 1
+    values = 2
+    type = 3
+    time = 4
+    rnn_state = 5
+    rnn_history = 6
 
 
 class MathyObservation(NamedTuple):
@@ -66,6 +82,37 @@ class MathyWindowObservation(NamedTuple):
     time: WindowProblemTimeFloatList
     rnn_state: WindowRNNStatesFloatList
     rnn_history: WindowRNNStatesFloatList
+
+    def to_inputs(self) -> MathyInputsType:
+        import tensorflow as tf
+
+        result = [
+            tf.convert_to_tensor(self.nodes),
+            tf.convert_to_tensor(self.mask),
+            tf.convert_to_tensor(self.values),
+            tf.convert_to_tensor(self.type),
+            tf.convert_to_tensor(self.time),
+            tf.convert_to_tensor([self.rnn_state]),
+            tf.convert_to_tensor([self.rnn_history]),
+        ]
+        for r in result:
+            for s in r.shape:
+                assert s is not None
+        return result
+
+    def to_input_shapes(self) -> List[Any]:
+        import tensorflow as tf
+
+        result = [
+            tf.convert_to_tensor(self.nodes).shape,
+            tf.convert_to_tensor(self.mask).shape,
+            tf.convert_to_tensor(self.values).shape,
+            tf.convert_to_tensor(self.type).shape,
+            tf.convert_to_tensor(self.time).shape,
+            tf.convert_to_tensor([self.rnn_state]).shape,
+            tf.convert_to_tensor([self.rnn_history]).shape,
+        ]
+        return result
 
 
 class MathyBatchObservation(NamedTuple):
@@ -132,14 +179,19 @@ def observations_to_window(
         rnn_state=[[], []],
         rnn_history=[[], []],
     )
-    max_length: int = max([len(o.nodes) for o in observations])
-    max_mask_length: int = max([len(o.mask) for o in observations])
-    max_values_length: int = max([len(o.values) for o in observations])
+    sequence_lengths: List[int] = []
+    max_mask_length: int = 0
+    for i in range(len(observations)):
+        obs = observations[i]
+        sequence_lengths.append(len(obs.nodes))
+        sequence_lengths.append(len(obs.values))
+        max_mask_length = max(max_mask_length, len(obs.mask))
+    max_length: int = max(sequence_lengths)
 
     for obs in observations:
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
-        output.values.append(pad_array(obs.values, max_values_length, 0.0))
+        output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(obs.type)
         output.time.append(obs.time)
         output.rnn_state[0].append(obs.rnn_state[0])
@@ -262,8 +314,10 @@ class MathyEnvState(object):
             problem_hash_two = tf.strings.to_hash_bucket_strong(
                 self.agent.problem_type, PROBLEM_TYPE_HASH_BUCKETS, [7, -242315]
             )
-            hash_tensor = tf.convert_to_tensor([problem_hash_one, problem_hash_two])
-            _problem_hash_cache[self.agent.problem_type] = hash_tensor.numpy().tolist()
+            _problem_hash_cache[self.agent.problem_type] = [
+                problem_hash_one,
+                problem_hash_two,
+            ]
         return _problem_hash_cache[self.agent.problem_type]
 
     def to_start_observation(self, rnn_state: RNNStatesFloatList) -> MathyObservation:

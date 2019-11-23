@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import tensorflow as tf
 import json
 from ..core.expressions import MathTypeKeysMax
-from ..state import MathyWindowObservation
+from ..state import MathyWindowObservation, MathyInputs, MathyInputsType
 from .swish_activation import swish
 
 
@@ -24,14 +24,18 @@ class MathyEmbedding(tf.keras.layers.Layer):
         self.episode_reset_state_c = episode_reset_state_c
         self.lstm_units = lstm_units
         self.init_rnn_state()
+        self.embedding_units = self.lstm_units
         self.token_embedding = tf.keras.layers.Embedding(
             input_dim=MathTypeKeysMax,
-            output_dim=self.lstm_units,
+            output_dim=self.embedding_units,
             name="nodes_embedding",
             mask_zero=True,
         )
         self.in_transform = tf.keras.layers.Dense(
             self.units,
+            # In transform gets the embeddings concatenated with the
+            # floating point value at each node.
+            input_shape=(None, self.embedding_units + 1),
             name="in_transform",
             activation=swish,
             kernel_initializer="he_normal",
@@ -81,52 +85,66 @@ class MathyEmbedding(tf.keras.layers.Layer):
         if self.episode_reset_state_c or force is True:
             self.state_c.assign(tf.zeros([1, self.lstm_units]))
 
-    def call(
-        self,
-        features: MathyWindowObservation,
-        burn_in_steps: int = 0,
-        return_rnn_states: bool = False,
-    ) -> Union[Tuple[tf.Tensor, int], Tuple[tf.Tensor, tf.Tensor]]:
-        batch_size = len(features.nodes)  # noqa
-        sequence_length = len(features.nodes[0])
-        input = tf.convert_to_tensor(features.nodes)
-        values = tf.convert_to_tensor(features.values)
-
+    def call(self, features: MathyInputsType) -> tf.Tensor:
+        nodes = tf.convert_to_tensor(features[MathyInputs.nodes])
+        values = tf.convert_to_tensor(features[MathyInputs.values])
+        nodes_shape = tf.shape(nodes)
+        batch_size = nodes_shape[0]  # noqa
+        sequence_length = nodes_shape[1]
+        in_rnn_state = features[MathyInputs.rnn_state][0]
+        in_rnn_history = features[MathyInputs.rnn_history][0]
         #
         # Contextualize nodes by expanding their integers to include (n) neighbors
         #
         if self.extract_window is not None:
             # reshape to 4 dimensions so we can use `extract_patches`
-            input = tf.reshape(input, shape=[1, batch_size, sequence_length, 1])
+            input = tf.reshape(
+                nodes,
+                shape=[1, batch_size, sequence_length, 1],
+                name="extract_window_in",
+            )
             input_one = tf.image.extract_patches(
                 images=input,
                 sizes=[1, 1, self.extract_window, 1],
                 strides=[1, 1, 1, 1],
                 rates=[1, 1, 1, 1],
                 padding="SAME",
+                name="extract_window_op",
             )
             # Remove the extra dimensions
-            input = tf.squeeze(input_one, axis=0)
+            input = tf.squeeze(input_one, axis=0, name="extract_window_out")
         else:
             # Add an empty dimension (usually used by the extract window depth)
-            input = tf.expand_dims(input, axis=-1)
-            values = tf.expand_dims(values, axis=-1)
+            input = tf.expand_dims(nodes, axis=-1, name="nodes_input")
+            values = tf.expand_dims(values, axis=-1, name="values_input")
 
         query = self.token_embedding(input)
-        query = tf.reshape(query, [batch_size, sequence_length, -1])
-        query = tf.concat([query, values], axis=-1)
+        query = tf.reshape(
+            query, [batch_size, sequence_length, -1], name="tokens_batch_reshape"
+        )
+        query = tf.concat([query, values], axis=-1, name="tokens_and_values")
+        query.set_shape((None, None, self.embedding_units + 1))
         query = self.in_transform(query)
 
         # Add context to each timesteps node vectors first
-        in_state_h = tf.concat(features.rnn_state[0], axis=0)
-        in_state_c = tf.concat(features.rnn_state[1], axis=0)
+        # if batch_size == 1:
+        historical_state_h = tf.squeeze(
+            tf.concat(in_rnn_history[0], axis=0, name="rnn_history_h"), axis=1
+        )
+        in_state_h = tf.squeeze(
+            tf.concat(in_rnn_state[0], axis=0, name="rnn_state_h"), axis=1
+        )
+        in_state_c = tf.squeeze(
+            tf.concat(in_rnn_state[1], axis=0, name="rnn_state_c"), axis=1
+        )
+
         query, nodes_state_h, nodes_state_c = self.nodes_lstm(
             query, initial_state=[in_state_h, in_state_c]
         )
         query = self.nodes_lstm_norm(query)
 
-        state_h = tf.tile(nodes_state_h[-1:], [sequence_length, 1])
-        state_c = tf.tile(nodes_state_c[-1:], [sequence_length, 1])
+        state_h = tf.tile(nodes_state_h[-1:], [sequence_length, 1], name="time_lstm_h")
+        state_c = tf.tile(nodes_state_c[-1:], [sequence_length, 1], name="time_lstm_c")
         query, state_h, state_c = self.time_lstm(
             query, initial_state=[state_h, state_c]
         )
@@ -138,20 +156,20 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # Concatenate the RNN output state with our historical RNN state
         # See: https://arxiv.org/pdf/1810.04437.pdf
         rnn_state_with_history = tf.concat(
-            [state_h[-1:], features.rnn_history[0][0]], axis=-1
+            [state_h[-1:], historical_state_h[-1:]],
+            axis=-1,
+            name="rnn_state_and_history",
         )
         lstm_context = tf.tile(
             tf.expand_dims(rnn_state_with_history, axis=0),
             [batch_size, sequence_length, 1],
+            name="lstm_context",
         )
         # Combine the output LSTM states with the historical average LSTM states
         # and concatenate it with the attended input sequence.
-        sequence_out = tf.concat([query, lstm_context], axis=-1)
-        sequence_out = self.output_dense(sequence_out)
+        output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
+        output = self.output_dense(output)
 
-        # For burn-in we only want the RNN states
-        if return_rnn_states:
-            return (state_h, state_c)
+        # Return the embeddings
+        return output
 
-        # Return the embeddings and sequence length
-        return (sequence_out, sequence_length)
