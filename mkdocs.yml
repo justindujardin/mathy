@@ -33,7 +33,7 @@ nav:
 
 theme:
   name: "material"
-  logo: "img/logo_white.svg"
+  logo: "img/school-24px.svg"
   favicon: "img/favicon.png"
   palette:
     primary: "deep-orange"

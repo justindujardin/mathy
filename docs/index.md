@@ -1,7 +1,40 @@
 
-![Mathy](img/math_orange.svg)
+<p align="center">
+  <a href="https://mathy.ai"><img src="img/mathy_logo.png" alt="Mathy.ai"></a>
+</p>
+<p align="center">
+    <em>Computer Algebra Software library and Reinforcement Learning environment platform, with agents that solve math problems step-by-step</em>
+</p>
+<p align="center">
+<a href="https://travis-ci.org/justindujardin/mathy" target="_blank">
+    <img src="https://travis-ci.org/justindujardin/mathy.svg?branch=master" alt="Build Status">
+</a>
+<a href="https://codecov.io/gh/justindujardin/mathy" target="_blank">
+    <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg" alt="Coverage">
+</a>
+<a href="https://pypi.org/project/mathtastic" target="_blank">
+    <img src="https://badge.fury.io/py/mathtastic.svg" alt="Package version">
+</a>
+<a href="https://gitter.im/justindujardin/mathy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge" target="_blank">
+    <img src="https://badges.gitter.im/justindujardin/mathy.svg" alt="Join the chat at https://gitter.im/justindujardin/mathy">
+</a>
+</p>
 
-Mathy wants to be your free math tutor. It uses machine learning to solve math problems step-by-step. It is inspired by observing that the most useful feedback when trying to learn a new math concept is watching someone work through specific examples, explaining the thought process at each step. In this way it is able to work through as many example problems as a student needs to see to help understand a concept. This is only one type of problem, but Mathy has an extensible architecture making it easy to build new types of problems.
+---
+
+**Documentation**: <a href="https://mathy.ai" target="_blank">https://mathy.ai</a>
+
+**Source Code**: <a href="https://github.com/justindujardin/mathy" target="_blank">https://github.com/justindujardin/mathy</a>
+
+---
+
+Mathy wants to be your free math tutor. It uses machine learning to solve math problems step-by-step.
+
+The key features are:
+
+* **Computer Algebra System**: Parse text strings into expression trees for manipulation and evaluation.
+* **Tree Transformation Rules**: Math trees can be transformed by user-defined rules that do not change the value.
+* **RL Environments**: A number of [Reinforcement Learning](/ml/reinforcement_learning) environments are provided for training agents that manipulate math trees.
 
 ## Requirements
 

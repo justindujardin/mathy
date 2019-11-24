@@ -18,20 +18,20 @@ Examples:
 
 The simplest transform is to evaluate two constants that are siblings.
 
-- `(4 * 2) + 3`
+- `(4 * 2) + 3` = `8 + 3`
 
 #### Sibling Skipping
 
 When the commutative property is satisfied we can combine two constants separated by a variable sibling.
 
-- `(4n * 2) + 3`
+- `(4n * 2) + 3` = `8n + 3`
 
 #### Alternate Tree Forms
 
 Math trees can be represented in a number of different equivalent forms, so mathy supports these unnatural groupings to make this rule applicable to more nodes in the tree.
 
-- `5 * (8h * t)`
-- `(7 * 10y^3) * x`
-- `(7q * 10y^3) * x`
-- `792z^4 * 490f * q^3`
-- `(u^3 * 36c^6) * 7u^3`
+- `5 * (8h * t)` = `40h * t`
+- `(7 * 10y^3) * x` = `70y^3 * x`
+- `(7q * 10y^3) * x` = `(70q * y^3) * x`
+- `792z^4 * 490f * q^3` = `388080z^4 * f * q^3`
+- `(u^3 * 36c^6) * 7u^3` = `u^3 * 252c^6 * u^3`

@@ -1,4 +1,6 @@
+Mathy provides an on-policy learning agent (a3c) that can be trained on a modern desktop CPU.
+
 # A3C
 
-The Asynchronous Advantage Actor-Critic (A3C) agent is...
+Asynchronous Advantage Actor-Critic (A3C)
 
