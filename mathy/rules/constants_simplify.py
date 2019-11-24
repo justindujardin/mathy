@@ -137,7 +137,7 @@ class ConstantsSimplifyRule(BaseRule):
             isinstance(node, MultiplyExpression)
             and isinstance(node.left, MultiplyExpression)
             and isinstance(node.left.left, ConstantExpression)
-            and isinstance(node.right, BinaryExpression)
+            and isinstance(node.right, MultiplyExpression)
             and isinstance(node.right.left, MultiplyExpression)
             and isinstance(node.right.left.left, ConstantExpression)
         ):

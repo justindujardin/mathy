@@ -37,7 +37,7 @@ class A3CGreedyActionSelector(ActionSelector):
         last_reward: float,
         last_rnn_state: List[float],
     ) -> Tuple[int, float]:
-        probs, value = self.model.predict_next(last_window)
+        probs, value = self.model.predict_next(last_window.to_inputs())
         return np.argmax(probs), float(value)
 
 
@@ -59,7 +59,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_rnn_state: List[float],
     ) -> Tuple[int, float]:
 
-        probs, value = self.model.predict_next(last_window)
+        probs, value = self.model.predict_next(last_window.to_inputs())
         last_move_mask = last_window.mask[-1]
         # Apply noise to the root node (like AlphaGoZero MCTS)
         if self.use_noise is True and self.first_step is True:
@@ -127,31 +127,3 @@ class MCTSRecoveryActionSelector(MCTSActionSelector):
             last_reward=last_reward,
             last_rnn_state=last_rnn_state,
         )
-
-
-class UnrealMCTSActionSelector(A3CEpsilonGreedyActionSelector):
-    def __init__(self, *, mcts: MCTS, **kwargs):
-        super(UnrealMCTSActionSelector, self).__init__(**kwargs)
-        self.mcts = mcts
-        can_mcts = self.worker_id != 0
-        self.use_mcts = can_mcts and bool(np.random.random() < self.epsilon)
-
-    def select(
-        self,
-        *,
-        last_state: MathyEnvState,
-        last_window: MathyWindowObservation,
-        last_action: int,
-        last_reward: float,
-        last_rnn_state: List[float],
-    ) -> Tuple[int, float]:
-        if self.use_mcts is False:
-            return super(UnrealMCTSActionSelector, self).select(
-                last_state=last_state,
-                last_window=last_window,
-                last_action=last_action,
-                last_reward=last_reward,
-                last_rnn_state=last_rnn_state,
-            )
-        probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
-        return np.argmax(probs), value

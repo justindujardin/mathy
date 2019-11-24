@@ -26,15 +26,17 @@ nav:
       - Binomial Distributive Multiply : "envs/binomial_distribution.md"
   - Machine Learning:
       - Overview: "ml/overview.md"
+      - Math Embeddings: "ml/math_embeddings.md"
       - Reinforcement Learning: "ml/reinforcement_learning.md"
       - Monte Carlo Tree Search: "ml/monte_carlo_tree_search.md"
+  - About: "about.md"
 
 theme:
   name: "material"
   logo: "img/logo_white.svg"
   favicon: "img/favicon.png"
   palette:
-    primary: "deep-purple"
+    primary: "deep-orange"
     accent: "orange"
   highlightjs: true
   hljs_languages:
@@ -50,3 +52,4 @@ markdown_extensions:
   - codehilite
   - extra
   - pymdownx.superfences
+  - pymdownx.details

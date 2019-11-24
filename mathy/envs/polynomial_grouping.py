@@ -59,7 +59,7 @@ class MathyPolynomialGroupingEnv(MathyEnv):
         if params.difficulty == MathyEnvDifficulty.easy:
             blockers = randint(1, 3)
             text, _ = commute_haystack(
-                commute_blockers=1, min_terms=3, max_terms=6, easy=True, powers=False
+                commute_blockers=1, min_terms=5, max_terms=7, easy=True, powers=False
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 4)

@@ -32,7 +32,9 @@ def self_play_runner(config: SelfPlayConfig):
             from ...agents.policy_value_model import PolicyValueModel
 
             model = PolicyValueModel(args=config, predictions=game.action_space.n)
-            model.maybe_load()
+            model.maybe_load(
+                game.initial_window(config.lstm_units).to_inputs(), do_init=True
+            )
             return model
 
     print("Practicing {}...".format(config.topics))

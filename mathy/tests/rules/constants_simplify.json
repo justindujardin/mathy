@@ -89,6 +89,10 @@
   ],
   "invalid": [
     {
+      "input": "13f^4 * (5f^4 + 7)",
+      "why": "can't simplify nested child because the nested group has a different priority"
+    },
+    {
       "input": "(7q^6 + 10y^3) * 2q",
       "target": "(7q^6 + 10y^3)",
       "why": "can't commute constants across terms connected by addition"
