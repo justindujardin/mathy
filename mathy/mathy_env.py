@@ -83,7 +83,9 @@ class MathyEnv:
         that are uncorrupted by transformation errors. """
         from_timestep: MathyEnvTimeStep = state.agent.history[0]
         to_timestep: MathyEnvTimeStep = state.agent.history[-1]
-        compare_expression_string_values(str(from_timestep.raw), str(to_timestep.raw))
+        compare_expression_string_values(
+            str(from_timestep.raw), str(to_timestep.raw), state.agent.history
+        )
 
     def get_env_namespace(self) -> str:
         """Return a unique dot namespaced string representing the current

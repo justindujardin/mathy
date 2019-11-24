@@ -1,7 +1,7 @@
 import json
 import math
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Union
+from typing import Dict, List, NamedTuple, Optional, Union, Any
 
 import numpy as np
 
@@ -35,17 +35,21 @@ def load_rule_tests(name):
         return json.load(file)
 
 
-def compare_expression_string_values(from_expression: str, to_expression: str):
+def compare_expression_string_values(
+    from_expression: str, to_expression: str, history: Optional[List[Any]] = None
+):
     """Compare and evaluate two expressions strings to verify they have the
     same value"""
     parser = ExpressionParser()
     return compare_expression_values(
-        parser.parse(from_expression), parser.parse(to_expression)
+        parser.parse(from_expression), parser.parse(to_expression), history
     )
 
 
 def compare_expression_values(
-    from_expression: MathExpression, to_expression: MathExpression
+    from_expression: MathExpression,
+    to_expression: MathExpression,
+    history: Optional[List[Any]] = None,
 ):
     """Compare and evaluate two expressions to verify they have the same value"""
     vars_from: set = set()
@@ -77,9 +81,14 @@ def compare_expression_values(
     value_from = from_expression.evaluate(eval_context)
     value_to = to_expression.evaluate(eval_context)
 
-    assert (
-        value_from == value_to
-    ), f"expression value changed: ({value_from} != {value_to})"
+    # Print out the problem steps leading up to error result.
+    if value_from != value_to:
+        if history is not None:
+            for h in history:
+                print(f" - {h.raw}")
+        raise ValueError(
+            f"({from_expression}) == {value_from} != ({to_expression}) == {value_to}"
+        )
 
 
 def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:
