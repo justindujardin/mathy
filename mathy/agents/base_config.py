@@ -66,7 +66,7 @@ class A3CConfig(BaseConfig):
     #                turn a loss into a weak win.
     action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
-    mcts_sims: int = 500
+    mcts_sims: int = 200
     mcts_recover_time_threshold: float = 0.66
 
     # Whether to use the grouping change aux task
@@ -86,7 +86,7 @@ class A3CConfig(BaseConfig):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.1
+    entropy_loss_scaling = 1.0
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 0.1
@@ -95,13 +95,15 @@ class A3CConfig(BaseConfig):
     td_lambda: float = 0.3
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 25
+    teacher_start_evaluations_at_episode = 250
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 10
+    teacher_evaluation_steps = 50
     # If the agent wins >= this value, promote to the next difficulty class
-    teacher_promote_wins = 0.80
+    # 85 percent loosely inspired by:
+    # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
+    teacher_promote_wins = 0.85
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.50
+    teacher_demote_wins = 0.84
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

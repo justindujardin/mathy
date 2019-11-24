@@ -239,6 +239,7 @@ def simplify_multiple_terms(
     optional_var_probability=0.8,
     noise_probability=0.8,
     shuffle_probability=0.66,
+    noise_terms=None,
 ) -> Tuple[str, int]:
     power_prob_percent = powers_probability * 100
     num_like_terms = max(2, int(num_terms * inner_terms_scaling))
@@ -260,9 +261,12 @@ def simplify_multiple_terms(
     # sometimes add noise terms to the ends
     if rand_bool(noise_probability * 100) is True:
         num_noise_terms = min(5, max(1, num_terms // 3))
+        if noise_terms is not None:
+            num_noise_terms = noise_terms
         noise_vars = get_rand_vars(num_noise_terms, like_term_vars)
 
-        complexity += num_noise_terms
+        # When there's noise add complexity
+        complexity += min(num_noise_terms, 3)
 
         # We take the larger value for the left side to push the terms
         # that have to be matched to the right side of expression. This is

@@ -48,6 +48,7 @@ class A3CAgent:
                 name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
             )
             tf.summary.trace_off()
+            print(self.global_model.summary())
 
     def train(self):
 

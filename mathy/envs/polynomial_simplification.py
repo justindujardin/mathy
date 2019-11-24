@@ -78,14 +78,21 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
         if params.difficulty == MathyEnvDifficulty.easy:
+            # Set number of noise terms and inject a bunch more in simple problems
+            # so they don't learn stupid policies that only work with small trees.
+            #
+            # e.g. mashing the 3rd node to commute the tree until a DF shows up in
+            #      the desired position.
+            noise_terms = randint(3, 6)
             num_terms = randint(2, 4)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
-                powers_probability=0.1,
-                noise_probability=0.6,
-                shuffle_probability=0.3,
+                powers_probability=0.4,
+                noise_probability=0.8,
+                shuffle_probability=0.4,
+                noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             num_terms = randint(2, 7)
@@ -93,7 +100,7 @@ class MathyPolynomialSimplificationEnv(MathyEnv):
             text, complexity = simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
-                powers_probability=0.1,
+                powers_probability=0.5,
                 noise_probability=0.6,
                 shuffle_probability=0.1,
             )
