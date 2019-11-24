@@ -1,7 +1,7 @@
 import time
 import curses
 import uuid
-from typing import Optional
+from typing import Optional, Union
 
 # ## Constants
 
@@ -22,6 +22,9 @@ class BinaryTreeNode:
     """
 
     _idCounter = 0
+
+    x: Optional[float]
+    y: Optional[float]
 
     #  Allow specifying children in the constructor
     def __init__(self, left=None, right=None, parent=None, id=None):
@@ -154,6 +157,8 @@ class BinaryTreeNode:
     def set_left(
         self, child: "BinaryTreeNode", clear_old_child_parent=False
     ) -> "BinaryTreeNode":
+        if child == self:
+            raise ValueError("nodes cannot be their own children")
         if self.left is not None and clear_old_child_parent:
             self.left.parent = None
         self.left = child
@@ -166,6 +171,8 @@ class BinaryTreeNode:
     def set_right(
         self, child: "BinaryTreeNode", clear_old_child_parent=False
     ) -> "BinaryTreeNode":
+        if child == self:
+            raise ValueError("nodes cannot be their own children")
         if self.right is not None and clear_old_child_parent:
             self.right.parent = None
         self.right = child
@@ -182,7 +189,7 @@ class BinaryTreeNode:
         if child == self.right:
             return RIGHT
 
-        raise Exception("BinaryTreeNode.get_side: not a child of this node")
+        raise ValueError("BinaryTreeNode.get_side: not a child of this node")
 
     # Set a new `child` on the given `side`
     def set_side(self, child, side):
@@ -192,7 +199,7 @@ class BinaryTreeNode:
         if side == RIGHT:
             return self.set_right(child)
 
-        raise Exception("BinaryTreeNode.set_side: Invalid side")
+        raise ValueError("BinaryTreeNode.set_side: Invalid side")
 
     # Get children as an array.  If there are two children, the first object will
     # always represent the left child, and the second will represent the right.
@@ -224,12 +231,12 @@ class BinaryTreeNode:
 class BinarySearchTree(BinaryTreeNode):
     """A binary search tree by key"""
 
-    def __init__(self, key: str):
-        super()
+    def __init__(self, key: Union[str, int, float] = None, **kwargs):
+        super(BinarySearchTree, self).__init__(**kwargs)
         self.key = key
 
     def clone(self) -> BinaryTreeNode:
-        result = super().clone()
+        result = super(BinarySearchTree, self).clone()
         result.key = self.key
         return result
 
@@ -254,7 +261,7 @@ class BinarySearchTree(BinaryTreeNode):
 
     # Find a node in the tree by its key and return it.  Return None if the key
     # is not found in the tree.
-    def find(self, key) -> BinaryTreeNode:
+    def find(self, key) -> Optional[BinaryTreeNode]:
         node = self.get_root()
         while node:
             if key > node.key:
