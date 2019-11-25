@@ -100,6 +100,6 @@ Mathy can simplify complex terms:
 | constant arithmetic     | 20 _ **a^8** _ 2b^4         |
 | commutative swap        | **(a^8 \* 2b^4)** \* 20     |
 | commutative swap        | (**2b^4 \* a^8**) \* 20     |
-| commutative swap        | 20 _ \_\_2b^4 _ a^8\_\_     |
+| commutative swap        | 20 _ __2b^4 _ a^8__     |
 | constant arithmetic     | **40b^4** \* a^8            |
 | solution                | **40b^4 \* a^8**            |

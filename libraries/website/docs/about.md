@@ -43,7 +43,8 @@ The scope of Mathy is huge, and there are a few key contributions that have come
 When I began researching how to transform text into expression trees I came across a graphing calculator written in C#. The original parser and tokenizer came from Bob Brown at Microsoft, and Mathy still uses a modified version of this system today. The clear and concise tokenizer/parser implementation have been endlessly helpful as Mathy has been ported to various languages.
 
 ??? note "Apache License, Version 2.0"
-Copyright 2004 Microsoft Corporation
+
+    Copyright 2004 Microsoft Corporation
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -94,7 +95,8 @@ After learning about the success of [MCTS combined with Neural Networks](https:/
 Writing RL algorithms is difficult. The math is tricky, and when you mess it up your algorithm doesn't usually fail, it just sucks. DeepMind provides Tensorflow operations for many advanced RL losses. Mathy uses an inlined (Tensorflow 2.0 compatible) TRFL library for computing Policy Value network losses.
 
 ??? note "Apache License, Version 2.0"
-Copyright 2018 The trfl Authors. All Rights Reserved.
+
+    Copyright 2018 The trfl Authors. All Rights Reserved.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

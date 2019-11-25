@@ -30,24 +30,12 @@ A trained agent learns to combine multiple low-level actions into higher-level o
 
 | Step                    | Text                        |
 | ----------------------- | --------------------------- |
-| initial                 | 4a^4 _ 5a^4 _ 2b^4          |
-| constant arithmetic     | **20a^4** _ a^4 _ 2b^4      |
+| initial                 | 4a^4 \* 5a^4 \* 2b^4        |
+| constant arithmetic     | **20a^4** \* a^4 \* 2b^4    |
 | variable multiplication | **20 \* a^(4 + 4)** \* 2b^4 |
-| constant arithmetic     | 20 _ **a^8** _ 2b^4         |
+| constant arithmetic     | 20 \* **a^8** \* 2b^4       |
 | commutative swap        | **(a^8 \* 2b^4)** \* 20     |
 | commutative swap        | (**2b^4 \* a^8**) \* 20     |
-| commutative swap        | 20 _ \_\_2b^4 _ a^8\_\_     |
+| commutative swap        | 20 \* **2b^4 \* a^8**       |
 | constant arithmetic     | **40b^4** \* a^8            |
 | solution                | **40b^4 \* a^8**            |
-
-**Input**:`1k + 210r + 7z + 11k + 10z`
-
-| Step                   | Text                                     |
-| ---------------------- | ---------------------------------------- |
-| input                  | 1k + 210r + 7z + 11k + 10z               |
-| commutative swap       | 11k + **(1k + 210r + 7z)** + 10z         |
-| distributive factoring | 11k + (1k + 210r) + **(7 + 10) \* z**    |
-| distributive factoring | **(11 + 1) \* k** + 210r + (7 + 10) \* z |
-| constant arithmetic    | (11 + 1) \* k + 210r + **17z**           |
-| constant arithmetic    | **12k** + 210r + 17z                     |
-| solution               | **12k + 210r + 17z**                     |
