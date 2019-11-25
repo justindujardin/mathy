@@ -1,15 +1,15 @@
 from typing import Tuple
 from ..mathy.agents.episode_memory import EpisodeMemory
-from ..mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..mathy.envs.polynomial_simplification import PolySimplify
 from numpy.testing import assert_array_almost_equal
 
 
 def get_memory(
     number_observations: int, rnn_size: int = 4
-) -> Tuple[EpisodeMemory, MathyPolynomialSimplificationEnv]:
+) -> Tuple[EpisodeMemory, PolySimplify]:
     """Verify that RNN history is the average of the RNN states in memory"""
     memory = EpisodeMemory()
-    env = MathyPolynomialSimplificationEnv()
+    env = PolySimplify()
     state, problem = env.get_initial_state()
     for i in range(number_observations):
         memory.store(
@@ -46,7 +46,7 @@ def test_episode_memory_rnn_history():
     """Verify that RNN history is the average of the RNN states in memory"""
 
     memory = EpisodeMemory()
-    env = MathyPolynomialSimplificationEnv()
+    env = PolySimplify()
     state, problem = env.get_initial_state()
     # Two RNN states
     rnn_states = [

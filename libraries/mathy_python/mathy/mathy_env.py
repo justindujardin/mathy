@@ -25,7 +25,7 @@ from .state import (
     rnn_placeholder_state,
 )
 from .types import MathyEnvProblem, MathyEnvProblemArgs
-from .util import GameRewards
+from .util import EnvRewards
 
 
 def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
@@ -169,12 +169,12 @@ class MathyEnv:
         # the number of allowed steps, double the bonus signal
         if total_moves > 4 and current_move < total_moves / 2:
             bonus *= 2
-        return GameRewards.WIN + bonus
+        return EnvRewards.WIN + bonus
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for failing to complete the episode. This is done
         so that the reward signal can be problem-type dependent."""
-        return GameRewards.LOSE
+        return EnvRewards.LOSE
 
     def get_state_transition(
         self, env_state: MathyEnvState, searching: bool = False
@@ -219,7 +219,7 @@ class MathyEnv:
             multiplier = min(list_count, 3)
             return time_step.transition(
                 features,
-                reward=GameRewards.PREVIOUS_LOCATION * multiplier,
+                reward=EnvRewards.PREVIOUS_LOCATION * multiplier,
                 discount=self.discount,
             )
 
@@ -232,7 +232,7 @@ class MathyEnv:
                 if isinstance(rule, rewarding_class):
                     return time_step.transition(
                         features,
-                        reward=GameRewards.HELPFUL_MOVE,
+                        reward=EnvRewards.HELPFUL_MOVE,
                         discount=self.discount,
                     )
 
@@ -242,13 +242,13 @@ class MathyEnv:
                 if isinstance(rule, penalty_class):
                     return time_step.transition(
                         features,
-                        reward=GameRewards.UNHELPFUL_MOVE,
+                        reward=EnvRewards.UNHELPFUL_MOVE,
                         discount=self.discount,
                     )
 
         # We're in a new state, and the agent is a little older.
         return time_step.transition(
-            features, reward=GameRewards.TIMESTEP, discount=self.discount
+            features, reward=EnvRewards.TIMESTEP, discount=self.discount
         )
 
     def get_next_state(
@@ -342,6 +342,22 @@ class MathyEnv:
         reward = f"{change_reward:.2}"
         reward = f"{reward:<5}"
         return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
+
+    def random_action(self, expression: MathExpression, rule: Type[BaseRule]) -> int:
+        """Get a random action index that represents a particular rule"""
+
+        found = False
+        for r in self.rules:
+            if isinstance(r, rule):
+                found = True
+                break
+        if found is False:
+            raise ValueError(
+                "The action {rule} does not exist in the environment rule list"
+            )
+        actions = np.nonzero(self.get_actions_for_node(expression, [rule]))
+        action = np.random.choice(actions[0])
+        return action
 
     def get_initial_state(
         self, params: Optional[MathyEnvProblemArgs] = None, print_problem: bool = True
@@ -454,19 +470,26 @@ class MathyEnv:
     def get_rule_from_timestep(self, time_step: MathyEnvTimeStep):
         return self.rules[time_step.action]
 
-    def get_actions_for_node(self, expression: MathExpression) -> List[int]:
+    def get_actions_for_node(
+        self,
+        expression: MathExpression,
+        rule_list: Optional[List[Type[BaseRule]]] = None,
+    ) -> List[int]:
         key = str(expression)
-        if key in self.valid_actions_mask_cache:
+        if rule_list is None and key in self.valid_actions_mask_cache:
             return self.valid_actions_mask_cache[key][:]
         node_count = len(expression.toList())
         rule_count = len(self.rules)
         actions = [0] * rule_count * node_count
         for rule_index, rule in enumerate(self.rules):
+            if rule_list is not None and not isinstance(rule, tuple(rule_list)):
+                continue
             nodes = rule.find_nodes(expression)
             for node in nodes:
                 action_index = (node.r_index * rule_count) + rule_index
                 actions[action_index] = 1
-        self.valid_actions_mask_cache[key] = actions[:]
+        if rule_list is None:
+            self.valid_actions_mask_cache[key] = actions[:]
         return actions
 
     def to_hash_key(self, env_state: MathyEnvState) -> str:

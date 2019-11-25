@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..polynomial_simplification import PolySimplify
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -8,7 +8,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymPolynomialSimplification(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymPolynomialSimplification, self).__init__(
-            env_class=MathyPolynomialSimplificationEnv,
+            env_class=PolySimplify,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

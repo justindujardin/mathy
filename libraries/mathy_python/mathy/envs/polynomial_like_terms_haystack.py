@@ -31,11 +31,11 @@ from ..rules import (
 from ..rules.rule import BaseRule
 from ..state import MathyEnvState, MathyEnvTimeStep, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import GameRewards
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..util import EnvRewards
+from .polynomial_simplification import PolySimplify
 
 
-class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
+class MathyPolynomialLikeTermsHaystackEnv(PolySimplify):
     """Act on any node in the expression that has another term like it
     somewhere else. For example in the problem:
 
@@ -138,7 +138,7 @@ class MathyPolynomialLikeTermsHaystackEnv(MathyPolynomialSimplificationEnv):
                 loss_magnitude = min(distances) / max_index
             else:
                 loss_magnitude = 1.0
-            lose_signal = GameRewards.LOSE - loss_magnitude
+            lose_signal = EnvRewards.LOSE - loss_magnitude
             return time_step.termination(features, lose_signal)
         return None
 

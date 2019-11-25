@@ -32,6 +32,7 @@ nav:
   - About: "about.md"
 
 extra:
+  manifest: "img/favicon/site.webmanifest"
   social:
     - type: "github"
       link: "https://github.com/justindujardin"
@@ -41,7 +42,7 @@ extra:
 theme:
   name: "material"
   logo: "img/school-24px.svg"
-  favicon: "img/favicon.png"
+  favicon: "img/favicon/favicon-16x16.png"
   palette:
     primary: "deep-orange"
     accent: "orange"
@@ -64,6 +65,6 @@ markdown_extensions:
   - pymdownx.details
 
 plugins:
-    - search
-    - minify:
-        minify_html: true
+  - search
+  - minify:
+      minify_html: true

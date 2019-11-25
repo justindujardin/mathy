@@ -16,10 +16,10 @@ from ..rules import (
 )
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import GameRewards
+from ..util import EnvRewards
 
 
-class MathyPolynomialSimplificationEnv(MathyEnv):
+class PolySimplify(MathyEnv):
     """A Mathy environment for simplifying polynomial expressions.
 
     NOTE: This environment only generates polynomial problems with

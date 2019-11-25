@@ -1,10 +1,10 @@
 from ..mathy_env import MathyEnvProblem
 from ..problems import combine_terms_in_place, rand_bool
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from .polynomial_simplification import PolySimplify
 
 
-class MathyPolynomialCombineInPlaceEnv(MathyPolynomialSimplificationEnv):
+class MathyPolynomialCombineInPlaceEnv(PolySimplify):
     """A Mathy environment for combining like terms in-place without
     any commuting. This task is intended to test the model's ability
     to identify like-terms among a bunch of unlike terms and combine

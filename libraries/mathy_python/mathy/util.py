@@ -2,7 +2,7 @@ import numpy as np
 from tf_agents.trajectories import time_step
 
 
-class GameRewards:
+class EnvRewards:
     """Game reward constant values"""
 
     LOSE = -1.0
@@ -19,11 +19,11 @@ def is_terminal_transition(transition: time_step.TimeStep):
 
 
 def is_win_reward(reward):
-    return reward == GameRewards.WIN
+    return reward == EnvRewards.WIN
 
 
 def is_lose_reward(reward):
-    return reward == GameRewards.LOSE
+    return reward == EnvRewards.LOSE
 
 
 def discount(r, gamma=0.99):

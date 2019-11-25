@@ -1,4 +1,4 @@
-The core component that makes all of Mathy possible is generally called a Computer Algreba Software (or CAS) system. The purpose of this system is to turn plain-text representations of math into symbollic ones that can be examined and manipulated programatically.
+The core component that makes all of Mathy possible is generally called a Computer Algebra Software (CAS) system. The purpose of this system is to turn plain-text representations of math into symbollic ones that can be examined and manipulated.
 
 ## Examples
 
@@ -6,41 +6,41 @@ The core component that makes all of Mathy possible is generally called a Comput
 
 To get a sense for how Mathy's CAS components work, let's add some numbers together and assert that the end result is what we think it should be:
 
-``` Python
+```Python
 {!./snippets/cas/overview/evaluate_expression.py!}
 ```
 
-!!! Note 
-    See how the input was a text string, but we make an assertion about the number value it represents? To make this happen Mathy has to:
+!!! info
 
-    1. Tokenize the text
-    2. Parse it into an Expression
-    3. Evaluate the Expression
+        See how the input was a text string, but we make an assertion about the number value it represents? To make this happen Mathy has to:
 
-    This is the main function of Mathy's CAS system.
+        1. Tokenize the text
+        2. Parse it into an Expression
+        3. Evaluate the Expression
+
+        This is the main function of Mathy's CAS system.
 
 ### Variables Evaluation
 
-Mathy can also deal with expressions that have variables. 
+Mathy can also deal with expressions that have variables.
 
 When an expression has variables in it, you can evaluate it by passing the "context" to use:
 
-``` Python
+```Python
 {!./snippets/cas/overview/evaluate_expression_variables.py!}
 ```
 
 ### Tree Transformations
 
-Mathy can also transform the parsed Expression trees using a set of Rules that change the tree structure without altering the value it outputs when you call `evaluate()`. 
+Mathy can also transform the parsed Expression trees using a set of Rules that change the tree structure without altering the value it outputs when you call `evaluate()`.
 
-
-``` python  tab="Python"
+```python  tab="Python"
 
 {!./snippets/cas/overview/rules_factor_out.py!}
 
 ```
 
-``` typescript tab="Typescript"
+```typescript tab="Typescript"
 
 {!./snippets/cas/overview/rules_factor_out.ts!}
 

@@ -15,10 +15,10 @@ from ..rules import (
 )
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from .polynomial_simplification import PolySimplify
 
 
-class MathyPolynomialCommuteLikeTermsEnv(MathyPolynomialSimplificationEnv):
+class MathyPolynomialCommuteLikeTermsEnv(PolySimplify):
     """A Mathy environment for moving like terms near each other to enable
     further simplification.
 

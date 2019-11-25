@@ -10,11 +10,11 @@ from ..rules import (
 )
 from ..state import MathyEnvState
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import MathyPolynomialSimplificationEnv
+from .polynomial_simplification import PolySimplify
 from numpy.random import randint, uniform
 
 
-class MathyComplexTermSimplificationEnv(MathyPolynomialSimplificationEnv):
+class MathyComplexTermSimplificationEnv(PolySimplify):
     """A Mathy environment for simplifying complex terms (e.g. 4x^3 * 7y) inside of
     expressions. The goal is to simplify the complex term within the allowed number
     of environment steps.

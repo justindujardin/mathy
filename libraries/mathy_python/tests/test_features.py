@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import pytest
 
-from ..mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..mathy.envs.polynomial_simplification import PolySimplify
 from ..mathy.state import MathyEnvState, rnn_placeholder_state
 
 
@@ -23,7 +23,7 @@ def test_mathy_features_hierarchy():
         ("5v + 20b + (10v + 7b)", "5v + 20b + 10v + 7b"),
         ("5s + 60 + 12s + s^2", "5s + 60 + (12s + s^2)"),
     ]
-    env = MathyPolynomialSimplificationEnv()
+    env = PolySimplify()
     rnn_state = rnn_placeholder_state(128)
 
     for one, two in diff_pairs:

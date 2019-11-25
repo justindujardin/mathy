@@ -19,7 +19,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import GameRewards, discount
+from ...util import EnvRewards, discount
 from .. import action_selectors
 from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..base_config import A3CConfig

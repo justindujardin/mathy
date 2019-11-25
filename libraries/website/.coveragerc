@@ -1,0 +1,4 @@
+[paths]
+source =
+    **/libraries/mathy_python/mathy
+    mathy

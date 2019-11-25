@@ -1,6 +1,6 @@
 from ..mathy.state import MathyEnvState
 from ..mathy.mathy_env import MathyEnv
-from ..mathy.envs.polynomial_simplification import MathyPolynomialSimplificationEnv
+from ..mathy.envs.polynomial_simplification import PolySimplify
 from ..mathy.util import is_terminal_transition
 import random
 import pytest
@@ -41,7 +41,7 @@ def test_env_terminal_conditions():
     # polynomial expressions
     out_of_scope_valid = []
 
-    env = MathyPolynomialSimplificationEnv()
+    env = PolySimplify()
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathyEnvState(problem=text)
         reward = env.get_state_transition(env_state)
