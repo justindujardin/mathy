@@ -21,9 +21,9 @@ nav:
       - Constant Arithmetic: "rules/constant_arithmetic.md"
   - Environments:
       - Overview: "envs/overview.md"
-      - Combine Like Terms: "envs/polynomial_combine.md"
-      - Simplify Complex Terms: "envs/polynomial_complex.md"
-      - Binomial Distributive Multiply: "envs/binomial_distribution.md"
+      - Poly Simplify: "envs/poly_simplify.md"
+      - Complex Simplify: "envs/complex_simplify.md"
+      - Binomial Multiply: "envs/binomial_multiply.md"
   - Machine Learning:
       - Overview: "ml/overview.md"
       - Math Embeddings: "ml/math_embeddings.md"

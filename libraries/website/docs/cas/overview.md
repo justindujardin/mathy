@@ -34,14 +34,8 @@ When an expression has variables in it, you can evaluate it by passing the "cont
 
 Mathy can also transform the parsed Expression trees using a set of Rules that change the tree structure without altering the value it outputs when you call `evaluate()`.
 
-```python  tab="Python"
+```python
 
 {!./snippets/cas/overview/rules_factor_out.py!}
-
-```
-
-```typescript tab="Typescript"
-
-{!./snippets/cas/overview/rules_factor_out.ts!}
 
 ```
