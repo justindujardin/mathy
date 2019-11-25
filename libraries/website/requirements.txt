@@ -1,0 +1,16 @@
+mypy
+pytest
+pytest-cov
+black
+flake8
+graphviz
+snakeviz
+pydot
+# Docs 
+mkdocs
+mkdocs-material
+markdown-include
+mkdocs-minify-plugin
+
+# The snippets/tests need mathy. Install as a development package (-e)
+-e ../mathy_python/

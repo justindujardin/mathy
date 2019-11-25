@@ -5,6 +5,7 @@ doom/
 /temp/
 /.project
 /.pydevproject
+.old-env
 .env
 .pytest_cache
 .training-old/
@@ -32,3 +33,22 @@ hoarding/
 
 # Images from eval experiments
 images/
+
+htmlcov
+.env
+venv
+*.orig
+
+__pycache__
+*.egg-info
+
+.vscode
+
+node_modules
+dist
+build
+
+coverage
+
+.rpt2_cache
+libraries/mt_typescript/docs/

@@ -112,7 +112,7 @@ In order to start out with a good baseline policy, Mathy supports transferring p
 Let's try training an agent on harder problems `exam2` to see the transfer learning in action.
 
 ```bash
-(.env) mathtastic > python main.py trained/transfer agents/mathy_alpha/ -l exam2 -v
+(.env) mathy > python main.py trained/transfer agents/mathy_alpha/ -l exam2 -v
 -- transferring trainable variables to blank model from: agents/mathy_alpha/
 -- init math model in: trained/transfer/train
 init model dir: agents/mathy_alpha/

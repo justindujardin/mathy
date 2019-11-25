@@ -1,0 +1,10 @@
+numpy
+plac
+tensorflow>=2.0.0
+gast==0.2.2 # because: https://github.com/tensorflow/tensorflow/issues/32319#issuecomment-529164054
+cloudpickle>=1.2.2 # because: https://github.com/tensorflow/tensorflow/issues/32319#issuecomment-529164054
+tensorboard
+tf-agents-nightly
+tqdm
+colr
+pydantic>=1.0.0
