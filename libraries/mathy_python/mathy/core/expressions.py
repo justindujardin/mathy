@@ -347,6 +347,10 @@ class NegateExpression(UnaryExpression):
     def __str__(self):
         return self.with_color("-{}".format(self.get_child()))
 
+    def to_math_ml(self):
+        """Convert this single node into MathML."""
+        return f"-{super().to_math_ml()}"
+
     def differentiate(self, by_variable):
         """
         <pre>
@@ -468,19 +472,12 @@ class BinaryExpression(MathExpression):
         right_ml = self.right.to_math_ml()
         left_ml = self.left.to_math_ml()
         op_ml = self.make_ml_tag("mo", self.get_ml_name())
-        if self.right_parens():
+        if self.self_parens():
             return self.make_ml_tag(
                 "mrow",
-                "{}{}<mo>(</mo>{}<mo>)</mo>".format(left_ml, op_ml, right_ml),
+                "<mo>(</mo>{}{}{}<mo>)</mo>".format(left_ml, op_ml, right_ml),
                 self.classes,
             )
-        elif self.left_parens():
-            return self.make_ml_tag(
-                "mrow",
-                "<mo>(</mo>{}<mo>)</mo>{}{}".format(left_ml, op_ml, right_ml),
-                self.classes,
-            )
-
         return self.make_ml_tag(
             "mrow", "{}{}{}".format(left_ml, op_ml, right_ml), self.classes
         )
@@ -617,7 +614,9 @@ class DivideExpression(BinaryExpression):
     def get_ml_name(self):
         return "&#247;"
 
-    # to_math_ml:() -> "<mfrac>#{@left.to_math_ml()}#{@right.to_math_ml()}</mfrac>"
+    def to_math_ml(self):
+        return f"<mfrac>{self.left.to_math_ml()}#{self.right.to_math_ml()}</mfrac>"
+
     def operate(self, one, two):
         if two == 0:
             return float("nan")
@@ -694,6 +693,9 @@ class ConstantExpression(MathExpression):
         result = super().to_json()
         result.name = self.value
         return result
+
+    def to_math_ml(self) -> str:
+        return self.make_ml_tag("mn", self.value, self.classes)
 
 
 class VariableExpression(MathExpression):

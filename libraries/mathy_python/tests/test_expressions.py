@@ -1,8 +1,9 @@
-from ..mathy.core.expressions import (
+from ..mathy import (
     ConstantExpression,
     VariableExpression,
     AddExpression,
     SubtractExpression,
+    ExpressionParser,
 )
 
 
@@ -15,6 +16,14 @@ def test_expression_get_children():
     # when both children are present, the 0 index should be the left child
     assert expr.get_children()[0] == constant
     assert expr.evaluate({"x": 10}) == 14
+
+
+def test_expressions_to_math_ml():
+    expr = ExpressionParser().parse("4 / x")
+    expected = """<math xmlns='http:#www.w3.org/1998/Math/MathML'>
+<mfrac><mn class='mn-1'>4</mn>#<mi>x</mi></mfrac>
+</math>"""
+    assert expr.to_math_ml_element() == expected
 
 
 def test_clone_expressions():
