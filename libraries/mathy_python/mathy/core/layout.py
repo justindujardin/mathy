@@ -47,7 +47,7 @@ class TreeLayout:
         self.measure(node)
         return self.transform(node, 0, unitMultiplierX, unitMultiplierY)
 
-    # Computer relative tree node positions
+    # Compute relative tree node positions
     def measure(self, node, level=0, extremes: TidierExtreme = None):
         if extremes is None:
             extremes = TidierExtreme()

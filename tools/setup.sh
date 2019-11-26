@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 echo "Setting up all apps..."
-libraries="mathy_python website"
+libraries="mathy_python mathy_mkdocs website"
 for library in $libraries
 do
    echo "=== Setting up: $library"

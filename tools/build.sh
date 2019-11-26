@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Building all apps..."
 set -e
-libraries="mathy_python website"
+libraries="mathy_python mathy_mkdocs website"
 for library in $libraries
 do
    echo "=== Building: $library"
