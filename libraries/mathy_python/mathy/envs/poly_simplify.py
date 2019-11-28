@@ -27,6 +27,9 @@ class PolySimplify(MathyEnv):
      operators are excluded. This is a good area for improvement.
     """
 
+    def get_env_namespace(self) -> str:
+        return "mathy.polynomials.simplify"
+
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
@@ -39,9 +42,6 @@ class PolySimplify(MathyEnv):
         else:
             multiplier = 3
         return problem.complexity * multiplier
-
-    def get_env_namespace(self) -> str:
-        return "mathy.polynomials.simplify"
 
     def transition_fn(
         self,

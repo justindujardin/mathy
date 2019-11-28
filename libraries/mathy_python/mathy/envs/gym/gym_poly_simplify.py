@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_simplification import PolySimplify
+from ..poly_simplify import PolySimplify
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 

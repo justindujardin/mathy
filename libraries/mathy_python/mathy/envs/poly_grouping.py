@@ -12,7 +12,7 @@ from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 
 
-class MathyPolynomialGroupingEnv(MathyEnv):
+class PolyGroupLikeTerms(MathyEnv):
     """A Mathy environment for grouping polynomial terms that are like.
 
     The goal is to commute all the like terms so they become siblings as quickly as

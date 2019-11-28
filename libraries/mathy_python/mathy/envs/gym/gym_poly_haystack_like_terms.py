@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_like_terms_haystack import MathyPolynomialLikeTermsHaystackEnv
+from ..poly_haystack_like_terms import PolyHaystackLikeTerms
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -12,7 +12,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymPolynomialLikeTermsHaystack(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymPolynomialLikeTermsHaystack, self).__init__(
-            env_class=MathyPolynomialLikeTermsHaystackEnv,
+            env_class=PolyHaystackLikeTerms,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

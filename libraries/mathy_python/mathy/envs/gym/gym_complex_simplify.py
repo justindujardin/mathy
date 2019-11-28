@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..complex_term_simplification import MathyComplexTermSimplificationEnv
+from ..complex_simplify import ComplexSimplify
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -8,7 +8,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymComplexTerms(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymComplexTerms, self).__init__(
-            env_class=MathyComplexTermSimplificationEnv,
+            env_class=ComplexSimplify,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

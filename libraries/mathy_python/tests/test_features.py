@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import pytest
 
-from ..mathy.envs.polynomial_simplification import PolySimplify
+from ..mathy.envs.poly_simplify import PolySimplify
 from ..mathy.state import MathyEnvState, rnn_placeholder_state
 
 

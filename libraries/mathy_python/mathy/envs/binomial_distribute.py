@@ -17,7 +17,7 @@ from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 
 
-class MathyBinomialDistributionEnv(MathyEnv):
+class BinomialDistribute(MathyEnv):
     """A Mathy environment for distributing pairs of binomials.
 
     The FOIL method is sometimes used to solve these types of problems, where

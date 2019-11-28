@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..binomial_distribution import MathyBinomialDistributionEnv
+from ..binomial_distribute import BinomialDistribute
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -8,7 +8,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymBinomialDistribution(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymBinomialDistribution, self).__init__(
-            env_class=MathyBinomialDistributionEnv,
+            env_class=BinomialDistribute,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

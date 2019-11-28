@@ -12,11 +12,11 @@ from ..rules import (
     AssociativeSwapRule,
 )
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import PolySimplify
+from .poly_simplify import PolySimplify
 from ..problems import move_around_blockers_one, move_around_blockers_two, rand_bool
 
 
-class MathyPolynomialBlockersEnv(PolySimplify):
+class PolySimplifyBlockers(PolySimplify):
     """A Mathy environment for polynomial problems that have a variable
     string of mismatched terms separating two like terms.
 

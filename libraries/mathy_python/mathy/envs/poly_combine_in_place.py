@@ -1,15 +1,18 @@
 from ..mathy_env import MathyEnvProblem
 from ..problems import combine_terms_in_place, rand_bool
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import PolySimplify
+from .poly_simplify import PolySimplify
 
 
-class MathyPolynomialCombineInPlaceEnv(PolySimplify):
+class PolyCombineInPlace(PolySimplify):
     """A Mathy environment for combining like terms in-place without
     any commuting. This task is intended to test the model's ability
     to identify like-terms among a bunch of unlike terms and combine
     them with a sequence of two moves.
     """
+
+    def get_env_namespace(self) -> str:
+        return "mathy.polynomials.combine.in.place"
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
@@ -23,9 +26,6 @@ class MathyPolynomialCombineInPlaceEnv(PolySimplify):
          """
 
         return 2
-
-    def get_env_namespace(self) -> str:
-        return "mathy.polynomials.combine.in.place"
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:

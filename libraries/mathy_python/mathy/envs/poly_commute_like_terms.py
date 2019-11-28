@@ -15,10 +15,10 @@ from ..rules import (
 )
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from .polynomial_simplification import PolySimplify
+from .poly_simplify import PolySimplify
 
 
-class MathyPolynomialCommuteLikeTermsEnv(PolySimplify):
+class PolyCommuteLikeTerms(PolySimplify):
     """A Mathy environment for moving like terms near each other to enable
     further simplification.
 
@@ -28,8 +28,11 @@ class MathyPolynomialCommuteLikeTermsEnv(PolySimplify):
     """
 
     def __init__(self, **kwargs):
-        super(MathyPolynomialCommuteLikeTermsEnv, self).__init__(**kwargs)
+        super(PolyCommuteLikeTerms, self).__init__(**kwargs)
         self.rule = DistributiveFactorOutRule()
+
+    def get_env_namespace(self) -> str:
+        return "mathy.polynomials.commute.like.terms"
 
     def transition_fn(
         self,
@@ -51,9 +54,6 @@ class MathyPolynomialCommuteLikeTermsEnv(PolySimplify):
         is a direct measure of this value."""
 
         return problem.complexity * 4
-
-    def get_env_namespace(self) -> str:
-        return "mathy.polynomials.commute.like.terms"
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         easy = False

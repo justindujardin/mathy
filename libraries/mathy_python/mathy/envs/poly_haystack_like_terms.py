@@ -28,14 +28,13 @@ from ..rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..rules.rule import BaseRule
 from ..state import MathyEnvState, MathyEnvTimeStep, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from ..util import EnvRewards
-from .polynomial_simplification import PolySimplify
+from .poly_simplify import PolySimplify
 
 
-class MathyPolynomialLikeTermsHaystackEnv(PolySimplify):
+class PolyHaystackLikeTerms(PolySimplify):
     """Act on any node in the expression that has another term like it
     somewhere else. For example in the problem:
 
@@ -48,12 +47,10 @@ class MathyPolynomialLikeTermsHaystackEnv(PolySimplify):
     """
 
     def __init__(self, **kwargs):
-        super(MathyPolynomialLikeTermsHaystackEnv, self).__init__(**kwargs)
-        for rule in self.rules:
-            # Override commutative swap bias to let the agent understand
-            # which nodes are terms through commutative swap
-            if isinstance(rule, CommutativeSwapRule):
-                rule.preferred = True
+        super(PolyHaystackLikeTerms, self).__init__(**kwargs)
+
+    def get_env_namespace(self) -> str:
+        return "mathy.polynomials.haystack.like.terms"
 
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         return [
@@ -141,9 +138,6 @@ class MathyPolynomialLikeTermsHaystackEnv(PolySimplify):
             lose_signal = EnvRewards.LOSE - loss_magnitude
             return time_step.termination(features, lose_signal)
         return None
-
-    def get_env_namespace(self) -> str:
-        return "mathy.polynomials.haystack.like.terms"
 
     def make_problem(
         self,

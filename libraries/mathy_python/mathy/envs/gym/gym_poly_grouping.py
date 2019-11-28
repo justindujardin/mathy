@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_grouping import MathyPolynomialGroupingEnv
+from ..poly_grouping import PolyGroupLikeTerms
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -12,7 +12,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymPolynomialGrouping(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymPolynomialGrouping, self).__init__(
-            env_class=MathyPolynomialGroupingEnv,
+            env_class=PolyGroupLikeTerms,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

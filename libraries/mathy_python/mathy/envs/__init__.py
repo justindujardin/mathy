@@ -1,20 +1,20 @@
-from .binomial_distribution import MathyBinomialDistributionEnv
-from .complex_term_simplification import MathyComplexTermSimplificationEnv
-from .polynomial_blockers import MathyPolynomialBlockersEnv
-from .polynomial_combine_in_place import MathyPolynomialCombineInPlaceEnv
-from .polynomial_commute_like_terms import MathyPolynomialCommuteLikeTermsEnv
-from .polynomial_grouping import MathyPolynomialGroupingEnv
-from .polynomial_like_terms_haystack import MathyPolynomialLikeTermsHaystackEnv
-from .polynomial_simplification import PolySimplify
+from .binomial_distribute import BinomialDistribute
+from .complex_simplify import ComplexSimplify
+from .poly_simplify_blockers import PolySimplifyBlockers
+from .poly_combine_in_place import PolyCombineInPlace
+from .poly_commute_like_terms import PolyCommuteLikeTerms
+from .poly_grouping import PolyGroupLikeTerms
+from .poly_haystack_like_terms import PolyHaystackLikeTerms
+from .poly_simplify import PolySimplify
 
 
 MATHY_BUILTIN_ENVS = [
-    MathyBinomialDistributionEnv,
-    MathyComplexTermSimplificationEnv,
-    MathyPolynomialBlockersEnv,
-    MathyPolynomialCombineInPlaceEnv,
-    MathyPolynomialCommuteLikeTermsEnv,
-    MathyPolynomialGroupingEnv,
-    MathyPolynomialLikeTermsHaystackEnv,
+    BinomialDistribute,
+    ComplexSimplify,
+    PolySimplifyBlockers,
+    PolyCombineInPlace,
+    PolyCommuteLikeTerms,
+    PolyGroupLikeTerms,
+    PolyHaystackLikeTerms,
     PolySimplify,
 ]

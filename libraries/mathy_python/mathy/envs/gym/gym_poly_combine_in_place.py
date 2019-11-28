@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_combine_in_place import MathyPolynomialCombineInPlaceEnv
+from ..poly_combine_in_place import PolyCombineInPlace
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -12,7 +12,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymPolynomialCombineInPlace(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymPolynomialCombineInPlace, self).__init__(
-            env_class=MathyPolynomialCombineInPlaceEnv,
+            env_class=PolyCombineInPlace,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )

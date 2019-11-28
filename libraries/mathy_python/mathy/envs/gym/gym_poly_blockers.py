@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from ..polynomial_blockers import MathyPolynomialBlockersEnv
+from ..poly_simplify_blockers import PolySimplifyBlockers
 from ...types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .mathy_gym_env import MathyGymEnv
 
@@ -12,7 +12,7 @@ from .mathy_gym_env import MathyGymEnv
 class GymPolynomialBlockers(MathyGymEnv):
     def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
         super(GymPolynomialBlockers, self).__init__(
-            env_class=MathyPolynomialBlockersEnv,
+            env_class=PolySimplifyBlockers,
             env_problem_args=MathyEnvProblemArgs(difficulty=difficulty),
             **kwargs
         )
