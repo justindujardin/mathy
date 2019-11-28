@@ -31,5 +31,6 @@ setup(
     packages=find_packages(),
     install_requires=REQUIRED_MODULES,
     extras_require={"dev": DEVELOPMENT_MODULES},
+    package_data={"mathy": ["tests/api/*.json", "tests/rules/*.json"]},
     include_package_data=True,
 )

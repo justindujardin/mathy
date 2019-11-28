@@ -2,17 +2,9 @@ The `Distributive Property` can be used for distributing a multiplication across
 
 This rule is expressed by the equation `a(b + c) = ab + ac`
 
-Examples:
-
-- `(9 + 9) * y` becomes `9y + 9y`
-- `(14 + 7) * x` becomes `14x + 7x`
-- `(7 + 7) * 1` becomes `7 + 7`
-- `(3 + 2) * 2` becomes `6 + 4`
-
-
 ### Transformations
 
-Given a multiplication of `a` and `(b + c)` this rule distributes `a` across `b` and `c` leaving only the simpler form of `ab` and `ac`. 
+Given a multiplication of `a` and `(b + c)` this rule distributes `a` across `b` and `c` leaving only the simpler form of `ab` and `ac`.
 
 #### Addition
 
@@ -28,3 +20,7 @@ Given a multiplication of `a` and `(b + c)` this rule distributes `a` across `b`
           /   \        /   \   /   \
          b     c      a     b a     c
 ```
+
+### Examples
+
+`rule_tests:distributive_multiply_across`

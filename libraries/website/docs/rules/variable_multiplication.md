@@ -1,7 +1,8 @@
 The `Variable Multiplication` rule restates `x^b * x^d` as `x^(b + d)` which has the effect of isolating the exponents attached to the variables, so they can be combined.
 
 !!! note
-    This rule can only be applied when the nodes have matching variable bases. This means that `x * y` cannot be combined, but `x * x` can be.    
+
+        This rule can only be applied when the nodes have matching variable bases. This means that `x * y` cannot be combined, but `x * x` can be.
 
 ### Transformations
 
@@ -45,3 +46,6 @@ Examples: `x * x^d = x^(1 + d)`
               x   d      1   d
 ```
 
+### Examples
+
+`rule_tests:variable_multiply`

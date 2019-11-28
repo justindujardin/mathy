@@ -95,9 +95,9 @@ class A3CConfig(BaseConfig):
     td_lambda: float = 0.3
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 250
+    teacher_start_evaluations_at_episode = 20
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 50
+    teacher_evaluation_steps = 2
     # If the agent wins >= this value, promote to the next difficulty class
     # 85 percent loosely inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time

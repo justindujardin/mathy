@@ -5,11 +5,6 @@ The formulation of this property is the same for addition and multiplication:
 - Addition `(a + b) + c = a + (b + c)`
 - Multiplication `(a * b) * c = a * (b * c)`
 
-Examples:
-
-- `(4 + 3) + 2 = 9` and `4 + (3 + 2) = 9`
-- `2 * (3 * 1) = 6` and `(2 * 3) * 1 = 6`
-
 !!! note
 
       Interestingly, the application of the associative property of numbers to a binary expression tree is a common tree operation called a "node rotation".
@@ -43,3 +38,7 @@ Examples:
     /   \              /   \
    a     b            b     c
 ```
+
+### Examples
+
+`rule_tests:associative_property`

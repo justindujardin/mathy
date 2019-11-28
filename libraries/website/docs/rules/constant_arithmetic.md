@@ -1,12 +1,5 @@
 The `Constant Arithmetic` rule transforms an expression tree by combining two constant values that are separated by a binary operation like `addition` or `division`.
 
-Examples:
-
-- `4 + 2` becomes `6`
-- `2x * 4` becomes `8x`
-- `4 / 1` becomes `4`
-- `12 - 2.5` becomes `9.5`
-
 ### Transformations
 
 #### Two Constants
@@ -38,3 +31,7 @@ Math trees can be represented in a number of different equivalent forms, so math
 - `(7q * 10y^3) * x` = `(70q * y^3) * x`
 - `792z^4 * 490f * q^3` = `388080z^4 * f * q^3`
 - `(u^3 * 36c^6) * 7u^3` = `u^3 * 252c^6 * u^3`
+
+### Examples
+
+`rule_tests:constants_simplify`

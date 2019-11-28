@@ -1,7 +1,7 @@
 import re
 
 import svgwrite
-from svgwrite.mixins import ViewBox
+
 from mathy import (
     BinaryExpression,
     ExpressionParser,
@@ -9,11 +9,13 @@ from mathy import (
     TreeLayout,
     TreeMeasurement,
     VariableExpression,
+    testing,
 )
 
 parser = ExpressionParser()
 layout = TreeLayout()
 matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
+rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 
 
 def to_math_ml(match):
@@ -24,11 +26,28 @@ def to_math_ml(match):
         return expression.to_math_ml_element()
     except BaseException as error:
         return f"Failed to parse: '{match}' with error: {error}"
-        pass
-    return match + "--done by mathy_fn"
 
 
-def replace_match(match):
+def render_examples_from_tests(match):
+    """render a set of rule to/from examples in markdown from the rules tests"""
+    rule_file_name = match.group(1)
+    # If an example is longer than this, omit it for vanity.
+    max_len = 32
+    try:
+        data = testing.get_rule_tests(rule_file_name)
+        result = f"\r\n"
+        for v in data["valid"]:
+            in_text = v["input"]
+            out_text = v["output"]
+            if len(in_text) > max_len or len(out_text) > max_len:
+                continue
+            result += f"  - `{in_text}` => `{out_text}`\r\n"
+        return result
+    except ValueError:
+        return f"Rule file not found: __{rule_file_name}.json__"
+
+
+def render_tree_from_match(match):
     global parser, layout
     input_text = match.group(1)
     try:
@@ -79,7 +98,6 @@ def replace_match(match):
                 )
             )
 
-            # TODO: need ViewBox mixin to allow image scaling to work
             text_x = -(char_width * len(value) // 2) + node.x + offset_x
             text_y = text_height + node.y + offset_y
             tree.add(
@@ -97,15 +115,22 @@ def replace_match(match):
 
 def render_mathy_templates(input_text: str):
     global matcher_re
-    text = re.sub(matcher_re, replace_match, input_text, flags=re.IGNORECASE)
+    text = re.sub(matcher_re, render_tree_from_match, input_text, flags=re.IGNORECASE)
+    text = re.sub(
+        rules_matcher_re, render_examples_from_tests, text, flags=re.IGNORECASE
+    )
     return text
 
 
 if __name__ == "__main__":
-    print(render_mathy_templates("`<code>mathy:4x^3 * 2x - 7</code>"))
+    print(render_mathy_templates("<code>mathy:4x^3 * 2x - 7</code>"))
+    print(render_mathy_templates("`rule_tests:constants_simplify`"))
 else:
     from mkdocs.plugins import BasePlugin
 
     class MathyMkDocsPlugin(BasePlugin):
+        def on_page_markdown(self, markdown, **kwargs):
+            return render_mathy_templates(markdown)
+
         def on_page_content(self, content, **kwargs):
             return render_mathy_templates(content)

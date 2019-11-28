@@ -7,3 +7,4 @@ from .types import *  # noqa
 from . import envs  # noqa
 from . import rules  # noqa
 from . import problems  # noqa
+from . import testing  # noqa
