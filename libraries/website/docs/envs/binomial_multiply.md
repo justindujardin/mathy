@@ -6,7 +6,11 @@ In Binomial Multiply the agent must learn to quickly distribute the binomial mul
 
 Examples
 
-- `xxxxxx` must be simplified to `xxxx`
+- `(4 + g^2)(9 + e^3)` must be simplified to `36 + (4e^3 + (9g^2 + g^2 * e^3))`
+- `(a + a) * a` must be simplified to `2a^2`
+- `(c + 5) * c` must be simplified to `c^2 + 5c`
+- `(i^3 + 2)(i^3 + 9)` must be simplified to `i^6 + (11i^3 + 18)`
+- `(3 + 12o)(10 + 8o)` must be simplified to `30 + (144o + 96o^2)`
 
 ## Win Conditions
 
