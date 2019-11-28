@@ -2,37 +2,20 @@
 .DS_Store
 doom/
 .coverage
-/temp/
-/.project
-/.pydevproject
-.old-env
+.temp-cov
 .env
 .pytest_cache
-.training-old/
-program.prof
 .terraform
 .mypy_cache
-models/
-draws.txt
-visualization
-
-# For trained models
-trained/
 
 # node
 node_modules
-site/public
 .cache
 
 
-/agents/
 /training/
-training.jsonl
-training_tiny.jsonl
-hoarding/
-
-# Images from eval experiments
-images/
+/hoarding/
+/images/
 
 htmlcov
 .env
@@ -47,8 +30,6 @@ __pycache__
 node_modules
 dist
 build
-
 coverage
 
-.rpt2_cache
-libraries/mt_typescript/docs/
+libraries/website/site/
