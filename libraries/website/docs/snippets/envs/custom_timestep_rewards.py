@@ -3,7 +3,7 @@ rule that was applied by the agent."""
 
 from typing import List, Type
 
-from mathy import ExpressionParser, MathyEnv, MathyEnvState
+from mathy import MathyEnv, MathyEnvState
 from mathy.rules import AssociativeSwapRule, BaseRule, CommutativeSwapRule
 
 
@@ -16,18 +16,18 @@ class CustomTimestepRewards(MathyEnv):
 
 
 env = CustomTimestepRewards()
-parser = ExpressionParser()
 problem = "4x + y + 2x"
+expression = env.parser.parse(problem)
 state = MathyEnvState(problem=problem)
 
 _, transition, _ = env.get_next_state(
-    state, env.random_action(env.parser.parse(problem), AssociativeSwapRule),
+    state, env.random_action(expression, AssociativeSwapRule),
 )
 # Expect positive reward
 assert transition.reward > 0.0
 
 _, transition, _ = env.get_next_state(
-    state, env.random_action(env.parser.parse(problem), CommutativeSwapRule),
+    state, env.random_action(expression, CommutativeSwapRule),
 )
 # Expect neagative reward
 assert transition.reward < 0.0

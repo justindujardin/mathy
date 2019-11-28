@@ -1,5 +1,4 @@
-from mathy import DistributiveFactorOutRule
-from mathy import ExpressionParser
+from mathy import DistributiveFactorOutRule, ExpressionParser
 
 input = "4x + 2x"
 output = "(4 + 2) * x"
@@ -12,6 +11,6 @@ output_exp = parser.parse(output)
 change = DistributiveFactorOutRule().apply_to(input_exp)
 assert str(change.result) == output
 
-# Verify that both tress evaluate to the same value
+# Verify that both trees evaluate to the same value
 ctx = {"x": 3}
 assert input_exp.evaluate(ctx) == output_exp.evaluate(ctx)

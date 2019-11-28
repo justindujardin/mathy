@@ -38,7 +38,13 @@ Examples
 
 A trained agent learns to combine multiple low-level actions into higher-level ones that `combine like terms`
 
-**Input**:`1k + 210r + 7z + 11k + 10z`
+### Input
+
+`1k + 210r + 7z + 11k + 10z`
+
+`mathy:1k + 210r + 7z + 11k + 10z`
+
+### Steps
 
 | Step                   | Text                                     |
 | ---------------------- | ---------------------------------------- |
@@ -49,3 +55,9 @@ A trained agent learns to combine multiple low-level actions into higher-level o
 | constant arithmetic    | (11 + 1) \* k + 210r + **17z**           |
 | constant arithmetic    | **12k** + 210r + 17z                     |
 | solution               | **12k + 210r + 17z**                     |
+
+### Solution
+
+`12k + 210r + 17z`
+
+`mathy:12k + 210r + 17z`

@@ -1,5 +1,4 @@
-from mathy import ExpressionParser
-from mathy import MathExpression
+from mathy import ExpressionParser, MathExpression
 
 expression: MathExpression = ExpressionParser().parse("4x + 2y")
 assert expression.evaluate({"x": 2, "y": 5}) == 18

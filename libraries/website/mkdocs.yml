@@ -7,11 +7,11 @@ edit_uri: "edit/master/libraries/website/docs/"
 
 nav:
   - Mathy: "index.md"
-  - Computer Algebra Software:
+  - Computer algebra system:
       - Overview: "cas/overview.md"
       - Tokenizer: "cas/tokenizer.md"
       - Parser: "cas/parser.md"
-  - Transformation Rules:
+  - Rules-based transformations:
       - Overview: "rules/overview.md"
       - Associative Swap: "rules/associative_property.md"
       - Commutative Swap: "rules/commutative_property.md"
@@ -24,7 +24,7 @@ nav:
       - Poly Simplify: "envs/poly_simplify.md"
       - Complex Simplify: "envs/complex_simplify.md"
       - Binomial Multiply: "envs/binomial_multiply.md"
-  - Machine Learning:
+  - Machine learning models:
       - Overview: "ml/overview.md"
       - Math Embeddings: "ml/math_embeddings.md"
       - Reinforcement Learning: "ml/reinforcement_learning.md"
@@ -65,6 +65,7 @@ markdown_extensions:
   - pymdownx.details
 
 plugins:
+  - mathy
   - search
   - minify:
       minify_html: true

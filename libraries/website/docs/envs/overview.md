@@ -2,11 +2,11 @@ Mathy includes a framework for building [reinforcement learning](/ml/reinforceme
 
 There are a number of built-in environments aimed at simplifying algebra problems, and generous customization points for creating new ones.
 
-### Overview
+### Episodes
 
-Mathy **environments** are interacted with by **agents** in **episodes**, and follow a standard RL episode lifecycle:
+Mathy agents interact with environments through sequences of ineteractions called episodes, which follow a standard RL episode lifecycle:
 
-!!! info "Environment Episode Pseudocode"
+!!! info "Episode Pseudocode"
 
         1.  set **state** to an **initial state** from the **environment**
         2.  **while** **state** is not **terminal**
@@ -21,7 +21,7 @@ Because algebra problems are only a tiny sliver of what can be represented using
 
 Generating a new problem type while subclassing a base environment is probably the simplest way to create a custom challenge for the agent.
 
-You can inherit from a base environment like [Polynomial Simplification](/envs/polynomial_combine) which has win-conditions that require all the like-terms to be gone from an expression, and all complex terms be simplified. From there you can provide any valid input expression:
+You can inherit from a base environment like [Poly Simplify](/envs/poly_simplify) which has win-conditions that require all the like-terms to be gone from an expression, and all complex terms be simplified. From there you can provide any valid input expression:
 
 ```Python
 {!./snippets/envs/custom_problem_text.py!}

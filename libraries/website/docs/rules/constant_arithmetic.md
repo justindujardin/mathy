@@ -1,16 +1,11 @@
-The `Constant Arithmetic` rule transforms an expression tree by combining two constant values that are separated by a binary operation like `addition` or `division`. 
+The `Constant Arithmetic` rule transforms an expression tree by combining two constant values that are separated by a binary operation like `addition` or `division`.
 
 Examples:
 
- - `4 + 2` becomes `6`
- - `2x * 4` becomes `8x`
- - `4 / 1` becomes `4`
- - `12 - 2.5` becomes `9.5`
-
-!!! note
-    The constant simplify rule has the ability to simplify constants across a sibling when the sibling is a variable chunk and the constants are commutatively connected.
-
-    For example `2x * 8` can be transformed into `16x` because the constants are connected to each other through a multiplication chain that allows commuting. 
+- `4 + 2` becomes `6`
+- `2x * 4` becomes `8x`
+- `4 / 1` becomes `4`
+- `12 - 2.5` becomes `9.5`
 
 ### Transformations
 
@@ -22,9 +17,17 @@ The simplest transform is to evaluate two constants that are siblings.
 
 #### Sibling Skipping
 
-When the commutative property is satisfied we can combine two constants separated by a variable sibling.
+The constant simplify rule has the ability to simplify constants across a sibling when the sibling is a variable chunk and the constants are commutatively connected.
 
-- `(4n * 2) + 3` = `8n + 3`
+For example `2x * 8` can be transformed into `16x` because the constants are connected to each other through a multiplication chain that allows [commuting](/rules/commutative_property).
+
+We can see this by taking a look at the trees for `2x * 8` and `2 * 8 * x` and recalling that the commutative proeprty says `a * b = b * a`:
+
+| Satifying the Commutative Property |                   |
+| :--------------------------------: | :---------------- |
+|           `mathy:2x * 8`           | `mathy:2 * 8 * x` |
+
+We can see that the tree structure has been flipped, but that multiplication nodes still connect the same variables and constants, so the value of the expression remains unchanged.
 
 #### Alternate Tree Forms
 

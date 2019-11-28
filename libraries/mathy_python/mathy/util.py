@@ -14,7 +14,7 @@ class EnvRewards:
     INVALID_ACTION = -0.3
 
 
-def is_terminal_transition(transition: time_step.TimeStep):
+def is_terminal_transition(transition: time_step.TimeStep) -> bool:
     return bool(transition.step_type == time_step.StepType.LAST)
 
 

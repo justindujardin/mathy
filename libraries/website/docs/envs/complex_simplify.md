@@ -26,7 +26,13 @@ Examples
 
 A trained agent learns to combine multiple low-level actions into higher-level ones that `simplify complex terms`
 
-**Input**: `4a^4 * 5a^4 * 2b^4`
+### Input
+
+`4a^4 * 5a^4 * 2b^4`
+
+`mathy:4a^4 * 5a^4 * 2b^4`
+
+### Steps
 
 | Step                    | Text                        |
 | ----------------------- | --------------------------- |
@@ -39,3 +45,9 @@ A trained agent learns to combine multiple low-level actions into higher-level o
 | commutative swap        | 20 \* **2b^4 \* a^8**       |
 | constant arithmetic     | **40b^4** \* a^8            |
 | solution                | **40b^4 \* a^8**            |
+
+### Solution
+
+`40b^4 * a^8`
+
+`mathy:40b^4 * a^8`

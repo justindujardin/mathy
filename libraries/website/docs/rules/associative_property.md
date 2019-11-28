@@ -11,8 +11,8 @@ Examples:
 - `2 * (3 * 1) = 6` and `(2 * 3) * 1 = 6`
 
 !!! note
-    Interestingly, the application of the associative property of numbers to a binary expression tree is a common tree operation called a "node rotation."
 
+      Interestingly, the application of the associative property of numbers to a binary expression tree is a common tree operation called a "node rotation".
 
 ### Transformations
 

@@ -16,23 +16,27 @@ A lot of research has informed the design of Mathy's machine learning model and 
 
 ### [AlphaZero](https://deepmind.com/blog/article/alphazero-shedding-new-light-grand-games-chess-shogi-and-go){target=\_blank}
 
-The work done by [Silver et al.](https://arxiv.org/pdf/1712.01815.pdf) demonstrated the power of taking a principled approach to solving previously intractable problems. It inspired Mathy to use Neural Networks and reinforcement learning to pick combinations of rules to transform the tree with. This work lead directly to the removal of a layer of "composite" rules in Mathy for combining like terms and simplifying expressions.
+The work done by **[Silver et al.](https://arxiv.org/pdf/1712.01815.pdf){target=\_blank}** demonstrated the power of taking a principled approach to solving previously intractable problems. It inspired Mathy to use Neural Networks and reinforcement learning to pick combinations of rules to transform the tree with. This work lead directly to the removal of a layer of "composite" rules in Mathy for combining like terms and simplifying expressions.
 
 ### [A3C](https://arxiv.org/pdf/1602.01783){target=\_blank}
 
-The work done by [Mnih et al.](https://arxiv.org/pdf/1602.01783) in "Asynchronous Methods for Deep Reinforcement Learning" describes a CPU-friendly RL algorithm that can be trained for some tasks very rapidly. The `a3c` agent is based on this [tensorflow 2.0 implementation of A3C](https://medium.com/tensorflow/deep-reinforcement-learning-playing-cartpole-through-asynchronous-advantage-actor-critic-a3c-7eab2eea5296).
+The work done by **Mnih et al.** in "Asynchronous Methods for Deep Reinforcement Learning" describes a CPU-friendly RL algorithm that can be trained for some tasks very rapidly. The `a3c` agent is based on this [tensorflow 2.0 implementation of A3C](https://medium.com/tensorflow/deep-reinforcement-learning-playing-cartpole-through-asynchronous-advantage-actor-critic-a3c-7eab2eea5296){target=\_blank}.
 
 ### [Persistence Pays Off](https://arxiv.org/pdf/1810.04437.pdf){target=\_blank}
 
-The work done by [Salton and Kelleher](https://arxiv.org/pdf/1810.04437.pdf) in "Persistence pays off: Paying Attention to What the LSTM Gating Mechanism Persists" observes that LSTMs create a problem when they remove information from their states while processing a sequence, namely that the information is no longer available to future steps in the sequence. They suggest this makes it hard to identify long-term dependencies, and to address it they store and average the RNN states in recent history, then combine it with others input to your model. Mathy tracks the RNN state and RNN history for all observations, and incorporates them in the embeddings layer.
+The work done by **Salton and Kelleher** in "Persistence pays off: Paying Attention to What the LSTM Gating Mechanism Persists" observes that LSTMs create a problem when they remove information from their states while processing a sequence, namely that the information is no longer available to future steps in the sequence. They suggest this makes it hard to identify long-term dependencies, and to address it they store and average the RNN states in recent history, then combine it with others input to your model. Mathy tracks the RNN state and RNN history for all observations, and incorporates them in the embeddings layer.
 
 ### [R2D2](https://openreview.net/pdf?id=r1lyTjAqYX){target=\_blank}
 
-The work done by [Kapturowski et al.](https://openreview.net/pdf?id=r1lyTjAqYX){target=\_blank} in "Recurrent Experience Replay in Distributed Reinforcement Learning" shows that storing and properly initializing experience replay data can be crucial to identifying long-term dependencies in disitributed reinforcement learning. Mathy uses stored RNN states when training all sequences and optionally performs burn-in steps.
+The work done by **Kapturowski et al.** in "Recurrent Experience Replay in Distributed Reinforcement Learning" shows that storing and properly initializing experience replay data can be crucial to identifying long-term dependencies in disitributed reinforcement learning. Mathy uses stored RNN states when training all sequences and optionally performs burn-in steps.
+
+### [Tidier Trees](https://reingold.co/tidier-drawings.pdf){target=\_blank}
+
+The work done by **Reingold and Tilford** provides a relatively simple way to approach a difficult problem: how do you render arbitrarily large trees in a beautiful way? They provide an algorithm that does just that, enforcing a number of aesthetic rules on the trees it outputs. Mathy uses an implementation of this work to measure its trees for rendering.
 
 ### [UNREAL](https://deepmind.com/blog/article/reinforcement-learning-unsupervised-auxiliary-tasks){target=\_blank}
 
-The work done by [Jaderberg et al.](https://arxiv.org/pdf/1611.05397.pdf){target=\_blank} explores the use of unsupervised auxiliary tasks to encourage RL agents to converge at a much quicker rate than they otherwise would. They find that using shared network weights to predict different things can help agents learned shared representations that both can benefit from. Mathy uses an auxiliary task for controlling the grouping of like terms in an expression, inspired by this work.
+The work done by **[Jaderberg et al.](https://arxiv.org/pdf/1611.05397.pdf){target=\_blank}** explores the use of unsupervised auxiliary tasks to encourage RL agents to converge at a much quicker rate than they otherwise would. They find that using shared network weights to predict different things can help agents learned shared representations that both can benefit from. Mathy uses an auxiliary task for controlling the grouping of like terms in an expression, inspired by this work.
 
 ## Open Source
 
@@ -60,13 +64,20 @@ When I began researching how to transform text into expression trees I came acro
 
 ### [AlphaZero General](https://github.com/suragnair/alpha-zero-general){target=\_blank}
 
-After learning about the success of [MCTS combined with Neural Networks](https://deepmind.com/blog/article/alphazero-shedding-new-light-grand-games-chess-shogi-and-go){target=\_blank} I was convinced that an alternative to custom written heuristics was available to transform trees in complex ways. It was at this time that I came across an AlphaGo implementation called [Alpha Zero General](https://github.com/suragnair/alpha-zero-general){target=\_blank} that I adapted to single-agent Mathy environments. While the code has changed quite a bit, you can continue see parts of AZG in the MathyEnv and MCTS classes. The `zero` agent is based on this approach.
+AlphaZero General is a mostly-faithful implementation of AlphaGo in python. A heavily modified version is used by the `zero` agent in mathy. While the code has changed quite a bit, you can continue see parts of AZG in the MathyEnv and MCTS classes.
 
 !!! warning "Missing Functionality"
 
-        At one point during an aggressive refactor and simplification I removed the self-play competition from the `zero` agent's training regimen. Later, I saw a comment from DeepMind about how self-play is critical to continual learning because it creates a competetive challenge that is never too hard or too easy.
+        At one point during an aggressive refactor and simplification pass, I removed the self-play evaluation step from the `zero` agent's training loop. Later, I saw a comment from DeepMind (link?) about how self-play is critical to continual learning because it creates a competetive challenge that is never too hard or too easy.
 
-        This code is relatively straight-forward and should be revived for optimal performance.
+        The code for self-play is relatively straight-forward and should be revived for optimal training. It basically breaks down as:
+
+        1.  gather **n** episodes of training data
+        2.  **train** the **neural network** with all of the accumulated knowledge
+        3.  execute **trial** number of episodes where the **current agent** and the **newly trained agent** race to see who can complete the task first
+        4.  if the **newly trained agent** wins more than **55%** of all the trial episodes
+            - assign the **current agent** to be the **newly trained agent**
+        5.  goto 1.
 
 ??? note "MIT License"
 
