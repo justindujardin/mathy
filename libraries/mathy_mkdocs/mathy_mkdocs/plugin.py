@@ -35,13 +35,24 @@ def render_examples_from_tests(match):
     max_len = 32
     try:
         data = testing.get_rule_tests(rule_file_name)
-        result = f"\r\n"
+        result = f"\r\n|Input|Output|Valid|"
+        result += f"\r\n|---|---|:---:|"
+        valid = "\u2714"
         for v in data["valid"]:
             in_text = v["input"]
             out_text = v["output"]
             if len(in_text) > max_len or len(out_text) > max_len:
                 continue
-            result += f"  - `{in_text}` => `{out_text}`\r\n"
+
+            result += f"\r\n|{in_text}|{out_text}|{valid}|"
+        valid = "---"
+        for v in data["invalid"]:
+            in_text = v["input"]
+            out_text = "---"
+            if len(in_text) > max_len or len(out_text) > max_len:
+                continue
+
+            result += f"\r\n|{in_text}|{out_text}|{valid}|"
         return result
     except ValueError:
         return f"Rule file not found: __{rule_file_name}.json__"
