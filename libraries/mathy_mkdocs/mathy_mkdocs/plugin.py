@@ -1,7 +1,7 @@
 import re
 
 import svgwrite
-
+from svgwrite.mixins import ViewBox
 from mathy import (
     BinaryExpression,
     ExpressionParser,
@@ -13,7 +13,7 @@ from mathy import (
 
 parser = ExpressionParser()
 layout = TreeLayout()
-matcher_re = r"\{\{\s*mathy:([^\}]*)\s*\}\}"
+matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 
 
 def to_math_ml(match):
@@ -33,14 +33,24 @@ def replace_match(match):
     input_text = match.group(1)
     try:
         expression: MathExpression = parser.parse(input_text)
-        m: TreeMeasurement = layout.layout(expression, 70, 70)
+        measure: TreeMeasurement = layout.layout(expression, 50, 50)
         padding = 25
-        offset_x = padding + abs(m.minX)
-        offset_y = padding + abs(m.minY)
+
+        double_padding = padding * 2
+        width = measure.maxX - measure.minX + double_padding
+        height = measure.maxY - measure.minY + double_padding
+        offset_x = padding + abs(measure.minX)
+        offset_y = padding + abs(measure.minY)
         text_height = 6
         char_width = 8
 
-        tree = svgwrite.Drawing(size=(200, 200))
+        view_x = measure.minX - padding
+        view_y = measure.minY - padding
+        view_w = abs(measure.maxX - view_x) + double_padding
+        view_h = abs(measure.maxY - view_y) + double_padding
+
+        tree = svgwrite.Drawing(size=(width, height))
+        tree.viewbox(minx=0, miny=0, width=view_w, height=view_h)
 
         def node_visit(node: MathExpression, depth, data):
             color = svgwrite.rgb(180, 200, 255)
@@ -69,6 +79,7 @@ def replace_match(match):
                 )
             )
 
+            # TODO: need ViewBox mixin to allow image scaling to work
             text_x = -(char_width * len(value) // 2) + node.x + offset_x
             text_y = text_height + node.y + offset_y
             tree.add(
@@ -76,14 +87,6 @@ def replace_match(match):
                     value, insert=(text_x, text_y), fill=svgwrite.rgb(25, 25, 25),
                 )
             )
-
-            # html.push(
-            #     drawText(
-            #         node.x + offsetX, node.y + offsetY, value, options.nodeSize, color
-            #     )
-            # )
-
-            # pass
 
         expression.visit_postorder(node_visit)
 
@@ -99,10 +102,10 @@ def render_mathy_templates(input_text: str):
 
 
 if __name__ == "__main__":
-    print(render_mathy_templates("{{mathy:4x + 2 }}"))
+    print(render_mathy_templates("`<code>mathy:4x^3 * 2x - 7</code>"))
 else:
     from mkdocs.plugins import BasePlugin
 
     class MathyMkDocsPlugin(BasePlugin):
-        def on_page_markdown(self, markdown, **kwargs):
-            return render_mathy_templates(markdown)
+        def on_page_content(self, content, **kwargs):
+            return render_mathy_templates(content)
