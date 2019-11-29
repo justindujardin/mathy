@@ -70,10 +70,11 @@ MathTypeKeysMax = max(MathTypeKeys.values()) + 1
 
 
 class MathExpression(BinaryTreeNode):
-    """A Basic MathExpression node"""
+    """Base math tree node with helpers for manipulating expressions."""
 
     @property
     def raw(self):
+        """raw text representation of the expression."""
         return str(self)
 
     @property
@@ -137,7 +138,7 @@ class MathExpression(BinaryTreeNode):
         """
         Associate a class name with an expression.  This class name will be
         tagged on nodes when the expression is converted to a capable output
-        format.  See {@link #to_math_ml}.
+        format.  See #MathExpression.to_math_ml
         """
         if type(classes) == str:
             classes = [classes]
@@ -191,8 +192,9 @@ class MathExpression(BinaryTreeNode):
     def findByType(self, instanceType):
         """Find an expression in this tree by type.
 
-        @param {Function} instanceType The type to check for instances of
-        @returns {Array} Array of {@link MathExpression} that are of the given type.
+        - instanceType: The type to check for instances of
+        
+        Returns the found #MathExpression objects of the given type.
         """
         results = []
 
@@ -206,7 +208,7 @@ class MathExpression(BinaryTreeNode):
     def findById(self, id):
         """Find an expression by its unique ID.
 
-        @returns {MathExpression|None} The node.
+        Returns: The found #MathExpression or `None`
         """
         result = None
 

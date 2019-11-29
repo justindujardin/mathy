@@ -23,8 +23,10 @@ class BinaryTreeNode:
 
     _idCounter = 0
 
+    # Tree layout mutations. Thanks, 2009 Justin. :( :(
     x: Optional[float]
     y: Optional[float]
+    offset: Optional[float]
 
     #  Allow specifying children in the constructor
     def __init__(self, left=None, right=None, parent=None, id=None):

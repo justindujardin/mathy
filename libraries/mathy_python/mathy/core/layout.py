@@ -1,5 +1,15 @@
-from .tree import LEFT, RIGHT
-import curses
+"""Tree Layout
+---
+
+In order to help visualize, understand, and debug math trees and transformations to
+them, Mathy implements a
+[Reingold-Tilford](https://reingold.co/tidier-drawings.pdf){target=\_blank} layout
+algorithm that works with expression trees. It produces beautiful trees like:
+
+`mathy:(2x^3 + y)(14 + 2.3y)`
+
+"""
+from .tree import BinaryTreeNode
 
 
 class TidierExtreme:
@@ -39,16 +49,22 @@ class TreeMeasurement:
 
 
 class TreeLayout:
-    """Implement a Reingold-Tilford 'tidier' tree layout algorithm."""
+    """[Reingold-Tilford](https://reingold.co/tidier-drawings.pdf){target=\_blank}
+     `tidier` tree layout algorithm.
+
+    The tidier tree algorithm produces aesthetically pleasing compact trees with no
+    overlapping nodes regardless of the depth or complexity of the tree."""
 
     # Assign x/y values to all nodes in the tree, and return an object containing
     # the measurements of the tree.
-    def layout(self, node, unitMultiplierX=1, unitMultiplierY=1):
+    def layout(self, node: BinaryTreeNode, unitMultiplierX=1, unitMultiplierY=1):
         self.measure(node)
         return self.transform(node, 0, unitMultiplierX, unitMultiplierY)
 
     # Compute relative tree node positions
-    def measure(self, node, level=0, extremes: TidierExtreme = None):
+    def measure(
+        self, node: BinaryTreeNode, level=0, extremes: TidierExtreme = None
+    ) -> TreeMeasurement:
         if extremes is None:
             extremes = TidierExtreme()
 
@@ -178,7 +194,14 @@ class TreeLayout:
 
     # Transform relative to absolute coordinates, and measure the bounds of the tree.
     # Return a measurement of the tree in output units.
-    def transform(self, node, x=0, unitMultiplierX=1, unitMultiplierY=1, measure=None):
+    def transform(
+        self,
+        node: BinaryTreeNode,
+        x=0,
+        unitMultiplierX=1,
+        unitMultiplierY=1,
+        measure=None,
+    ) -> TreeMeasurement:
         if measure is None:
             measure = TreeMeasurement()
         if not node:

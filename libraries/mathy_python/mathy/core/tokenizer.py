@@ -55,9 +55,9 @@ class TokenContext:
         self.chunk = chunk
 
 
-# The Tokenizer produces a list of tokens from an input string.
 class Tokenizer:
-    # ###Functions Registry
+    """The Tokenizer produces a list of tokens from an input string."""
+
     def __init__(self):
         self.find_functions()
 
@@ -84,17 +84,17 @@ class Tokenizer:
 
     # ###Token Utilities
 
-    # Is this character a letter
-    def is_alpha(self, c) -> bool:
+    def is_alpha(self, c: str) -> bool:
+        """Is this character a letter"""
         return ("a" <= c and c <= "z") or ("A" <= c and c <= "Z")
 
-    # Is this character a number
-    def is_number(self, c) -> bool:
+    def is_number(self, c: str) -> bool:
+        """Is this character a number"""
         return "." == c or ("0" <= c and c <= "9")
 
-    # Eat all of the tokens of a given type from the front of the stream
-    # until a different type is hit, and return the text.
     def eat_token(self, context: TokenContext, typeFn):
+        """Eat all of the tokens of a given type from the front of the stream
+        until a different type is hit, and return the text."""
         res = ""
         for ch in list(context.chunk):
             if not typeFn(ch):
@@ -103,11 +103,9 @@ class Tokenizer:
 
         return res
 
-    # ###Tokenizantion
-    # Return an array of `Token`s from a given string input.
-    # This throws an exception if an unknown token type is found in
-    # the input.
     def tokenize(self, buffer: str, terms=False) -> List[Token]:
+        """Return an array of `Token`s from a given string input.
+        This throws an exception if an unknown token type is found in the input."""
         context = TokenContext(buffer=buffer, chunk=str(buffer))
         while context.chunk and (
             self.identify_constants(context)
@@ -119,8 +117,8 @@ class Tokenizer:
         context.tokens.append(Token("", TokenEOF))
         return context.tokens
 
-    # Identify and tokenize operators.
     def identify_operators(self, context):
+        """Identify and tokenize operators."""
         ch = context.chunk[0]
         if ch == " " or ch == "\t" or ch == "\r" or ch == "\n":
             pass
@@ -149,8 +147,8 @@ class Tokenizer:
         context.index = context.index + 1
         return True
 
-    # Identify and tokenize functions and variables.
     def identify_alphas(self, context):
+        """Identify and tokenize functions and variables."""
         if not self.is_alpha(context.chunk[0]):
             return False
 
@@ -164,8 +162,8 @@ class Tokenizer:
         context.index += len(variable)
         return len(variable)
 
-    # Identify and tokenize a constant number.
     def identify_constants(self, context):
+        """Identify and tokenize a constant number."""
         if not self.is_number(context.chunk[0]):
             return 0
 

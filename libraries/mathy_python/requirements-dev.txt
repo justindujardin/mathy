@@ -12,3 +12,4 @@ pydot
 mkdocs
 mkdocs-material
 markdown-include
+pydoc-markdown
