@@ -24,11 +24,27 @@ nav:
       - Poly Simplify: "envs/poly_simplify.md"
       - Complex Simplify: "envs/complex_simplify.md"
       - Binomial Multiply: "envs/binomial_multiply.md"
-  - Machine learning models:
+  - Machine learning:
       - Overview: "ml/overview.md"
       - Math Embeddings: "ml/math_embeddings.md"
       - Reinforcement Learning: "ml/reinforcement_learning.md"
       - Monte Carlo Tree Search: "ml/monte_carlo_tree_search.md"
+  - API Documentation:
+      - Core:
+          - Expressions: "api/core/expressions.md"
+          - Layout: "api/core/layout.md"
+          - Parser: "api/core/parser.md"
+          - Tokenizer: "api/core/tokenizer.md"
+          - Tree: "api/core/tree.md"
+      - Envs:
+          - Binomial Distribute: "api/envs/binomial_distribute.md"
+          - Complex Simplify: "api/envs/complex_simplify.md"
+          - Poly Combine In Place: "api/envs/poly_combine_in_place.md"
+          - Poly Commute Like Terms: "api/envs/poly_commute_like_terms.md"
+          - Poly Grouping: "api/envs/poly_grouping.md"
+          - Poly Haystack Like Terms: "api/envs/poly_haystack_like_terms.md"
+          - Poly Simplify Blockers: "api/envs/poly_simplify_blockers.md"
+          - Poly Simplify: "api/envs/poly_simplify.md"
   - About: "about.md"
 
 extra:
