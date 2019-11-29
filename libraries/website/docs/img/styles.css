@@ -1,0 +1,4 @@
+/* https://github.com/squidfunk/mkdocs-material/issues/175 */
+.md-typeset__table {
+  min-width: 100%;
+}

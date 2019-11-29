@@ -39,6 +39,9 @@ extra:
     - type: "twitter"
       link: "https://twitter.com/justindujardin"
 
+extra_css:
+  - "img/styles.css"
+
 theme:
   name: "material"
   logo: "img/school-24px.svg"
