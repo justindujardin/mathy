@@ -9,9 +9,13 @@ Math tree node with helpers for manipulating expressions.
 `mathy:x+y=z`
 
 ### color
-Color to use for this node when rendering it as changed with `.colored`
+Color to use for this node when rendering it as changed with `.terminal_text`
 ### raw
 raw text representation of the expression.
+### terminal_text
+Text output of this node that includes terminal color codes that
+highlight which nodes have been changed in this tree as a result of
+a transformation.
 ### evaluate
 ```python
 MathExpression.evaluate(self, context=None)
@@ -36,30 +40,22 @@ Differentiate the expression by a given variable
 ```python
 MathExpression.with_color(self, text:str, style='bright') -> str
 ```
-Render a string that is colored if the boolean input is True
+Render a string that is colored if something has changed
 ### add_class
 ```python
 MathExpression.add_class(self, classes)
 ```
-
-Associate a class name with an expression.  This class name will be
-tagged on nodes when the expression is converted to a capable output
-format.  See `MathExpression.to_math_ml`
-
-### set_weight
-```python
-MathExpression.set_weight(self, weight:float) -> 'MathExpression'
-```
-Associate a weight with this node. This is used when rendering attention
-weights on expression nodes.
+Associate a class name with an expression. This class name will be
+attached to nodes when the expression is converted to a capable output
+format.  See `MathExpression.to_math_ml_fragment`
 ### count_nodes
 ```python
 MathExpression.count_nodes(self)
 ```
 Return the number of nodes in this expression
-### toList
+### to_list
 ```python
-MathExpression.toList(self, visit='postorder')
+MathExpression.to_list(self, visit='postorder')
 ```
 Convert this node hierarchy into a list.
 ### clear_classes
@@ -67,9 +63,9 @@ Convert this node hierarchy into a list.
 MathExpression.clear_classes(self)
 ```
 Clear all the classes currently set on the nodes in this expression.
-### findByType
+### find_type
 ```python
-MathExpression.findByType(self, instanceType)
+MathExpression.find_type(self, instanceType)
 ```
 Find an expression in this tree by type.
 
@@ -77,62 +73,63 @@ Find an expression in this tree by type.
 
 Returns the found `MathExpression` objects of the given type.
 
-### findById
+### find_id
 ```python
-MathExpression.findById(self, id)
+MathExpression.find_id(self, id)
 ```
 Find an expression by its unique ID.
 
 Returns: The found `MathExpression` or `None`
 
+### to_math_ml_fragment
+```python
+MathExpression.to_math_ml_fragment(self)
+```
+Convert this single node into MathML.
 ### to_math_ml
 ```python
 MathExpression.to_math_ml(self)
 ```
-Convert this single node into MathML.
-### to_math_ml_element
-```python
-MathExpression.to_math_ml_element(self)
-```
 Convert this expression into a MathML container.
 ### make_ml_tag
 ```python
-MathExpression.make_ml_tag(self, tag, content, classes=[])
+MathExpression.make_ml_tag(self, tag:str, content, classes=[]) -> str
 ```
+Make a MathML tag for the given content while respecting the node's given
+classes.
 
-Make an ML tag for the given content, respecting the node's
-given classes.
-@param {String} tag The ML tag name to create.
-@param {String} content The ML content to place inside of the tag.
-@param {Array} classes An array of classes to attach to this tag.
+Params:
+
+    - `tag` The ML tag name to create.
+    - `content` The ML content to place inside of the tag.
+    - `classes` An array of classes to attach to this tag.
 
 ### path_to_root
 ```python
-MathExpression.path_to_root(self)
+MathExpression.path_to_root(self) -> str
 ```
-
 Generate a namespaced path key to from the current node to the root.
 This key can be used to identify a node inside of a tree.
-
 ### clone_from_root
 ```python
-MathExpression.clone_from_root(self, node=None)
+MathExpression.clone_from_root(self, node=None) -> 'MathExpression'
 ```
+Clone this node including the entire parent hierarchy that it has. This
+is useful when you want to clone a subtree and still maintain the overall
+hierarchy.
 
-Like the clone method, but also clones the parent hierarchy up to
-the node root.  This is useful when you want to clone a subtree and still
-maintain the overall hierarchy.
-@param {MathExpression} [node=self] The node to clone.
-@returns {MathExpression} The cloned node.
+Params:
+
+    - `node` The node to clone.
+
+Returns: The cloned `MathExpression` node.
 
 ### clone
 ```python
-MathExpression.clone(self)
+MathExpression.clone(self) -> 'MathExpression'
 ```
-
-A specialization of the clone method that can track and report a cloned subtree
-node.  See {@link `clone_from_root`} for more details.
-
+A specialization of the clone method that can track and report a cloned
+subtree node. See `MathExpression.clone_from_root` for more details.
 ## UnaryExpression
 ```python
 UnaryExpression(self, child=None, operatorOnLeft=True)
@@ -143,9 +140,9 @@ An expression that operates on one sub-expression
 NegateExpression(self, child=None, operatorOnLeft=True)
 ```
 Negate an expression, e.g. `4` becomes `-4`
-### to_math_ml
+### to_math_ml_fragment
 ```python
-NegateExpression.to_math_ml(self)
+NegateExpression.to_math_ml_fragment(self)
 ```
 Convert this single node into MathML.
 ### differentiate
@@ -153,20 +150,18 @@ Convert this single node into MathML.
 NegateExpression.differentiate(self, by_variable)
 ```
 
-<pre>
-        f(x) = -g(x)
-    d( f(x) ) = -( d( g(x) ) )
-</pre>
+```
+.            f(x) = -g(x)
+.        d( f(x) ) = -( d( g(x) ) )
+```
 
 ## FunctionExpression
 ```python
 FunctionExpression(self, child=None, operatorOnLeft=True)
 ```
-
 A Specialized UnaryExpression that is used for functions.  The function name in
-text (used by the parser and tokenizer) is derived from the name() method on
-the class.
-
+text (used by the parser and tokenizer) is derived from the name() method on the
+class.
 ## BinaryExpression
 ```python
 BinaryExpression(self, left=None, right=None)
@@ -176,12 +171,23 @@ An expression that operates on two sub-expressions
 ```python
 BinaryExpression.get_priority(self)
 ```
-
 Return a number representing the order of operations priority
 of this node.  This can be used to check if a node is `locked`
 with respect to another node, i.e. the other node must be resolved
 first during evaluation because of it's priority.
 
+### self_parens
+```python
+BinaryExpression.self_parens(self) -> bool
+```
+Return a boolean indicating whether this node should render itself with
+a set of enclosing parnetheses or not. This is used when serializing an
+expression, to ensure the tree maintains the proper order of operations.
+### to_math_ml_fragment
+```python
+BinaryExpression.to_math_ml_fragment(self)
+```
+Render this node as a MathML element fragment
 ## EqualExpression
 ```python
 EqualExpression(self, left=None, right=None)
@@ -191,45 +197,127 @@ Evaluate equality of two expressions
 ```python
 EqualExpression.operate(self, one:mathy.core.expressions.BinaryExpression, two:mathy.core.expressions.BinaryExpression)
 ```
+This is where assignment of context variables might make sense. But context
+is not present in the expression's `operate` method.
 
-This is where assignment of context variables might make sense.  But context is not
-present in the expression's `operate` method.  TODO: Investigate this thoroughly.
+!!! warning
+
+    TODO: Investigate this thoroughly.
 
 ## AddExpression
 ```python
 AddExpression(self, left=None, right=None)
 ```
 Add one and two
+### differentiate
+```python
+AddExpression.differentiate(self, by_variable)
+```
+```
+.               f(x) = g(x) + h(x)
+.          d( f(x) ) = d( g(x) ) + d( h(x) )
+.              f'(x) = g'(x) + h'(x)
+```
 ## SubtractExpression
 ```python
 SubtractExpression(self, left=None, right=None)
 ```
 Subtract one from two
+### differentiate
+```python
+SubtractExpression.differentiate(self, by_variable)
+```
+```
+.               f(x) = g(x) - h(x)
+.          d( f(x) ) = d( g(x) ) - d( h(x) )
+.              f'(x) = g'(x) - h'(x)
+```
 ## MultiplyExpression
 ```python
 MultiplyExpression(self, left=None, right=None)
 ```
 Multiply one and two
+### differentiate
+```python
+MultiplyExpression.differentiate(self, by_variable)
+```
+```
+.             f(x) = g(x)*h(x)
+.            f'(x) = g(x)*h'(x) + g'(x)*h(x)
+```
 ## DivideExpression
 ```python
 DivideExpression(self, left=None, right=None)
 ```
 Divide one by two
+### differentiate
+```python
+DivideExpression.differentiate(self, by_variable)
+```
+```
+.          f(x) = g(x)/h(x)
+.         f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
+```
 ## PowerExpression
 ```python
 PowerExpression(self, left=None, right=None)
 ```
 Raise one to the power of two
+### differentiate
+```python
+PowerExpression.differentiate(self, by_variable)
+```
+
+!!! warn Unimplemented
+
+    This needs to be implemented
+
 ## ConstantExpression
 ```python
 ConstantExpression(self, value=None)
 ```
 A Constant value node, where the value is accessible as `node.value`
+## VariableExpression
+```python
+VariableExpression(self, identifier=None)
+```
+
+### differentiate
+```python
+VariableExpression.differentiate(self, by_variable)
+```
+
+Differentiating by this variable yields 1
+
+```
+.             f(x) = x
+.        d( f(x) ) = 1 * d( x )
+.           d( x ) = 1
+.            f'(x) = 1
+```
+
+Differentiating by any other variable yields 0
+
+```
+.             f(x) = c
+.        d( f(x) ) = c * d( c )
+.           d( c ) = 0
+.            f'(x) = 0
+```
+
 ## AbsExpression
 ```python
 AbsExpression(self, child=None, operatorOnLeft=True)
 ```
 Evaluates the absolute value of an expression.
+### differentiate
+```python
+AbsExpression.differentiate(self, by_variable)
+```
+```
+.           f(x)   = abs( g(x) )
+.        d( f(x) ) = sgn( g(x) ) * d( g(x) )
+```
 ## SgnExpression
 ```python
 SgnExpression(self, child=None, operatorOnLeft=True)
@@ -239,18 +327,16 @@ SgnExpression(self, child=None, operatorOnLeft=True)
 ```python
 SgnExpression.operate(self, value)
 ```
+Determine the sign of an value.
 
-Determine the sign of an value
-@returns {Number} -1 if negative, 1 if positive, 0 if 0
-
+Returns: -1 if negative, 1 if positive, 0 if 0
 ### differentiate
 ```python
 SgnExpression.differentiate(self, by_variable)
 ```
+```
+.             f(x) = sgn( g(x) )
+.        d( f(x) ) = 0
+```
 
-<pre>
-        f(x) = sgn( g(x) )
-        d( f(x) ) = 0
-</pre>
-Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function
-
+Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function.

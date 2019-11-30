@@ -321,7 +321,7 @@ class MathyEnv:
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
         if change is not None:
-            changed_problem = change.result.get_root().colored
+            changed_problem = change.result.get_root().terminal_text
         output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
         def get_move_shortname(index, move):
@@ -381,7 +381,7 @@ class MathyEnv:
 
     def get_agent_actions_count(self, env_state: MathyEnvState) -> int:
         """Return number of all possible actions"""
-        node_count = len(self.parser.parse(env_state.agent.problem).toList())
+        node_count = len(self.parser.parse(env_state.agent.problem).to_list())
         return self.action_size * node_count
 
     def get_token_at_index(
@@ -421,7 +421,7 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        node_list: List[MathExpression] = expression.toList()
+        node_list: List[MathExpression] = expression.to_list()
         node_count = len(node_list)
         rule_count = len(self.rules)
         values = [0] * rule_count * node_count
@@ -477,7 +477,7 @@ class MathyEnv:
         key = str(expression)
         if rule_list is None and key in self.valid_actions_mask_cache:
             return self.valid_actions_mask_cache[key][:]
-        node_count = len(expression.toList())
+        node_count = len(expression.to_list())
         rule_count = len(self.rules)
         actions = [0] * rule_count * node_count
         for rule_index, rule in enumerate(self.rules):

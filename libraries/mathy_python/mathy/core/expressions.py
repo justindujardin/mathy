@@ -85,7 +85,11 @@ class MathExpression(BinaryTreeNode):
         raise NotImplementedError("must be implemented in subclass")
 
     @property
-    def colored(self):
+    def terminal_text(self):
+        """Text output of this node that includes terminal color codes that
+        highlight which nodes have been changed in this tree as a result of
+        a transformation."""
+
         def visit_fn(node, depth, data):
             node._rendering_change = data
 
@@ -96,16 +100,14 @@ class MathExpression(BinaryTreeNode):
 
     @property
     def color(self):
-        """Color to use for this node when rendering it as changed with `.colored`"""
+        """Color to use for this node when rendering it as changed with `.terminal_text`"""
         return "green"
 
     _rendering_change: bool
-    _attention_weight: Optional[float]
 
     def __init__(self, id=None, left=None, right=None, parent=None):
         super().__init__(left, right, parent, id)
         self._rendering_change = None
-        self._attention_weight = None
         self._changed = False
         self.classes = [self.id]
         self.cloned_node = None
@@ -132,27 +134,18 @@ class MathExpression(BinaryTreeNode):
         raise Exception("cannot differentiate an abstract MathExpression node")
 
     def with_color(self, text: str, style="bright") -> str:
-        """Render a string that is colored if the boolean input is True"""
+        """Render a string that is colored if something has changed"""
         if self._rendering_change is True and self._changed is True:
             return color(text, fore=self.color, style=style)
         return text
 
     def add_class(self, classes):
-        """
-        Associate a class name with an expression.  This class name will be
-        tagged on nodes when the expression is converted to a capable output
-        format.  See #MathExpression.to_math_ml
-        """
+        """Associate a class name with an expression. This class name will be
+        attached to nodes when the expression is converted to a capable output
+        format.  See #MathExpression.to_math_ml_fragment"""
         if type(classes) == str:
             classes = [classes]
         self.classes = list(set(self.classes).union(classes))
-        return self
-
-    def set_weight(self, weight: float) -> "MathExpression":
-        """Associate a weight with this node. This is used when rendering attention
-        weights on expression nodes. """
-        assert weight >= 0.0 and weight <= 1.0, "weights must be in 0-1 range"
-        self._attention_weight = weight
         return self
 
     def count_nodes(self):
@@ -166,7 +159,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return count
 
-    def toList(self, visit="postorder"):
+    def to_list(self, visit="postorder"):
         """Convert this node hierarchy into a list."""
         results = []
 
@@ -192,7 +185,7 @@ class MathExpression(BinaryTreeNode):
 
         return results
 
-    def findByType(self, instanceType):
+    def find_type(self, instanceType):
         """Find an expression in this tree by type.
 
         - instanceType: The type to check for instances of
@@ -208,7 +201,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return results
 
-    def findById(self, id):
+    def find_id(self, id):
         """Find an expression by its unique ID.
 
         Returns: The found #MathExpression or `None`
@@ -224,27 +217,29 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return result
 
-    def to_math_ml(self):
+    def to_math_ml_fragment(self):
         """Convert this single node into MathML."""
         return ""
 
-    def to_math_ml_element(self):
+    def to_math_ml(self):
         """Convert this expression into a MathML container."""
         return "\n".join(
             [
                 "<math xmlns='http:#www.w3.org/1998/Math/MathML'>",
-                self.to_math_ml(),
+                self.to_math_ml_fragment(),
                 "</math>",
             ]
         )
 
-    def make_ml_tag(self, tag, content, classes=[]):
-        """
-        Make an ML tag for the given content, respecting the node's
-        given classes.
-        @param {String} tag The ML tag name to create.
-        @param {String} content The ML content to place inside of the tag.
-        @param {Array} classes An array of classes to attach to this tag.
+    def make_ml_tag(self, tag: str, content, classes=[]) -> str:
+        """Make a MathML tag for the given content while respecting the node's given
+        classes.
+
+        Params:
+
+            - `tag` The ML tag name to create.
+            - `content` The ML content to place inside of the tag.
+            - `classes` An array of classes to attach to this tag.
         """
         if len(classes) == 0:
             classes = ""
@@ -252,11 +247,9 @@ class MathExpression(BinaryTreeNode):
             classes = " class='{}'".format(" ".join(classes))
         return "<{}{}>{}</{}>".format(tag, classes, content, tag)
 
-    def path_to_root(self):
-        """
-        Generate a namespaced path key to from the current node to the root.
-        This key can be used to identify a node inside of a tree.
-        """
+    def path_to_root(self) -> str:
+        """Generate a namespaced path key to from the current node to the root.
+        This key can be used to identify a node inside of a tree."""
         points = []
 
         def path_mark(node):
@@ -269,13 +262,16 @@ class MathExpression(BinaryTreeNode):
             path_mark(node)
         return ".".join(points)
 
-    def clone_from_root(self, node=None):
-        """
-        Like the clone method, but also clones the parent hierarchy up to
-        the node root.  This is useful when you want to clone a subtree and still
-        maintain the overall hierarchy.
-        @param {MathExpression} [node=self] The node to clone.
-        @returns {MathExpression} The cloned node.
+    def clone_from_root(self, node=None) -> "MathExpression":
+        """Clone this node including the entire parent hierarchy that it has. This
+        is useful when you want to clone a subtree and still maintain the overall
+        hierarchy.
+
+        Params:
+
+            - `node` The node to clone.
+
+        Returns: The cloned #MathExpression node.
         """
         node = node if node is not None else self
         self.cloned_node = None
@@ -292,11 +288,9 @@ class MathExpression(BinaryTreeNode):
         self.cloned_target = None
         return result
 
-    def clone(self):
-        """
-        A specialization of the clone method that can track and report a cloned subtree
-        node.  See {@link #clone_from_root} for more details.
-        """
+    def clone(self) -> "MathExpression":
+        """A specialization of the clone method that can track and report a cloned
+        subtree node. See #MathExpression.clone_from_root for more details."""
         result = super().clone()
         if self.cloned_target is not None and self.path_to_root() == self.cloned_target:
             self.cloned_node = result
@@ -352,16 +346,16 @@ class NegateExpression(UnaryExpression):
     def __str__(self):
         return self.with_color("-{}".format(self.get_child()))
 
-    def to_math_ml(self):
+    def to_math_ml_fragment(self):
         """Convert this single node into MathML."""
-        return f"-{super().to_math_ml()}"
+        return f"-{super().to_math_ml_fragment()}"
 
     def differentiate(self, by_variable):
         """
-        <pre>
-                f(x) = -g(x)
-            d( f(x) ) = -( d( g(x) ) )
-        </pre>
+        ```
+        .            f(x) = -g(x)
+        .        d( f(x) ) = -( d( g(x) ) )
+        ```
         """
         return NegateExpression(self.child.differentiate(by_variable))
 
@@ -370,11 +364,9 @@ class NegateExpression(UnaryExpression):
 
 
 class FunctionExpression(UnaryExpression):
-    """
-  A Specialized UnaryExpression that is used for functions.  The function name in
-  text (used by the parser and tokenizer) is derived from the name() method on
-  the class.
-  """
+    """A Specialized UnaryExpression that is used for functions.  The function name in
+    text (used by the parser and tokenizer) is derived from the name() method on the
+    class."""
 
     @property
     def name(self):
@@ -411,8 +403,7 @@ class BinaryExpression(MathExpression):
         raise Exception("Must be implemented in subclass")
 
     def get_priority(self):
-        """
-        Return a number representing the order of operations priority
+        """Return a number representing the order of operations priority
         of this node.  This can be used to check if a node is `locked`
         with respect to another node, i.e. the other node must be resolved
         first during evaluation because of it's priority.
@@ -437,7 +428,10 @@ class BinaryExpression(MathExpression):
 
         return priority
 
-    def self_parens(self):
+    def self_parens(self) -> bool:
+        """Return a boolean indicating whether this node should render itself with
+        a set of enclosing parnetheses or not. This is used when serializing an
+        expression, to ensure the tree maintains the proper order of operations."""
         parent = isinstance(self.parent, BinaryExpression)
         self_pri = self.get_priority()
         if not parent:
@@ -473,9 +467,10 @@ class BinaryExpression(MathExpression):
         out = f"{self.left} {self.with_color(self.name)} {self.right}"
         return f"({out})" if self.self_parens() else out
 
-    def to_math_ml(self):
-        right_ml = self.right.to_math_ml()
-        left_ml = self.left.to_math_ml()
+    def to_math_ml_fragment(self):
+        """Render this node as a MathML element fragment"""
+        right_ml = self.right.to_math_ml_fragment()
+        left_ml = self.left.to_math_ml_fragment()
         op_ml = self.make_ml_tag("mo", self.get_ml_name())
         if self.self_parens():
             return self.make_ml_tag(
@@ -500,10 +495,13 @@ class EqualExpression(BinaryExpression):
         return "="
 
     def operate(self, one: BinaryExpression, two: BinaryExpression):
+        """This is where assignment of context variables might make sense. But context
+        is not present in the expression's `operate` method.
+
+        !!! warning
+
+            TODO: Investigate this thoroughly.
         """
-    This is where assignment of context variables might make sense.  But context is not
-    present in the expression's `operate` method.  TODO: Investigate this thoroughly.
-    """
         raise Exception("Unsupported operation. Euqality has no operation to perform.")
 
 
@@ -521,10 +519,12 @@ class AddExpression(BinaryExpression):
     def operate(self, one, two):
         return one + two
 
-    #           f(x) = g(x) + h(x)
-    #      d( f(x) ) = d( g(x) ) + d( h(x) )
-    #          f'(x) = g'(x) + h'(x)
     def differentiate(self, by_variable):
+        """```
+        .               f(x) = g(x) + h(x)
+        .          d( f(x) ) = d( g(x) ) + d( h(x) )
+        .              f'(x) = g'(x) + h'(x)
+        ```"""
         return AddExpression(
             self.left.differentiate(by_variable), self.right.differentiate(by_variable)
         )
@@ -544,10 +544,12 @@ class SubtractExpression(BinaryExpression):
     def operate(self, one, two):
         return one - two
 
-    #           f(x) = g(x) - h(x)
-    #      d( f(x) ) = d( g(x) ) - d( h(x) )
-    #          f'(x) = g'(x) - h'(x)
     def differentiate(self, by_variable):
+        """```
+        .               f(x) = g(x) - h(x)
+        .          d( f(x) ) = d( g(x) ) - d( h(x) )
+        .              f'(x) = g'(x) - h'(x)
+        ```"""
         return AddExpression(
             self.left.differentiate(by_variable), self.right.differentiate(by_variable)
         )
@@ -570,17 +572,19 @@ class MultiplyExpression(BinaryExpression):
     def operate(self, one, two):
         return one * two
 
-    #      f(x) = g(x)*h(x)
-    #     f'(x) = g(x)*h'(x) + g'(x)*h(x)
     def differentiate(self, by_variable):
+        """```
+        .             f(x) = g(x)*h(x)
+        .            f'(x) = g(x)*h'(x) + g'(x)*h(x)
+        ```"""
         return AddExpression(
             MultiplyExpression(self.left, self.right.differentiate(by_variable)),
             MultiplyExpression(self.left.differentiate(by_variable), self.right),
         )
 
-    # Multiplication special cases constant*variable case to output as, e.g. "4x"
-    # instead of "4 * x"
     def __str__(self):
+        """Multiplication special cases constant*variable to output `4x` instead of
+        `4 * x`"""
         if isinstance(self.left, ConstantExpression):
             # const * var
             one = isinstance(self.right, VariableExpression)
@@ -593,16 +597,16 @@ class MultiplyExpression(BinaryExpression):
 
         return super().__str__()
 
-    def to_math_ml(self):
-        right_ml = self.right.to_math_ml()
-        left_ml = self.left.to_math_ml()
+    def to_math_ml_fragment(self):
+        right_ml = self.right.to_math_ml_fragment()
+        left_ml = self.left.to_math_ml_fragment()
         if isinstance(self.left, ConstantExpression):
             if isinstance(self.right, VariableExpression) or isinstance(
                 self.right, PowerExpression
             ):
                 return "{}{}".format(left_ml, right_ml)
 
-        return super().to_math_ml()
+        return super().to_math_ml_fragment()
 
 
 class DivideExpression(BinaryExpression):
@@ -619,8 +623,10 @@ class DivideExpression(BinaryExpression):
     def get_ml_name(self):
         return "&#247;"
 
-    def to_math_ml(self):
-        return f"<mfrac>{self.left.to_math_ml()}#{self.right.to_math_ml()}</mfrac>"
+    def to_math_ml_fragment(self):
+        left_ml = self.left.to_math_ml_fragment()
+        right_ml = self.right.to_math_ml_fragment()
+        return f"<mfrac><mi>{left_ml}</mi><mi>{right_ml}</mi></mfrac>"
 
     def operate(self, one, two):
         if two == 0:
@@ -628,9 +634,11 @@ class DivideExpression(BinaryExpression):
         else:
             return one / two
 
-    #       f(x) = g(x)/h(x)
-    #      f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
     def differentiate(self, by_variable):
+        """```
+        .          f(x) = g(x)/h(x)
+        .         f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
+        ```"""
         gprimeh = MultiplyExpression(self.left.differentiate(by_variable), self.right)
         ghprime = MultiplyExpression(self.left, self.right.differentiate(by_variable))
         hsquare = PowerExpression(self.right, ConstantExpression(2))
@@ -648,9 +656,9 @@ class PowerExpression(BinaryExpression):
     def name(self):
         return "^"
 
-    def to_math_ml(self):
-        right_ml = self.right.to_math_ml()
-        left_ml = self.left.to_math_ml()
+    def to_math_ml_fragment(self):
+        right_ml = self.right.to_math_ml_fragment()
+        left_ml = self.left.to_math_ml_fragment()
         # if left is mult, enclose only right in msup
         if isinstance(self.left, MultiplyExpression):
             left_ml = self.make_ml_tag("mrow", left_ml, self.classes)
@@ -661,6 +669,11 @@ class PowerExpression(BinaryExpression):
         return numpy.power(one, two)
 
     def differentiate(self, by_variable):
+        """
+        !!! warn Unimplemented
+
+            This needs to be implemented
+        """
         raise Exception("Unimplemented")
 
     def __str__(self):
@@ -701,7 +714,7 @@ class ConstantExpression(MathExpression):
         result.name = self.value
         return result
 
-    def to_math_ml(self) -> str:
+    def to_math_ml_fragment(self) -> str:
         return self.make_ml_tag("mn", self.value, self.classes)
 
 
@@ -732,7 +745,7 @@ class VariableExpression(MathExpression):
         else:
             return self.with_color("{}".format(self.identifier))
 
-    def to_math_ml(self):
+    def to_math_ml_fragment(self):
         if self.identifier is None:
             return ""
         else:
@@ -752,21 +765,27 @@ class VariableExpression(MathExpression):
         )
 
     def differentiate(self, by_variable):
-        # Differentiating by this variable yields 1
-        #
-        #          f(x) = x
-        #     d( f(x) ) = 1 * d( x )
-        #        d( x ) = 1
-        #         f'(x) = 1
+        """
+        Differentiating by this variable yields 1
+
+        ```
+        .             f(x) = x
+        .        d( f(x) ) = 1 * d( x )
+        .           d( x ) = 1
+        .            f'(x) = 1
+        ```
+
+        Differentiating by any other variable yields 0
+
+        ```
+        .             f(x) = c
+        .        d( f(x) ) = c * d( c )
+        .           d( c ) = 0
+        .            f'(x) = 0
+        ```
+        """
         if by_variable == self.identifier:
             return ConstantExpression(1)
-
-        # Differentiating by any other variable yields 0
-        #
-        #          f(x) = c
-        #     d( f(x) ) = c * d( c )
-        #        d( c ) = 0
-        #         f'(x) = 0
         return ConstantExpression(0)
 
 
@@ -784,9 +803,11 @@ class AbsExpression(FunctionExpression):
     def operate(self, value):
         return numpy.absolute(value)
 
-    #        f(x)   = abs( g(x) )
-    #     d( f(x) ) = sgn( g(x) ) * d( g(x) )
     def differentiate(self, by_variable):
+        """```
+        .           f(x)   = abs( g(x) )
+        .        d( f(x) ) = sgn( g(x) ) * d( g(x) )
+        ```"""
         return MultiplyExpression(
             SgnExpression(self.child), self.child.Differentiate(by_variable)
         )
@@ -802,10 +823,9 @@ class SgnExpression(FunctionExpression):
         return "sgn"
 
     def operate(self, value):
-        """
-    Determine the sign of an value
-    @returns {Number} -1 if negative, 1 if positive, 0 if 0
-    """
+        """Determine the sign of an value.
+
+        Returns: -1 if negative, 1 if positive, 0 if 0"""
         if value < 0:
             return -1
 
@@ -815,11 +835,10 @@ class SgnExpression(FunctionExpression):
         return 0
 
     def differentiate(self, by_variable):
-        """
-    <pre>
-            f(x) = sgn( g(x) )
-            d( f(x) ) = 0
-    </pre>
-    Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function
-    """
+        """```
+        .             f(x) = sgn( g(x) )
+        .        d( f(x) ) = 0
+        ```
+        
+        Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function."""
         return ConstantExpression(0)

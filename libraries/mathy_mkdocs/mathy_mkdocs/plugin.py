@@ -18,12 +18,12 @@ matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 
 
-def to_math_ml(match):
+def to_math_ml_fragment(match):
     global parser
     match = match.group(1)
     try:
         expression: MathExpression = parser.parse(match)
-        return expression.to_math_ml_element()
+        return expression.to_math_ml()
     except BaseException as error:
         return f"Failed to parse: '{match}' with error: {error}"
 

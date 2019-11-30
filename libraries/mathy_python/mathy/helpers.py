@@ -46,9 +46,9 @@ def compare_expression_values(
     """Compare and evaluate two expressions to verify they have the same value"""
     vars_from: set = set()
     vars_to: set = set()
-    for v in from_expression.findByType(VariableExpression):
+    for v in from_expression.find_type(VariableExpression):
         vars_from.add(v.identifier)
-    for v in to_expression.findByType(VariableExpression):
+    for v in to_expression.find_type(VariableExpression):
         vars_to.add(v.identifier)
     # If there are not the same unique vars in the two expressions, something
     # bad happened, and the two expressions can only coincidentally be equal
@@ -136,7 +136,7 @@ def is_add_or_sub(node):
 
 
 def get_sub_terms(node: MathExpression):
-    nodes = node.toList("inorder")
+    nodes = node.to_list("inorder")
     terms = []
 
     def safe_pop():
@@ -251,12 +251,12 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
     # we expect a multiply to connect a coefficient and variable.
     # NOTE: the following check is removed because we need to handle multiple variable
     #       terms, e.g. "4x * z"
-    # if len(expression.findByType(MultiplyExpression)) > 1:
+    # if len(expression.find_type(MultiplyExpression)) > 1:
     #     return False
 
     # if there's a variable, make sure the coefficient is on the left side
     # for the preferred compact form. i.e. "4x" instead of "x * 4"
-    vars: List[VariableExpression] = expression.findByType(VariableExpression)
+    vars: List[VariableExpression] = expression.find_type(VariableExpression)
     seen_vars: Dict[str, int] = dict()
     parent: MathExpression
     for var in vars:
@@ -304,7 +304,7 @@ def has_like_terms(expression: MathExpression) -> bool:
         seen.add(var_key)
 
     # Look for multiple free-floating constants
-    consts = expression.findByType(ConstantExpression)
+    consts = expression.find_type(ConstantExpression)
     for const in consts:
         if const.parent and is_add_or_sub(const.parent):
             if "const_term" in seen:
@@ -382,22 +382,22 @@ def get_term(node) -> TermResult:
     # TODO: Comment resolution on whether +- is OKAY, and if not, why it breaks down.
     if not is_add_or_sub(node):
         if (
-            len(node.findByType(AddExpression)) > 0
-            or len(node.findByType(SubtractExpression)) > 0
+            len(node.find_type(AddExpression)) > 0
+            or len(node.find_type(SubtractExpression)) > 0
         ):
             return False
 
     # If another add is found on the left side of this node, and the right node
     # is _NOT_ a leaf, we cannot extract a term.  If it is a leaf, the term should be
     # just the right node.
-    if node.left and len(node.left.findByType(AddExpression)) > 0:
+    if node.left and len(node.left.find_type(AddExpression)) > 0:
         if node.right and not node.right.is_leaf():
             return False
 
-    if node.right and len(node.right.findByType(AddExpression)) > 0:
+    if node.right and len(node.right.find_type(AddExpression)) > 0:
         return False
 
-    exponents = node.findByType(PowerExpression)
+    exponents = node.find_type(PowerExpression)
     if len(exponents) > 0:
         # Supports only single exponents in terms
         if len(exponents) != 1:
@@ -410,7 +410,7 @@ def get_term(node) -> TermResult:
         result.exponent = exponent.right.value
         result.node_exponent = exponent
 
-    variables = node.findByType(VariableExpression)
+    variables = node.find_type(VariableExpression)
     if len(variables) > 0:
         result.variables = [v.identifier for v in variables]
         result.variables.sort()
@@ -426,7 +426,7 @@ def get_term(node) -> TermResult:
             return False
         return True
 
-    coefficients = node.findByType(ConstantExpression)
+    coefficients = node.find_type(ConstantExpression)
     coefficients = [c for c in coefficients if filter_coefficients(c)]
     if len(coefficients) > 0:
 

@@ -361,7 +361,7 @@ class MathyEnvState(object):
         if rnn_history is None:
             rnn_history = rnn_placeholder_state(128)
         expression = self.parser.parse(self.agent.problem)
-        nodes: List[MathExpression] = expression.toList()
+        nodes: List[MathExpression] = expression.to_list()
         vectors: NodeIntList = []
         values: NodeValuesFloatList = []
         for node in nodes:
