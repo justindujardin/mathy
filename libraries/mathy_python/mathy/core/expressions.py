@@ -665,6 +665,8 @@ class PowerExpression(BinaryExpression):
 
 
 class ConstantExpression(MathExpression):
+    """A Constant value node, where the value is accessible as `node.value`"""
+
     value: Union[float, int]
 
     @property

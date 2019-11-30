@@ -3,88 +3,82 @@ site_description: Reinforcement learning environment for working with Math
 
 repo_name: justindujardin/mathy
 repo_url: https://github.com/justindujardin/mathy
-edit_uri: "edit/master/libraries/website/docs/"
+edit_uri: edit/master/libraries/website/docs/
 
 nav:
-  - Mathy: "index.md"
-  - Computer algebra system:
-      - Overview: "cas/overview.md"
-      - Tokenizer: "cas/tokenizer.md"
-      - Parser: "cas/parser.md"
-  - Rules-based transformations:
-      - Overview: "rules/overview.md"
-      - Associative Swap: "rules/associative_property.md"
-      - Commutative Swap: "rules/commutative_property.md"
-      - Distributive Factor Out: "rules/distributive_property_factor_out.md"
-      - Distributive Multiply: "rules/distributive_property_multiply_across.md"
-      - Variable Multiply: "rules/variable_multiplication.md"
-      - Constant Arithmetic: "rules/constant_arithmetic.md"
-  - Environments:
-      - Overview: "envs/overview.md"
-      - Poly Simplify: "envs/poly_simplify.md"
-      - Complex Simplify: "envs/complex_simplify.md"
-      - Binomial Multiply: "envs/binomial_multiply.md"
-  - Machine learning:
-      - Overview: "ml/overview.md"
-      - Math Embeddings: "ml/math_embeddings.md"
-      - Reinforcement Learning: "ml/reinforcement_learning.md"
-      - Monte Carlo Tree Search: "ml/monte_carlo_tree_search.md"
-  - API Documentation:
-      - Core:
-          - Expressions: "api/core/expressions.md"
-          - Layout: "api/core/layout.md"
-          - Parser: "api/core/parser.md"
-          - Tokenizer: "api/core/tokenizer.md"
-          - Tree: "api/core/tree.md"
-      - Envs:
-          - Binomial Distribute: "api/envs/binomial_distribute.md"
-          - Complex Simplify: "api/envs/complex_simplify.md"
-          - Poly Combine In Place: "api/envs/poly_combine_in_place.md"
-          - Poly Commute Like Terms: "api/envs/poly_commute_like_terms.md"
-          - Poly Grouping: "api/envs/poly_grouping.md"
-          - Poly Haystack Like Terms: "api/envs/poly_haystack_like_terms.md"
-          - Poly Simplify Blockers: "api/envs/poly_simplify_blockers.md"
-          - Poly Simplify: "api/envs/poly_simplify.md"
-  - About: "about.md"
+- Mathy: index.md
+- Computer algebra system:
+  - Overview: cas/overview.md
+  - Tokenizer: cas/tokenizer.md
+  - Parser: cas/parser.md
+- Rules-based transformations:
+  - Overview: rules/overview.md
+  - Associative Swap: rules/associative_property.md
+  - Commutative Swap: rules/commutative_property.md
+  - Distributive Factor Out: rules/distributive_property_factor_out.md
+  - Distributive Multiply: rules/distributive_property_multiply_across.md
+  - Variable Multiply: rules/variable_multiplication.md
+  - Constant Arithmetic: rules/constant_arithmetic.md
+- Environments:
+  - Overview: envs/overview.md
+  - Poly Simplify: envs/poly_simplify.md
+  - Complex Simplify: envs/complex_simplify.md
+  - Binomial Multiply: envs/binomial_multiply.md
+- Machine learning:
+  - Overview: ml/overview.md
+  - Math Embeddings: ml/math_embeddings.md
+  - Reinforcement Learning: ml/reinforcement_learning.md
+  - Monte Carlo Tree Search: ml/monte_carlo_tree_search.md
+- API Documentation:
+  - core:
+    - tree: api/core/tree.md
+    - layout: api/core/layout.md
+    - expressions: api/core/expressions.md
+    - parser: api/core/parser.md
+    - tokenizer: api/core/tokenizer.md
+- About: about.md
 
 extra:
-  manifest: "img/favicon/site.webmanifest"
+  manifest: img/favicon/site.webmanifest
   social:
-    - type: "github"
-      link: "https://github.com/justindujardin"
-    - type: "twitter"
-      link: "https://twitter.com/justindujardin"
+  - type: github
+    link: https://github.com/justindujardin
+  - type: twitter
+    link: https://twitter.com/justindujardin
 
 extra_css:
-  - "img/styles.css"
+- lib/styles.css
+
+extra_javascript:
+- lib/termynal.js
 
 theme:
-  name: "material"
-  logo: "img/school-24px.svg"
-  favicon: "img/favicon/favicon-16x16.png"
+  name: material
+  logo: img/school-24px.svg
+  favicon: img/favicon/favicon-16x16.png
   palette:
-    primary: "deep-orange"
-    accent: "orange"
+    primary: deep-orange
+    accent: orange
   highlightjs: true
   hljs_languages:
-    - python
-    - typescript
+  - python
+  - typescript
 
 markdown_extensions:
-  - markdown.extensions.codehilite:
-      guess_lang: false
-  - toc:
-      permalink: true
-  - markdown_include.include:
-      base_path: docs
-  - admonition
-  - codehilite
-  - extra
-  - pymdownx.superfences
-  - pymdownx.details
+- markdown.extensions.codehilite:
+    guess_lang: false
+- toc:
+    permalink: true
+- markdown_include.include:
+    base_path: docs
+- admonition
+- codehilite
+- extra
+- pymdownx.superfences
+- pymdownx.details
 
 plugins:
-  - mathy
-  - search
-  - minify:
-      minify_html: true
+- mathy
+- search
+- minify:
+    minify_html: true

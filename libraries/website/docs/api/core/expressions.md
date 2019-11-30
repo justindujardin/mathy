@@ -217,6 +217,11 @@ Divide one by two
 PowerExpression(self, left=None, right=None)
 ```
 Raise one to the power of two
+## ConstantExpression
+```python
+ConstantExpression(self, value=None)
+```
+A Constant value node, where the value is accessible as `node.value`
 ## AbsExpression
 ```python
 AbsExpression(self, child=None, operatorOnLeft=True)
