@@ -8,7 +8,7 @@ from ..core.expressions import (
     PowerExpression,
     VariableExpression,
 )
-from .rule import BaseRule
+from ..core.rule import BaseRule
 from ..helpers import TermEx, get_term_ex
 
 

@@ -2,16 +2,16 @@
 
 from mathy import (
     AddExpression,
+    BaseRule,
     MathyEnvState,
     NegateExpression,
     SubtractExpression,
     envs,
     mathy_core_rules,
-    rules,
 )
 
 
-class PlusNegationRule(rules.BaseRule):
+class PlusNegationRule(BaseRule):
     """Convert subtract operators to plus negative to allow commuting"""
 
     @property

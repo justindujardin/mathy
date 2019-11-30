@@ -4,8 +4,8 @@ from numpy.random import randint
 
 from ..mathy_env import MathyEnvProblem
 from ..state import MathyEnvState
+from ..core.rule import BaseRule
 from ..rules import (
-    BaseRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,

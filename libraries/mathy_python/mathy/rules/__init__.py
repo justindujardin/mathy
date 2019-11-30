@@ -1,4 +1,3 @@
-from .rule import BaseRule, ExpressionChangeRule  # noqa
 from .associative_property import AssociativeSwapRule  # noqa
 from .commutative_property import CommutativeSwapRule  # noqa
 from .distributive_factor_out import DistributiveFactorOutRule  # noqa

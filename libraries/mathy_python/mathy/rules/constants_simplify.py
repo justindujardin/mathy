@@ -7,7 +7,7 @@ from ..core.expressions import (
     MultiplyExpression,
     VariableExpression,
 )
-from .rule import BaseRule
+from ..core.rule import BaseRule
 
 
 class ConstantsSimplifyRule(BaseRule):
@@ -22,13 +22,13 @@ class ConstantsSimplifyRule(BaseRule):
     def code(self):
         return "CA"
 
-    POS_SIMPLE = "simple"
-    POS_SIMPLE_VAR_MULT = "simple_var_multiply"
-    POS_CHAINED_RIGHT = "chained_right"
-    POS_CHAINED_RIGHT_LEFT = "chained_right_left"
-    POS_CHAINED_RIGHT_LEFT_LEFT = "chained_right_left_left"
-    POS_CHAINED_LEFT_LEFT_RIGHT = "chained_left_left_right"
-    POS_CHAINED_RIGHT_DEEP = "chained_right_deep"
+    POS_SIMPLE: str = "simple"
+    POS_SIMPLE_VAR_MULT: str = "simple_var_multiply"
+    POS_CHAINED_RIGHT: str = "chained_right"
+    POS_CHAINED_RIGHT_LEFT: str = "chained_right_left"
+    POS_CHAINED_RIGHT_LEFT_LEFT: str = "chained_right_left_left"
+    POS_CHAINED_LEFT_LEFT_RIGHT: str = "chained_left_left_right"
+    POS_CHAINED_RIGHT_DEEP: str = "chained_right_deep"
 
     def get_type(
         self, node

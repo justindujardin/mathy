@@ -19,9 +19,9 @@ from ..problems import (
     rand_var,
     split_in_two_random,
 )
+from ..core.rule import BaseRule
 from ..rules import (
     AssociativeSwapRule,
-    BaseRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,

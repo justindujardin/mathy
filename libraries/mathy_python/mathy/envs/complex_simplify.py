@@ -4,10 +4,10 @@ from ..mathy_env import MathyEnvProblem
 from ..problems import simplify_multiple_terms
 from ..rules import (
     AssociativeSwapRule,
-    BaseRule,
     ConstantsSimplifyRule,
     VariableMultiplyRule,
 )
+from ..core.rule import BaseRule
 from ..state import MathyEnvState
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify

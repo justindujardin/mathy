@@ -6,7 +6,7 @@ from ..core.expressions import (
     PowerExpression,
     MathExpression,
 )
-from .rule import BaseRule
+from ..core.rule import BaseRule
 
 
 class CommutativeSwapRule(BaseRule):

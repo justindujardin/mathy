@@ -3,8 +3,8 @@ rule that was applied by the agent."""
 
 from typing import List, Type
 
-from mathy import MathyEnv, MathyEnvState
-from mathy.rules import AssociativeSwapRule, BaseRule, CommutativeSwapRule
+from mathy import BaseRule, MathyEnv, MathyEnvState
+from mathy.rules import AssociativeSwapRule, CommutativeSwapRule
 
 
 class CustomTimestepRewards(MathyEnv):

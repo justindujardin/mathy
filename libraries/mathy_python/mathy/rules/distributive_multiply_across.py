@@ -5,7 +5,7 @@ from ..core.expressions import (
     VariableExpression,
     PowerExpression,
 )
-from .rule import BaseRule
+from ..core.rule import BaseRule
 from ..helpers import unlink
 
 

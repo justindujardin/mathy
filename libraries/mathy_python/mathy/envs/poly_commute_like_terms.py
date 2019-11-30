@@ -9,10 +9,10 @@ from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import combine_terms_in_place, commute_haystack, rand_bool
 from ..rules import (
     AssociativeSwapRule,
-    BaseRule,
     CommutativeSwapRule,
     DistributiveFactorOutRule,
 )
+from ..core.rule import BaseRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify

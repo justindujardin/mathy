@@ -8,8 +8,8 @@ from ..features import calculate_term_grouping_distances
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import simplify_multiple_terms
+from ..core.rule import BaseRule
 from ..rules import (
-    BaseRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,

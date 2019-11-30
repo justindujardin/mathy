@@ -36,6 +36,7 @@ nav:
     - expressions: api/core/expressions.md
     - parser: api/core/parser.md
     - tokenizer: api/core/tokenizer.md
+    - rule: api/core/rule.md
 - About: about.md
 
 extra:

@@ -7,7 +7,7 @@ from ..core.expressions import MathExpression
 from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import commute_haystack
-from ..rules import AssociativeSwapRule, BaseRule, CommutativeSwapRule
+from ..core.rule import BaseRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 

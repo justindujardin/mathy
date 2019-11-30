@@ -2,12 +2,12 @@ from typing import Any, List, Optional, Type
 
 from tf_agents.trajectories import time_step
 
+from ..core.rule import BaseRule
 from ..core.expressions import MathExpression
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import binomial_times_binomial, binomial_times_monomial, rand_bool
 from ..rules import (
-    BaseRule,
     ConstantsSimplifyRule,
     CommutativeSwapRule,
     DistributiveMultiplyRule,

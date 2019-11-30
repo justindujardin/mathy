@@ -1,5 +1,5 @@
 from ..core.expressions import AddExpression, MultiplyExpression
-from .rule import BaseRule
+from ..core.rule import BaseRule
 
 
 class AssociativeSwapRule(BaseRule):

@@ -6,15 +6,14 @@ from tf_agents.trajectories import time_step
 
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
+from .core.rule import BaseRule, ExpressionChangeRule
 from .helpers import TermEx, compare_expression_string_values, get_term_ex
 from .rules import (
     AssociativeSwapRule,
-    BaseRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
-    ExpressionChangeRule,
     VariableMultiplyRule,
 )
 from .state import (
