@@ -70,7 +70,10 @@ MathTypeKeysMax = max(MathTypeKeys.values()) + 1
 
 
 class MathExpression(BinaryTreeNode):
-    """Base math tree node with helpers for manipulating expressions."""
+    """Math tree node with helpers for manipulating expressions.
+    
+    `mathy:x+y=z`
+    """
 
     @property
     def raw(self):

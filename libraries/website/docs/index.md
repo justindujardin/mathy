@@ -34,7 +34,7 @@ Mathy wants to be your free math tutor. It uses machine learning to manipulate m
 - **[Computer Algebra System](/cas/overview)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
 - **[Reinforcement learning](/ml/reinforcement_learning)**: Train agents with machine learning, in many environments, with variable hyperparameters for controlling problem difficulties.
 - **[Custom Environments](/envs/overview)** Extend built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win-conditions.
-- **Visualize Expressions**: Gain a deeper understanding of problem structures by visualizing arbitrarily large trees in a compact layout with no branch overlaps.
+- **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
   <!-- - **Portable Implementation**: Originally a C# project, then CoffeeScript, then Typescript, and now Python. Mathy's simple design ports easily to many languages. -->
   <!-- - **Language-agnostic tests**: JSON-based assertions verify that systems execute consistently across platform implementations. -->
 

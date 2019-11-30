@@ -93,29 +93,6 @@ if __name__ == "__main__":
 
     mkdocs_yaml = yaml.load(yaml_path)
     docs_key = "API Documentation"
-    # docs_toc: YAMLSection = [
-    #     {
-    #         "core": [
-    #             {"expressions": "api/core/expressions.md"},
-    #             {"layout": "api/core/layout.md"},
-    #             {"parser": "api/core/parser.md"},
-    #             {"tokenizer": "api/core/tokenizer.md"},
-    #             {"tree": "api/core/tree.md"},
-    #         ]
-    #     },
-    #     {
-    #         "envs": [
-    #             {"binomial_distribute": "api/envs/binomial_distribute.md"},
-    #             {"complex_simplify": "api/envs/complex_simplify.md"},
-    #             {"poly_combine_in_place": "api/envs/poly_combine_in_place.md"},
-    #             {"poly_commute_like_terms": "api/envs/poly_commute_like_terms.md"},
-    #             {"poly_grouping": "api/envs/poly_grouping.md"},
-    #             {"poly_haystack_like_terms": "api/envs/poly_haystack_like_terms.md"},
-    #             {"poly_simplify_blockers": "api/envs/poly_simplify_blockers.md"},
-    #             {"poly_simplify": "api/envs/poly_simplify.md"},
-    #         ]
-    #     },
-    # ]
     site_nav = mkdocs_yaml["nav"]
     for nav_obj in site_nav:
         if docs_key in nav_obj:

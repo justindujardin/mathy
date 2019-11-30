@@ -4,7 +4,10 @@
 ```python
 MathExpression(self, id=None, left=None, right=None, parent=None)
 ```
-Base math tree node with helpers for manipulating expressions.
+Math tree node with helpers for manipulating expressions.
+
+`mathy:x+y=z`
+
 ### color
 Color to use for this node when rendering it as changed with `.colored`
 ### raw

@@ -1,16 +1,17 @@
+from typing import Union
+
 from .expressions import (
-    SubtractExpression,
     AddExpression,
+    ConstantExpression,
+    DivideExpression,
     EqualExpression,
     MultiplyExpression,
-    DivideExpression,
-    PowerExpression,
-    VariableExpression,
-    ConstantExpression,
     NegateExpression,
+    PowerExpression,
+    SubtractExpression,
+    VariableExpression,
 )
 from .tokenizer import (
-    coerce_to_number,
     Token,
     TokenCloseParen,
     TokenConstant,
@@ -28,12 +29,8 @@ from .tokenizer import (
     TokenOpenParen,
     TokenPlus,
     TokenVariable,
+    coerce_to_number,
 )
-
-#  Copyright (c) DuJardin Consulting, 2011
-#  Portions Copyright (c) Microsoft Corporation, 2004
-
-# # Parser
 
 
 class ParserException(Exception):
@@ -64,80 +61,46 @@ class TrailingTokens(ParserException):
     pass
 
 
-class UndefinedVariable(ParserException):
-    pass
-
-
-class CannotDifferentiate(ParserException):
-    pass
-
-
-## Token Sets
-
-# TokenSet objects are simple bitmask combinations for checking to see
-# if a token is part of a valid set.
-# Represents a bitmask of Tokens that is used to determine if a token
-# is valid for some state.
 class TokenSet:
-    def __init__(self, source):
+    """TokenSet objects are bitmask combinations for checking to see
+    if a token is part of a valid set. """
+
+    tokens: int
+
+    def __init__(self, source: Union["TokenSet", int]):
         if isinstance(source, TokenSet):
             self.tokens = source.tokens
         elif type(source) is int:
             self.tokens = source
 
-    # Add tokens to self set and return a TokenSet representing
-    # their combination of flags.  Value can be an integer or
-    # an instance of `TokenSet`.
     def add(self, addTokens):
+        """Add tokens to self set and return a TokenSet representing
+        their combination of flags.  Value can be an integer or an instance
+        of `TokenSet`"""
         if isinstance(addTokens, TokenSet):
             addTokens = addTokens.tokens
 
         return TokenSet(self.tokens | addTokens)
 
-    def contains(self, type):
+    def contains(self, type: int) -> bool:
+        """Returns true if the given type is part of this set"""
         return (self.tokens & type) != 0
 
 
-# # The Grammar Rules
-#
-#  Symbols:
-#  -------------------------
-#  ( )    == Non-terminal
-#  { }*   == 0 or more occurrences
-#  { }+   == 1 or more occurrences
-#  { }?   == 0 or 1 occurrences
-#  [ ]    == Mandatory (1 must occur)
-#  |      == logical OR
-#  " "    == Terminal symbol (literal)
-#
-#  Non-terminals defined/parsed by Tokenizer:
-#  ------------------------------------------
-#  (Constant) = anything that can be parsed by `float(in)`
-#  (Variable) = any string containing only letters (a-z and A-Z)
-
-
-#
-#     (Function)     = [ functionName ] "(" (AddExp) ")"
-#     (Factor)       = { (Variable) | (Function) | "(" (AddExp) ")" }+ { { "^" }? (UnaryExp) }?
-#     (FactorPrefix) = [ (Constant) { (Factor) }? | (Factor) ]
-#     (UnaryExp)     = { "-" }? (FactorPrefix)
-#     (ExpExp)       = (UnaryExp) { { "^" }? (UnaryExp) }?
-#     (MultExp)      = (ExpExp) { { "*" | "/" }? (ExpExp) }*
-#     (AddExp)       = (MultExp) { { "+" | "-" }? (MultExp) }*
-#     (EqualExp)     = (AddExp) { { "=" }? (AddExp) }*
-#     (start)        = (EqualExp)
-
-FIRST_FUNCTION = TokenSet(TokenFunction)
-FIRST_FACTOR = FIRST_FUNCTION.add(TokenVariable | TokenOpenParen)
-FIRST_FACTOR_PREFIX = FIRST_FACTOR.add(TokenConstant)
-FIRST_UNARY = FIRST_EXP = FIRST_FACTOR_PREFIX.add(TokenMinus)
-FIRST_MULT = FIRST_ADD = FIRST_EQUAL = FIRST_UNARY
+_FIRST_FUNCTION: TokenSet = TokenSet(TokenFunction)
+_FIRST_FACTOR: TokenSet = _FIRST_FUNCTION.add(TokenVariable | TokenOpenParen)
+_FIRST_FACTOR_PREFIX: TokenSet = _FIRST_FACTOR.add(TokenConstant)
+_FIRST_UNARY: TokenSet = _FIRST_FACTOR_PREFIX.add(TokenMinus)
+_FIRST_EXP: TokenSet = _FIRST_UNARY
+_FIRST_MULT: TokenSet = _FIRST_UNARY
+_FIRST_ADD: TokenSet = _FIRST_UNARY
+_FIRST_EQUAL: TokenSet = _FIRST_UNARY
 
 # Precedence checks
-IS_ADD = TokenSet(TokenPlus | TokenMinus)
-IS_MULT = TokenSet(TokenMultiply | TokenDivide)
-IS_EXP = TokenSet(TokenExponent)
-IS_EQUAL = TokenSet(TokenEqual)
+_IS_ADD: TokenSet = TokenSet(TokenPlus | TokenMinus)
+_IS_MULT: TokenSet = TokenSet(TokenMultiply | TokenDivide)
+_IS_EXP: TokenSet = TokenSet(TokenExponent)
+_IS_EQUAL: TokenSet = TokenSet(TokenEqual)
 
 _parse_cache = {}
 _tokens_cache = {}
@@ -145,6 +108,43 @@ _tokens_cache = {}
 
 # NOTE: This cannot be shared between threads because it stores state in self.current_token and self.tokens
 class ExpressionParser:
+    """Parser for converting text into binary trees. Trees encode the order of
+    operations for an input, and allow evaluating it to detemrine the expression
+    value.
+
+    ### Grammar Rules
+
+    Symbols:
+    ```
+    ( )    == Non-terminal
+    { }*   == 0 or more occurrences
+    { }+   == 1 or more occurrences
+    { }?   == 0 or 1 occurrences
+    [ ]    == Mandatory (1 must occur)
+    |      == logical OR
+    " "    == Terminal symbol (literal)
+    ```
+
+    Non-terminals defined/parsed by Tokenizer:
+    ```
+    (Constant) = anything that can be parsed by `float(in)`
+    (Variable) = any string containing only letters (a-z and A-Z)
+    ```
+
+    Rules:
+    ```
+    (Function)     = [ functionName ] "(" (AddExp) ")"
+    (Factor)       = { (Variable) | (Function) | "(" (AddExp) ")" }+ { { "^" }? (UnaryExp) }?
+    (FactorPrefix) = [ (Constant) { (Factor) }? | (Factor) ]
+    (UnaryExp)     = { "-" }? (FactorPrefix)
+    (ExpExp)       = (UnaryExp) { { "^" }? (UnaryExp) }?
+    (MultExp)      = (ExpExp) { { "*" | "/" }? (ExpExp) }*
+    (AddExp)       = (MultExp) { { "+" | "-" }? (MultExp) }*
+    (EqualExp)     = (AddExp) { { "=" }? (AddExp) }*
+    (start)        = (EqualExp)
+    ```
+    """
+
     # Initialize the tokenizer.
     def __init__(self):
         self.tokenizer = Tokenizer()
@@ -186,15 +186,15 @@ class ExpressionParser:
         return expression
 
     def parse_equal(self):
-        if not self.check(FIRST_ADD):
+        if not self.check(_FIRST_ADD):
             raise InvalidSyntax("Invalid expression")
 
         exp = self.parse_add()
-        while self.check(IS_EQUAL):
+        while self.check(_IS_EQUAL):
             opType = self.current_token.type
             opValue = self.current_token.value
             self.eat(opType)
-            expected = self.check(FIRST_ADD)
+            expected = self.check(_FIRST_ADD)
             right = None
             if expected:
                 right = self.parse_add()
@@ -216,15 +216,15 @@ class ExpressionParser:
         return exp
 
     def parse_add(self):
-        if not self.check(FIRST_MULT):
+        if not self.check(_FIRST_MULT):
             raise InvalidSyntax("Invalid expression")
 
         exp = self.parse_mult()
-        while self.check(IS_ADD):
+        while self.check(_IS_ADD):
             opType = self.current_token.type
             opValue = self.current_token.value
             self.eat(opType)
-            expected = self.check(FIRST_MULT)
+            expected = self.check(_FIRST_MULT)
             right = None
             if expected:
                 right = self.parse_mult()
@@ -248,15 +248,15 @@ class ExpressionParser:
         return exp
 
     def parse_mult(self):
-        if not self.check(FIRST_EXP):
+        if not self.check(_FIRST_EXP):
             raise InvalidSyntax("Invalid expression")
 
         exp = self.parse_exponent()
-        while self.check(IS_MULT):
+        while self.check(_IS_MULT):
             opType = self.current_token.type
             opValue = self.current_token.value
             self.eat(opType)
-            expected = self.check(FIRST_EXP)
+            expected = self.check(_FIRST_EXP)
             right = None
             if expected:
                 right = self.parse_mult()
@@ -279,14 +279,14 @@ class ExpressionParser:
         return exp
 
     def parse_exponent(self):
-        if not self.check(FIRST_UNARY):
+        if not self.check(_FIRST_UNARY):
             raise InvalidSyntax("Invalid expression")
 
         exp = self.parse_unary()
         if self.check(TokenSet(TokenExponent)):
             opType = self.current_token.type
             self.eat(opType)
-            if not self.check(FIRST_UNARY):
+            if not self.check(_FIRST_UNARY):
                 raise InvalidSyntax("Expected an expression after ^ operator")
 
             right = self.parse_unary()
@@ -302,7 +302,7 @@ class ExpressionParser:
         if self.current_token.type == TokenMinus:
             self.eat(TokenMinus)
             negate = True
-        expected = self.check(FIRST_FACTOR_PREFIX)
+        expected = self.check(_FIRST_FACTOR_PREFIX)
         exp = None
         if expected:
             if self.current_token.type == TokenConstant:
@@ -316,7 +316,7 @@ class ExpressionParser:
                 exp = ConstantExpression(value)
                 self.eat(TokenConstant)
 
-            if self.check(FIRST_FACTOR):
+            if self.check(_FIRST_FACTOR):
                 if exp is None:
                     exp = self.parse_factors()
                 else:
@@ -354,16 +354,16 @@ class ExpressionParser:
                     "Unexpected token in Factor: {}".format(self.current_token.type)
                 )
 
-            found = self.check(FIRST_FACTOR)
+            found = self.check(_FIRST_FACTOR)
 
         if len(factors) == 0:
             raise InvalidExpression("No factors")
 
         exp = None
-        if self.check(IS_EXP):
+        if self.check(_IS_EXP):
             opType = self.current_token.type
             self.eat(opType)
-            if not self.check(FIRST_UNARY):
+            if not self.check(_FIRST_UNARY):
                 raise InvalidSyntax("Expected an expression after ^ operator")
 
             right = self.parse_unary()
@@ -392,10 +392,12 @@ class ExpressionParser:
 
         return func(exp)
 
-    # Assign the next token in the queue to @current_token
-    # Returns True if there are still more tokens in the queue, or
-    # False if we have looked at all available tokens already
     def next(self):
+        """Assign the next token in the queue to `self.current_token`.
+
+        Return True if there are still more tokens in the queue, or False if there
+        are no more tokens to look at."""
+
         if self.current_token.type == TokenEOF:
             raise OutOfTokens("Parsed beyond the end of the expression")
 
@@ -403,22 +405,24 @@ class ExpressionParser:
         return self.current_token.type != TokenEOF
 
     def eat(self, type):
-        """Assign the next token in the queue to current_token if its type 
-        matches that of the specified parameter. If the type does not match, 
+        """Assign the next token in the queue to current_token if its type
+        matches that of the specified parameter. If the type does not match,
         raise a syntax exception.
 
         Args:
-            type The type that your syntax expects @current_token to be
+            - `type` The type that your syntax expects @current_token to be
         """
         if self.current_token.type != type:
             raise InvalidSyntax("Missing: {}".format(type))
 
         return self.next()
 
-    # Check if the @current_token is a member of a set Token types
-    #
-    # `tokens` The set of Token types to check against
-    # Returns True if the @current_token's type is in the set or False if it is not
     def check(self, tokens):
-        return tokens.contains(self.current_token.type)
+        """Check if the `self.current_token` is a member of a set Token types
+        
+        Args:
+            - `tokens` The set of Token types to check against
+        
+        `Returns` True if the `current_token`'s type is in the set else False"""
 
+        return tokens.contains(self.current_token.type)

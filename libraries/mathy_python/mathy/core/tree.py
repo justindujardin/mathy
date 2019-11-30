@@ -32,7 +32,7 @@ class BinaryTreeNode:
     def __init__(self, left=None, right=None, parent=None, id=None):
         if id is None:
             BinaryTreeNode._idCounter = BinaryTreeNode._idCounter + 1
-            id = "mn-{}".format(BinaryTreeNode._idCounter)
+            id = f"mn-{BinaryTreeNode._idCounter}"
         self.id = id
         self.left = None
         self.right = None
@@ -101,16 +101,20 @@ class BinaryTreeNode:
             grand_parent.right = node
         return self
 
-    # **Tree Traversal**
-    #
-    # Each visit method accepts a function that will be invoked for each node in the
-    # tree.  The callback function is passed three arguments: the node being
-    # visited, the current depth in the tree, and a user specified data parameter.
-    #
-    # *Traversals may be canceled by returning `STOP` from any visit function.*
-
-    # Preorder : *Visit -> Left -> Right*
     def visit_preorder(self, visit_fn, depth=0, data=None):
+        """Visit the tree preorder, which visits the current node, then its left
+        child, and then its right child.
+
+        *Visit -> Left -> Right*
+
+        This method accepts a function that will be invoked for each node in the
+        tree.  The callback function is passed three arguments: the node being
+        visited, the current depth in the tree, and a user specified data parameter.
+
+        !!! info
+
+            Traversals may be canceled by returning `STOP` from any visit function.
+        """
         if visit_fn and visit_fn(self, depth, data) == STOP:
             return STOP
 
@@ -120,8 +124,20 @@ class BinaryTreeNode:
         if self.right and self.right.visit_preorder(visit_fn, depth + 1, data) == STOP:
             return STOP
 
-    # Inorder : *Left -> Visit -> Right*
     def visit_inorder(self, visit_fn, depth=0, data=None):
+        """Visit the tree inorder, which visits the left child, then the current node,
+        and then its right child.
+
+        *Left -> Visit -> Right*
+
+        This method accepts a function that will be invoked for each node in the
+        tree.  The callback function is passed three arguments: the node being
+        visited, the current depth in the tree, and a user specified data parameter.
+
+        !!! info
+
+            Traversals may be canceled by returning `STOP` from any visit function.
+        """
         if self.left and self.left.visit_inorder(visit_fn, depth + 1, data) == STOP:
             return STOP
 
@@ -131,8 +147,20 @@ class BinaryTreeNode:
         if self.right and self.right.visit_inorder(visit_fn, depth + 1, data) == STOP:
             return STOP
 
-    # Postorder : *Left -> Right -> Visit*
     def visit_postorder(self, visit_fn, depth=0, data=None):
+        """Visit the tree postorder, which visits its left child, then its right child,
+        and finally the current node.
+
+        *Left -> Right -> Visit*
+
+        This method accepts a function that will be invoked for each node in the
+        tree.  The callback function is passed three arguments: the node being
+        visited, the current depth in the tree, and a user specified data parameter.
+
+        !!! info
+
+            Traversals may be canceled by returning `STOP` from any visit function.
+        """
         if self.left and self.left.visit_postorder(visit_fn, depth + 1, data) == STOP:
             return STOP
 
@@ -142,8 +170,8 @@ class BinaryTreeNode:
         if visit_fn and visit_fn(self, depth, data) == STOP:
             return STOP
 
-    # Return the root element of this tree
     def get_root(self):
+        """Return the root element of this tree"""
         result = self
         while result.parent:
             result = result.parent
@@ -155,10 +183,10 @@ class BinaryTreeNode:
     # Methods for setting the children on this expression.  These take care of
     # making sure that the proper parent assignments also take place.
 
-    # Set the left node to the passed `child`
     def set_left(
         self, child: "BinaryTreeNode", clear_old_child_parent=False
     ) -> "BinaryTreeNode":
+        """Set the left node to the passed `child`"""
         if child == self:
             raise ValueError("nodes cannot be their own children")
         if self.left is not None and clear_old_child_parent:
@@ -169,10 +197,10 @@ class BinaryTreeNode:
 
         return self
 
-    # Set the right node to the passed `child`
     def set_right(
         self, child: "BinaryTreeNode", clear_old_child_parent=False
     ) -> "BinaryTreeNode":
+        """Set the right node to the passed `child`"""
         if child == self:
             raise ValueError("nodes cannot be their own children")
         if self.right is not None and clear_old_child_parent:
@@ -183,8 +211,9 @@ class BinaryTreeNode:
 
         return self
 
-    # Determine whether the given `child` is the left or right child of this node
     def get_side(self, child):
+        """Determine whether the given `child` is the left or right child of this
+        node"""
         if child == self.left:
             return LEFT
 
@@ -193,8 +222,8 @@ class BinaryTreeNode:
 
         raise ValueError("BinaryTreeNode.get_side: not a child of this node")
 
-    # Set a new `child` on the given `side`
     def set_side(self, child, side):
+        """Set a new `child` on the given `side`"""
         if side == LEFT:
             return self.set_left(child)
 
@@ -203,9 +232,9 @@ class BinaryTreeNode:
 
         raise ValueError("BinaryTreeNode.set_side: Invalid side")
 
-    # Get children as an array.  If there are two children, the first object will
-    # always represent the left child, and the second will represent the right.
     def get_children(self):
+        """Get children as an array.  If there are two children, the first object will
+        always represent the left child, and the second will represent the right."""
         result = []
         if self.left:
             result.append(self.left)
@@ -215,9 +244,9 @@ class BinaryTreeNode:
 
         return result
 
-    # Get the sibling node of this node.  If there is no parent, or the node has no
-    # sibling, the return value will be None.
     def get_sibling(self) -> Optional["BinaryTreeNode"]:
+        """Get the sibling node of this node.  If there is no parent, or the node
+        has no sibling, the return value will be None."""
         if not self.parent:
             return None
 
@@ -242,8 +271,8 @@ class BinarySearchTree(BinaryTreeNode):
         result.key = self.key
         return result
 
-    # Insert a node in the tree with the specified key.
     def insert(self, key) -> BinaryTreeNode:
+        """Insert a node in the tree with the specified key."""
         node = self.get_root()
         while node:
             if key > node.key:
@@ -261,9 +290,9 @@ class BinarySearchTree(BinaryTreeNode):
                 break
         return self
 
-    # Find a node in the tree by its key and return it.  Return None if the key
-    # is not found in the tree.
     def find(self, key) -> Optional[BinaryTreeNode]:
+        """Find a node in the tree by its key and return it.  Return None if the key
+        is not found in the tree."""
         node = self.get_root()
         while node:
             if key > node.key:

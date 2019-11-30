@@ -8,7 +8,13 @@ class BaseRule:
 
     @property
     def name(self):
+        """Readable rule name used for debug rendering and description outputs"""
         return "Abstract Base Rule"
+
+    @property
+    def code(self) -> str:
+        """Short code for debug rendering. Should be two letters."""
+        return "XX"
 
     def find_node(self, expression: MathExpression):
         """Find the first node that can have this rule applied to it."""
@@ -26,9 +32,8 @@ class BaseRule:
         return result
 
     def find_nodes(self, expression: MathExpression):
-        """
-        Find all nodes in an expression that can have this rule applied to them.
-        Each node is marked with it's token index in the expression, according to 
+        """Find all nodes in an expression that can have this rule applied to them.
+        Each node is marked with it's token index in the expression, according to
         the visit strategy, and stored as `node.r_index` starting with index 0
         """
         nodes = []
@@ -49,9 +54,20 @@ class BaseRule:
         return nodes
 
     def can_apply_to(self, node):
+        """User-specified function that returns True/False if a rule can be
+        applied to a given node.
+
+        !!!warning "Performance Point"
+
+            `can_apply_to` is called very frequently during normal operation
+            and should be implemented as efficiently as possible.
+        """
         return False
 
-    def apply_to(self, node: MathExpression) -> 'ExpressionChangeRule':
+    def apply_to(self, node: MathExpression) -> "ExpressionChangeRule":
+        """Apply the rule transformation to the given node, and return a
+        ExpressionChangeRule object that captures the input/output states
+        for the change."""
         # Only double-check canApply in debug mode for performance reasons
         if is_debug_mode() and not self.can_apply_to(node):
             print("Bad Apply: {}".format(node))
@@ -87,7 +103,7 @@ class ExpressionChangeRule:
 
     def done(self, node):
         """Set the result of a change to the given node. Restore the parent
-        if `save_parent` was called """
+        if `save_parent` was called."""
         if self._save_parent:
             self._save_parent.set_side(node, self._save_side)
         self.result = node
