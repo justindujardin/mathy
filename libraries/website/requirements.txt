@@ -11,6 +11,8 @@ mkdocs
 mkdocs-material
 markdown-include
 mkdocs-minify-plugin
+pydoc-markdown
+ruamel.yaml
 
 # The snippets/tests need mathy. Install as a development package (-e)
 -e ../mathy_python/

@@ -1,9 +1,9 @@
-Mathy includes what's called a Computer Algebra System. Its job is to turn text into math trees that can be examined and manipulated by way of a two-step process:
+Mathy includes what's called a Computer Algebra System (or CAS). Its job is to turn text into math trees that can be examined and manipulated by way of a two-step process:
 
 1. [Tokenize](/cas/tokenizer) the text into a list of `type`/`value` pairs
 2. [Parse](/cas/parser) the token list into an Expression tree
 
-This is the main function of Mathy's CAS system.
+This is the main function of Mathy's CAS.
 
 ## Examples
 

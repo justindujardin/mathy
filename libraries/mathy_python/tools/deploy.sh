@@ -14,6 +14,3 @@ python setup.py sdist bdist_wheel
 echo "--- Upload to PyPi"
 twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
 rm -rf build dist
-
-
-echo "TODO: Use https://pypi.org/project/pydoc-markdown/ to export and commit MD files in the docs/python/ folder on builds to develop/master."
