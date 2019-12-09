@@ -353,8 +353,8 @@ class NegateExpression(UnaryExpression):
     def differentiate(self, by_variable):
         """
         ```
-        .            f(x) = -g(x)
-        .        d( f(x) ) = -( d( g(x) ) )
+        .        f(x) = -g(x)
+        .    d( f(x) ) = -( d( g(x) ) )
         ```
         """
         return NegateExpression(self.child.differentiate(by_variable))
@@ -521,9 +521,9 @@ class AddExpression(BinaryExpression):
 
     def differentiate(self, by_variable):
         """```
-        .               f(x) = g(x) + h(x)
-        .          d( f(x) ) = d( g(x) ) + d( h(x) )
-        .              f'(x) = g'(x) + h'(x)
+        .           f(x) = g(x) + h(x)
+        .      d( f(x) ) = d( g(x) ) + d( h(x) )
+        .          f'(x) = g'(x) + h'(x)
         ```"""
         return AddExpression(
             self.left.differentiate(by_variable), self.right.differentiate(by_variable)
@@ -546,9 +546,9 @@ class SubtractExpression(BinaryExpression):
 
     def differentiate(self, by_variable):
         """```
-        .               f(x) = g(x) - h(x)
-        .          d( f(x) ) = d( g(x) ) - d( h(x) )
-        .              f'(x) = g'(x) - h'(x)
+        .           f(x) = g(x) - h(x)
+        .      d( f(x) ) = d( g(x) ) - d( h(x) )
+        .          f'(x) = g'(x) - h'(x)
         ```"""
         return AddExpression(
             self.left.differentiate(by_variable), self.right.differentiate(by_variable)
@@ -574,8 +574,8 @@ class MultiplyExpression(BinaryExpression):
 
     def differentiate(self, by_variable):
         """```
-        .             f(x) = g(x)*h(x)
-        .            f'(x) = g(x)*h'(x) + g'(x)*h(x)
+        .         f(x) = g(x)*h(x)
+        .        f'(x) = g(x)*h'(x) + g'(x)*h(x)
         ```"""
         return AddExpression(
             MultiplyExpression(self.left, self.right.differentiate(by_variable)),
@@ -636,8 +636,8 @@ class DivideExpression(BinaryExpression):
 
     def differentiate(self, by_variable):
         """```
-        .          f(x) = g(x)/h(x)
-        .         f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
+        .      f(x) = g(x)/h(x)
+        .     f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
         ```"""
         gprimeh = MultiplyExpression(self.left.differentiate(by_variable), self.right)
         ghprime = MultiplyExpression(self.left, self.right.differentiate(by_variable))
@@ -769,19 +769,19 @@ class VariableExpression(MathExpression):
         Differentiating by this variable yields 1
 
         ```
-        .             f(x) = x
-        .        d( f(x) ) = 1 * d( x )
-        .           d( x ) = 1
-        .            f'(x) = 1
+        .         f(x) = x
+        .    d( f(x) ) = 1 * d( x )
+        .       d( x ) = 1
+        .        f'(x) = 1
         ```
 
         Differentiating by any other variable yields 0
 
         ```
-        .             f(x) = c
-        .        d( f(x) ) = c * d( c )
-        .           d( c ) = 0
-        .            f'(x) = 0
+        .         f(x) = c
+        .    d( f(x) ) = c * d( c )
+        .       d( c ) = 0
+        .        f'(x) = 0
         ```
         """
         if by_variable == self.identifier:
@@ -805,8 +805,8 @@ class AbsExpression(FunctionExpression):
 
     def differentiate(self, by_variable):
         """```
-        .           f(x)   = abs( g(x) )
-        .        d( f(x) ) = sgn( g(x) ) * d( g(x) )
+        .       f(x)   = abs( g(x) )
+        .    d( f(x) ) = sgn( g(x) ) * d( g(x) )
         ```"""
         return MultiplyExpression(
             SgnExpression(self.child), self.child.Differentiate(by_variable)
@@ -836,8 +836,8 @@ class SgnExpression(FunctionExpression):
 
     def differentiate(self, by_variable):
         """```
-        .             f(x) = sgn( g(x) )
-        .        d( f(x) ) = 0
+        .         f(x) = sgn( g(x) )
+        .    d( f(x) ) = 0
         ```
         
         Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function."""

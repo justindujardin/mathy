@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://mathy.ai"><img src="img/mathy_logo.png" alt="Mathy.ai"></a>
+  <a href="https://mathy.ai"><img mathy-logo src="img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
     <em>Computer Algebra System and Reinforcement Learning Environments library, with agents that solve math problems step-by-step</em>
@@ -18,6 +18,24 @@
     <img src="https://badges.gitter.im/justindujardin/mathy.svg" alt="Join the chat at https://gitter.im/justindujardin/mathy">
 </a>
 </p>
+<div align="center" data-termynal-container>
+    <div id="termynal" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
+        <span data-ty="input">pip install mathy</span>
+        <span data-ty="progress"></span>
+        <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy</span>
+        <span data-ty-lineDelay="0" class="u-hide-sm" data-ty=""></span>
+        <span data-ty="input">mathy simplify "2x + 1y^3 + 7b + 4x"</span>
+        <span data-ty="" data-ty-text="initial                   | 2x + 1y^3 + 7b + 4x"></span>
+        <span data-ty="" data-ty-text="associative group         | 2x + (1y^3 + 7b) + 4x"></span>
+        <span data-ty="" data-ty-text="associative group         | 2x + (1y^3 + 7b + 4x)"></span>
+        <span data-ty="" data-ty-text="commutative swap          | 1y^3 + 7b + 4x + 2x"></span>
+        <span data-ty="" data-ty-text="associative group         | 1y^3 + 7b + (4x + 2x)"></span>
+        <span data-ty="" data-ty-text="distributive factoring    | 1y^3 + 7b + (4 + 2) * x"></span>
+        <span data-ty="" data-ty-text="constant arithmetic       | 1y^3 + 7b + 6x"></span>
+        <span data-ty-lineDelay="0" class="u-hide-sm" data-ty=""></span>
+        <span data-ty="" data-ty-text='"2x + 1y^3 + 7b + 4x" = "1y^3 + 7b + 6x"'></span>
+    </div>
+</div>
 
 ---
 

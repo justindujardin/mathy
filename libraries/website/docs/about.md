@@ -1,14 +1,6 @@
-# History
+# About
 
-## Why Mathy?
-
-Mathy was an idea that came out of a tutoring session I had in college. I asked the tutor a dumb question, one that I should have known the answer to from highschool Algebra, and they choked down a look of disgust as they explained it to me.
-
-It struck me that the "safe place to learn" which academia sought to provide didn't often feel safe. I felt ashamed and embarassed because I was missing something foundational for the math I needed to do, and I felt that I couldn't get the help I needed without facing ridicule.
-
-I knew there had to be a better way to make foundational knowledge about math available to anyone that wanted it. I thought to myself, I know how to write software; I can build it! Some ten years later, here we are, trying to provide a free math tutor to the world.
-
-Will you help?
+Mathy was built over a period of about a decade in my spare time. I believe education should be free. Want to help?
 
 ## Research
 

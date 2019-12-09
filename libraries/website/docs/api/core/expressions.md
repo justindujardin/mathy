@@ -151,8 +151,8 @@ NegateExpression.differentiate(self, by_variable)
 ```
 
 ```
-.            f(x) = -g(x)
-.        d( f(x) ) = -( d( g(x) ) )
+.        f(x) = -g(x)
+.    d( f(x) ) = -( d( g(x) ) )
 ```
 
 ## FunctionExpression
@@ -214,9 +214,9 @@ Add one and two
 AddExpression.differentiate(self, by_variable)
 ```
 ```
-.               f(x) = g(x) + h(x)
-.          d( f(x) ) = d( g(x) ) + d( h(x) )
-.              f'(x) = g'(x) + h'(x)
+.           f(x) = g(x) + h(x)
+.      d( f(x) ) = d( g(x) ) + d( h(x) )
+.          f'(x) = g'(x) + h'(x)
 ```
 ## SubtractExpression
 ```python
@@ -228,9 +228,9 @@ Subtract one from two
 SubtractExpression.differentiate(self, by_variable)
 ```
 ```
-.               f(x) = g(x) - h(x)
-.          d( f(x) ) = d( g(x) ) - d( h(x) )
-.              f'(x) = g'(x) - h'(x)
+.           f(x) = g(x) - h(x)
+.      d( f(x) ) = d( g(x) ) - d( h(x) )
+.          f'(x) = g'(x) - h'(x)
 ```
 ## MultiplyExpression
 ```python
@@ -242,8 +242,8 @@ Multiply one and two
 MultiplyExpression.differentiate(self, by_variable)
 ```
 ```
-.             f(x) = g(x)*h(x)
-.            f'(x) = g(x)*h'(x) + g'(x)*h(x)
+.         f(x) = g(x)*h(x)
+.        f'(x) = g(x)*h'(x) + g'(x)*h(x)
 ```
 ## DivideExpression
 ```python
@@ -255,8 +255,8 @@ Divide one by two
 DivideExpression.differentiate(self, by_variable)
 ```
 ```
-.          f(x) = g(x)/h(x)
-.         f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
+.      f(x) = g(x)/h(x)
+.     f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
 ```
 ## PowerExpression
 ```python
@@ -290,19 +290,19 @@ VariableExpression.differentiate(self, by_variable)
 Differentiating by this variable yields 1
 
 ```
-.             f(x) = x
-.        d( f(x) ) = 1 * d( x )
-.           d( x ) = 1
-.            f'(x) = 1
+.         f(x) = x
+.    d( f(x) ) = 1 * d( x )
+.       d( x ) = 1
+.        f'(x) = 1
 ```
 
 Differentiating by any other variable yields 0
 
 ```
-.             f(x) = c
-.        d( f(x) ) = c * d( c )
-.           d( c ) = 0
-.            f'(x) = 0
+.         f(x) = c
+.    d( f(x) ) = c * d( c )
+.       d( c ) = 0
+.        f'(x) = 0
 ```
 
 ## AbsExpression
@@ -315,8 +315,8 @@ Evaluates the absolute value of an expression.
 AbsExpression.differentiate(self, by_variable)
 ```
 ```
-.           f(x)   = abs( g(x) )
-.        d( f(x) ) = sgn( g(x) ) * d( g(x) )
+.       f(x)   = abs( g(x) )
+.    d( f(x) ) = sgn( g(x) ) * d( g(x) )
 ```
 ## SgnExpression
 ```python
@@ -335,8 +335,8 @@ Returns: -1 if negative, 1 if positive, 0 if 0
 SgnExpression.differentiate(self, by_variable)
 ```
 ```
-.             f(x) = sgn( g(x) )
-.        d( f(x) ) = 0
+.         f(x) = sgn( g(x) )
+.    d( f(x) ) = 0
 ```
 
 Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function.
