@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Type
 
-from tf_agents.trajectories import time_step
+from .. import time_step
 
 from ..core.rule import BaseRule
 from ..core.expressions import MathExpression

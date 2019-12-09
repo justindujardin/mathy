@@ -14,8 +14,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         lstm_units: int,
         embedding_units: int,
         extract_window: Optional[int] = None,
-        episode_reset_state_h: Optional[bool] = False,
-        episode_reset_state_c: Optional[bool] = False,
+        episode_reset_state_h: Optional[bool] = True,
+        episode_reset_state_c: Optional[bool] = True,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)

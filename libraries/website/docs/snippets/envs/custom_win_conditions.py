@@ -3,7 +3,6 @@ two nodes are adjacent to each other that can have the distributive
 property applied to factor out a common term """
 
 from typing import Optional
-from tf_agents.trajectories import time_step
 from mathy import (
     DistributiveFactorOutRule,
     MathExpression,
@@ -11,6 +10,7 @@ from mathy import (
     MathyEnvState,
     MathyObservation,
     is_terminal_transition,
+    time_step,
 )
 
 

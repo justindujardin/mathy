@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import gym
 import numpy as np
-import tensorflow as tf
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...features import calculate_grouping_control_signal
@@ -38,6 +37,8 @@ class SelfPlayTrainer:
         self, args: SelfPlayConfig, model: PolicyValueModel, action_size: int,
     ):
         super(SelfPlayTrainer, self).__init__()
+        import tensorflow as tf
+
         self.args = args
         self.model = model
         self.iteration = 0

@@ -5,7 +5,6 @@ from typing import List
 
 import gym
 import numpy as np
-import tensorflow as tf
 from colr import color
 
 from ...state import MathyEnvState, MathyObservation, observations_to_window
@@ -20,6 +19,8 @@ class A3CAgent:
     args: A3CConfig
 
     def __init__(self, args: A3CConfig):
+        import tensorflow as tf
+
         self.args = args
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")

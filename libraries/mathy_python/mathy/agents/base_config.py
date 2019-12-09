@@ -92,12 +92,12 @@ class A3CConfig(BaseConfig):
     aux_tasks_weight_scale = 0.1
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.3
+    td_lambda: float = 0.2
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 20
+    teacher_start_evaluations_at_episode = 200
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 2
+    teacher_evaluation_steps = 50
     # If the agent wins >= this value, promote to the next difficulty class
     # 85 percent loosely inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time

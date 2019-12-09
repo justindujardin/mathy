@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional, Type
 
 from numpy.random import randint, uniform
-from tf_agents.trajectories import time_step
 
+from .. import time_step
 from ..core.expressions import MathExpression
 from ..features import calculate_term_grouping_distances
 from ..helpers import get_terms, has_like_terms, is_preferred_term_form

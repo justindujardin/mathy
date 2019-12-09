@@ -1,18 +1,14 @@
 from typing import Any, List, Optional, Type
 
 from numpy.random import randint
-from tf_agents.trajectories import time_step
 
+from .. import time_step
 from ..core.expressions import MathExpression
+from ..core.rule import BaseRule
 from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
 from ..problems import combine_terms_in_place, commute_haystack, rand_bool
-from ..rules import (
-    AssociativeSwapRule,
-    CommutativeSwapRule,
-    DistributiveFactorOutRule,
-)
-from ..core.rule import BaseRule
+from ..rules import AssociativeSwapRule, CommutativeSwapRule, DistributiveFactorOutRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify

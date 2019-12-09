@@ -2,8 +2,8 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from numpy import random
 from numpy.random import randint
-from tf_agents.trajectories import time_step
 
+from .. import time_step
 from ..core.expressions import MathExpression
 from ..helpers import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnvProblem

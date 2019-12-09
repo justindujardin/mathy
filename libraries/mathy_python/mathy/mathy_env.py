@@ -2,8 +2,8 @@ from itertools import groupby
 from typing import Dict, List, Optional, Tuple, Type
 
 import numpy as np
-from tf_agents.trajectories import time_step
 
+from . import time_step
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
 from .core.rule import BaseRule, ExpressionChangeRule

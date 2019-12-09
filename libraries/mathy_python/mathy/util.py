@@ -1,5 +1,5 @@
 import numpy as np
-from tf_agents.trajectories import time_step
+from . import time_step
 
 
 class EnvRewards:
