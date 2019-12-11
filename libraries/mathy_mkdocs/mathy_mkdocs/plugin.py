@@ -6,6 +6,8 @@ from mathy import (
     BinaryExpression,
     ExpressionParser,
     MathExpression,
+    MathyEnvState,
+    MathyObservation,
     TreeLayout,
     TreeMeasurement,
     VariableExpression,
@@ -15,6 +17,7 @@ from mathy import (
 parser = ExpressionParser()
 layout = TreeLayout()
 matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
+features_re = r"<code>features:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 
 
@@ -28,6 +31,13 @@ def to_math_ml_fragment(match):
         return f"Failed to parse: '{match}' with error: {error}"
 
 
+rules_note = """!!! info
+
+    All the examples shown below are drawn from the mathy test suite
+    that verifies the expected input/output combinations for rule
+    transformations."""
+
+
 def render_examples_from_tests(match):
     """render a set of rule to/from examples in markdown from the rules tests"""
     rule_file_name = match.group(1)
@@ -35,7 +45,8 @@ def render_examples_from_tests(match):
     max_len = 32
     try:
         data = testing.get_rule_tests(rule_file_name)
-        result = f"\r\n|Input|Output|Valid|"
+        result = f"\r\n\r\n{rules_note}\r\n"
+        result += f"\r\n|Input|Output|Valid|"
         result += f"\r\n|---|---|:---:|"
         valid = "\u2714"
         for v in data["valid"]:
@@ -53,6 +64,7 @@ def render_examples_from_tests(match):
                 continue
 
             result += f"\r\n|{in_text}|{out_text}|{valid}|"
+
         return result
     except ValueError:
         return f"Rule file not found: __{rule_file_name}.json__"
@@ -124,24 +136,99 @@ def render_tree_from_match(match):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
-def render_mathy_templates(input_text: str):
-    global matcher_re
-    text = re.sub(matcher_re, render_tree_from_match, input_text, flags=re.IGNORECASE)
+def render_features_from_match(match):
+    global parser, layout
+    input_text = match.group(1)
+    try:
+        expression: MathExpression = parser.parse(input_text)
+        state = MathyEnvState(problem=input_text)
+        observation: MathyObservation = state.to_observation(hash_type=[13, 37])
+
+        length = len(observation.nodes)
+        types = observation.nodes
+        values = observation.values
+        nodes = expression.to_list()
+        chars = [n.name for n in nodes]
+        assert len(types) == len(values) == len(chars)
+
+        box_size = 48
+        char_width = 4
+        char_height = 12
+        border_width = 2
+
+        view_x = 0
+        view_y = 0
+        view_w = box_size * length
+        view_h = box_size * 3 + border_width * 2
+
+        tree = svgwrite.Drawing(size=(view_w, view_h))
+        tree.viewbox(minx=view_x, miny=view_y, width=view_w, height=view_h)
+
+        def box_with_char(text, x, y, fill="#fff", border="#888"):
+            tree.add(
+                tree.rect(
+                    insert=(x, y),
+                    size=(box_size, box_size),
+                    fill=fill,
+                    stroke=border,
+                    stroke_width=border_width,
+                )
+            )
+            text_x = x - char_width * len(str(text)) + box_size // 2
+            text_y = y + box_size // 2 + char_height // 2
+            tree.add(
+                tree.text(text, insert=(text_x, text_y), fill=svgwrite.rgb(50, 50, 50))
+            )
+
+        curr_x = border_width
+        for n, t, v, c in zip(nodes, types, values, chars):
+
+            color = svgwrite.rgb(180, 200, 255)
+            if isinstance(n, BinaryExpression):
+                color = svgwrite.rgb(230, 230, 230)
+            elif isinstance(n, VariableExpression):
+                color = svgwrite.rgb(150, 250, 150)
+            if n == n.get_root():
+                color = svgwrite.rgb(250, 220, 200)
+
+            box_with_char(c, curr_x, border_width, fill=color)
+            box_with_char(v, curr_x, box_size + border_width)
+            box_with_char(t, curr_x, box_size * 2 + border_width)
+            curr_x += box_size - (border_width)
+
+        return svgwrite.utils.pretty_xml(tree.tostring(), indent=2)
+    except BaseException as error:
+        return f"Failed to parse: '{input_text}' with error: {error}"
+
+
+def render_markdown(input_text: str):
+    global rules_matcher_re
     text = re.sub(
-        rules_matcher_re, render_examples_from_tests, text, flags=re.IGNORECASE
+        rules_matcher_re, render_examples_from_tests, input_text, flags=re.IGNORECASE
     )
     return text
 
 
+def render_html(input_text: str):
+    global matcher_re
+    text = re.sub(matcher_re, render_tree_from_match, input_text, flags=re.IGNORECASE)
+    text = re.sub(features_re, render_features_from_match, text, flags=re.IGNORECASE)
+    return text
+
+
 if __name__ == "__main__":
-    print(render_mathy_templates("<code>mathy:4x^3 * 2x - 7</code>"))
-    print(render_mathy_templates("`rule_tests:constants_simplify`"))
+    res = render_html("<code>features:4x^3 * 2x - 7</code>")
+    # with open("./features.svg", "w") as f:
+    #     f.write(res)
+    print(res)
+    print(render_html("<code>mathy:4x^3 * 2x - 7</code>"))
+    print(render_markdown("`rule_tests:constants_simplify`"))
 else:
     from mkdocs.plugins import BasePlugin
 
     class MathyMkDocsPlugin(BasePlugin):
         def on_page_markdown(self, markdown, **kwargs):
-            return render_mathy_templates(markdown)
+            return render_markdown(markdown)
 
         def on_page_content(self, content, **kwargs):
-            return render_mathy_templates(content)
+            return render_html(content)

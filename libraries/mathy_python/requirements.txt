@@ -6,5 +6,6 @@ cloudpickle>=1.2.2 # because: https://github.com/tensorflow/tensorflow/issues/32
 tensorboard
 tqdm
 colr
+srsly
 pydantic>=1.0.0
 click
