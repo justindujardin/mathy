@@ -24,8 +24,8 @@ yaml = YAML()
 
 
 print("Building API docs...")
-exclude_files = ["__init__.py", "README.md"]
-include_folders = ["core"]
+exclude_files = ["__init__.py", "README.md", "types.py"]
+include_folders = ["", "core"]
 
 
 def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
@@ -36,10 +36,15 @@ def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
     # Set CWD to the root
     os.chdir(os.path.join(file_dir, "../"))
 
+    if src_rel_ns == "":
+        namespace = f"mathy.{src_base}{modifier}"
+    else:
+        namespace = f"mathy.{src_rel_ns}.{src_base}{modifier}"
+
     args = [
         "pydocmd",
         "simple",
-        f"mathy.{src_rel_ns}.{src_base}{modifier}",
+        namespace,
     ]
     # print(args)
     call_result = check_output(args, env=os.environ).decode("utf-8")
@@ -55,8 +60,10 @@ if __name__ == "__main__":
 
     nav_entries = []
     for dir_name, _, files in os.walk(source_path):
-        rel_path = dir_name.replace(f"{source_path}/", "")
-        if "__pycache__" in rel_path or "/lib" in rel_path or "trfl" in rel_path:
+        rel_path = dir_name.replace(f"{source_path}", "")
+        if rel_path != "" and rel_path[0] == "/":
+            rel_path = rel_path[1:]
+        if "__pycache__" in rel_path or "/lib/" in rel_path or "trfl" in rel_path:
             continue
         if rel_path not in include_folders:
             continue
@@ -84,12 +91,18 @@ if __name__ == "__main__":
         # Only add to nav if any files were found
         if len(found) > 0:
             nav_key = os.path.basename(rel_path)
-            nav_item = dict()
-            nav_item[nav_key] = found
-            nav_entries.append(nav_item)
+            if nav_key == "":
+                nav_entries += found
+            else:
+                nav_item = dict()
+                found.sort(key=lambda x: list(x)[0], reverse=False)
+                nav_item[nav_key] = found
+                nav_entries.insert(0, nav_item)
 
     # pydocmd simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
     YAMLSection = List[Dict[str, List[Dict[str, str]]]]
+
+    nav_entries.sort(key=lambda x: list(x)[0], reverse=False)
 
     mkdocs_yaml = yaml.load(yaml_path)
     docs_key = "API Documentation"

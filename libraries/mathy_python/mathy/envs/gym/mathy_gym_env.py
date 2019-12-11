@@ -85,11 +85,6 @@ class MathyGymEnv(gym.Env):
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
-    def initial_state(self):
-        """return a batch of n-step observations for initializing the env"""
-        state, _ = self.mathy.get_initial_state(self.env_problem_args)
-        return state.to_empty_batch()
-
     def start_observation(self, rnn_state: RNNStatesFloatList):
         """return an n-step set of observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)

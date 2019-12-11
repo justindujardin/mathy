@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import tensorflow as tf
 import json
 from ..core.expressions import MathTypeKeysMax
-from ..state import MathyWindowObservation, MathyInputs, MathyInputsType
+from ..state import MathyWindowObservation, ObservationFeatureIndices, MathyInputsType
 from .swish_activation import swish
 
 
@@ -87,13 +87,13 @@ class MathyEmbedding(tf.keras.layers.Layer):
             self.state_c.assign(tf.zeros([1, self.lstm_units]))
 
     def call(self, features: MathyInputsType) -> tf.Tensor:
-        nodes = tf.convert_to_tensor(features[MathyInputs.nodes])
-        values = tf.convert_to_tensor(features[MathyInputs.values])
+        nodes = tf.convert_to_tensor(features[ObservationFeatureIndices.nodes])
+        values = tf.convert_to_tensor(features[ObservationFeatureIndices.values])
         nodes_shape = tf.shape(nodes)
         batch_size = nodes_shape[0]  # noqa
         sequence_length = nodes_shape[1]
-        in_rnn_state = features[MathyInputs.rnn_state][0]
-        in_rnn_history = features[MathyInputs.rnn_history][0]
+        in_rnn_state = features[ObservationFeatureIndices.rnn_state][0]
+        in_rnn_history = features[ObservationFeatureIndices.rnn_history][0]
 
         with tf.name_scope("prepare_inputs"):
             #

@@ -20,7 +20,6 @@ from ...state import (
 from ...teacher import Teacher
 from ...util import EnvRewards, discount
 from .. import action_selectors
-from ..base_config import A3CConfig
 from ..episode_memory import EpisodeMemory
 from ..policy_value_model import PolicyValueModel
 from ..trfl import discrete_policy_entropy_loss, td_lambda

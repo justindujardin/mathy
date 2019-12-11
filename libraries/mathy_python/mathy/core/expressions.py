@@ -23,18 +23,8 @@ MathTypeKeys = {
     "power": 7,
     "term_root": 8,
     "term_connector": 9,
-    # NOTE: reserved 10-14 for future expression types (such as functions)
-    "constant": 15,
-    "constant_0": 16,
-    "constant_1": 17,
-    "constant_2": 18,
-    "constant_3": 19,
-    "constant_4": 20,
-    "constant_5": 21,
-    "constant_6": 22,
-    "constant_7": 23,
-    "constant_8": 24,
-    "constant_9": 25,
+    "constant": 10,
+    # NOTE: reserved 11-25 for future expression types (such as functions)
     "variable": 26,
     "variable_a": 27,
     "variable_b": 28,
@@ -159,7 +149,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return count
 
-    def to_list(self, visit="postorder"):
+    def to_list(self, visit="preorder"):
         """Convert this node hierarchy into a list."""
         results = []
 
@@ -687,12 +677,11 @@ class ConstantExpression(MathExpression):
 
     @property
     def name(self):
-        return f"const({self.value})"
+        return f"{self.value}"
 
     @property
     def type_id(self):
-        id = f"_{int(self.value % 10)}" if self.value is not None else ""
-        return MathTypeKeys[f"constant{id}"]
+        return MathTypeKeys["constant"]
 
     def __init__(self, value=None):
         super().__init__()
@@ -723,7 +712,7 @@ class VariableExpression(MathExpression):
 
     @property
     def name(self):
-        return f"var({self.identifier})"
+        return f"{self.identifier}"
 
     @property
     def type_id(self):

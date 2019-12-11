@@ -1,15 +1,16 @@
-import time
 import json
+import time
 from pathlib import Path
+
 import numpy as np
 
 from mathy.core.parser import ExpressionParser, ParserException
 from mathy.envs.gym import MathyGymEnv
 
-from .lib.average_meter import AverageMeter
-from .lib.progress.bar import Bar
 from ...mathy_env import MathyEnv
 from .config import SelfPlayConfig
+from .lib.average_meter import AverageMeter
+from .lib.progress.bar import Bar
 from .practice_runner import ParallelPracticeRunner, PracticeRunner
 from .practice_session import PracticeSession
 
@@ -20,7 +21,9 @@ def self_play_runner(config: SelfPlayConfig):
     BaseEpisodeRunner = (
         PracticeRunner if config.num_workers < 2 else ParallelPracticeRunner
     )
-    lesson_name = "mathy-poly-normal-v0"
+    lesson_name = "mathy-poly-easy-v0"
+    if config.verbose:
+        print(config.json(indent=2))
 
     class LessonRunner(BaseEpisodeRunner):  # type:ignore
         def get_game(self):
@@ -29,11 +32,15 @@ def self_play_runner(config: SelfPlayConfig):
             return gym.make(lesson_name)
 
         def get_predictor(self, game: MathyGymEnv):
-            from ...agents.policy_value_model import PolicyValueModel
+            from ...agents.policy_value_model import (
+                get_or_create_policy_model,
+                PolicyValueModel,
+            )
 
-            model = PolicyValueModel(args=config, predictions=game.action_space.n)
-            model.maybe_load(
-                game.initial_window(config.lstm_units).to_inputs(), do_init=True
+            model: PolicyValueModel = get_or_create_policy_model(
+                args=config,
+                env_actions=game.action_space.n,
+                initial_state=game.initial_window(config.lstm_units),
             )
             return model
 

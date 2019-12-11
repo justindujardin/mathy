@@ -280,14 +280,14 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
 
 
 def has_like_terms(expression: MathExpression) -> bool:
-    """
-    Return True if a given expression has more than one of any
-           type of term.
-    Examples:
-        x + y + z = False
-        x^2 + x = False
-        y + 2x = True
-        x^2 + 4x^3 + 2y = True
+    """Return True if a given expression has more than one of any type of term.
+
+    # Examples
+
+    - `x + y + z` = `False`
+    - `x^2 + x` = `False`
+    - `y + 2x` = `True`
+    - `x^2 + 4x^3 + 2y` = `True`
     """
 
     seen: set = set()
@@ -464,6 +464,13 @@ class TermEx(NamedTuple):
     coefficient: Optional[Union[int, float]]
     variable: Optional[str]
     exponent: Optional[Union[int, float]]
+
+
+# fmt: off
+TermEx.coefficient.__doc__ = "An optional integer or float coefficient" # noqa
+TermEx.variable.__doc__ = "An optional variable" # noqa
+TermEx.exponent.__doc__ = "An optional integer or float exponent" # noqa
+# fmt: on
 
 
 def get_term_ex(node: Optional[MathExpression]) -> Optional[TermEx]:

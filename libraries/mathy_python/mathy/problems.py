@@ -1,3 +1,9 @@
+"""Problem Generation
+---
+
+Utility functions for helping generate input problem texts.
+"""
+
 import random
 from typing import Tuple, Optional, Union, List
 from pydantic import BaseModel, Field
@@ -135,6 +141,7 @@ def binomial_times_binomial(
     powers_probability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
+    """ """
     power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
@@ -241,6 +248,11 @@ def simplify_multiple_terms(
     shuffle_probability=0.66,
     noise_terms=None,
 ) -> Tuple[str, int]:
+    """Generate a polynomial problem with like terms that need to be combined and
+    simplified, e.g. `2a + 3j - 7b + 17.2a + j`
+
+    `mathy:2a + 3j - 7b + 17.2a + j`
+    """
     power_prob_percent = powers_probability * 100
     num_like_terms = max(2, int(num_terms * inner_terms_scaling))
     if num_terms <= 1:
@@ -301,7 +313,9 @@ def simplify_multiple_terms(
 
 
 def solve_for_variable(terms=4):
-    """Generate a solve for x type problem, e.g. `4x + 2 = 8x`"""
+    """Generate a solve for x type problem, e.g. `4x + 2 = 8x`
+    
+    `mathy:4x + 2 = 8x`"""
     variable = rand_var()
     # Guarantee at least one set of like terms
     result = "{}{} = {}".format(rand_int(), variable, rand_int())
@@ -327,17 +341,20 @@ def split_in_two_random(value: int):
 
 def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
     """Generate a problem that puts one pair of like terms somewhere inside
-    an expression of unlike terms. The agent should be challenged to make its first 
+    an expression of unlike terms. The agent should be challenged to make its first
     few moves count when combined with a very small number of maximum moves.
-    The hope is that by focusing the agent on selecting the right moves inside of a 
+    The hope is that by focusing the agent on selecting the right moves inside of a
     ridiculously large expression it will learn to select actions to combine like terms
     invariant of the sequence length.
+
+    ### Example
+
+    ```
+      4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x) + 43n + 17j
+    ```
     
-    Example:
-      "4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x)  + 43n + 17j"
-      max_turns=3  actions=[DistributiveFactorOut, ConstantArithmetic]
-    NOTE: we usually add one more move than may strictly be necessary to help with 
-    exploration where we inject Dirichlet noise in the root tree search node.
+    `mathy:4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x) + 43n + 17j`
+    
     """
 
     total_terms = random.randint(min_terms, max_terms)
@@ -377,8 +394,14 @@ def commute_haystack(
     set of two terms that do match, but are separated by one other term.
     The challenge is to commute the terms to each other in one move.
 
-    Example:  "4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
-                                             ^-----------^
+    ### Example
+
+    ```
+    4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
+                                  ^-----------^
+    ```
+
+    `mathy:4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j`
     """
     total_terms = random.randint(min_terms, max_terms)
     num_noise_terms = total_terms - 2
@@ -431,7 +454,10 @@ def get_blocker(num_blockers=1, exclude_vars=[]):
 
 
 def move_around_blockers_one(number_blockers: int, powers_probability: float = 0.5):
-    # two like terms separated by (n) blocker terms, e.g. 2 ~ "4x + (y + f) + x"
+    """Two like terms separated by (n) blocker terms, e.g. `4x + (y + f) + x`
+    
+    ### Example
+    `mathy:4x + (y + f) + x`"""
     var = rand_var()
     power_chance = powers_probability * 100
     exp = maybe_power(power_chance)
@@ -444,7 +470,10 @@ def move_around_blockers_one(number_blockers: int, powers_probability: float = 0
 
 
 def move_around_blockers_two(number_blockers: int, powers_probability: float = 0.5):
-    # two like terms with three blockers: "7a + 4x + (2f + j) + x + 3d"
+    """Two like terms with three blockers, e.g. `7a + 4x + (2f + j) + x + 3d`
+    ### Example
+
+    `mathy:7a + 4x + (2f + j) + x + 3d`"""
     rand_vars = get_rand_vars(3)
     [one_var, two_var, three_var] = rand_vars
     complexity = 4 + number_blockers

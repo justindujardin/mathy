@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import backend as K
 
-from ..state import MathyWindowObservation, MathyInputsType, MathyInputs
+from ..state import MathyWindowObservation, MathyInputsType, ObservationFeatureIndices
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
 from .swish_activation import swish
@@ -47,7 +47,7 @@ class PolicyValueModel(tf.keras.Model):
 
     def call(self, features_window: MathyInputsType, apply_mask=True):
         call_print = False
-        nodes = features_window[MathyInputs.nodes]
+        nodes = features_window[ObservationFeatureIndices.nodes]
         batch_size = (
             len(nodes)
             if not isinstance(nodes, (tf.Tensor, np.ndarray))
@@ -74,7 +74,7 @@ class PolicyValueModel(tf.keras.Model):
     ):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves"""
-        mask = features_window[MathyInputs.mask]
+        mask = features_window[ObservationFeatureIndices.mask]
         logits_shape = tf.shape(logits)
         features_mask = tf.reshape(
             mask, (logits_shape[0], -1, self.predictions), name="pi_mask_reshape"

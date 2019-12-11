@@ -1,4 +1,5 @@
-from typing import Dict, List, NamedTuple, Optional, Any
+from enum import IntEnum
+from typing import Any, Dict, List, NamedTuple, Optional
 
 import numpy as np
 
@@ -22,19 +23,12 @@ WindowProblemTypeIntList = List[ProblemTypeIntList]
 WindowProblemTimeFloatList = List[ProblemTimeFloatList]
 WindowRNNStatesFloatList = List[RNNStatesFloatList]
 
-BatchNodeIntList = List[WindowNodeIntList]
-BatchNodeMaskIntList = List[WindowNodeMaskIntList]
-BatchNodeValuesFloatList = List[WindowNodeValuesFloatList]
-BatchProblemTypeIntList = List[WindowProblemTypeIntList]
-BatchProblemTimeFloatList = List[WindowProblemTimeFloatList]
-BatchRNNStatesFloatList = List[WindowRNNStatesFloatList]
-
 
 # Input type for mathy models
 MathyInputsType = List[Any]
 
 
-class MathyInputs:
+class ObservationFeatureIndices(IntEnum):
     """Indices into mathy inputs for various feature vectors"""
 
     nodes = 0
@@ -46,15 +40,19 @@ class MathyInputs:
     rnn_history = 6
 
 
+# fmt: off
+ObservationFeatureIndices.nodes.__doc__ = f"index[{ObservationFeatureIndices.nodes.value}] into packed features array"  # noqa
+ObservationFeatureIndices.mask.__doc__ = f"index[{ObservationFeatureIndices.mask.value}] into packed features array"  # noqa
+ObservationFeatureIndices.values.__doc__ = f"index[{ObservationFeatureIndices.values.value}] into packed features array"  # noqa
+ObservationFeatureIndices.type.__doc__ = f"index[{ObservationFeatureIndices.type.value}] into packed features array"  # noqa
+ObservationFeatureIndices.time.__doc__ = f"index[{ObservationFeatureIndices.time.value}] into packed features array"  # noqa
+ObservationFeatureIndices.rnn_state.__doc__ = f"index[{ObservationFeatureIndices.rnn_state.value}] into packed features array"  # noqa
+ObservationFeatureIndices.rnn_history.__doc__ = f"index[{ObservationFeatureIndices.rnn_history.value}] into packed features array"  # noqa
+# fmt: on
+
+
 class MathyObservation(NamedTuple):
-    """A featurized observation from an environment state.
-    - "nodes" tree node types in the current environment state shape=[n,]
-    - "mask" 0/1 mask where 0 indicates an invalid action shape=[n,]
-    - "values" tree node value sequences, with non number indices set to 0.0
-    - "type" two column hash of problem environment type shape=[2,]
-    - "time" float value between 0.0-1.0 for how much time has passed shape=[1,]
-    - "rnn_state" n-step rnn state paris shape=[2*dimensions]
-    """
+    """A featurized observation from an environment state."""
 
     nodes: NodeIntList
     mask: NodeMaskIntList
@@ -65,15 +63,19 @@ class MathyObservation(NamedTuple):
     rnn_history: RNNStatesFloatList
 
 
+# fmt: off
+MathyObservation.nodes.__doc__ = "tree node types in the current environment state shape=[n,]" # noqa
+MathyObservation.mask.__doc__ = "0/1 mask where 0 indicates an invalid action shape=[n,]" # noqa
+MathyObservation.values.__doc__ = "tree node value sequences, with non number indices set to 0.0 shape=[n,]" # noqa
+MathyObservation.type.__doc__ = "two column hash of problem environment type shape=[2,]" # noqa
+MathyObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed shape=[1,]" # noqa
+MathyObservation.rnn_state.__doc__ = "rnn state pairs shape=[2*dimensions]" # noqa
+MathyObservation.rnn_history.__doc__ = "rnn historical state pairs shape=[2*dimensions]" # noqa
+# fmt: on
+
+
 class MathyWindowObservation(NamedTuple):
-    """A featurized observation from an n-step sequence of environment states.
-    - "nodes" n-step list of node sequences shape=[n, max(len(s))]
-    - "mask" n-step list of node sequence masks shape=[n, max(len(s))]
-    - "values" n-step list of value sequences, with non number indices set to 0.0
-    - "type" n-step problem type hash shape=[n, 2]
-    - "time" float value between 0.0-1.0 for how much time has passed shape=[n, 1]
-    - "rnn_state" n-step rnn state paris shape=[n, 2*dimensions]
-    """
+    """A featurized observation from an n-step sequence of environment states."""
 
     nodes: WindowNodeIntList
     mask: WindowNodeMaskIntList
@@ -115,37 +117,31 @@ class MathyWindowObservation(NamedTuple):
         return result
 
 
-class MathyBatchObservation(NamedTuple):
-    """A batch of featurized observations from n-step sequences of environment states.
-
-    - "nodes" Batch of n-step node sequences shape=[b, n, max(len(s))]
-    - "mask" Batch of n-step node sequence masks shape=[b, n, max(len(s))]
-    - "values" Batch of n-step list of value sequences, with non-number indices = 0.0
-    - "type" Batch of n-step problem hashes shape=[b, n, max(len(s))]
-    - "time" float value between 0.0-1.0 for how much time has passed shape=[b, n, 1]
-    - "rnn_state" Batch of n-step rnn state pairs shape=[b, n, 2*dimensions]
-    """
-
-    nodes: BatchNodeIntList
-    mask: BatchNodeMaskIntList
-    values: BatchNodeValuesFloatList
-    type: BatchProblemTypeIntList
-    time: BatchProblemTimeFloatList
-    rnn_state: BatchRNNStatesFloatList
-    rnn_history: BatchRNNStatesFloatList
+# fmt: off
+MathyWindowObservation.nodes.__doc__ = "n-step list of node sequences shape=[n, max(len(s))]" # noqa
+MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks shape=[n, max(len(s))]" # noqa
+MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 shape=[n, max(len(s))]" # noqa
+MathyWindowObservation.type.__doc__ = "n-step problem type hash shape=[n, 2]" # noqa
+MathyWindowObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed shape=[n, 1]" # noqa
+MathyWindowObservation.rnn_state.__doc__ = "n-step rnn state pairs shape=[n, 2*dimensions]" # noqa
+MathyWindowObservation.rnn_history.__doc__ = "n-step rnn historical state pairs shape=[n, 2*dimensions]" # noqa
+# fmt: on
 
 
 class MathyEnvTimeStep(NamedTuple):
     """Capture summarized environment state for a previous timestep so the
-    agent can use context from its history when making new predictions.
-    - "raw" is the input text at the timestep
-    - "focus" is the index of the node that is acted on
-    - "action" is the action taken
-    """
+    agent can use context from its history when making new predictions."""
 
     raw: str
     focus: int
     action: int
+
+
+# fmt: off
+MathyEnvTimeStep.raw.__doc__ = "the input text at the timestep" # noqa
+MathyEnvTimeStep.focus.__doc__ = "the index of the node that is acted on" # noqa
+MathyEnvTimeStep.action.__doc__ = "the action taken" # noqa
+# fmt: on
 
 
 _cached_placeholder: Optional[RNNStatesFloatList] = None
@@ -198,46 +194,6 @@ def observations_to_window(
         output.rnn_state[1].append(obs.rnn_state[1])
         output.rnn_history[0].append(obs.rnn_history[0])
         output.rnn_history[1].append(obs.rnn_history[1])
-    return output
-
-
-def windows_to_batch(windows: List[MathyWindowObservation]) -> MathyBatchObservation:
-    """Combine a sequence of window observations into a batched observation window"""
-    output = MathyBatchObservation(
-        nodes=[],
-        mask=[],
-        values=[],
-        type=[],
-        time=[],
-        rnn_state=[[], []],
-        rnn_history=[[], []],
-    )
-    max_length = 0
-    max_mask_length = 0
-    max_values_length = 0
-    for window in windows:
-        window_max = max([len(ts) for ts in window.nodes])
-        window_mask_max = max([len(ts) for ts in window.mask])
-        window_values_max = max([len(ts) for ts in window.values])
-        max_length = max([max_length, window_max])
-        max_mask_length = max([max_mask_length, window_mask_max])
-        max_values_length = max([max_values_length, window_values_max])
-
-    for window in windows:
-        window_nodes = []
-        for nodes in window.nodes:
-            window_nodes.append(pad_array(nodes, max_length, MathTypeKeys["empty"]))
-        window_mask = []
-        for mask in window.mask:
-            window_mask.append(pad_array(mask, max_mask_length, 0))
-        window_values = []
-        for value in window.values:
-            window_values.append(pad_array(value, max_values_length, 0.0))
-        output.nodes.append(window_nodes)
-        output.mask.append(window_mask)
-        output.values.append(window_values)
-        output.type.append(window.type)
-        output.time.append(window.time)
     return output
 
 
@@ -321,6 +277,7 @@ class MathyEnvState(object):
         return _problem_hash_cache[self.agent.problem_type]
 
     def to_start_observation(self, rnn_state: RNNStatesFloatList) -> MathyObservation:
+        """Generate an episode start MathObservation"""
         num_actions = 1 * self.num_rules
         hash = self.problem_hash()
         mask = [0] * num_actions
@@ -336,6 +293,7 @@ class MathyEnvState(object):
         )
 
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
+        """Generate an episode start MathObservation"""
         num_actions = 1 * self.num_rules
         if hash is None:
             hash = self.problem_hash()
@@ -352,18 +310,23 @@ class MathyEnvState(object):
 
     def to_observation(
         self,
-        move_mask: NodeMaskIntList,
+        move_mask: Optional[NodeMaskIntList] = None,
         rnn_state: Optional[RNNStatesFloatList] = None,
         rnn_history: Optional[RNNStatesFloatList] = None,
+        hash_type: Optional[ProblemTypeIntList] = None,
     ) -> MathyObservation:
         if rnn_state is None:
             rnn_state = rnn_placeholder_state(128)
         if rnn_history is None:
             rnn_history = rnn_placeholder_state(128)
+        if hash_type is None:
+            hash_type = self.problem_hash()
         expression = self.parser.parse(self.agent.problem)
         nodes: List[MathExpression] = expression.to_list()
         vectors: NodeIntList = []
         values: NodeValuesFloatList = []
+        if move_mask is None:
+            move_mask = np.zeros(len(nodes))
         for node in nodes:
             vectors.append(node.type_id)
             if isinstance(node, ConstantExpression):
@@ -381,7 +344,7 @@ class MathyEnvState(object):
             nodes=vectors,
             mask=move_mask,
             values=values,
-            type=self.problem_hash(),
+            type=hash_type,
             time=[time],
             rnn_state=rnn_state,
             rnn_history=rnn_history,
@@ -395,11 +358,6 @@ class MathyEnvState(object):
             [self.to_empty_observation(hash, rnn_size) for _ in range(samples)]
         )
         return window
-
-    def to_empty_batch(self, window_size: int, rnn_size) -> MathyBatchObservation:
-        """Generate an empty batch of observations that can be passed
-        through the model """
-        return windows_to_batch([self.to_empty_window(window_size, rnn_size)])
 
 
 class MathyAgentState:
@@ -424,7 +382,7 @@ class MathyAgentState:
         last_action=None,
     ):
         self.moves_remaining = moves_remaining
-        self.focus_index = focus_index  # TODO: remove this, no longer used
+        self.focus_index = focus_index
         self.problem = problem
         self.last_action = last_action
         self.reward = reward

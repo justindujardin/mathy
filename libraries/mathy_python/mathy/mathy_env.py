@@ -180,13 +180,11 @@ class MathyEnv:
     ) -> time_step.TimeStep:
         """Given an input state calculate the transition value of the timestep.
 
-        This returns a nametuple provided by the `tf_agents` library.
-
-        Input:
+        # Parameters
             env_state: current env_state
             searching: True when called by MCTS simulation
 
-        Returns:
+        # Returns
             transition: the current state value transition
         """
         agent = env_state.agent
@@ -254,15 +252,15 @@ class MathyEnv:
         self, env_state: MathyEnvState, action: int, searching: bool = False
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
-        Input:
+        # Parameters
             env_state: current env_state
             action:    action taken
             searching: boolean set to True when called by MCTS
 
-        Returns: tuple of
-            next_state: env_state after applying action
-            transition: the timestep that represents the state transition
-            change: the change descriptor describing the change that happened
+        # Returns
+            - next_state: env_state after applying action
+            - transition: the timestep that represents the state transition
+            - change: the change descriptor describing the change that happened
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -440,8 +438,10 @@ class MathyEnv:
         filled with 0/1 based on whether the rule has any nodes in the
         expression that it can be applied to.
 
-        NOTE: If you want to get a list of which nodes each rule can be
-        applied to, prefer to use the `get_valid_moves` method.
+        !!! note
+
+            If you want to get a list of which nodes each rule can be
+            applied to, prefer to use the `get_valid_moves` method.
         """
         key = self.to_hash_key(env_state)
         if key in self.valid_rules_cache:

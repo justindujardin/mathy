@@ -33,9 +33,11 @@ class PolySimplify(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        if problem.complexity < 5:
-            multiplier = 4
-        if problem.complexity < 7:
+        if config.difficulty == MathyEnvDifficulty.easy:
+            multiplier = 3
+        elif problem.complexity < 5:
+            multiplier = 2
+        elif problem.complexity < 7:
             multiplier = 3
         elif problem.complexity < 12:
             multiplier = 4
@@ -74,18 +76,35 @@ class PolySimplify(MathyEnv):
             #
             # e.g. mashing the 3rd node to commute the tree until a DF shows up in
             #      the desired position.
-            noise_terms = randint(2, 5)
-            num_terms = randint(3, 5)
+            noise_terms = randint(1, 3)
+            num_terms = randint(4, 6)
+            scaling = uniform(0.35, 0.5)
+            text, complexity = simplify_multiple_terms(
+                num_terms,
+                inner_terms_scaling=scaling,
+                powers_probability=0.2,
+                noise_probability=0.5,
+                shuffle_probability=0.0,
+                noise_terms=noise_terms,
+            )
+        elif params.difficulty == MathyEnvDifficulty.normal:
+            # Set number of noise terms and inject a bunch more in simple problems
+            # so they don't learn stupid policies that only work with small trees.
+            #
+            # e.g. mashing the 3rd node to commute the tree until a DF shows up in
+            #      the desired position.
+            noise_terms = randint(1, 3)
+            num_terms = randint(3, 7)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=0.4,
                 noise_probability=1.0,
-                shuffle_probability=0.4,
+                shuffle_probability=0.0,
                 noise_terms=noise_terms,
             )
-        elif params.difficulty == MathyEnvDifficulty.normal:
+
             num_terms = randint(2, 7)
             scaling = uniform(0.35, 0.5)
             text, complexity = simplify_multiple_terms(

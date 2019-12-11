@@ -24,19 +24,29 @@ nav:
   - Poly Simplify: envs/poly_simplify.md
   - Complex Simplify: envs/complex_simplify.md
   - Binomial Multiply: envs/binomial_multiply.md
-# - Machine learning:
-#   - Overview: ml/overview.md
-#   - Math Embeddings: ml/math_embeddings.md
+- Machine learning:
+  - Overview: ml/overview.md
+#  - Math Embeddings: ml/math_embeddings.md
 #   - Reinforcement Learning: ml/reinforcement_learning.md
 #   - Monte Carlo Tree Search: ml/monte_carlo_tree_search.md
 - API Documentation:
+  - cli: api/cli.md
   - core:
-    - tree: api/core/tree.md
-    - layout: api/core/layout.md
     - expressions: api/core/expressions.md
+    - layout: api/core/layout.md
     - parser: api/core/parser.md
-    - tokenizer: api/core/tokenizer.md
     - rule: api/core/rule.md
+    - tokenizer: api/core/tokenizer.md
+    - tree: api/core/tree.md
+  - features: api/features.md
+  - helpers: api/helpers.md
+  - mathy_env: api/mathy_env.md
+  - problems: api/problems.md
+  - state: api/state.md
+  - teacher: api/teacher.md
+  - testing: api/testing.md
+  - time_step: api/time_step.md
+  - util: api/util.md
 - About: about.md
 - License: license.md
 

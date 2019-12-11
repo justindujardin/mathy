@@ -1,23 +1,5 @@
 # mathy.core.parser
 
-## TokenSet
-```python
-TokenSet(self, source:Union[_ForwardRef('TokenSet'), int])
-```
-TokenSet objects are bitmask combinations for checking to see
-if a token is part of a valid set.
-### add
-```python
-TokenSet.add(self, addTokens)
-```
-Add tokens to self set and return a TokenSet representing
-their combination of flags.  Value can be an integer or an instance
-of `TokenSet`
-### contains
-```python
-TokenSet.contains(self, type:int) -> bool
-```
-Returns true if the given type is part of this set
 ## ExpressionParser
 ```python
 ExpressionParser(self)
@@ -58,23 +40,16 @@ Rules:
 (start)        = (EqualExp)
 ```
 
-### parse
+### check
 ```python
-ExpressionParser.parse(self, input)
+ExpressionParser.check(self, tokens)
 ```
-Parse a string representation of an expression into a tree
-that can be later evaluated.
+Check if the `self.current_token` is a member of a set Token types
 
-Returns : The evaluatable expression tree.
+Args:
+    - `tokens` The set of Token types to check against
 
-### next
-```python
-ExpressionParser.next(self)
-```
-Assign the next token in the queue to `self.current_token`.
-
-Return True if there are still more tokens in the queue, or False if there
-are no more tokens to look at.
+`Returns` True if the `current_token`'s type is in the set else False
 ### eat
 ```python
 ExpressionParser.eat(self, type)
@@ -86,13 +61,38 @@ raise a syntax exception.
 Args:
     - `type` The type that your syntax expects @current_token to be
 
-### check
+### next
 ```python
-ExpressionParser.check(self, tokens)
+ExpressionParser.next(self)
 ```
-Check if the `self.current_token` is a member of a set Token types
+Assign the next token in the queue to `self.current_token`.
 
-Args:
-    - `tokens` The set of Token types to check against
+Return True if there are still more tokens in the queue, or False if there
+are no more tokens to look at.
+### parse
+```python
+ExpressionParser.parse(self, input)
+```
+Parse a string representation of an expression into a tree
+that can be later evaluated.
 
-`Returns` True if the `current_token`'s type is in the set else False
+Returns : The evaluatable expression tree.
+
+## TokenSet
+```python
+TokenSet(self, source:Union[_ForwardRef('TokenSet'), int])
+```
+TokenSet objects are bitmask combinations for checking to see
+if a token is part of a valid set.
+### add
+```python
+TokenSet.add(self, addTokens)
+```
+Add tokens to self set and return a TokenSet representing
+their combination of flags.  Value can be an integer or an instance
+of `TokenSet`
+### contains
+```python
+TokenSet.contains(self, type:int) -> bool
+```
+Returns true if the given type is part of this set

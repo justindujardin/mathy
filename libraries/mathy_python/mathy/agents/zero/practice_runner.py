@@ -2,7 +2,7 @@ import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
 from sys import stdin
-from typing import Any, List, Tuple, NamedTuple
+from typing import Any, List, Tuple
 
 import numpy as np
 from pydantic import BaseModel
@@ -212,66 +212,6 @@ class PracticeRunner:
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
         trainer.train(train_examples, new_net)
         new_net.save()
-
-        # def _lazy_examples():
-        #     for ex in train_examples:
-        #         yield ex
-
-        # class BatchedDataset(tf.keras.utils.Sequence):
-        #     def __init__(self, inputs, inputs_len, batch_size=32):
-        #         self.inputs = inputs
-        #         self.inputs_len = inputs_len
-        #         self.batch_size = batch_size
-
-        #     def __len__(self):
-        #         return int(np.ceil(self.inputs_len / float(self.batch_size)))
-
-        #     def __getitem__(self, idx):
-        #         batch_x = []
-        #         batch_y = []
-        #         for ex in self.inputs:
-        #             text, action, reward, discounted, terminal, observation, pi = ex
-        #             batch_x.append(MathyObservation(*observation))
-        #             batch_y.append(np.array(pi))
-        #             # Stop at terminal states and use a smaller batch
-        #             if terminal is True:
-        #                 break
-        #             if len(batch_x) >= self.batch_size:
-        #                 break
-
-        #         batch_x = observations_to_window(batch_x)
-        #         # Convert to tensor
-        #         batch_x = MathyWindowObservation(
-        #             nodes=np.asarray(batch_x.nodes),
-        #             mask=np.asarray(batch_x.mask),
-        #             type=np.asarray(batch_x.type),
-        #             time=np.asarray(batch_x.time),
-        #             values=np.asarray(batch_x.values),
-        #             rnn_state=np.asarray(batch_x.rnn_state),
-        #             rnn_history=np.asarray(batch_x.rnn_history),
-        #         )
-        #         batch_y = tf.keras.preprocessing.sequence.pad_sequences(batch_y)
-        #         return batch_x, batch_y
-
-        # generator = BatchedDataset(_lazy_examples(), len(train_examples))
-        # new_net.fit_generator(
-        #     callbacks=[
-        #         # tf.keras.callbacks.TensorBoard(
-        #         #     log_dir=log_dir, histogram_freq=1, write_graph=True,
-        #         # ),
-        #         # ModelBurnInState(args, model)
-        #     ],
-        #     epochs=10,
-        #     shuffle=False,
-        #     generator=generator,
-        #     verbose=1,
-        #     workers=4,
-        # )
-
-        # # if new_net.train(train_examples) is False:
-        # #     print("Need batch-size examples before training...")
-        # #     return None
-        # return new_net
 
 
 class ParallelPracticeRunner(PracticeRunner):
