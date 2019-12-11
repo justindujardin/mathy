@@ -4,9 +4,9 @@ from numpy.random import randint
 
 from .. import time_step
 from ..core.expressions import MathExpression
-from ..helpers import TermEx, get_term_ex, get_terms
+from ..util import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..problems import commute_haystack
+from ..problems import gen_commute_haystack
 from ..core.rule import BaseRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
@@ -58,17 +58,17 @@ class PolyGroupLikeTerms(MathyEnv):
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         if params.difficulty == MathyEnvDifficulty.easy:
             blockers = randint(1, 3)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 commute_blockers=1, min_terms=5, max_terms=7, easy=True, powers=False
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 4)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 min_terms=5, max_terms=10, easy=False, powers=True
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(3, 6)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 min_terms=11, max_terms=16, easy=False, powers=True
             )
         else:

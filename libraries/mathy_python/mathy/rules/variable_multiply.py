@@ -9,7 +9,7 @@ from ..core.expressions import (
     VariableExpression,
 )
 from ..core.rule import BaseRule
-from ..helpers import TermEx, get_term_ex
+from ..util import TermEx, get_term_ex
 
 
 class VariableMultiplyRule(BaseRule):

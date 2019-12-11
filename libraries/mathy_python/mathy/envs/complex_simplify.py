@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Type
 
 from ..mathy_env import MathyEnvProblem
-from ..problems import simplify_multiple_terms
+from ..problems import gen_simplify_multiple_terms
 from ..rules import (
     AssociativeSwapRule,
     ConstantsSimplifyRule,
@@ -39,7 +39,7 @@ class ComplexSimplify(PolySimplify):
         if params.difficulty == MathyEnvDifficulty.easy:
             num_terms = randint(2, 6)
             scaling = uniform(0.5, 0.9)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 op="*",
                 optional_var=True,
@@ -50,7 +50,7 @@ class ComplexSimplify(PolySimplify):
         elif params.difficulty == MathyEnvDifficulty.normal:
             num_terms = randint(3, 6)
             scaling = uniform(0.5, 0.85)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 op="*",
                 optional_var=True,
@@ -60,7 +60,7 @@ class ComplexSimplify(PolySimplify):
         elif params.difficulty == MathyEnvDifficulty.hard:
             num_terms = randint(4, 8)
             scaling = uniform(0.2, 0.6)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 op="*",
                 shuffle_probability=0.5,

@@ -4,10 +4,10 @@ from numpy.random import randint, uniform
 
 from .. import time_step
 from ..core.expressions import MathExpression
-from ..features import calculate_term_grouping_distances
-from ..helpers import get_terms, has_like_terms, is_preferred_term_form
+from ..util import calculate_term_grouping_distances
+from ..util import get_terms, has_like_terms, is_preferred_term_form
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..problems import simplify_multiple_terms
+from ..problems import gen_simplify_multiple_terms
 from ..core.rule import BaseRule
 from ..rules import (
     CommutativeSwapRule,
@@ -79,7 +79,7 @@ class PolySimplify(MathyEnv):
             noise_terms = randint(1, 3)
             num_terms = randint(4, 6)
             scaling = uniform(0.35, 0.5)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=0.2,
@@ -96,7 +96,7 @@ class PolySimplify(MathyEnv):
             noise_terms = randint(1, 3)
             num_terms = randint(3, 7)
             scaling = uniform(0.35, 0.5)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=0.4,
@@ -107,7 +107,7 @@ class PolySimplify(MathyEnv):
 
             num_terms = randint(2, 7)
             scaling = uniform(0.35, 0.5)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=0.5,
@@ -117,7 +117,7 @@ class PolySimplify(MathyEnv):
         elif params.difficulty == MathyEnvDifficulty.hard:
             num_terms = randint(7, 10)
             scaling = uniform(0.25, 0.75)
-            text, complexity = simplify_multiple_terms(
+            text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 shuffle_probability=0.5,
                 powers_probability=0.8,

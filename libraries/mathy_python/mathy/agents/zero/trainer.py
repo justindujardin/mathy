@@ -10,7 +10,7 @@ import gym
 import numpy as np
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
-from ...features import calculate_grouping_control_signal
+from ...util import calculate_grouping_control_signal
 from ...state import (
     MathyEnvState,
     MathyObservation,

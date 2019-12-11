@@ -7,7 +7,7 @@ from ..mathy.core.expressions import (
     DivideExpression,
     PowerExpression,
 )
-from ..mathy.helpers import (
+from ..mathy.util import (
     is_preferred_term_form,
     has_like_terms,
     TermEx,

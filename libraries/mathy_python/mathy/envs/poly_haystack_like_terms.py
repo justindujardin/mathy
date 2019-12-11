@@ -5,10 +5,10 @@ from numpy.random import randint
 
 from .. import time_step
 from ..core.expressions import MathExpression
-from ..helpers import TermEx, get_term_ex, get_terms
+from ..util import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnvProblem
 from ..problems import (
-    combine_terms_in_place,
+    gen_combine_terms_in_place,
     get_rand_term_templates,
     get_rand_vars,
     mathy_term_string,

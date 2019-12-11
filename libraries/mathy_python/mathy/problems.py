@@ -1,7 +1,7 @@
 """Problem Generation
 ---
 
-Utility functions for helping generate input problem texts.
+Utility functions for helping generate input problems.
 """
 
 import random
@@ -132,7 +132,7 @@ def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     return out
 
 
-def binomial_times_binomial(
+def gen_binomial_times_binomial(
     *,
     op="+",
     min_vars=1,
@@ -141,7 +141,16 @@ def binomial_times_binomial(
     powers_probability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
-    """ """
+    """Generate a binomial multiplied by another binomial.
+
+    # Example
+
+    ```
+    (2e + 12p)(16 + 7e)
+    ```
+
+    `mathy:(2e + 12p)(16 + 7e)`
+    """
     power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
@@ -179,7 +188,7 @@ def binomial_times_binomial(
     return f"({first[0]} + {first[1]})({second[0]} + {second[1]})", num_terms + 2
 
 
-def binomial_times_monomial(
+def gen_binomial_times_monomial(
     *,
     op="+",
     min_vars=1,
@@ -188,6 +197,16 @@ def binomial_times_monomial(
     powers_probability=0.33,
     like_variables_probability=1.0,
 ) -> Tuple[str, int]:
+    """Generate a binomial multiplied by a monomial.
+
+    # Example
+
+    ```
+    (4x^3 + y) * 2x
+    ```
+
+    `mathy:(4x^3 + y) * 2x`
+    """
     power_prob_percent = powers_probability * 100
     powers = rand_bool(power_prob_percent)
     like_vars = rand_bool(like_variables_probability * 100)
@@ -224,19 +243,7 @@ def binomial_times_monomial(
     return f"({first[0]} + {first[1]}) * {second}", num_terms
 
 
-def combine_multiple_like_add_terms(num_terms, optional_var=False):
-    variable = rand_var()
-    # Guarantee at least one set of like terms
-    result = "{}{}".format(rand_int(), variable)
-    suffix = " + {}{}".format(rand_int(), variable)
-    for i in range(num_terms - 2):
-        result = result + " + {}{}".format(
-            rand_int(), maybe_var() if optional_var else rand_var()
-        )
-    return result + suffix, num_terms
-
-
-def simplify_multiple_terms(
+def gen_simplify_multiple_terms(
     num_terms,
     optional_var=False,
     op="+",
@@ -249,7 +256,13 @@ def simplify_multiple_terms(
     noise_terms=None,
 ) -> Tuple[str, int]:
     """Generate a polynomial problem with like terms that need to be combined and
-    simplified, e.g. `2a + 3j - 7b + 17.2a + j`
+    simplified.
+
+    # Example
+
+    ```
+    2a + 3j - 7b + 17.2a + j
+    ```
 
     `mathy:2a + 3j - 7b + 17.2a + j`
     """
@@ -312,10 +325,17 @@ def simplify_multiple_terms(
     return result, complexity
 
 
-def solve_for_variable(terms=4):
-    """Generate a solve for x type problem, e.g. `4x + 2 = 8x`
-    
-    `mathy:4x + 2 = 8x`"""
+def gen_solve_for_variable(terms=4) -> Tuple[str, int]:
+    """Generate a solve for x type problem.
+
+    # Example
+
+    ```
+    4x + 2 = 8x
+    ```
+
+    `mathy:4x + 2 = 8x`
+    """
     variable = rand_var()
     # Guarantee at least one set of like terms
     result = "{}{} = {}".format(rand_int(), variable, rand_int())
@@ -325,7 +345,7 @@ def solve_for_variable(terms=4):
         op = rand_op()
         var = maybe_var()
         result = result + " {} {}{}".format(op, num, var)
-    return result + suffix
+    return result + suffix, terms
 
 
 def split_in_two_random(value: int):
@@ -339,22 +359,28 @@ def split_in_two_random(value: int):
     return min(left, right), max(left, right)
 
 
-def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
-    """Generate a problem that puts one pair of like terms somewhere inside
-    an expression of unlike terms. The agent should be challenged to make its first
-    few moves count when combined with a very small number of maximum moves.
+def gen_combine_terms_in_place(
+    min_terms=16, max_terms=26, easy=True, powers=False
+) -> Tuple[str, int]:
+    """Generate a problem that puts one pair of like terms next to each other
+    somewhere inside a large tree of unlike terms.
+
+    The problem is intended to be solved in a very small number of moves, making
+    training across many episodes relatively quick, and reducing the combinatorial
+    explosion of branches that need to be searched to solve the task.
+
     The hope is that by focusing the agent on selecting the right moves inside of a
     ridiculously large expression it will learn to select actions to combine like terms
     invariant of the sequence length.
 
-    ### Example
+    # Example
 
     ```
-      4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x) + 43n + 17j
+    4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x) + 43n + 17j
     ```
-    
+
     `mathy:4y + 12j + 73q + 19k + 13z + 56l + (24x + 12x) + 43n + 17j`
-    
+
     """
 
     total_terms = random.randint(min_terms, max_terms)
@@ -387,14 +413,14 @@ def combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False):
     return problem, complexity
 
 
-def commute_haystack(
+def gen_commute_haystack(
     min_terms=5, max_terms=8, commute_blockers=1, easy=True, powers=False
 ):
     """A problem with a bunch of terms that have no matches, and a single
     set of two terms that do match, but are separated by one other term.
     The challenge is to commute the terms to each other in one move.
 
-    ### Example
+    # Example
 
     ```
     4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j"
@@ -453,10 +479,15 @@ def get_blocker(num_blockers=1, exclude_vars=[]):
     return " + ".join(out_terms)
 
 
-def move_around_blockers_one(number_blockers: int, powers_probability: float = 0.5):
-    """Two like terms separated by (n) blocker terms, e.g. `4x + (y + f) + x`
-    
-    ### Example
+def gen_move_around_blockers_one(number_blockers: int, powers_probability: float = 0.5):
+    """Two like terms separated by (n) blocker terms.
+
+    # Example
+
+    ```
+    4x + (y + f) + x
+    ```
+
     `mathy:4x + (y + f) + x`"""
     var = rand_var()
     power_chance = powers_probability * 100
@@ -469,9 +500,14 @@ def move_around_blockers_one(number_blockers: int, powers_probability: float = 0
     return problem, complexity
 
 
-def move_around_blockers_two(number_blockers: int, powers_probability: float = 0.5):
-    """Two like terms with three blockers, e.g. `7a + 4x + (2f + j) + x + 3d`
-    ### Example
+def gen_move_around_blockers_two(number_blockers: int, powers_probability: float = 0.5):
+    """Two like terms with three blockers.
+         
+    # Example
+
+    ```
+    7a + 4x + (2f + j) + x + 3d
+    ```
 
     `mathy:7a + 4x + (2f + j) + x + 3d`"""
     rand_vars = get_rand_vars(3)
@@ -499,8 +535,17 @@ def move_around_blockers_two(number_blockers: int, powers_probability: float = 0
     return problem, complexity
 
 
-def move_around_interleaved_like_terms(number_terms, number_pairs):
-    # interleaved multiple like variables: "4x + 2y + 6x + 3y"
+def gen_move_around_interleaved_like_terms(number_terms, number_pairs):
+    """Interleaved multiple like variables.
+         
+    # Example
+
+    ```
+    4x + 2y + 6x + 3y
+    ```
+
+    `mathy:4x + 2y + 6x + 3y`    
+    """
     complexity = number_terms * number_pairs
     terms = []
     rand_vars = get_rand_vars(number_terms)

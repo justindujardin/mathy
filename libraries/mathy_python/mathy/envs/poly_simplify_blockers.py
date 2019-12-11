@@ -13,7 +13,7 @@ from ..rules import (
 )
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify
-from ..problems import move_around_blockers_one, move_around_blockers_two, rand_bool
+from ..problems import gen_move_around_blockers_one, gen_move_around_blockers_two, rand_bool
 
 
 class PolySimplifyBlockers(PolySimplify):
@@ -44,9 +44,9 @@ class PolySimplifyBlockers(PolySimplify):
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
         if hard_block:
-            text, complexity = move_around_blockers_two(
+            text, complexity = gen_move_around_blockers_two(
                 hard_blockers, powers_probability=powers_probability
             )
         else:
-            text, complexity = move_around_blockers_one(blockers, powers_probability)
+            text, complexity = gen_move_around_blockers_one(blockers, powers_probability)
         return MathyEnvProblem(text, complexity, self.get_env_namespace())

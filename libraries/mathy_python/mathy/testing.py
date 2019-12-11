@@ -4,7 +4,7 @@ from typing import Type
 
 from .core.parser import ExpressionParser
 from .core.rule import BaseRule
-from .helpers import compare_expression_string_values, compare_expression_values
+from .util import compare_expression_string_values, compare_expression_values
 from .rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,

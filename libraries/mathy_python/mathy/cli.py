@@ -1,6 +1,11 @@
-import click
-from typing import Optional
+"""Mathy CLI
+---
+
+Command line application for interacting with Mathy agents and environments.
+"""
 from multiprocessing import cpu_count
+
+import click
 
 
 @click.group()
@@ -212,4 +217,3 @@ def setup_tf_env():
     tf.random.set_seed(1337)
 
     tf.compat.v1.logging.set_verbosity("CRITICAL")
-

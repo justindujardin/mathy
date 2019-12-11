@@ -1,5 +1,5 @@
 from ..mathy_env import MathyEnvProblem
-from ..problems import combine_terms_in_place, rand_bool
+from ..problems import gen_combine_terms_in_place, rand_bool
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify
 
@@ -31,19 +31,19 @@ class PolyCombineInPlace(PolySimplify):
         if params.difficulty == MathyEnvDifficulty.easy:
             powers = rand_bool(20)
             easy = rand_bool(65)
-            text, _ = combine_terms_in_place(
+            text, _ = gen_combine_terms_in_place(
                 min_terms=6, max_terms=15, easy=easy, powers=powers
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             powers = rand_bool(40)
             easy = rand_bool(15)
-            text, _ = combine_terms_in_place(
+            text, _ = gen_combine_terms_in_place(
                 min_terms=9, max_terms=20, easy=easy, powers=powers
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             powers = rand_bool(60)
             easy = rand_bool(5)
-            text, _ = combine_terms_in_place(
+            text, _ = gen_combine_terms_in_place(
                 min_terms=16, max_terms=26, easy=easy, powers=powers
             )
         else:

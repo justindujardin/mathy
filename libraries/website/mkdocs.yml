@@ -38,8 +38,6 @@ nav:
     - rule: api/core/rule.md
     - tokenizer: api/core/tokenizer.md
     - tree: api/core/tree.md
-  - features: api/features.md
-  - helpers: api/helpers.md
   - mathy_env: api/mathy_env.md
   - problems: api/problems.md
   - state: api/state.md

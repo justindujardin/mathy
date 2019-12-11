@@ -5,9 +5,9 @@ from numpy.random import randint
 from .. import time_step
 from ..core.expressions import MathExpression
 from ..core.rule import BaseRule
-from ..helpers import TermEx, get_term_ex, get_terms
+from ..util import TermEx, get_term_ex, get_terms
 from ..mathy_env import MathyEnv, MathyEnvProblem
-from ..problems import combine_terms_in_place, commute_haystack, rand_bool
+from ..problems import gen_combine_terms_in_place, gen_commute_haystack, rand_bool
 from ..rules import AssociativeSwapRule, CommutativeSwapRule, DistributiveFactorOutRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
@@ -56,7 +56,7 @@ class PolyCommuteLikeTerms(PolySimplify):
         if params.difficulty == MathyEnvDifficulty.easy:
             blockers = randint(1, 3)
             powers = rand_bool(20)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 commute_blockers=blockers,
                 min_terms=4,
                 max_terms=10,
@@ -66,7 +66,7 @@ class PolyCommuteLikeTerms(PolySimplify):
         elif params.difficulty == MathyEnvDifficulty.normal:
             blockers = randint(2, 4)
             powers = rand_bool(40)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 commute_blockers=blockers,
                 min_terms=8,
                 max_terms=12,
@@ -76,7 +76,7 @@ class PolyCommuteLikeTerms(PolySimplify):
         elif params.difficulty == MathyEnvDifficulty.hard:
             blockers = randint(5, 10)
             powers = rand_bool(60)
-            text, _ = commute_haystack(
+            text, _ = gen_commute_haystack(
                 commute_blockers=blockers,
                 min_terms=6,
                 max_terms=12,

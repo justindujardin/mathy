@@ -6,7 +6,7 @@ from ..core.expressions import (
     PowerExpression,
 )
 from ..core.rule import BaseRule
-from ..helpers import unlink
+from ..util import unlink
 
 
 class DistributiveMultiplyRule(BaseRule):

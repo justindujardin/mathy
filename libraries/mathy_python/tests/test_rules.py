@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from ..mathy.core.expressions import MathExpression, VariableExpression
 from ..mathy.core.parser import ExpressionParser
-from ..mathy.helpers import (
+from ..mathy.util import (
     get_terms,
     terms_are_like,
     compare_expression_values,
