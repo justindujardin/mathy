@@ -18,25 +18,12 @@ from .rules import (
 )
 from .state import (
     MathyEnvState,
-    MathyEnvTimeStep,
+    MathyEnvStateStep,
     MathyObservation,
     RNNStatesFloatList,
     rnn_placeholder_state,
 )
-from .types import MathyEnvProblem, MathyEnvProblemArgs
-from .util import EnvRewards
-
-
-def mathy_core_rules(preferred_term_commute=False) -> List[BaseRule]:
-    """Return the mathy core agent actions"""
-    return [
-        ConstantsSimplifyRule(),
-        CommutativeSwapRule(preferred=preferred_term_commute),
-        DistributiveMultiplyRule(),
-        DistributiveFactorOutRule(),
-        AssociativeSwapRule(),
-        VariableMultiplyRule(),
-    ]
+from .types import MathyEnvProblem, MathyEnvProblemArgs, EnvRewards
 
 
 class MathyEnv:
@@ -67,10 +54,22 @@ class MathyEnv:
         self.parser = ExpressionParser()
         self.rules = rules
         if self.rules is None:
-            self.rules = mathy_core_rules()
+            self.rules = MathyEnv.core_rules()
         self.rewarding_actions = rewarding_actions
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
+
+    @classmethod
+    def core_rules(cls, preferred_term_commute=False) -> List[BaseRule]:
+        """Return the mathy core agent actions"""
+        return [
+            ConstantsSimplifyRule(),
+            CommutativeSwapRule(preferred=preferred_term_commute),
+            DistributiveMultiplyRule(),
+            DistributiveFactorOutRule(),
+            AssociativeSwapRule(),
+            VariableMultiplyRule(),
+        ]
 
     @property
     def action_size(self) -> int:
@@ -78,10 +77,10 @@ class MathyEnv:
         return len(self.rules)
 
     def finalize_state(self, state: MathyEnvState):
-        """Perform final checks on a problem state, to ensure the episode yielded results
-        that are uncorrupted by transformation errors. """
-        from_timestep: MathyEnvTimeStep = state.agent.history[0]
-        to_timestep: MathyEnvTimeStep = state.agent.history[-1]
+        """Perform final checks on a problem state, to ensure the episode yielded
+        results that were uncorrupted by transformation errors."""
+        from_timestep: MathyEnvStateStep = state.agent.history[0]
+        to_timestep: MathyEnvStateStep = state.agent.history[-1]
         compare_expression_string_values(
             str(from_timestep.raw), str(to_timestep.raw), state.agent.history
         )
@@ -129,7 +128,7 @@ class MathyEnv:
         """Return a problem for the environment given a set of parameters
         to control problem generation.
 
-        This is implemented per environment such that each environment can
+        This is implemented per environment so each environment can
         generate its own dataset with no required configuration."""
         raise NotImplementedError("This must be implemented in a subclass")
 
@@ -280,7 +279,7 @@ class MathyEnv:
         root = change.result.get_root()
         change_name = operation.name
         out_problem = str(root)
-        out_env = env_state.encode_player(
+        out_env = env_state.get_out_state(
             problem=out_problem,
             focus_index=token_index,
             action=action_index,
@@ -466,7 +465,7 @@ class MathyEnv:
         token_index = int((action - action_index) / rule_count)
         return action_index, token_index
 
-    def get_rule_from_timestep(self, time_step: MathyEnvTimeStep):
+    def get_rule_from_timestep(self, time_step: MathyEnvStateStep):
         return self.rules[time_step.action]
 
     def get_actions_for_node(

@@ -1,10 +1,5 @@
-# mathy.mathy_env
+# mathy.env
 
-## mathy_core_rules
-```python
-mathy_core_rules(preferred_term_commute=False) -> List[mathy.core.rule.BaseRule]
-```
-Return the mathy core agent actions
 ## MathyEnv
 ```python
 MathyEnv(self, rules=None, rewarding_actions=None, max_moves=20, verbose=False, reward_discount=0.99)
@@ -14,12 +9,17 @@ right sequence of actions to reduce a math expression to an agreeable
 basic representation in as few moves as possible.
 ### action_size
 Return the number of available actions
+### core_rules
+```python
+MathyEnv.core_rules(preferred_term_commute=False) -> List[mathy.core.rule.BaseRule]
+```
+Return the mathy core agent actions
 ### finalize_state
 ```python
 MathyEnv.finalize_state(self, state:mathy.state.MathyEnvState)
 ```
-Perform final checks on a problem state, to ensure the episode yielded results
-that are uncorrupted by transformation errors.
+Perform final checks on a problem state, to ensure the episode yielded
+results that were uncorrupted by transformation errors.
 ### get_action_indices
 ```python
 MathyEnv.get_action_indices(self, action:int) -> Tuple[int, int]
@@ -156,7 +156,7 @@ MathyEnv.problem_fn(self, params:mathy.types.MathyEnvProblemArgs) -> mathy.types
 Return a problem for the environment given a set of parameters
 to control problem generation.
 
-This is implemented per environment such that each environment can
+This is implemented per environment so each environment can
 generate its own dataset with no required configuration.
 ### random_action
 ```python

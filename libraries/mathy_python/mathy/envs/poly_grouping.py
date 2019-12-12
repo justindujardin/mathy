@@ -5,7 +5,7 @@ from numpy.random import randint
 from .. import time_step
 from ..core.expressions import MathExpression
 from ..util import TermEx, get_term_ex, get_terms
-from ..mathy_env import MathyEnv, MathyEnvProblem
+from ..env import MathyEnv, MathyEnvProblem
 from ..problems import gen_commute_haystack
 from ..core.rule import BaseRule
 from ..state import MathyEnvState, MathyObservation

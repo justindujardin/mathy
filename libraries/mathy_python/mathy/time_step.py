@@ -17,7 +17,18 @@
 # Changes:
 #
 #  - 2019/12/09 JD: inline and remove tensorflow dependency/shape support
-"""TimeStep representing a step in the environment."""
+#  - 2019/12/11 JD: add MathyObservation type hints
+"""TimeStep representing a step in the environment.
+
+This file is a mostly direct copy of the implementation from the
+[tf_agents](https://github.com/tensorflow/agents) library but has
+the dependency on tensorflow removed along with advanced shape
+features.
+
+Mathy doesn't use these features and the overhead of loading tensorflow
+to pass environment states around is not great for things like CLI start
+times.
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -25,6 +36,8 @@ from __future__ import print_function
 
 import collections
 import numpy as np
+
+from .state import MathyObservation
 
 
 class TimeStep(
@@ -69,17 +82,16 @@ class StepType(object):
         raise ValueError("No known conversion for `%r` into a StepType" % value)
 
 
-def transition(observation, reward, discount=1.0):
+def transition(observation: MathyObservation, reward, discount=1.0):
     """Returns a `TimeStep` with `step_type` set equal to `StepType.MID`."""
     return TimeStep(StepType.MID, reward, discount, observation)
 
 
-def termination(observation, reward):
+def termination(observation: MathyObservation, reward):
     """Returns a `TimeStep` with `step_type` set to `StepType.LAST`."""
     return TimeStep(StepType.LAST, reward, 00, observation)
 
 
-def truncation(observation, reward, discount=1.0):
+def truncation(observation: MathyObservation, reward, discount=1.0):
     """Returns a `TimeStep` with `step_type` set to `StepType.LAST`."""
     return TimeStep(StepType.LAST, reward, discount, observation)
-

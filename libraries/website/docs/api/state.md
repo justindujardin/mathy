@@ -19,16 +19,32 @@ This allocation strategy requires more memory but removes a class
 of potential issues around unintentional sharing of data and mutation
 by two different sources.
 
-### encode_player
+### get_out_state
 ```python
-MathyEnvState.encode_player(self, problem:str, action:int, focus_index:int, moves_remaining:int)
+MathyEnvState.get_out_state(self, problem:str, action:int, focus_index:int, moves_remaining:int) -> 'MathyEnvState'
 ```
-Encode a player's state into the env_state, and return the env_state
+Get the next environment state based on the current one with updated
+history and agent information based on an action being taken.
+### get_problem_hash
+```python
+MathyEnvState.get_problem_hash(self) -> List[int]
+```
+Return a two element array with hashed values for the current environment
+namespace string.
+
+__Example__
+
+
+- `mycorp.envs.solve_impossible_problems` -> `[12375561, -2838517]`
+
+
 ### to_empty_observation
 ```python
 MathyEnvState.to_empty_observation(self, hash=None, rnn_size:int=128) -> mathy.state.MathyObservation
 ```
-Generate an episode start MathObservation
+Generate an empty MathyObservation. This is different than
+to_start_observation in that uses a zero'd placeholder RNN state
+rather than the given start state from the agent.
 ### to_empty_window
 ```python
 MathyEnvState.to_empty_window(self, samples:int, rnn_size:int) -> mathy.state.MathyWindowObservation
@@ -39,10 +55,10 @@ through the model
 ```python
 MathyEnvState.to_start_observation(self, rnn_state:List[List[List[float]]]) -> mathy.state.MathyObservation
 ```
-Generate an episode start MathObservation
-## MathyEnvTimeStep
+Generate an episode start MathyObservation
+## MathyEnvStateStep
 ```python
-MathyEnvTimeStep(self, /, *args, **kwargs)
+MathyEnvStateStep(self, /, *args, **kwargs)
 ```
 Capture summarized environment state for a previous timestep so the
 agent can use context from its history when making new predictions.
@@ -77,38 +93,38 @@ MathyWindowObservation(self, /, *args, **kwargs)
 ```
 A featurized observation from an n-step sequence of environment states.
 ### mask
-n-step list of node sequence masks shape=[n, max(len(s))]
+n-step list of node sequence masks `shape=[n, max(len(s))]`
 ### nodes
-n-step list of node sequences shape=[n, max(len(s))]
+n-step list of node sequences `shape=[n, max(len(s))]`
 ### rnn_history
-n-step rnn historical state pairs shape=[n, 2*dimensions]
+n-step rnn historical state pairs `shape=[n, 2*dimensions]`
 ### rnn_state
-n-step rnn state pairs shape=[n, 2*dimensions]
+n-step rnn state pairs `shape=[n, 2*dimensions]`
 ### time
-float value between 0.0-1.0 for how much time has passed shape=[n, 1]
+float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`
 ### type
-n-step problem type hash shape=[n, 2]
+n-step problem type hash `shape=[n, 2]`
 ### values
-n-step list of value sequences, with non number indices set to 0.0 shape=[n, max(len(s))]
+n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`
 ## ObservationFeatureIndices
 ```python
 ObservationFeatureIndices(self, /, *args, **kwargs)
 ```
-Indices into mathy inputs for various feature vectors
+An enumeration.
 ### mask
-index[1] into packed features array
+An enumeration.
 ### nodes
-index[0] into packed features array
+An enumeration.
 ### rnn_history
-index[6] into packed features array
+An enumeration.
 ### rnn_state
-index[5] into packed features array
+An enumeration.
 ### time
-index[4] into packed features array
+An enumeration.
 ### type
-index[3] into packed features array
+An enumeration.
 ### values
-index[2] into packed features array
+An enumeration.
 ## observations_to_window
 ```python
 observations_to_window(observations:List[mathy.state.MathyObservation]) -> mathy.state.MathyWindowObservation

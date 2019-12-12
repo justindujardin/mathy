@@ -32,41 +32,25 @@ discount(r, gamma=0.99)
 Discount a list of float rewards to encourage rapid convergance.
 r: input array of floats
 gamma: a float value between 0 and 0.99
-## EnvRewards
-```python
-EnvRewards(self, /, *args, **kwargs)
-```
-
-### HELPFUL_MOVE
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
-### LOSE
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
-### PREVIOUS_LOCATION
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
-### TIMESTEP
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
-### UNHELPFUL_MOVE
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
-### WIN
-float(x) -> floating point number
-
-Convert a string or number to a floating point number, if possible.
 ## get_term_ex
 ```python
 get_term_ex(node:Union[mathy.core.expressions.MathExpression, NoneType]) -> Union[mathy.util.TermEx, NoneType]
 ```
-Extract the 3 components of a naturally ordered term. This doesn't care
-about whether the node is part of a larger term, it only looks at its children.
+Extract the 3 components of a naturally ordered term.
+
+!!! info Important
+
+    This doesn't care about whether the node is part of a larger term,
+    it only looks at its children.
+
+__Example__
+
+
+`mathy:4x^7`
+
+```python
+TermEx(coefficient=4, variable="x", exponent=7)
+```
 
 ## has_like_terms
 ```python
@@ -96,7 +80,10 @@ is_preferred_term_form(expression:mathy.core.expressions.MathExpression) -> bool
 Return True if a given term has been simplified such that it only has
 a max of one coefficient and variable, with the variable on the right
 and the coefficient on the left side
-Example:
+
+__Example__
+
+
     Complex   = 2 * 2x^2
     Simple    = x^2 * 4
     Preferred = 4x^2
@@ -106,9 +93,12 @@ Example:
 is_simple_term(node:mathy.core.expressions.MathExpression) -> bool
 ```
 
-Return True if a given term has been simplified such that it only has at
+Return True if a given term has been simplified so it only has at
 most one of each variable and a constant.
-Example:
+
+__Examples__
+
+
     Simple = 2x^2 * 2y
     Complex = 2x * 2x * 2y
 
@@ -171,6 +161,7 @@ terms_are_like(one, two)
 unlink(node:Union[mathy.core.expressions.MathExpression, NoneType]=None) -> Union[mathy.core.expressions.MathExpression, NoneType]
 ```
 Unlink an expression from it's parent.
+
 1. Clear expression references in `parent`
 2. Clear `parent` in expression
 

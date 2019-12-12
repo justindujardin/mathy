@@ -30,7 +30,6 @@ nav:
 #   - Reinforcement Learning: ml/reinforcement_learning.md
 #   - Monte Carlo Tree Search: ml/monte_carlo_tree_search.md
 - API Documentation:
-  - cli: api/cli.md
   - core:
     - expressions: api/core/expressions.md
     - layout: api/core/layout.md
@@ -38,7 +37,7 @@ nav:
     - rule: api/core/rule.md
     - tokenizer: api/core/tokenizer.md
     - tree: api/core/tree.md
-  - mathy_env: api/mathy_env.md
+  - env: api/env.md
   - problems: api/problems.md
   - state: api/state.md
   - teacher: api/teacher.md

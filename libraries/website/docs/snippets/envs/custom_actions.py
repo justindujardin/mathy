@@ -7,7 +7,7 @@ from mathy import (
     NegateExpression,
     SubtractExpression,
     envs,
-    mathy_core_rules,
+    MathyEnv,
 )
 
 
@@ -38,7 +38,7 @@ class PlusNegationRule(BaseRule):
 class CustomActionEnv(envs.PolySimplify):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.rules = mathy_core_rules() + [PlusNegationRule()]
+        self.rules = MathyEnv.core_rules() + [PlusNegationRule()]
 
 
 env = CustomActionEnv()

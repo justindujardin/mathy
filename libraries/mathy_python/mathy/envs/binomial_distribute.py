@@ -5,7 +5,7 @@ from .. import time_step
 from ..core.rule import BaseRule
 from ..core.expressions import MathExpression
 from ..util import get_terms, has_like_terms, is_preferred_term_form
-from ..mathy_env import MathyEnv, MathyEnvProblem
+from ..env import MathyEnv, MathyEnvProblem
 from ..problems import gen_binomial_times_binomial, gen_binomial_times_monomial, rand_bool
 from ..rules import (
     ConstantsSimplifyRule,

@@ -2,9 +2,9 @@
 
 Mathy uses machine learning (or ML) to choose which [actions](/cas/rules/overview) to apply to which nodes in an expression tree in order to accomplish [a desired task](/envs/overview).
 
-## Input Preprocessing
+## Text Preprocessing
 
-Mathy preprocesses the input problem by parsing its text into a tree, converting the tree into a sequence features for each node in the tree, and [...].
+Mathy processes an input problem by parsing its text into a tree, converting that tree into a sequence features for each node in the tree, combining those features with the current environment state, and embedds them into a variable length sequence of fixed-dimension embeddings.
 
 ### Text to Trees
 
@@ -32,19 +32,29 @@ Consider the tree from the previous example encoded in list form: `-3 * (4 + 7)`
 
 ### Lists to Observations
 
-A set of feature lists for an expression is cool, but it represents only a single moment in time, so it's not a useful if your task is to transform a tree over time into a target state. To do that you need a concept of time.
+While the feature lists from above may be directly passable to a ML model, they don't include any information about the state of the problem over time. To work with information over time, mathy agents draw extra information from the environment when building observations. This extra information includes:
 
-#### Example
-
-Consider that you h
+- **Environment Problem Type**: environments all specify an [environment namespace](/api/env/#get_env_namespace) that is converted into a pair of [hashed string values](/api/state/#get_problem_hash) using different random seeds.
+- **Episode Relative Time**: each observation is able to see a 0-1 floating point value that indicates how close the agent is to running out of moves.
+- **[Current](/about/#r2d2) and [Historical](/about/#persistence-pays-off) RNN states**: observations include the recurrent neural network (RNN) state of the agent, and a historical average state from all the timesteps in the current episode.
+- **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are 5 possible actions, and 10 nodes in the tree, there are 50 possible actions to choose from. A same sized (e.g. 50) mask of 0/1 values are provided so that the model can mask out invalid logits when returning probability distributions.
 
 ### Observations to Embeddings
 
 2. [embedded](/ml/math_embeddings) into variable length sequences of fixed size vectors that can be fed into a Sequence-to-Sequence ML model.
-3. [Parse](/cas/parser) the token list into an Expression tree
 
-##
+## Embeddings Model
 
-Solving complex math problems requires combinations of low-level actions that lead to higher-level ones. Humans are smart, so we often do multiple steps at once in our heads and consider it to be just one. For example, we think of of the transformation `4x + 2x => 6x` a single action but it actually requires a factoring operation and an artithmetic operation to accomplish.
+Mathy's embeddings model takes in a [window of observations](/api/state/#mathywindowobservation) and outputs a sequence of the same length with fixed-size learned embeddings for each token in the sequence.
 
-When it comes to solving math problems, there are at least two broad ways to approach combining low-level rules into high-level actions. Some CAS systems write a ton of custom lower-level rule compositions to explicitly capture the higher-level actions in a usable form. This is extremely effective and can yield systems that are able to solve many different types of math problems with confidence, but it comes at the cost of requiring expert knowledge to craft all the specific problem-set rules. Mathy uses Machine Learning (ML) to pick combinations of low-level rules, and relies on the ML model to put them together to form higher-level actions. This has the benefit of not necessarily requiring expert knowledge, but adds the complexity of crafting an ML model that can pick reasonable sets of actions for many types of problems.
+## Policy Value Model
+
+Mathy's policy/value model takes in a [window of observations](/api/state/#mathywindowobservation) and outputs a weighted distribution over all the possible actions and value estimates for each observation.
+
+## TODO
+
+A set of feature lists for an expression is cool, but it represents only a single moment in time, so it's not a useful if your task is to transform a tree over time into a target state. To do that you need a concept of time, which is where Mathy's [reinforcement learning environments](/envs/overview) enter the equation.
+
+Mathy environments start with an [initial state](/api/env/#get_initial_state) and the record the agent's actions, observations, and rewards after each timestep until the episode is complete.
+
+When a Mathy agent wants to interact with the environment, it makes an [observation](/api/state/#mathyobservation) about the [current state](/api/state/#mathyenvstate) by looking at the environment and summarizing what it sees. State information that is available to build observations include, the problem text, the feature lists generated from it, metadata about the current episode, and a list of past observations from the same episode.

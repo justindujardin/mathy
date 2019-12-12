@@ -1,7 +1,7 @@
 from typing import Optional, Type, List
 
 import gym
-from ...mathy_env import MathyEnv
+from ...env import MathyEnv
 from ...core.rule import ExpressionChangeRule
 from ...core.expressions import MathExpression
 from ...state import (

@@ -6,7 +6,7 @@ from numpy.random import randint
 from .. import time_step
 from ..core.expressions import MathExpression
 from ..util import TermEx, get_term_ex, get_terms
-from ..mathy_env import MathyEnvProblem
+from ..env import MathyEnvProblem
 from ..problems import (
     gen_combine_terms_in_place,
     get_rand_term_templates,
@@ -28,9 +28,8 @@ from ..rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from ..state import MathyEnvState, MathyEnvTimeStep, MathyObservation
-from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import EnvRewards
+from ..state import MathyEnvState, MathyEnvStateStep, MathyObservation
+from ..types import MathyEnvDifficulty, MathyEnvProblemArgs, EnvRewards
 from .poly_simplify import PolySimplify
 
 
@@ -80,8 +79,8 @@ class PolyHaystackLikeTerms(PolySimplify):
         # History gets pushed before this fn, so history[-1] is the current state,
         # and history[-2] is the previous state. Find the previous state node we
         # acted on, and compare to that.
-        curr_timestep: MathyEnvTimeStep = agent.history[-1]
-        last_timestep: MathyEnvTimeStep = agent.history[-2]
+        curr_timestep: MathyEnvStateStep = agent.history[-1]
+        last_timestep: MathyEnvStateStep = agent.history[-2]
         expression = self.parser.parse(last_timestep.raw)
         action_node = self.get_token_at_index(expression, curr_timestep.focus)
         touched_term = get_term_ex(action_node)

@@ -8,16 +8,16 @@ Utility functions for helping generate input problems.
 ```python
 gen_binomial_times_binomial(*, op='+', min_vars=1, max_vars=2, simple_variables=True, powers_probability=0.33, like_variables_probability=1.0) -> Tuple[str, int]
 ```
-Generate a binomial multiplied by anotehr binomial.
+Generate a binomial multiplied by another binomial.
 
 __Example__
 
 
 ```
-(2e + 12p)(16 + e)
+(2e + 12p)(16 + 7e)
 ```
 
-`mathy:(2e + 12p)(16 + e)`
+`mathy:(2e + 12p)(16 + 7e)`
 
 ## gen_binomial_times_monomial
 ```python
@@ -150,6 +150,7 @@ __Example__
 ```
 
 `mathy:4x + 2 = 8x`
+
 ## get_blocker
 ```python
 get_blocker(num_blockers=1, exclude_vars=[])

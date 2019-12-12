@@ -16,7 +16,7 @@ from ...state import (
     observations_to_window,
     MathyWindowObservation,
 )
-from ...util import EnvRewards, discount, is_terminal_transition, pad_array
+from ...util import discount, is_terminal_transition, pad_array
 from ..policy_value_model import PolicyValueModel
 from .config import SelfPlayConfig
 from .types import EpisodeHistory, EpisodeSummary

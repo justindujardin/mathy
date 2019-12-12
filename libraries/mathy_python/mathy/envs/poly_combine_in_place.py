@@ -1,4 +1,4 @@
-from ..mathy_env import MathyEnvProblem
+from ..env import MathyEnvProblem
 from ..problems import gen_combine_terms_in_place, rand_bool
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify

@@ -7,7 +7,7 @@ import numpy as np
 from mathy.core.parser import ExpressionParser, ParserException
 from mathy.envs.gym import MathyGymEnv
 
-from ...mathy_env import MathyEnv
+from ...env import MathyEnv
 from .config import SelfPlayConfig
 from .lib.average_meter import AverageMeter
 from .lib.progress.bar import Bar

@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 
 import numpy
 
-from ..mathy_env import MathyEnv
+from ..env import MathyEnv
 from ..state import MathyEnvState, observations_to_window
 from ..util import is_terminal_transition
 

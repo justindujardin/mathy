@@ -1,4 +1,4 @@
-from .mathy_env import *  # noqa
+from .env import *  # noqa
 from .state import *  # noqa
 from .util import *  # noqa
 from .core import *  # noqa

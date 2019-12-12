@@ -29,8 +29,6 @@ MathyInputsType = List[Any]
 
 
 class ObservationFeatureIndices(IntEnum):
-    """Indices into mathy inputs for various feature vectors"""
-
     nodes = 0
     mask = 1
     values = 2
@@ -38,17 +36,6 @@ class ObservationFeatureIndices(IntEnum):
     time = 4
     rnn_state = 5
     rnn_history = 6
-
-
-# fmt: off
-ObservationFeatureIndices.nodes.__doc__ = f"index[{ObservationFeatureIndices.nodes.value}] into packed features array"  # noqa
-ObservationFeatureIndices.mask.__doc__ = f"index[{ObservationFeatureIndices.mask.value}] into packed features array"  # noqa
-ObservationFeatureIndices.values.__doc__ = f"index[{ObservationFeatureIndices.values.value}] into packed features array"  # noqa
-ObservationFeatureIndices.type.__doc__ = f"index[{ObservationFeatureIndices.type.value}] into packed features array"  # noqa
-ObservationFeatureIndices.time.__doc__ = f"index[{ObservationFeatureIndices.time.value}] into packed features array"  # noqa
-ObservationFeatureIndices.rnn_state.__doc__ = f"index[{ObservationFeatureIndices.rnn_state.value}] into packed features array"  # noqa
-ObservationFeatureIndices.rnn_history.__doc__ = f"index[{ObservationFeatureIndices.rnn_history.value}] into packed features array"  # noqa
-# fmt: on
 
 
 class MathyObservation(NamedTuple):
@@ -118,17 +105,17 @@ class MathyWindowObservation(NamedTuple):
 
 
 # fmt: off
-MathyWindowObservation.nodes.__doc__ = "n-step list of node sequences shape=[n, max(len(s))]" # noqa
-MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks shape=[n, max(len(s))]" # noqa
-MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 shape=[n, max(len(s))]" # noqa
-MathyWindowObservation.type.__doc__ = "n-step problem type hash shape=[n, 2]" # noqa
-MathyWindowObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed shape=[n, 1]" # noqa
-MathyWindowObservation.rnn_state.__doc__ = "n-step rnn state pairs shape=[n, 2*dimensions]" # noqa
-MathyWindowObservation.rnn_history.__doc__ = "n-step rnn historical state pairs shape=[n, 2*dimensions]" # noqa
+MathyWindowObservation.nodes.__doc__ = "n-step list of node sequences `shape=[n, max(len(s))]`" # noqa
+MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks `shape=[n, max(len(s))]`" # noqa
+MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`" # noqa
+MathyWindowObservation.type.__doc__ = "n-step problem type hash `shape=[n, 2]`" # noqa
+MathyWindowObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`" # noqa
+MathyWindowObservation.rnn_state.__doc__ = "n-step rnn state pairs `shape=[n, 2*dimensions]`" # noqa
+MathyWindowObservation.rnn_history.__doc__ = "n-step rnn historical state pairs `shape=[n, 2*dimensions]`" # noqa
 # fmt: on
 
 
-class MathyEnvTimeStep(NamedTuple):
+class MathyEnvStateStep(NamedTuple):
     """Capture summarized environment state for a previous timestep so the
     agent can use context from its history when making new predictions."""
 
@@ -138,9 +125,9 @@ class MathyEnvTimeStep(NamedTuple):
 
 
 # fmt: off
-MathyEnvTimeStep.raw.__doc__ = "the input text at the timestep" # noqa
-MathyEnvTimeStep.focus.__doc__ = "the index of the node that is acted on" # noqa
-MathyEnvTimeStep.action.__doc__ = "the action taken" # noqa
+MathyEnvStateStep.raw.__doc__ = "the input text at the timestep" # noqa
+MathyEnvStateStep.focus.__doc__ = "the index of the node that is acted on" # noqa
+MathyEnvStateStep.action.__doc__ = "the action taken" # noqa
 # fmt: on
 
 
@@ -243,20 +230,29 @@ class MathyEnvState(object):
     def clone(self):
         return MathyEnvState(state=self)
 
-    def encode_player(
+    def get_out_state(
         self, problem: str, action: int, focus_index: int, moves_remaining: int
-    ):
-        """Encode a player's state into the env_state, and return the env_state"""
+    ) -> "MathyEnvState":
+        """Get the next environment state based on the current one with updated
+        history and agent information based on an action being taken."""
         out_state = MathyEnvState.copy(self)
         agent = out_state.agent
-        agent.history.append(MathyEnvTimeStep(problem, focus_index, action))
+        agent.history.append(MathyEnvStateStep(problem, focus_index, action))
         agent.problem = problem
         agent.action = action
         agent.moves_remaining = moves_remaining
         agent.focus_index = focus_index
         return out_state
 
-    def problem_hash(self) -> ProblemTypeIntList:
+    def get_problem_hash(self) -> ProblemTypeIntList:
+        """Return a two element array with hashed values for the current environment
+        namespace string.
+
+        # Example
+
+        - `mycorp.envs.solve_impossible_problems` -> `[12375561, -2838517]`
+
+        """
         # NOTE: import delayed to enable MP
         import tensorflow as tf
 
@@ -277,9 +273,9 @@ class MathyEnvState(object):
         return _problem_hash_cache[self.agent.problem_type]
 
     def to_start_observation(self, rnn_state: RNNStatesFloatList) -> MathyObservation:
-        """Generate an episode start MathObservation"""
+        """Generate an episode start MathyObservation"""
         num_actions = 1 * self.num_rules
-        hash = self.problem_hash()
+        hash = self.get_problem_hash()
         mask = [0] * num_actions
         values = [0.0] * num_actions
         return MathyObservation(
@@ -293,10 +289,12 @@ class MathyEnvState(object):
         )
 
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
-        """Generate an episode start MathObservation"""
+        """Generate an empty MathyObservation. This is different than
+        to_start_observation in that uses a zero'd placeholder RNN state
+        rather than the given start state from the agent."""
         num_actions = 1 * self.num_rules
         if hash is None:
-            hash = self.problem_hash()
+            hash = self.get_problem_hash()
         mask = [0] * num_actions
         return MathyObservation(
             nodes=[MathTypeKeys["empty"]],
@@ -320,7 +318,7 @@ class MathyEnvState(object):
         if rnn_history is None:
             rnn_history = rnn_placeholder_state(128)
         if hash_type is None:
-            hash_type = self.problem_hash()
+            hash_type = self.get_problem_hash()
         expression = self.parser.parse(self.agent.problem)
         nodes: List[MathExpression] = expression.to_list()
         vectors: NodeIntList = []
@@ -353,7 +351,7 @@ class MathyEnvState(object):
     def to_empty_window(self, samples: int, rnn_size: int) -> MathyWindowObservation:
         """Generate an empty window of observations that can be passed
         through the model"""
-        hash = self.problem_hash()
+        hash = self.get_problem_hash()
         window = observations_to_window(
             [self.to_empty_observation(hash, rnn_size) for _ in range(samples)]
         )
@@ -367,7 +365,7 @@ class MathyAgentState:
     problem: str
     problem_type: str
     reward: float
-    history: List[MathyEnvTimeStep]
+    history: List[MathyEnvStateStep]
     focus_index: int
     last_action: int
 
@@ -388,7 +386,7 @@ class MathyAgentState:
         self.reward = reward
         self.problem_type = problem_type
         self.history = (
-            history[:] if history is not None else [MathyEnvTimeStep(problem, -1, -1)]
+            history[:] if history is not None else [MathyEnvStateStep(problem, -1, -1)]
         )
 
     @classmethod

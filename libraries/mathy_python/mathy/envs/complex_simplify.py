@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Type
 
-from ..mathy_env import MathyEnvProblem
+from ..env import MathyEnvProblem
 from ..problems import gen_simplify_multiple_terms
 from ..rules import (
     AssociativeSwapRule,

@@ -18,7 +18,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import EnvRewards, discount
+from ...util import discount
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
 from ..policy_value_model import PolicyValueModel
@@ -56,6 +56,8 @@ class SelfPlayTrainer:
         total_batches = int(len(examples) / self.args.batch_size)
         if total_batches == 0:
             return False
+
+        import tensorflow as tf
 
         print(
             "Training neural net for ({}) epochs with ({}) examples...".format(

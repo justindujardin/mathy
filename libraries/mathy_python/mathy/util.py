@@ -10,6 +10,8 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
+from .types import EnvRewards
+
 from .core.expressions import (
     AddExpression,
     BinaryExpression,
@@ -90,6 +92,7 @@ def compare_expression_values(
 
 def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:
     """Unlink an expression from it's parent.
+
       1. Clear expression references in `parent`
       2. Clear `parent` in expression
     """
@@ -209,9 +212,11 @@ def get_sub_terms(node: MathExpression):
 
 def is_simple_term(node: MathExpression) -> bool:
     """
-    Return True if a given term has been simplified such that it only has at 
+    Return True if a given term has been simplified so it only has at
     most one of each variable and a constant.
-    Example:
+
+    # Examples
+
         Simple = 2x^2 * 2y
         Complex = 2x * 2x * 2y
 
@@ -244,7 +249,9 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
     Return True if a given term has been simplified such that it only has
     a max of one coefficient and variable, with the variable on the right
     and the coefficient on the left side
-    Example:
+
+    # Example
+
         Complex   = 2 * 2x^2
         Simple    = x^2 * 4
         Preferred = 4x^2
@@ -479,8 +486,20 @@ TermEx.exponent.__doc__ = "An optional integer or float exponent" # noqa
 
 
 def get_term_ex(node: Optional[MathExpression]) -> Optional[TermEx]:
-    """Extract the 3 components of a naturally ordered term. This doesn't care
-    about whether the node is part of a larger term, it only looks at its children.
+    """Extract the 3 components of a naturally ordered term.
+
+    !!! info Important
+
+        This doesn't care about whether the node is part of a larger term,
+        it only looks at its children.
+
+    # Example
+
+    `mathy:4x^7`
+
+    ```python
+    TermEx(coefficient=4, variable="x", exponent=7)
+    ```
     """
 
     # "4"
@@ -677,16 +696,6 @@ def is_const(node):
         return True
 
     return False
-
-
-class EnvRewards:
-
-    LOSE = -1.0
-    WIN = 1.0
-    HELPFUL_MOVE = 0.01
-    UNHELPFUL_MOVE = -0.01
-    TIMESTEP = -0.01
-    PREVIOUS_LOCATION = -0.02
 
 
 def is_terminal_transition(transition: time_step.TimeStep) -> bool:

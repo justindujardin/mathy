@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from numpy.random import randint
 
-from ..mathy_env import MathyEnvProblem
+from ..env import MathyEnvProblem
 from ..state import MathyEnvState
 from ..core.rule import BaseRule
 from ..rules import (

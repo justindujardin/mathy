@@ -6,7 +6,7 @@ from .. import time_step
 from ..core.expressions import MathExpression
 from ..core.rule import BaseRule
 from ..util import TermEx, get_term_ex, get_terms
-from ..mathy_env import MathyEnv, MathyEnvProblem
+from ..env import MathyEnv, MathyEnvProblem
 from ..problems import gen_combine_terms_in_place, gen_commute_haystack, rand_bool
 from ..rules import AssociativeSwapRule, CommutativeSwapRule, DistributiveFactorOutRule
 from ..state import MathyEnvState, MathyObservation

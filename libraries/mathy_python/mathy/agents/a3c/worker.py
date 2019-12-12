@@ -10,7 +10,6 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from ...util import calculate_grouping_control_signal
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
     MathyEnvState,
@@ -19,13 +18,13 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import EnvRewards, discount
+from ...util import calculate_grouping_control_signal, discount
 from .. import action_selectors
-from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
-from .config import A3CConfig
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
+from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..trfl import discrete_policy_entropy_loss, td_lambda
+from .config import A3CConfig
 from .util import record, truncate
 
 

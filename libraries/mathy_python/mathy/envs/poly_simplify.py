@@ -6,7 +6,7 @@ from .. import time_step
 from ..core.expressions import MathExpression
 from ..util import calculate_term_grouping_distances
 from ..util import get_terms, has_like_terms, is_preferred_term_form
-from ..mathy_env import MathyEnv, MathyEnvProblem
+from ..env import MathyEnv, MathyEnvProblem
 from ..problems import gen_simplify_multiple_terms
 from ..core.rule import BaseRule
 from ..rules import (
@@ -16,7 +16,6 @@ from ..rules import (
 )
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import EnvRewards
 
 
 class PolySimplify(MathyEnv):
