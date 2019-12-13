@@ -18,7 +18,10 @@ parser = ExpressionParser()
 layout = TreeLayout()
 matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 features_re = r"<code>features:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
+# TODO: add tokenizer visualization svg
+tokens_re = r"<code>tokens:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
+# Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
 
 
 def to_math_ml_fragment(match):

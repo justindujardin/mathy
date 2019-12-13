@@ -13,7 +13,7 @@ markdown-include
 mkdocs-minify-plugin
 ruamel.yaml
 
--e git+git@github.com:justindujardin/pydoc-markdown.git#egg=pydoc-markdown
 # The snippets/tests need mathy. Install as a development package (-e)
 -e ../mathy_python/
+-e ../mathy_pydoc_markdown/
 -e ../mathy_mkdocs/

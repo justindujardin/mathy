@@ -1,0 +1,15 @@
+*.py[cod]
+*.egg
+*.egg-info
+build/
+.DS_Store
+venv[23]/
+.venv*/
+test.md
+dist/
+README.rst
+Pipfile
+Pipfile.lock
+.idea
+.pytest_cache/
+.env
