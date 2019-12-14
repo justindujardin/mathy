@@ -313,7 +313,7 @@ def gen_simplify_multiple_terms(
     if rand_bool(shuffle_probability * 100) is True:
         random.shuffle(term_templates)
 
-    root_term = term_templates.pop()
+    root_term = term_templates.pop(0)
     result = f"{rand_int()}{root_term}"
     for other_var in term_templates:
         # other_var = term_templates[i]
@@ -502,7 +502,7 @@ def gen_move_around_blockers_one(number_blockers: int, powers_probability: float
 
 def gen_move_around_blockers_two(number_blockers: int, powers_probability: float = 0.5):
     """Two like terms with three blockers.
-         
+
     # Example
 
     ```
@@ -537,14 +537,14 @@ def gen_move_around_blockers_two(number_blockers: int, powers_probability: float
 
 def gen_move_around_interleaved_like_terms(number_terms, number_pairs):
     """Interleaved multiple like variables.
-         
+
     # Example
 
     ```
     4x + 2y + 6x + 3y
     ```
 
-    `mathy:4x + 2y + 6x + 3y`    
+    `mathy:4x + 2y + 6x + 3y`
     """
     complexity = number_terms * number_pairs
     terms = []

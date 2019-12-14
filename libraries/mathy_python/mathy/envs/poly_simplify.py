@@ -1,21 +1,14 @@
-from typing import Any, Dict, List, Optional, Type
+from typing import Optional
 
 from numpy.random import randint, uniform
 
 from .. import time_step
 from ..core.expressions import MathExpression
-from ..util import calculate_term_grouping_distances
-from ..util import get_terms, has_like_terms, is_preferred_term_form
 from ..env import MathyEnv, MathyEnvProblem
 from ..problems import gen_simplify_multiple_terms
-from ..core.rule import BaseRule
-from ..rules import (
-    CommutativeSwapRule,
-    ConstantsSimplifyRule,
-    DistributiveFactorOutRule,
-)
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from ..util import get_terms, has_like_terms, is_preferred_term_form
 
 
 class PolySimplify(MathyEnv):
@@ -70,13 +63,8 @@ class PolySimplify(MathyEnv):
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
         if params.difficulty == MathyEnvDifficulty.easy:
-            # Set number of noise terms and inject a bunch more in simple problems
-            # so they don't learn stupid policies that only work with small trees.
-            #
-            # e.g. mashing the 3rd node to commute the tree until a DF shows up in
-            #      the desired position.
             noise_terms = randint(1, 3)
-            num_terms = randint(4, 6)
+            num_terms = randint(3, 6)
             scaling = uniform(0.35, 0.5)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
