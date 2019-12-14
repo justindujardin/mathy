@@ -45,10 +45,6 @@ class EpisodeMemory(object):
     def __init__(self):
         self.clear()
 
-    @property
-    def ready(self) -> bool:
-        return len(self.observations) > 3
-
     def clear(self):
         self.observations = []
         self.actions = []
