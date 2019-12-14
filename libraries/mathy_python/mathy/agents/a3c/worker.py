@@ -268,7 +268,7 @@ class A3CWorker(threading.Thread):
             rnn_state_c = selector.model.embedding.state_c.numpy()
             seq_start = env.start_observation([rnn_state_h, rnn_state_c])
             selector.model.predict_next(
-                observations_to_window([seq_start, last_observation]).to_inputs()
+                observations_to_window([seq_start]).to_inputs()
             )
 
         while not done and A3CWorker.request_quit is False:

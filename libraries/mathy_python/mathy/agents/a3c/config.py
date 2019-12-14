@@ -15,7 +15,7 @@ class A3CConfig(BaseConfig):
     # (intuition) is that the LSTM updates the state each time it processes
     # the init sequence meaning that it gets more time to fine-tune the hidden
     # and cell states for the particular problem.
-    num_thinking_steps_begin: int = 3
+    num_thinking_steps_begin: int = 1
 
     # Strategy for introducing MCTS into the A3C agent training process
     #
@@ -54,7 +54,7 @@ class A3CConfig(BaseConfig):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 1.0
+    entropy_loss_scaling = 0.2
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 0.1

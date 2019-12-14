@@ -13,14 +13,12 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         embedding_units: int,
-        extract_window: Optional[int] = None,
         episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.units = units
-        self.extract_window = extract_window
         self.episode_reset_state_h = episode_reset_state_h
         self.episode_reset_state_c = episode_reset_state_c
         self.lstm_units = lstm_units
@@ -38,13 +36,13 @@ class MathyEmbedding(tf.keras.layers.Layer):
             # floating point value at each node.
             input_shape=(None, self.embedding_units + 1),
             name="in_dense",
-            activation=swish,
+            activation="relu",
             kernel_initializer="he_normal",
         )
         self.output_dense = tf.keras.layers.Dense(
-            self.units,
+            self.embedding_units,
             name="out_dense",
-            activation=swish,
+            activation="relu",
             kernel_initializer="he_normal",
         )
         self.time_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_time_norm")
@@ -96,35 +94,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
         in_rnn_history = features[ObservationFeatureIndices.rnn_history][0]
 
         with tf.name_scope("prepare_inputs"):
-            #
-            # Contextualize nodes by expanding their integers to include (n) neighbors
-            #
-            if self.extract_window is not None:
-                # reshape to 4 dimensions so we can use `extract_patches`
-                input = tf.reshape(
-                    nodes,
-                    shape=[1, batch_size, sequence_length, 1],
-                    name="extract_window_in",
-                )
-                input_one = tf.image.extract_patches(
-                    images=input,
-                    sizes=[1, 1, self.extract_window, 1],
-                    strides=[1, 1, 1, 1],
-                    rates=[1, 1, 1, 1],
-                    padding="SAME",
-                    name="extract_window_op",
-                )
-                # Remove the extra dimensions
-                input = tf.squeeze(input_one, axis=0, name="extract_window_out")
-            else:
-                # Add an empty dimension (usually used by the extract window depth)
-                input = tf.expand_dims(nodes, axis=-1, name="nodes_input")
-                values = tf.expand_dims(values, axis=-1, name="values_input")
-
-            query = self.token_embedding(input)
-            query = tf.reshape(
-                query, [batch_size, sequence_length, -1], name="tokens_batch_reshape"
-            )
+            values = tf.expand_dims(values, axis=-1, name="values_input")
+            query = self.token_embedding(nodes)
             query = tf.concat([query, values], axis=-1, name="tokens_and_values")
             query.set_shape((None, None, self.embedding_units + 1))
 
@@ -132,13 +103,6 @@ class MathyEmbedding(tf.keras.layers.Layer):
         query = self.in_dense(query)
 
         with tf.name_scope("prepare_initial_states"):
-
-            nodes_initial_h = tf.squeeze(
-                tf.concat(in_rnn_state[0], axis=0, name="nodes_hidden"), axis=1
-            )
-            nodes_initial_c = tf.squeeze(
-                tf.concat(in_rnn_state[1], axis=0, name="nodes_cell"), axis=1
-            )
             time_initial_h = tf.tile(
                 in_rnn_state[0][0], [sequence_length, 1], name="time_hidden"
             )
@@ -147,10 +111,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
             )
 
         with tf.name_scope("rnn"):
-
-            query = self.nodes_lstm(
-                query, initial_state=[nodes_initial_h, nodes_initial_c]
-            )
+            query = self.nodes_lstm(query)
             query = self.nodes_lstm_norm(query)
             query, state_h, state_c = self.time_lstm(
                 query, initial_state=[time_initial_h, time_initial_c]

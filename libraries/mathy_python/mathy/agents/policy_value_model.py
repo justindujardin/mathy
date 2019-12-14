@@ -172,10 +172,6 @@ def get_or_create_policy_model(
     model.compile(
         optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
     )
-
-    # else:
-    #     model = PolicyValueModel(args=args, predictions=env_actions)
-
     if initial_state is not None:
         # NOTE: This is needed to properly initialize the trainable vars
         #       for the global model. Each prediction path must be called
