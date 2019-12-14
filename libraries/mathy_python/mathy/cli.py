@@ -11,7 +11,8 @@ import click
 @click.group()
 @click.version_option()
 def cli():
-    """Mathy - https://mathy.ai
+    """
+    Mathy - https://mathy.ai
 
     Command line app for training and evaluating agents that transform
     expression trees using reinforcement learning.
@@ -36,6 +37,31 @@ def cli_simplify(agent: str, problem: str):
     from .a3c import main
 
     main(topics="poly", model_dir="training/poly", max_eps=1, show=True, evaluate=True)
+
+
+@cli.command("problems")
+@click.argument("environment", type=str)
+@click.option(
+    "difficulty",
+    "--difficulty",
+    default="easy",
+    help="One of 'easy', 'normal', or 'hard'",
+)
+@click.option("number", "--number", default=25, help="The number of problems to print")
+def cli_print_problems(environment: str, difficulty: str, number: int):
+    """Print a set of generated problems from a given environment.
+
+    This is useful if you when developing new environment types for
+    verifying that the problems you're generating take the form you
+    expect. """
+    import gym
+    from mathy.envs.gym import MathyGymEnv
+
+    env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
+
+    for i in range(number):
+        state, problem = env.mathy.get_initial_state(print_problem=False)
+        print(problem.text)
 
 
 @cli.command("train")
@@ -71,7 +97,7 @@ def cli_simplify(agent: str, problem: str):
 @click.option(
     "units",
     "--units",
-    default=64,
+    default=512,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
@@ -217,3 +243,7 @@ def setup_tf_env():
     tf.random.set_seed(1337)
 
     tf.compat.v1.logging.set_verbosity("CRITICAL")
+
+
+if __name__ == "__main__":
+    cli()
