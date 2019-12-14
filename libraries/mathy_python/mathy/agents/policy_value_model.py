@@ -59,8 +59,8 @@ class PolicyValueModel(tf.keras.Model):
         sequence_inputs = self.embedding(inputs)
         values = tf.reduce_mean(self.value_logits(sequence_inputs), axis=1)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
-        trimmed_logits, mask_logits = self.apply_pi_mask(logits, features_window)
-        mask_result = trimmed_logits if not apply_mask else mask_logits
+        mask_logits = self.apply_pi_mask(logits, features_window)
+        mask_result = logits if not apply_mask else mask_logits
         if call_print is True:
             print(
                 "call took : {0:03f} for batch of {1:03}".format(
@@ -80,17 +80,14 @@ class PolicyValueModel(tf.keras.Model):
             mask, (logits_shape[0], -1, self.predictions), name="pi_mask_reshape"
         )
         features_mask = tf.cast(features_mask, dtype=tf.float32)
-        # Trim the logits to match the feature mask
-        trim_logits = logits[:, : features_mask.shape[1], :]
-        trim_logits_shape = tf.shape(trim_logits)
-        mask_logits = tf.multiply(trim_logits, features_mask, name="mask_logits")
+        mask_logits = tf.multiply(logits, features_mask, name="mask_logits")
         negative_mask_logits = tf.where(
             tf.equal(mask_logits, tf.constant(0.0)),
-            tf.fill(trim_logits_shape, -1000000.0),
+            tf.fill(tf.shape(logits), -1000000.0),
             mask_logits,
             name="softmax_negative_logits",
         )
-        return trim_logits, negative_mask_logits
+        return negative_mask_logits
 
     @tf.function
     def call_graph(
