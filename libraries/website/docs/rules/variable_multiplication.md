@@ -8,6 +8,14 @@ The `Variable Multiplication` rule restates `x^b * x^d` as `x^(b + d)` which has
 
 Both implicit and explicit variable powers are recognized in this transformation.
 
+!!! info "Help Wanted"
+
+        The current variable multiply rule leaves out a case where there is a power
+        raised to another power, they can be combined by multiplying the exponents
+        together.
+
+        For example: `x^(2^2) = x^4`
+
 #### Explicit powers
 
 In the simplest case both variables have explicit exponents.
