@@ -407,31 +407,6 @@ class MathyEnv:
         expression = self.parser.parse(agent.problem)
         return self.get_actions_for_node(expression)
 
-    def get_hint_mask(self, env_state: MathyEnvState) -> List[int]:
-        """Return a 0/1 mask of shape [len(actions) * len(nodes_in_expr)] that
-        indicates nodes in the expression that the model should be hinted at
-        may be salient to act on given the current task.
-
-        The default implementation marks all the rules in any "term" node as
-        possibly salient. A separate embedding is learned from this mask, and
-        that embedding is used to attend to the input sequence.
-        """
-        agent = env_state.agent
-        expression = self.parser.parse(agent.problem)
-        node_list: List[MathExpression] = expression.to_list()
-        node_count = len(node_list)
-        rule_count = len(self.rules)
-        values = [0] * rule_count * node_count
-        for index, node in enumerate(node_list):
-            term: Optional[TermEx] = get_term_ex(node)
-            if term is None:
-                continue
-            # The move mask indicates valid node/rule combinations
-            # for the values we mark all rules on any term node
-            for i in range(rule_count):
-                values[(index * rule_count) + i] = 1
-        return values
-
     def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:
         """Get a vector the length of the number of valid rules that is
         filled with 0/1 based on whether the rule has any nodes in the
