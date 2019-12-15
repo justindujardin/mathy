@@ -38,7 +38,10 @@ class A3CAgent:
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
         self.global_model = get_or_create_policy_model(
-            args, self.action_size, env.initial_window(self.args.lstm_units)
+            args=args,
+            env_actions=self.action_size,
+            initial_state=env.initial_window(self.args.lstm_units),
+            is_main=True,
         )
         with self.writer.as_default():
             tf.summary.trace_on(graph=True)

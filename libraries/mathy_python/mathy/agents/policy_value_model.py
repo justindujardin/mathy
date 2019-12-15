@@ -120,31 +120,29 @@ class PolicyValueModel(tf.keras.Model):
 
 
 def get_or_create_policy_model(
-    args: BaseConfig, env_actions: int, initial_state: MathyWindowObservation,
+    args: BaseConfig,
+    env_actions: int,
+    initial_state: MathyWindowObservation,
+    is_main=False,
 ) -> PolicyValueModel:
 
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
     model_path = os.path.join(args.model_dir, args.model_name)
     # Transfer weights/optimizer from a different model
-    if args.init_model_from is not None:
+    if is_main and args.init_model_from is not None:
         if args.model_format == "keras":
             init_model_path = os.path.join(args.init_model_from, args.model_name)
             opt = f"{init_model_path}.optimizer"
             mod = f"{init_model_path}.h5"
-            if not os.path.exists(f"{model_path}.h5"):
-                if os.path.exists(opt) and os.path.exists(mod):
-                    print(f"initialize model weights from: {init_model_path}")
-                    copyfile(mod, model_path)
-                    copyfile(opt, model_path)
-            else:
+            if os.path.exists(f"{model_path}.h5"):
                 raise ValueError(
                     f"model already exists at: {model_path}, cannot initialize"
                 )
             if os.path.exists(opt) and os.path.exists(mod):
                 print(f"initialize model from: {init_model_path}")
-                copyfile(opt, model_path)
-                copyfile(mod, model_path)
+                copyfile(opt, f"{model_path}.optimizer")
+                copyfile(mod, f"{model_path}.h5")
             else:
                 raise ValueError(
                     f"model already exists at: {model_path}, cannot initialize"

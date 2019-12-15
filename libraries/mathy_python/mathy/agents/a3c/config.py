@@ -15,7 +15,7 @@ class A3CConfig(BaseConfig):
     # (intuition) is that the LSTM updates the state each time it processes
     # the init sequence meaning that it gets more time to fine-tune the hidden
     # and cell states for the particular problem.
-    num_thinking_steps_begin: int = 1
+    num_thinking_steps_begin: int = 3
 
     # Strategy for introducing MCTS into the A3C agent training process
     #
@@ -54,7 +54,7 @@ class A3CConfig(BaseConfig):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.2
+    entropy_loss_scaling = 0.05
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 0.1
@@ -63,9 +63,9 @@ class A3CConfig(BaseConfig):
     td_lambda: float = 0.2
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 200
+    teacher_start_evaluations_at_episode = 50
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 50
+    teacher_evaluation_steps = 20
     # If the agent wins >= this value, promote to the next difficulty class
     # 85 percent loosely inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time

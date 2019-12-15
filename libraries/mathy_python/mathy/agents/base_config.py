@@ -4,6 +4,9 @@ from pydantic import BaseModel
 
 
 class BaseConfig(BaseModel):
+    class Config:
+        extra = "forbid"
+
     units: int = 64
     embedding_units: int = 512
     lstm_units: int = 256
