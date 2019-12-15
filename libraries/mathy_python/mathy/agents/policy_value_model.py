@@ -57,7 +57,7 @@ class PolicyValueModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = tf.reduce_mean(self.value_logits(sequence_inputs), axis=1)
+        values = self.value_logits(self.embedding.state_h)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = logits if not apply_mask else mask_logits
@@ -120,9 +120,7 @@ class PolicyValueModel(tf.keras.Model):
 
 
 def get_or_create_policy_model(
-    args: BaseConfig,
-    env_actions: int,
-    initial_state: Optional[MathyWindowObservation] = None,
+    args: BaseConfig, env_actions: int, initial_state: MathyWindowObservation,
 ) -> PolicyValueModel:
 
     if not os.path.exists(args.model_dir):
@@ -169,14 +167,8 @@ def get_or_create_policy_model(
     model.compile(
         optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
     )
-    if initial_state is not None:
-        # NOTE: This is needed to properly initialize the trainable vars
-        #       for the global model. Each prediction path must be called
-        #       here or you'll get gradient descent errors about variables
-        #       not matching gradients when the local_model tries to optimize
-        #       against the global_model.
-        model.predict(initial_state.to_inputs())
-        model.build(initial_state.to_input_shapes())
+    model.predict(initial_state.to_inputs())
+    model.build(initial_state.to_input_shapes())
 
     if args.model_format == "keras":
         opt = f"{model_path}.optimizer"
