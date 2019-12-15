@@ -71,7 +71,7 @@ class PolySimplify(MathyEnv):
                 inner_terms_scaling=scaling,
                 powers_probability=0.2,
                 noise_probability=0.5,
-                shuffle_probability=0.0,
+                shuffle_probability=0.3,
                 noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
@@ -80,35 +80,32 @@ class PolySimplify(MathyEnv):
             #
             # e.g. mashing the 3rd node to commute the tree until a DF shows up in
             #      the desired position.
-            noise_terms = randint(1, 3)
-            num_terms = randint(3, 7)
-            scaling = uniform(0.35, 0.5)
+            noise_terms = randint(1, 4)
+            num_terms = randint(3, 10)
+            scaling = uniform(0.35, 0.4)
+            powers = uniform(0.35, 0.8)
+            shuffle = uniform(0.35, 0.8)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
-                powers_probability=0.4,
-                noise_probability=1.0,
-                shuffle_probability=0.0,
+                powers_probability=powers,
+                noise_probability=0.8,
+                shuffle_probability=shuffle,
                 noise_terms=noise_terms,
             )
-
-            num_terms = randint(2, 7)
-            scaling = uniform(0.35, 0.5)
-            text, complexity = gen_simplify_multiple_terms(
-                num_terms,
-                inner_terms_scaling=scaling,
-                powers_probability=0.5,
-                noise_probability=0.6,
-                shuffle_probability=0.1,
-            )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            num_terms = randint(7, 10)
+            noise_terms = randint(1, 4)
+            num_terms = randint(3, 20)
             scaling = uniform(0.25, 0.75)
+            powers = uniform(0.15, 0.8)
+            shuffle = 0.35
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
-                shuffle_probability=0.5,
-                powers_probability=0.8,
                 inner_terms_scaling=scaling,
+                powers_probability=powers,
+                noise_probability=0.8,
+                shuffle_probability=shuffle,
+                noise_terms=noise_terms,
             )
         else:
             raise ValueError(f"Unknown difficulty: {params.difficulty}")
