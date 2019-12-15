@@ -1,6 +1,7 @@
 import re
 
 import svgwrite
+from typing import List
 
 from mathy import (
     BinaryExpression,
@@ -8,18 +9,18 @@ from mathy import (
     MathExpression,
     MathyEnvState,
     MathyObservation,
+    Token,
+    Tokenizer,
     TreeLayout,
     TreeMeasurement,
     VariableExpression,
     testing,
 )
 
+tokenizer = Tokenizer()
 parser = ExpressionParser()
-layout = TreeLayout()
-matcher_re = r"<code>mathy:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
-features_re = r"<code>features:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
-# TODO: add tokenizer visualization svg
-tokens_re = r"<code>tokens:([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
+
+expression_re = r"<code>([a-z\_]*):([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 # Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
 
@@ -73,9 +74,9 @@ def render_examples_from_tests(match):
         return f"Rule file not found: __{rule_file_name}.json__"
 
 
-def render_tree_from_match(match):
-    global parser, layout
-    input_text = match.group(1)
+def render_tree_from_text(input_text: str):
+    global parser
+    layout = TreeLayout()
     try:
         expression: MathExpression = parser.parse(input_text)
         measure: TreeMeasurement = layout.layout(expression, 50, 50)
@@ -139,9 +140,42 @@ def render_tree_from_match(match):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
-def render_features_from_match(match):
-    global parser, layout
-    input_text = match.group(1)
+BOX_SIZE = 48
+BORDER_WIDTH = 2
+
+
+def box_with_char(
+    drawing: svgwrite.Drawing,
+    text: str,
+    x=0,
+    y=0,
+    width=BOX_SIZE,
+    height=BOX_SIZE,
+    border_width=BORDER_WIDTH,
+    fill="#fff",
+    border="#888",
+    char_width=4,
+    char_height=12,
+):
+    """Render a box with a single character inside of it"""
+    drawing.add(
+        drawing.rect(
+            insert=(x, y),
+            size=(width, height),
+            fill=fill,
+            stroke=border,
+            stroke_width=border_width,
+        )
+    )
+    text_x = x - char_width * len(str(text)) + width // 2
+    text_y = y + height // 2 + char_height // 2
+    drawing.add(
+        drawing.text(text, insert=(text_x, text_y), fill=svgwrite.rgb(50, 50, 50))
+    )
+
+
+def render_features_from_text(input_text: str):
+    global parser
     try:
         expression: MathExpression = parser.parse(input_text)
         state = MathyEnvState(problem=input_text)
@@ -154,36 +188,15 @@ def render_features_from_match(match):
         chars = [n.name for n in nodes]
         assert len(types) == len(values) == len(chars)
 
-        box_size = 48
-        char_width = 4
-        char_height = 12
-        border_width = 2
-
         view_x = 0
         view_y = 0
-        view_w = box_size * length
-        view_h = box_size * 3 + border_width * 2
+        view_w = BOX_SIZE * length
+        view_h = BOX_SIZE * 3 + BORDER_WIDTH * 2
 
         tree = svgwrite.Drawing(size=(view_w, view_h))
         tree.viewbox(minx=view_x, miny=view_y, width=view_w, height=view_h)
 
-        def box_with_char(text, x, y, fill="#fff", border="#888"):
-            tree.add(
-                tree.rect(
-                    insert=(x, y),
-                    size=(box_size, box_size),
-                    fill=fill,
-                    stroke=border,
-                    stroke_width=border_width,
-                )
-            )
-            text_x = x - char_width * len(str(text)) + box_size // 2
-            text_y = y + box_size // 2 + char_height // 2
-            tree.add(
-                tree.text(text, insert=(text_x, text_y), fill=svgwrite.rgb(50, 50, 50))
-            )
-
-        curr_x = border_width
+        curr_x = BORDER_WIDTH
         for n, t, v, c in zip(nodes, types, values, chars):
 
             color = svgwrite.rgb(180, 200, 255)
@@ -194,10 +207,57 @@ def render_features_from_match(match):
             if n == n.get_root():
                 color = svgwrite.rgb(250, 220, 200)
 
-            box_with_char(c, curr_x, border_width, fill=color)
-            box_with_char(v, curr_x, box_size + border_width)
-            box_with_char(t, curr_x, box_size * 2 + border_width)
-            curr_x += box_size - (border_width)
+            box_with_char(tree, c, x=curr_x, y=BORDER_WIDTH, fill=color)
+            box_with_char(tree, v, x=curr_x, y=BOX_SIZE + BORDER_WIDTH)
+            box_with_char(tree, t, x=curr_x, y=BOX_SIZE * 2 + BORDER_WIDTH)
+            curr_x += BOX_SIZE - (BORDER_WIDTH)
+
+        return svgwrite.utils.pretty_xml(tree.tostring(), indent=2)
+    except BaseException as error:
+        return f"Failed to parse: '{input_text}' with error: {error}"
+
+
+def render_tokens_from_text(input_text: str):
+    global tokenizer
+    try:
+        tokens: List[Token] = tokenizer.tokenize(input_text)
+        length = len(tokens)
+        values = [t.value for t in tokens]
+        types = [t.type for t in tokens]
+        assert len(types) == len(values)
+
+        box_size = 64
+        view_x = 0
+        view_y = 0
+        view_w = box_size * length
+        view_h = box_size * 2 + BORDER_WIDTH * 2
+
+        tree = svgwrite.Drawing(size=(view_w, view_h))
+        tree.viewbox(minx=view_x, miny=view_y, width=view_w, height=view_h)
+
+        curr_x = BORDER_WIDTH
+        for t, v in zip(types, values):
+            color = svgwrite.rgb(180, 200, 255)
+            box_with_char(
+                tree,
+                v,
+                x=curr_x,
+                char_width=6,
+                y=BORDER_WIDTH,
+                width=box_size,
+                height=box_size,
+                fill=color,
+            )
+            box_with_char(
+                tree,
+                t,
+                char_width=6,
+                x=curr_x,
+                y=box_size + BORDER_WIDTH,
+                width=box_size,
+                height=box_size,
+            )
+            curr_x += box_size - (BORDER_WIDTH)
 
         return svgwrite.utils.pretty_xml(tree.tostring(), indent=2)
     except BaseException as error:
@@ -212,10 +272,22 @@ def render_markdown(input_text: str):
     return text
 
 
+def render_code_match(match):
+    command = match.group(1)
+    input_text = match.group(2)
+    if command == "mathy":
+        return render_tree_from_text(input_text)
+    elif command == "features":
+        return render_features_from_text(input_text)
+    elif command == "tokens":
+        return render_tokens_from_text(input_text)
+    else:
+        raise ValueError(f"unknown mkdocs plugin render type: {command}")
+
+
 def render_html(input_text: str):
-    global matcher_re
-    text = re.sub(matcher_re, render_tree_from_match, input_text, flags=re.IGNORECASE)
-    text = re.sub(features_re, render_features_from_match, text, flags=re.IGNORECASE)
+    global expression_re
+    text = re.sub(expression_re, render_code_match, input_text, flags=re.IGNORECASE)
     return text
 
 
