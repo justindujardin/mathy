@@ -26,9 +26,10 @@ nav:
   - Binomial Multiply: envs/binomial_multiply.md
 - Machine learning:
   - Overview: ml/overview.md
-#  - Math Embeddings: ml/math_embeddings.md
-#   - Reinforcement Learning: ml/reinforcement_learning.md
-#   - Monte Carlo Tree Search: ml/monte_carlo_tree_search.md
+  - Math Embeddings: ml/math_embeddings.md
+  - Policy/Value Model: ml/math_embeddings.md
+  - Agent - A3C : ml/a3c.md
+  - Agent - Zero : ml/zero.md
 - API Documentation:
   - core:
     - expressions: api/core/expressions.md

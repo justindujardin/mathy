@@ -2,7 +2,7 @@
   <a href="https://mathy.ai"><img mathy-logo src="img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
-    <em>Computer Algebra System and Reinforcement Learning Environments library, with agents that solve math problems step-by-step</em>
+    <em>Computer Algebra System and Reinforcement Learning Environments platform, with agents trained to solve math problems step-by-step</em>
 </p>
 <p align="center">
 <a href="https://travis-ci.org/justindujardin/mathy" target="_blank">
@@ -45,7 +45,7 @@
 
 ---
 
-Mathy wants to be your free math tutor. It uses machine learning to manipulate math problems step-by-step.
+Mathy wants to be your free and open source math tutor. It uses machine learning to manipulate math problems step-by-step.
 
 ## Features
 
@@ -97,6 +97,8 @@ $ pip install mathy
 
 ## Getting Started
 
+Mathy can be used as a command-line tool to simplify basic polynomial problems.
+
 ```
-$ mathy guess "2x + 4 + 3x * 6"
+$ mathy simplify "2x + 4 + 3x * 6"
 ```

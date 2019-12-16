@@ -1,6 +1,15 @@
 ## Overview
 
-Mathy uses machine learning (or ML) to choose which [actions](/cas/rules/overview) to apply to which nodes in an expression tree in order to accomplish [a desired task](/envs/overview).
+Mathy uses machine learning (ML) to choose which [actions](/cas/rules/overview) to apply to which nodes in an expression tree in order to accomplish a [desired task](/envs/overview). Specifically, [Tensorflow 2.x](https://www.tensorflow.org/){target=\_blank} is used with the [Keras API](https://keras.io/){target=\_blank} to implement a [reinforcement learning platform](/envs/overview).
+
+## Features
+
+Mathy uses machine learning in a few ways, and has the following features:
+
+- [Math Embeddings](/ml/embeddings) layer for processing sequences of sequences
+- [Policy/Value model](/ml/policy_value_model) for estimating which actions to apply to which nodes
+- [A3C agent](/ml/a3c) for online training of agents in a CPU-friendly setting
+- [MCTS agent](/ml/zero) for batch training in a GPU-friendly setting
 
 ## Text Preprocessing
 
@@ -8,21 +17,22 @@ Mathy processes an input problem by parsing its text into a tree, converting tha
 
 ### Text to Trees
 
-A problem text is [parsed into a tree](/cas/parser) that encodes the order of operations while removing parentheses and whitespace.
-Consider the tree that results from the input: `-3 * (4 + 7)`
+A problem text is [encoded into tokens](/cas/tokenizer), then [parsed into a tree](/cas/parser) that preserves the order of operations while removing parentheses and whitespace.
+Consider the tokens and tree that result from the input: `-3 * (4 + 7)`
+
+**Tokens**
+
+`tokens:-3 * (4 + 7)`
+
+**Tree**
 
 `mathy:-3 * (4 + 7)`
 
-!!! info "Order of Operations"
-
-        Remember that the order of operations normally puts higher priority on multiplication than addition, but in this
-        case the addition of `4 + 7` has to be resolved first because it is explicitly grouped with parentheses.
+Observe that the tree representation is more concise than the tokens array because it doesn't have nodes for hierarchical features like parentheses.
 
 ### Trees to Lists
 
 Rather than try to feed [expression trees](/cas/parser) into a machine learning model, we [traverse them](/api/core/expressions/#to_list) to produce feature input sequences.
-
-Consider the tree from the previous example encoded in list form: `-3 * (4 + 7)`
 
 `features:-3 * (4 + 7)`
 
@@ -30,31 +40,23 @@ Consider the tree from the previous example encoded in list form: `-3 * (4 + 7)`
 - The second row is the sequence of floating point values for the tree, with each non-constant node represented by a mask value.
 - The third row is the node type integer representing the class of the node in the tree.
 
+!!! info "tree list ordering"
+
+        You might have noticed the features from the previous tree are not expressed in the natural order that we might read them. As observed by [Lample and Charton](https://arxiv.org/pdf/1912.01412.pdf){target=\_blank} trees must be visited in an order that preserves the order-of-operations, so the model can pick up on the hierarchical features of the input.
+
+        For this reason we visit trees in `pre` order for serialization.
+
 ### Lists to Observations
 
-While the feature lists from above may be directly passable to a ML model, they don't include any information about the state of the problem over time. To work with information over time, mathy agents draw extra information from the environment when building observations. This extra information includes:
+While feature lists may be directly passable to a ML model, they don't include any information about the state of the problem over time. To work with information over time, mathy agents draw extra information from the environment when building observations. This extra information includes:
 
 - **Environment Problem Type**: environments all specify an [environment namespace](/api/env/#get_env_namespace) that is converted into a pair of [hashed string values](/api/state/#get_problem_hash) using different random seeds.
 - **Episode Relative Time**: each observation is able to see a 0-1 floating point value that indicates how close the agent is to running out of moves.
 - **[Current](/about/#r2d2) and [Historical](/about/#persistence-pays-off) RNN states**: observations include the recurrent neural network (RNN) state of the agent, and a historical average state from all the timesteps in the current episode.
-- **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are 5 possible actions, and 10 nodes in the tree, there are 50 possible actions to choose from. A same sized (e.g. 50) mask of 0/1 values are provided so that the model can mask out invalid logits when returning probability distributions.
+- **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are 5 possible actions, and 10 nodes in the tree, there are **up to** 50 possible actions to choose from. A same sized (e.g. 50) mask of 0/1 values are provided so that the model can mask out nodes with no valid actions when returning probability distributions.
 
 ### Observations to Embeddings
 
+
+
 2. [embedded](/ml/math_embeddings) into variable length sequences of fixed size vectors that can be fed into a Sequence-to-Sequence ML model.
-
-## Embeddings Model
-
-Mathy's embeddings model takes in a [window of observations](/api/state/#mathywindowobservation) and outputs a sequence of the same length with fixed-size learned embeddings for each token in the sequence.
-
-## Policy Value Model
-
-Mathy's policy/value model takes in a [window of observations](/api/state/#mathywindowobservation) and outputs a weighted distribution over all the possible actions and value estimates for each observation.
-
-## TODO
-
-A set of feature lists for an expression is cool, but it represents only a single moment in time, so it's not a useful if your task is to transform a tree over time into a target state. To do that you need a concept of time, which is where Mathy's [reinforcement learning environments](/envs/overview) enter the equation.
-
-Mathy environments start with an [initial state](/api/env/#get_initial_state) and the record the agent's actions, observations, and rewards after each timestep until the episode is complete.
-
-When a Mathy agent wants to interact with the environment, it makes an [observation](/api/state/#mathyobservation) about the [current state](/api/state/#mathyenvstate) by looking at the environment and summarizing what it sees. State information that is available to build observations include, the problem text, the feature lists generated from it, metadata about the current episode, and a list of past observations from the same episode.

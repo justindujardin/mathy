@@ -16,6 +16,8 @@ Both implicit and explicit variable powers are recognized in this transformation
 
         For example: `x^(2^2) = x^4`
 
+        If you would like to help out with by updating this rule [open an issue here](https://github.com/justindujardin/mathy/issues/new?title=VariableMultiplyRaisePowerToPower){target=\_blank}
+
 #### Explicit powers
 
 In the simplest case both variables have explicit exponents.
