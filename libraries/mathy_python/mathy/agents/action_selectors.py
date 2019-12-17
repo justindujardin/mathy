@@ -75,7 +75,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         if not no_random and np.random.random() < self.epsilon:
             # Select a random action
             action_mask = last_move_mask[:]
-            # normalize all valid action to equal probability
+            # normalize all valid actions to equal probability
             actions = action_mask / np.sum(action_mask)
             action = np.random.choice(len(actions), p=actions)
         else:

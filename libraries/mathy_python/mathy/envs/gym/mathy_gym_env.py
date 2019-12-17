@@ -73,7 +73,9 @@ class MathyGymEnv(gym.Env):
         self.last_reward = round(float(transition.reward), 4)
         return observation, transition.reward, done, info
 
-    def reset_with_input(self, problem_text: str, rnn_size=default_rnn_size, max_moves=16):
+    def reset_with_input(
+        self, problem_text: str, rnn_size=default_rnn_size, max_moves=16
+    ):
         self.rnn_size = rnn_size
         self.last_action = -1
         self.last_change = None
@@ -97,11 +99,6 @@ class MathyGymEnv(gym.Env):
             self.mathy.finalize_state(self.state)
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
-
-    def start_observation(self, rnn_state: RNNStatesFloatList):
-        """return an n-step set of observations for initializing the env"""
-        state, _ = self.mathy.get_initial_state(self.env_problem_args)
-        return state.to_start_observation(rnn_state)
 
     def initial_window(self, rnn_size: int):
         """return an n-step set of observations for initializing the env"""

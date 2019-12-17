@@ -12,7 +12,6 @@ from ..problems import (
     get_rand_term_templates,
     get_rand_vars,
     mathy_term_string,
-    maybe_int,
     maybe_power,
     rand_bool,
     rand_op,

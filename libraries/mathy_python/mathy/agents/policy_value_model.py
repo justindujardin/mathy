@@ -1,6 +1,7 @@
 import pickle
 import os
 import time
+import srsly
 from shutil import copyfile
 from typing import Any, Optional, Tuple
 
@@ -41,6 +42,7 @@ class PolicyValueModel(tf.keras.Model):
             self.policy_td_dense, name="policy_logits"
         )
         self.normalize_pi = tf.keras.layers.LayerNormalization(name="policy_layer_norm")
+        self.normalize_v = tf.keras.layers.LayerNormalization(name="value_layer_norm")
         self.loss = tf.Variable(
             0.0, trainable=False, name="loss_placeholder", dtype=tf.float32
         )
@@ -57,7 +59,7 @@ class PolicyValueModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = self.value_logits(self.embedding.state_h)
+        values = self.normalize_v(self.value_logits(self.embedding.state_h))
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = logits if not apply_mask else mask_logits
@@ -124,6 +126,7 @@ def get_or_create_policy_model(
     env_actions: int,
     initial_state: MathyWindowObservation,
     is_main=False,
+    required=False,
 ) -> PolicyValueModel:
 
     if not os.path.exists(args.model_dir):
@@ -180,11 +183,24 @@ def get_or_create_policy_model(
                 weight_values = pickle.load(f)
 
             model.optimizer.set_weights(weight_values)
+        elif required:
+            raise ValueError(f"model not found: {mod}")
+        elif is_main:
+            cfg = f"{model_path}.config.json"
+            if args.verbose:
+                print(f"writing model config: {cfg}")
+            srsly.write_json(cfg, args.dict(exclude_defaults=False))
+
     elif args.model_format == "tf":
         if os.path.exists(os.path.join(args.model_dir, "checkpoint")):
             if args.verbose:
                 print("Loading model from: {}".format(model_path))
             model.load_weights(model_path)
+        elif is_main:
+            cfg = f"{model_path}.config.json"
+            if args.verbose:
+                print(f"writing model config: {cfg}")
+            srsly.write_json(cfg, args.dict(exclude_defaults=False))
     else:
         raise ValueError(f"error: unknown model format ({args.model_format})")
 

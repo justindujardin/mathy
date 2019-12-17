@@ -285,7 +285,7 @@ class MathyEnvState(object):
             type=hash,
             time=[0.0],
             rnn_state=rnn_state,
-            rnn_history=rnn_placeholder_state(len(rnn_state[0][0])),
+            rnn_history=rnn_state,
         )
 
     def to_empty_observation(self, hash=None, rnn_size: int = 128) -> MathyObservation:
@@ -296,14 +296,15 @@ class MathyEnvState(object):
         if hash is None:
             hash = self.get_problem_hash()
         mask = [0] * num_actions
+        rnn_state = rnn_placeholder_state(rnn_size)
         return MathyObservation(
             nodes=[MathTypeKeys["empty"]],
             mask=mask,
             values=[0.0],
             type=hash,
             time=[0.0],
-            rnn_state=rnn_placeholder_state(rnn_size),
-            rnn_history=rnn_placeholder_state(rnn_size),
+            rnn_state=rnn_state,
+            rnn_history=rnn_state,
         )
 
     def to_observation(

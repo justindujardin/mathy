@@ -71,7 +71,7 @@ class PolySimplify(MathyEnv):
                 inner_terms_scaling=scaling,
                 powers_probability=0.2,
                 noise_probability=0.5,
-                shuffle_probability=0.3,
+                shuffle_probability=0.0,
                 noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:

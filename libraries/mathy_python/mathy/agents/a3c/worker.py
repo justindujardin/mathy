@@ -15,6 +15,7 @@ from ...state import (
     MathyEnvState,
     MathyObservation,
     MathyWindowObservation,
+    ObservationFeatureIndices,
     observations_to_window,
 )
 from ...teacher import Teacher
@@ -55,8 +56,6 @@ class A3CWorker(threading.Thread):
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
-        is_actor: bool = True,
-        is_learner: bool = True,
     ):
         super(A3CWorker, self).__init__()
         self.args = args
@@ -266,10 +265,8 @@ class A3CWorker(threading.Thread):
         for i in range(self.args.num_thinking_steps_begin):
             rnn_state_h = selector.model.embedding.state_h.numpy()
             rnn_state_c = selector.model.embedding.state_c.numpy()
-            seq_start = env.start_observation([rnn_state_h, rnn_state_c])
-            selector.model.predict_next(
-                observations_to_window([seq_start]).to_inputs()
-            )
+            seq_start = env.state.to_start_observation([rnn_state_h, rnn_state_c])
+            selector.model.call(observations_to_window([seq_start]).to_inputs())
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
@@ -293,13 +290,26 @@ class A3CWorker(threading.Thread):
             # before_rnn_state_c = selector.model.embedding.state_c.numpy()
 
             window = episode_memory.to_window_observation(last_observation)
-            action, value = selector.select(
-                last_state=env.state,
-                last_window=window,
-                last_action=last_action,
-                last_reward=last_reward,
-                last_rnn_state=last_rnn_state,
-            )
+            try:
+                action, value = selector.select(
+                    last_state=env.state,
+                    last_window=window,
+                    last_action=last_action,
+                    last_reward=last_reward,
+                    last_rnn_state=last_rnn_state,
+                )
+            except BaseException as e:
+                print("Prediction failed with error:", e)
+                print(
+                    "RNN States:",
+                    np.array(window[ObservationFeatureIndices.rnn_state]).shape,
+                )
+                print(
+                    "RNN History:",
+                    np.array(window[ObservationFeatureIndices.rnn_history]).shape,
+                )
+                # print("Inputs to model are:", window)
+                continue
             # Take an env step
             observation, reward, done, _ = env.step(action)
             rnn_state_h = selector.model.embedding.state_h.numpy()
