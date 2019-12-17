@@ -6,6 +6,7 @@ Command line application for interacting with Mathy agents and environments.
 from multiprocessing import cpu_count
 
 import click
+from wasabi import msg
 
 
 @click.group()
@@ -28,11 +29,17 @@ def cli_contribute():
 
 
 @cli.command("simplify")
+@click.option(
+    "model",
+    "--model",
+    default="training/alpha_piv_norm",
+    help="The path to a mathy model",
+)
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
 @click.option(
     "thinking_steps",
     "--think",
-    default=0,
+    default=3,
     help="The number of steps to think about the problem before starting an episode",
 )
 @click.option(
@@ -42,9 +49,10 @@ def cli_contribute():
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(agent: str, problem: str, thinking_steps: int, max_steps: int):
+def cli_simplify(
+    agent: str, problem: str, model: str, thinking_steps: int, max_steps: int
+):
     """Simplify an input polynomial expression."""
-    model_dir = "training/poly_vhidden2"
     setup_tf_env()
     import gym
     from mathy.envs.gym import MathyGymEnv
@@ -58,8 +66,7 @@ def cli_simplify(agent: str, problem: str, thinking_steps: int, max_steps: int):
     from .util import calculate_grouping_control_signal
 
     args = A3CConfig(
-        topics=["poly"],
-        model_dir=model_dir,
+        model_dir=model,
         units=512,
         num_thinking_steps_begin=thinking_steps,
         embedding_units=512,
@@ -75,6 +82,7 @@ def cli_simplify(agent: str, problem: str, thinking_steps: int, max_steps: int):
         args=args,
         env_actions=env.action_space.n,
         initial_state=env.initial_window(args.lstm_units),
+        required=True,
     )
     last_observation: MathyObservation = env.reset_with_input(
         problem_text=problem, rnn_size=args.lstm_units, max_moves=max_steps
@@ -92,8 +100,8 @@ def cli_simplify(agent: str, problem: str, thinking_steps: int, max_steps: int):
     for i in range(args.num_thinking_steps_begin + 1):
         rnn_state_h = selector.model.embedding.state_h.numpy()
         rnn_state_c = selector.model.embedding.state_c.numpy()
-        seq_start = env.start_observation([rnn_state_h, rnn_state_c])
-        selector.model.predict_next(observations_to_window([seq_start]).to_inputs())
+        seq_start = env.state.to_start_observation([rnn_state_h, rnn_state_c])
+        selector.model.call(observations_to_window([seq_start]).to_inputs())
 
     done = False
     while not done:
@@ -190,7 +198,11 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 
     for i in range(number):
         state, problem = env.mathy.get_initial_state(print_problem=False)
-        print(problem.text)
+        try:
+            env.mathy.parser.parse(problem.text)
+            msg.good(problem.text)
+        except BaseException as error:
+            msg.fail(f"Parse failed '{problem.text}':  {error}")
 
 
 @cli.command("train")
