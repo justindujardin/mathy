@@ -45,6 +45,21 @@ def compare_expression_string_values(
     )
 
 
+def raise_with_history(
+    title: str, description: str, history: Optional[List[Any]] = None,
+):
+    from wasabi import TracebackPrinter
+    import traceback
+
+    history_text: List[str] = []
+    if history is not None:
+        history_text = [f" - {h.raw}" for h in history]
+    history_text.insert(0, description)
+    tb = TracebackPrinter(tb_base="mathy")
+    error = tb(title, "\n".join(history_text), tb=traceback.extract_stack())
+    raise ValueError(error)
+
+
 def compare_expression_values(
     from_expression: MathExpression,
     to_expression: MathExpression,
@@ -60,34 +75,41 @@ def compare_expression_values(
     # If there are not the same unique vars in the two expressions, something
     # bad happened, and the two expressions can only coincidentally be equal
     # in value.
-    assert len(vars_from) == len(
-        vars_to
-    ), f"unique variable count changed: ({len(vars_from)} != {len(vars_to)})"
+    if len(vars_from) != len(vars_to):
+        raise_with_history(
+            "Number of variables changed",
+            f"{list(vars_from)} != {list(vars_to)}",
+            history,
+        )
 
     sorted_from = list(vars_from)
     sorted_from.sort()
     sorted_to = list(vars_from)
     sorted_to.sort()
-    assert (
-        sorted_from == sorted_to
-    ), f"unique variables changed: ({sorted_from} != {sorted_to})"
+
+    if sorted_from != sorted_to:
+        raise_with_history(
+            "Unique variables changed", f"{sorted_from} != {sorted_to}", history,
+        )
 
     # Generate random values for each variable, and then evaluate the expressions
-    eval_context: Dict[str, int] = {}
+    eval_context: Dict[str, float] = {}
     for var in vars_from:
-        eval_context[var] = np.random.randint(1, 100)
+        eval_context[var] = float(np.random.randint(1, 100))
 
     value_from = from_expression.evaluate(eval_context)
     value_to = to_expression.evaluate(eval_context)
 
     # Print out the problem steps leading up to error result.
-    if value_from != value_to:
-        if history is not None:
-            for h in history:
-                print(f" - {h.raw}")
-        raise ValueError(
-            f"({from_expression}) == {value_from} != ({to_expression}) == {value_to}"
-        )
+    if not math.isclose(value_from, value_to, rel_tol=1e-9, abs_tol=0.0):
+        changed = f"""
+        {from_expression} = {value_from}
+
+        {to_expression} = {value_to}
+
+        {value_from} != {value_to}
+        """
+        raise_with_history("Expression value changed", changed, history)
 
 
 def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:

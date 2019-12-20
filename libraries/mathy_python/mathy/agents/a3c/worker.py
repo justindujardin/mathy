@@ -9,6 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import gym
 import numpy as np
 import tensorflow as tf
+from wasabi import msg
+
+from ...traceback import print_error
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
@@ -51,7 +54,6 @@ class A3CWorker(threading.Thread):
         optimizer,
         greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,
-        experience_queue: Queue,
         cmd_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
@@ -63,26 +65,26 @@ class A3CWorker(threading.Thread):
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
-        self.experience_queue = experience_queue
         self.cmd_queue = cmd_queue
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
         self.teacher = teacher
         self.envs = {}
-        first_env = self.teacher.get_env(self.worker_idx, self.iteration)
-        self.envs[first_env] = gym.make(first_env)
-        self.writer = writer
-        self.local_model = get_or_create_policy_model(
-            args,
-            self.action_size,
-            self.envs[first_env].initial_window(self.args.lstm_units),
-        )
-        self.reset_episode_loss()
-        self.last_model_write = -1
-        self.last_histogram_write = -1
 
-        print(f"[#{worker_idx}] e: {self.epsilon} topics: {self.args.topics}")
+        with msg.loading(f"Worker {worker_idx} starting..."):
+            first_env = self.teacher.get_env(self.worker_idx, self.iteration)
+            self.envs[first_env] = gym.make(first_env)
+            self.writer = writer
+            self.local_model = get_or_create_policy_model(
+                args,
+                self.action_size,
+                self.envs[first_env].initial_window(self.args.lstm_units),
+            )
+            self.reset_episode_loss()
+            self.last_model_write = -1
+            self.last_histogram_write = -1
+        msg.good(f"Worker {worker_idx} started.")
 
     @property
     def tb_prefix(self) -> str:
@@ -266,7 +268,14 @@ class A3CWorker(threading.Thread):
             rnn_state_h = selector.model.embedding.state_h.numpy()
             rnn_state_c = selector.model.embedding.state_c.numpy()
             seq_start = env.state.to_start_observation([rnn_state_h, rnn_state_c])
-            selector.model.call(observations_to_window([seq_start]).to_inputs())
+            try:
+                window = observations_to_window([seq_start, last_observation])
+                selector.model.call(window.to_inputs())
+            except BaseException as err:
+                print_error(
+                    err, f"Episode begin thinking steps prediction failed.",
+                )
+                continue
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
@@ -298,18 +307,10 @@ class A3CWorker(threading.Thread):
                     last_reward=last_reward,
                     last_rnn_state=last_rnn_state,
                 )
-            except BaseException as e:
-                print("Prediction failed with error:", e)
-                print(
-                    "RNN States:",
-                    np.array(window[ObservationFeatureIndices.rnn_state]).shape,
-                )
-                print(
-                    "RNN History:",
-                    np.array(window[ObservationFeatureIndices.rnn_history]).shape,
-                )
-                # print("Inputs to model are:", window)
+            except BaseException as err:
+                print_error(err, "failed to select an action during an episode step")
                 continue
+
             # Take an env step
             observation, reward, done, _ = env.step(action)
             rnn_state_h = selector.model.embedding.state_h.numpy()
@@ -382,7 +383,7 @@ class A3CWorker(threading.Thread):
             ep_steps += 1
             time_count += 1
             last_observation = observation
-            last_action = action
+            last_action = int(action)
             last_reward = reward
 
             # If there are multiple workers, apply a worker sleep
@@ -568,7 +569,9 @@ class A3CWorker(threading.Thread):
         policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
-        h_loss = discrete_policy_entropy_loss(logits, normalise=True)
+        h_loss = discrete_policy_entropy_loss(
+            logits, normalise=self.args.normalize_entropy_loss
+        )
         # Scale entropy loss down
         entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
         entropy_loss = tf.reduce_mean(entropy_loss)

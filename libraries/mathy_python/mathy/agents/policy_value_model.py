@@ -1,15 +1,17 @@
-import pickle
 import os
+import pickle
 import time
-import srsly
 from shutil import copyfile
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
+import srsly
 import tensorflow as tf
 from tensorflow.python.keras import backend as K
+from wasabi import msg
+from ..traceback import print_error
 
-from ..state import MathyWindowObservation, MathyInputsType, ObservationFeatureIndices
+from ..state import MathyInputsType, MathyWindowObservation, ObservationFeatureIndices
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
 from .swish_activation import swish
@@ -72,7 +74,7 @@ class PolicyValueModel(tf.keras.Model):
         return logits, values, mask_result
 
     def apply_pi_mask(
-        self, logits, features_window: MathyInputsType,
+        self, logits: tf.Tensor, features_window: MathyInputsType,
     ):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves"""
@@ -121,6 +123,14 @@ class PolicyValueModel(tf.keras.Model):
         print(f"[save] step({step}) model({model_path})")
 
 
+def _load_model(model: PolicyValueModel, model_file: str, optimizer_file: str):
+    model.load_weights(model_file)
+    model._make_train_function()
+    with open(optimizer_file, "rb") as f:
+        weight_values = pickle.load(f)
+    model.optimizer.set_weights(weight_values)
+
+
 def get_or_create_policy_model(
     args: BaseConfig,
     env_actions: int,
@@ -139,16 +149,20 @@ def get_or_create_policy_model(
             opt = f"{init_model_path}.optimizer"
             mod = f"{init_model_path}.h5"
             if os.path.exists(f"{model_path}.h5"):
-                raise ValueError(
-                    f"model already exists at: {model_path}, cannot initialize"
+                print_error(
+                    ValueError("Model Exists"),
+                    f"Cannot initialize on top of model: {model_path}",
+                    print_error=False,
                 )
             if os.path.exists(opt) and os.path.exists(mod):
                 print(f"initialize model from: {init_model_path}")
                 copyfile(opt, f"{model_path}.optimizer")
                 copyfile(mod, f"{model_path}.h5")
             else:
-                raise ValueError(
-                    f"model already exists at: {model_path}, cannot initialize"
+                print_error(
+                    ValueError("Model Exists"),
+                    f"Cannot initialize on top of model: {model_path}",
+                    print_error=False,
                 )
         elif args.model_format == "tf":
             raise ValueError(
@@ -175,20 +189,27 @@ def get_or_create_policy_model(
         opt = f"{model_path}.optimizer"
         mod = f"{model_path}.h5"
         if os.path.exists(mod):
-            if args.verbose:
-                print(f"Loading keras model and optimizer from: {mod}, {opt}")
-            model.load_weights(mod)
-            model._make_train_function()
-            with open(opt, "rb") as f:
-                weight_values = pickle.load(f)
+            if is_main and args.verbose:
+                with msg.loading(f"Loading model: {mod}..."):
+                    _load_model(model, mod, opt)
+                msg.good(f"Loaded model: {mod}")
+            else:
+                _load_model(model, mod, opt)
 
-            model.optimizer.set_weights(weight_values)
+            # If we're doing transfer, reset optimizer steps
+            if is_main and args.init_model_from is not None:
+                msg.info("reset optimizer steps to 0 for transfer model")
+                model.optimizer.iterations.assign(0)
         elif required:
-            raise ValueError(f"model not found: {mod}")
+            print_error(
+                ValueError("Model Not Found"),
+                f"Cannot find model: {mod}",
+                print_error=False,
+            )
         elif is_main:
             cfg = f"{model_path}.config.json"
             if args.verbose:
-                print(f"writing model config: {cfg}")
+                msg.info(f"wrote model config: {cfg}")
             srsly.write_json(cfg, args.dict(exclude_defaults=False))
 
     elif args.model_format == "tf":
@@ -199,9 +220,14 @@ def get_or_create_policy_model(
         elif is_main:
             cfg = f"{model_path}.config.json"
             if args.verbose:
-                print(f"writing model config: {cfg}")
+                msg.info(f"wrote model config: {cfg}")
             srsly.write_json(cfg, args.dict(exclude_defaults=False))
     else:
-        raise ValueError(f"error: unknown model format ({args.model_format})")
+        print_error(
+            ValueError("Unknown Format"),
+            f"The model format ({args.model_format}) is not understood."
+            f"Choose one of 'tf' or 'keras'.",
+            print_error=False,
+        )
 
     return model
