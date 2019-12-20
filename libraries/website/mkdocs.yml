@@ -26,8 +26,8 @@ nav:
   - Binomial Multiply: envs/binomial_multiply.md
 - Machine learning:
   - Overview: ml/overview.md
-  - Math Embeddings: ml/math_embeddings.md
-  - Policy/Value Model: ml/math_embeddings.md
+  - Math Embeddings: ml/embeddings.md
+  - Policy/Value Model: ml/policy_value_model.md
   - Agent - A3C : ml/a3c.md
   - Agent - Zero : ml/zero.md
 - API Documentation:

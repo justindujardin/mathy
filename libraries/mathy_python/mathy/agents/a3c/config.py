@@ -56,7 +56,7 @@ class A3CConfig(BaseConfig):
     #       destabilizing the overall loss when it grows very small
     entropy_loss_scaling = 1.0
     # Whether to scale entropy loss so it's 0-1
-    normalize_entropy_loss = True
+    normalize_entropy_loss = False
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 1.0
@@ -69,9 +69,10 @@ class A3CConfig(BaseConfig):
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
     teacher_evaluation_steps = 20
     # If the agent wins >= this value, promote to the next difficulty class
-    # 85 percent loosely inspired by:
+    # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
-    teacher_promote_wins = 0.85
+    # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
+    teacher_promote_wins = 0.95
     # If the agent loses >= this value, demot to the previous difficulty class
     teacher_demote_wins = 0.60
 
