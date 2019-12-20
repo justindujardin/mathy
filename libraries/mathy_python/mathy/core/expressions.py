@@ -3,6 +3,7 @@ from .tree import BinaryTreeNode, STOP
 import numpy
 from colr import color
 import math
+import numpy as np
 
 OOO_FUNCTION = 4
 OOO_PARENS = 3
@@ -677,7 +678,7 @@ class ConstantExpression(MathExpression):
 
     @property
     def name(self):
-        return f"{self.value}"
+        return np.format_float_positional(self.value, trim="-")
 
     @property
     def type_id(self):
@@ -696,7 +697,7 @@ class ConstantExpression(MathExpression):
         return self.value
 
     def __str__(self):
-        return self.with_color("{}".format(self.value))
+        return self.with_color(self.name)
 
     def to_json(self):
         result = super().to_json()
