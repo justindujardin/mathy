@@ -217,6 +217,44 @@ def render_features_from_text(input_text: str):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
+def render_types_from_text(input_text: str, visit_order: str):
+    global parser
+    try:
+        expression: MathExpression = parser.parse(input_text)
+        nodes = expression.to_list(visit_order)
+        length = len(nodes)
+        chars = [n.name for n in nodes]
+        types = [n.type_id for n in nodes]
+        assert len(types) == len(chars)
+
+        view_x = 0
+        view_y = 0
+        view_w = BOX_SIZE * length
+        view_h = BOX_SIZE * 2 + BORDER_WIDTH * 2
+
+        tree = svgwrite.Drawing(size=(view_w, view_h))
+        tree.viewbox(minx=view_x, miny=view_y, width=view_w, height=view_h)
+
+        curr_x = BORDER_WIDTH
+        for n, t, c in zip(nodes, types, chars):
+
+            color = svgwrite.rgb(180, 200, 255)
+            if isinstance(n, BinaryExpression):
+                color = svgwrite.rgb(230, 230, 230)
+            elif isinstance(n, VariableExpression):
+                color = svgwrite.rgb(150, 250, 150)
+            if n == n.get_root():
+                color = svgwrite.rgb(250, 220, 200)
+
+            box_with_char(tree, c, x=curr_x, y=BORDER_WIDTH, fill=color)
+            box_with_char(tree, t, x=curr_x, y=BOX_SIZE + BORDER_WIDTH)
+            curr_x += BOX_SIZE - (BORDER_WIDTH)
+
+        return svgwrite.utils.pretty_xml(tree.tostring(), indent=2)
+    except BaseException as error:
+        return f"Failed to parse: '{input_text}' with error: {error}"
+
+
 def render_tokens_from_text(input_text: str):
     global tokenizer
     try:
@@ -279,6 +317,12 @@ def render_code_match(match):
         return render_tree_from_text(input_text)
     elif command == "features":
         return render_features_from_text(input_text)
+    elif command == "types_pre":
+        return render_types_from_text(input_text, "preorder")
+    elif command == "types_post":
+        return render_types_from_text(input_text, "postorder")
+    elif command == "types_in":
+        return render_types_from_text(input_text, "inorder")
     elif command == "tokens":
         return render_tokens_from_text(input_text)
     else:
