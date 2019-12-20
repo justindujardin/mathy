@@ -5,11 +5,9 @@ from typing import List
 
 import gym
 import numpy as np
-from colr import color
 
-from ...state import MathyEnvState, MathyObservation, observations_to_window
 from ...teacher import Teacher
-from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
+from ..policy_value_model import get_or_create_policy_model, PolicyValueModel
 from .config import A3CConfig
 from .worker import A3CWorker
 
@@ -17,6 +15,7 @@ from .worker import A3CWorker
 class A3CAgent:
 
     args: A3CConfig
+    global_model: PolicyValueModel
 
     def __init__(self, args: A3CConfig):
         import tensorflow as tf
@@ -66,7 +65,6 @@ class A3CAgent:
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
-                experience_queue=exp_out_queue,
                 cmd_queue=cmd_queues[i],
                 greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
@@ -84,18 +82,6 @@ class A3CAgent:
 
         try:
             while True:
-                try:
-                    # Share experience between workers
-                    index, frames = exp_out_queue.get_nowait()
-                    # It's lame, but post it back to the others.
-                    for i, q in enumerate(cmd_queues):
-                        # Don't post back to self
-                        if i == index:
-                            continue
-                        q.put(("experience", frames))
-                except BaseException:
-                    pass
-
                 reward = res_queue.get()
                 if reward is None:
                     break
@@ -106,48 +92,3 @@ class A3CAgent:
 
         [w.join() for w in workers]
         print("Done. Bye!")
-
-    def play(self, loop=False):
-        import tensorflow as tf
-
-        model = self.global_model
-        envs = {}
-        try:
-            episode_counter = 0
-            while loop is True:
-                env_name = self.teacher.get_env(0, episode_counter)
-                if env_name not in envs:
-                    envs[env_name] = gym.make(env_name).unwrapped
-                env = envs[env_name]
-                state = env.reset(rnn_size=self.args.lstm_units)
-                done = False
-                step_counter = 0
-                reward_sum = 0
-                while not done:
-                    env.render(mode="terminal")
-                    policy, value, probs = model.call(observations_to_window([state]))
-                    probs = tf.nn.softmax(probs).numpy()
-
-                    action = np.argmax(probs)
-                    state, reward, done, _ = env.step(action)
-                    reward_sum += reward
-                    win = False
-                    if done and reward > 0.0:
-                        win = True
-                        env.render(mode="terminal")
-                    if done:
-                        print(
-                            color(
-                                text="SOLVE" if win else "FAIL",
-                                fore="green" if win else "red",
-                            )
-                        )
-
-                    step_counter += 1
-                # Episode counter
-                episode_counter += 1
-
-        except KeyboardInterrupt:
-            print("Received Keyboard Interrupt. Shutting down.")
-        finally:
-            env.close()
