@@ -184,7 +184,7 @@ def cli_simplify(
     default="easy",
     help="One of 'easy', 'normal', or 'hard'",
 )
-@click.option("number", "--number", default=25, help="The number of problems to print")
+@click.option("number", "--number", default=10, help="The number of problems to print")
 def cli_print_problems(environment: str, difficulty: str, number: int):
     """Print a set of generated problems from a given environment.
 
@@ -194,15 +194,29 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     import gym
     from mathy.envs.gym import MathyGymEnv
 
-    env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
+    env_name = f"mathy-{environment}-{difficulty}-v0"
+    env: MathyGymEnv = gym.make(env_name)
+    msg.divider(env_name)
+    with msg.loading(f"Generating {number} problems..."):
+        header = ("Complexity", "Is Valid", "Text")
+        widths = (10, 8, 62)
+        aligns = ("c", "c", "l")
+        data = []
+        for i in range(number):
+            state, problem = env.mathy.get_initial_state(
+                env.env_problem_args, print_problem=False
+            )
+            valid = False
+            text = problem.text
+            try:
+                env.mathy.parser.parse(problem.text)
+                valid = True
+            except BaseException as error:
+                text = f"parse failed for '{problem.text}' with error: {error}"
+            data.append((problem.complexity, "✔" if valid else "✘", text,))
+    msg.good(f"\nGenerated {number} problems!")
 
-    for i in range(number):
-        state, problem = env.mathy.get_initial_state(print_problem=False)
-        try:
-            env.mathy.parser.parse(problem.text)
-            msg.good(problem.text)
-        except BaseException as error:
-            msg.fail(f"Parse failed '{problem.text}':  {error}")
+    print(msg.table(data, header=header, divider=True, widths=widths, aligns=aligns))
 
 
 @cli.command("train")
