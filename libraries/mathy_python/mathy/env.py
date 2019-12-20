@@ -165,7 +165,7 @@ class MathyEnv:
         bonus = (total_moves / current_move) / total_moves
         # If the episode is not very short, and the agent completes in half
         # the number of allowed steps, double the bonus signal
-        if total_moves > 4 and current_move < total_moves / 2:
+        if total_moves > 10 and current_move < total_moves / 2:
             bonus *= 2
         return EnvRewards.WIN + bonus
 
