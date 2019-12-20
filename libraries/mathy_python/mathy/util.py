@@ -143,10 +143,11 @@ def unlink(node: Optional[MathExpression] = None) -> Optional[MathExpression]:
 def factor(value) -> Dict[int, int]:
     if value == 0 or math.isnan(value):
         return {}
-
+    np.seterr(invalid="ignore")
     sqrt = np.sqrt(value)
+    np.seterr(invalid="warn")
     if math.isnan(sqrt):
-        return {}
+        return {1: value}
 
     sqrt = int(sqrt + 1)
     factors = {1: value}
