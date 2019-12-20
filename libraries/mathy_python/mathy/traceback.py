@@ -1,10 +1,11 @@
 # coding: utf8
 # inlined from: https://github.com/ines/wasabi/blob/master/wasabi/traceback.py
-from __future__ import unicode_literals, print_function
+from __future__ import print_function, unicode_literals
 
-from wasabi.util import color, supports_ansi, NO_UTF8
+import os
 import traceback
 
+from wasabi.util import NO_UTF8, color, supports_ansi
 
 LINE_EDGE = "└─" if not NO_UTF8 else "|_"
 LINE_FORK = "├─" if not NO_UTF8 else "|__"
@@ -42,7 +43,11 @@ class TracebackPrinter(object):
         self.color_tb = color_tb
         self.color_highlight = color_highlight
         self.indent = " " * indent
-        self.tb_base = "/{}/".format(tb_base) if tb_base else None
+        if tb_base == ".":
+            tb_base = f"{os.getcwd()}/"
+        elif tb_base is not None:
+            tb_base = "/{}/".format(tb_base)
+        self.tb_base = tb_base
         self.tb_exclude = tuple(tb_exclude)
         self.tb_range_start = tb_range_start
         self.tb_range_end = tb_range_end
@@ -118,12 +123,14 @@ class TracebackPrinter(object):
 
 def print_error(error, text, print_error=True):
 
-    caught_error = TracebackPrinter(color_error="yellow", tb_range_start=-15)(
+    caught_error = TracebackPrinter(
+        color_error="yellow", tb_base=".", tb_range_start=-15
+    )(
         error.__class__.__name__,
         f"{error}",
         tb=traceback.extract_tb(error.__traceback__),
     )
-    caught_at = TracebackPrinter(color_tb="white", tb_range_start=-15, tb_range_end=-1)(
+    caught_at = TracebackPrinter(tb_base=".", tb_range_start=-15, tb_range_end=-1)(
         f"Error: {text}", f"Caught at:", tb=traceback.extract_stack(),
     )
 
@@ -131,4 +138,3 @@ def print_error(error, text, print_error=True):
         print(caught_at + caught_error)
     else:
         raise ValueError(caught_at + caught_error)
-

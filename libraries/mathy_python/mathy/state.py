@@ -277,6 +277,10 @@ class MathyEnvState(object):
         num_actions = 1 * self.num_rules
         hash = self.get_problem_hash()
         mask = [0] * num_actions
+        # HACKS: if you swap this line with below and train an agent on "poly,complex,binomial"
+        #        it will crash after a few episodes, allowing you to test the error printing with
+        #        call stack print outs.
+        # values = [0.0] * num_actions
         values = [0.0]
         return MathyObservation(
             nodes=[MathTypeKeys["empty"]],

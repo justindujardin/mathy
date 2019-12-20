@@ -55,7 +55,7 @@ def raise_with_history(
     if history is not None:
         history_text = [f" - {h.raw}" for h in history]
     history_text.insert(0, description)
-    tb = TracebackPrinter(tb_base="mathy")
+    tb = TracebackPrinter()
     error = tb(title, "\n".join(history_text), tb=traceback.extract_stack())
     raise ValueError(error)
 
