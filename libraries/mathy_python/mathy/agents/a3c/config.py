@@ -38,7 +38,7 @@ class A3CConfig(BaseConfig):
     mcts_recover_time_threshold: float = 0.66
 
     # Whether to use the grouping change aux task
-    use_grouping_control = True
+    use_grouping_control = False
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
@@ -47,17 +47,19 @@ class A3CConfig(BaseConfig):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.5
+    worker_wait: float = 0.01
 
     # The number of worker agents to create.
     num_workers: int = 3
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.05
+    entropy_loss_scaling = 1.0
+    # Whether to scale entropy loss so it's 0-1
+    normalize_entropy_loss = True
 
     # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 0.1
+    aux_tasks_weight_scale = 1.0
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
     td_lambda: float = 0.2
@@ -71,7 +73,7 @@ class A3CConfig(BaseConfig):
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
     teacher_promote_wins = 0.85
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.84
+    teacher_demote_wins = 0.60
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

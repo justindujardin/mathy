@@ -13,7 +13,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         units: int,
         lstm_units: int,
         embedding_units: int,
-        use_env_features: bool = True,
+        use_env_features: bool = False,
         use_node_values: bool = True,
         episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
@@ -40,9 +40,9 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # +2 for the problem type hashes
         self.concat_size = (
             4 if self.use_env_features else 1 if self.use_node_values else 0
-        ) * self.units
-        if self.use_node_values:
-            self.values_dense = tf.keras.layers.Dense(self.units, name="values_input")
+        )
+        # if self.use_node_values:
+        #     self.values_dense = tf.keras.layers.Dense(self.units, name="values_input")
         if self.use_env_features:
             self.time_dense = tf.keras.layers.Dense(self.units, name="time_input")
             self.type_dense = tf.keras.layers.Dense(self.units, name="type_input")
@@ -124,8 +124,8 @@ class MathyEmbedding(tf.keras.layers.Layer):
             values = tf.expand_dims(values, axis=-1, name="values_input")
             query = self.token_embedding(nodes)
 
-            if self.use_node_values:
-                values = self.values_dense(values)
+            # if self.use_node_values:
+            #     values = self.values_dense(values)
 
             # If not using env features, only concatenate the tokens and values
             if not self.use_env_features and self.use_node_values:
@@ -207,4 +207,3 @@ class MathyEmbedding(tf.keras.layers.Layer):
             output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
 
         return self.out_dense_norm(self.output_dense(output))
-

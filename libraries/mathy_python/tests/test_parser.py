@@ -1,12 +1,20 @@
 from ..mathy.core.tokenizer import Token
 from ..mathy.core.tree import BinaryTreeNode
-from ..mathy.core.expressions import ConstantExpression, VariableExpression, AddExpression
+from ..mathy.core.expressions import (
+    ConstantExpression,
+    VariableExpression,
+    AddExpression,
+)
 from ..mathy.core.parser import ExpressionParser
 
 
 def test_parser_to_string():
     parser = ExpressionParser()
     expects = [
+        {
+            "input": "(-2.2578933001594296e+16h^2 * v) * j^4",
+            "output": "(-2.2578933001594296e+16h^2 * v) * j^4",
+        },
         {"input": "1f + 98i + 3f + 14t", "output": "1f + 98i + 3f + 14t"},
         {"input": "4x * p^(1 + 3) * 12x^2", "output": "4x * p^(1 + 3) * 12x^2"},
         {"input": "(5 * 3) * (32 / 7)", "output": "(5 * 3) * 32 / 7"},

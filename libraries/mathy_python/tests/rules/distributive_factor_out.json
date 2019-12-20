@@ -4,6 +4,16 @@
   },
   "valid": [
     {
+      "input": "5.8c + (3393c + 6o + -8614k)",
+      "output": "(5.8 + 3393) * c + (6o + -8614k)",
+      "why": "invariance to sibling grouping"
+    },
+    {
+      "input": "8b + (v * 11.8 + 9b + -9036.3b)",
+      "output": "8b + (v * 11.8 + (9 + -9036.3) * b)",
+      "why": "invariance to negative coefficients"
+    },
+    {
       "input": "8c + (4v + 9n) + 7n + 4r",
       "output": "8c + 4v + (9 + 7) * n + 4r",
       "why": "invariance to sibling grouping"

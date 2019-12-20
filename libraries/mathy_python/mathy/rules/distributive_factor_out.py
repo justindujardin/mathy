@@ -1,5 +1,11 @@
-from typing import Optional, Tuple
-from ..core.expressions import AddExpression, MultiplyExpression, SubtractExpression
+from typing import List, Optional, Tuple
+
+from ..core.expressions import (
+    AddExpression,
+    MathExpression,
+    MultiplyExpression,
+    SubtractExpression,
+)
 from ..core.rule import BaseRule
 from ..util import (
     TermEx,
@@ -44,6 +50,7 @@ class DistributiveFactorOutRule(BaseRule):
     POS_CHAINED_BOTH = "chained_both"
     POS_CHAINED_LEFT = "chained_left"
     POS_CHAINED_LEFT_RIGHT = "chained_left_right"
+    POS_CHAINED_RIGHT_LEFT = "chained_right_left"
     POS_CHAINED_RIGHT = "chained_right"
 
     @property
@@ -111,9 +118,27 @@ class DistributiveFactorOutRule(BaseRule):
                 return None
             if isinstance(node.right, AddExpression):
                 right_term = get_term_ex(node.right.left)
+            if right_term is not None:
+                if right_term.variable is None:
+                    return None
+                return (
+                    DistributiveFactorOutRule.POS_CHAINED_RIGHT,
+                    left_term,
+                    right_term,
+                )
+
+            # check inside another group
+            if isinstance(node.right, AddExpression) and isinstance(
+                node.right.left, AddExpression
+            ):
+                right_term = get_term_ex(node.right.left.left)
             if right_term is None or right_term.variable is None:
                 return None
-            return DistributiveFactorOutRule.POS_CHAINED_RIGHT, left_term, right_term
+            return (
+                DistributiveFactorOutRule.POS_CHAINED_RIGHT_LEFT,
+                left_term,
+                right_term,
+            )
 
         # Right child is a term
         if right_term is not None:
@@ -167,6 +192,23 @@ class DistributiveFactorOutRule(BaseRule):
 
         return True
 
+    def get_left_leaf_term(
+        self, node: MathExpression
+    ) -> Tuple[Optional[TermEx], List[str]]:
+        """Given a math expression node, find its left leaf term that is
+        validly connected by the commutative or associative properties. """
+        path = ["left"]
+        term = get_term_ex(node.left)
+        if term is not None:
+            return term, path
+
+        curr = node
+        while curr is not None and curr.right is not None:
+            term = get_term_ex(curr.right)
+            path.append("right")
+            curr = curr.right
+        return None, []
+
     def apply_to(self, node):
         change = super().apply_to(node).save_parent()
         tree_position, left_term, right_term = self.get_type(node)
@@ -204,6 +246,11 @@ class DistributiveFactorOutRule(BaseRule):
         if tree_position == DistributiveFactorOutRule.POS_CHAINED_LEFT_RIGHT:
             keep_child = AddExpression(node.left.left, node.left.right.left)
             result = AddExpression(keep_child, result)
+
+        # Fix the links to existing nodes on the right-left side of the result
+        if tree_position == DistributiveFactorOutRule.POS_CHAINED_RIGHT_LEFT:
+            keep_child = AddExpression(node.right.left.right, node.right.right)
+            result = AddExpression(result, keep_child)
 
         # Fix the links to existing nodes on the right side of the result
         right_positions = [

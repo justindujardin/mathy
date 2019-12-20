@@ -26,7 +26,7 @@ class PolySimplify(MathyEnv):
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
         if config.difficulty == MathyEnvDifficulty.easy:
-            multiplier = 3
+            multiplier = 4
         elif problem.complexity < 5:
             multiplier = 2
         elif problem.complexity < 7:
@@ -62,6 +62,8 @@ class PolySimplify(MathyEnv):
         - (6, 4) = "4x + v^3 + y + 5z + 12v^3 + x"
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
+        noise = uniform(0.85, 1.0)
+
         if params.difficulty == MathyEnvDifficulty.easy:
             noise_terms = randint(1, 3)
             num_terms = randint(3, 6)
@@ -81,29 +83,29 @@ class PolySimplify(MathyEnv):
             # e.g. mashing the 3rd node to commute the tree until a DF shows up in
             #      the desired position.
             noise_terms = randint(1, 4)
-            num_terms = randint(3, 10)
-            scaling = uniform(0.35, 0.4)
+            num_terms = randint(6, 10)
+            scaling = uniform(0.5, 0.6)
             powers = uniform(0.35, 0.8)
             shuffle = uniform(0.35, 0.8)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=powers,
-                noise_probability=0.8,
+                noise_probability=noise,
                 shuffle_probability=shuffle,
                 noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            noise_terms = randint(1, 4)
-            num_terms = randint(3, 20)
-            scaling = uniform(0.25, 0.75)
+            noise_terms = randint(1, 3)
+            num_terms = randint(8, 20)
+            scaling = uniform(0.5, 0.5)
             powers = uniform(0.15, 0.8)
-            shuffle = 0.35
+            shuffle = uniform(0.35, 0.9)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 inner_terms_scaling=scaling,
                 powers_probability=powers,
-                noise_probability=0.8,
+                noise_probability=noise,
                 shuffle_probability=shuffle,
                 noise_terms=noise_terms,
             )
