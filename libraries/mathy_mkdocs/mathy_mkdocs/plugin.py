@@ -22,7 +22,11 @@ parser = ExpressionParser()
 
 expression_re = r"<code>([a-z\_]*):([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
+snippet_matcher_re = r"```[pP]ython[\n]+{!\.(\/snippets\/[a-z\_\/]+).py!}[\n]+```"
 # Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
+
+# TODO: add links to code highlight blocks next to clipboard
+link_template = "https://colab.research.google.com/github/justindujardin/mathy/blob/master/libraries/website/docs{}.ipynb"  # noqa
 
 
 def to_math_ml_fragment(match):
@@ -302,12 +306,24 @@ def render_tokens_from_text(input_text: str):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
+def render_colab_link_to_snippet(match):
+    global link_template
+    input_text = match.group(1)
+    url = link_template.format(input_text)
+    target = "{target=_blank}"
+    return f"""[![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)]({url}){target}
+{match.group(0)}"""
+
+
 def render_markdown(input_text: str):
-    global rules_matcher_re
-    text = re.sub(
+    global rules_matcher_re, snippet_matcher_re
+    input_text = re.sub(
+        snippet_matcher_re, render_colab_link_to_snippet, input_text, flags=re.MULTILINE
+    )
+    input_text = re.sub(
         rules_matcher_re, render_examples_from_tests, input_text, flags=re.IGNORECASE
     )
-    return text
+    return input_text
 
 
 def render_code_match(match):
@@ -325,8 +341,7 @@ def render_code_match(match):
         return render_types_from_text(input_text, "inorder")
     elif command == "tokens":
         return render_tokens_from_text(input_text)
-    else:
-        raise ValueError(f"unknown mkdocs plugin render type: {command}")
+    return input_text
 
 
 def render_html(input_text: str):
@@ -342,6 +357,31 @@ if __name__ == "__main__":
     print(res)
     print(render_html("<code>mathy:4x^3 * 2x - 7</code>"))
     print(render_markdown("`rule_tests:constants_simplify`"))
+    print(
+        render_markdown(
+            """### Extensions
+
+Because algebra problems are only a tiny sliver of what can be represented using math expression trees, Mathy has customization points to allow altering or creating entirely new environments with little effort.
+
+#### New Problems
+
+Generating a new problem type while subclassing a base environment is probably the simplest way to create a custom challenge for the agent.
+
+You can inherit from a base environment like [Poly Simplify](/envs/poly_simplify) which has win-conditions that require all the like-terms to be gone from an expression, and all complex terms be simplified. From there you can provide any valid input expression:
+
+```Python
+{!./snippets/envs/custom_problem_text.py!}
+```
+
+#### New Actions
+
+Build your own tree transformation actions and use them with the built-in agents:
+
+```Python
+{!./snippets/envs/custom_actions.py!}
+```"""
+        )
+    )
 else:
     from mkdocs.plugins import BasePlugin
 
