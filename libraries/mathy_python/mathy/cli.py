@@ -153,7 +153,7 @@ def cli_simplify(
 
         new_text = env.state.agent.problem
         grouping_change = calculate_grouping_control_signal(
-            last_text, new_text, clip_at_zero=True
+            last_text, new_text, clip_at_zero=args.clip_grouping_control
         )
         episode_memory.store(
             observation=last_observation,

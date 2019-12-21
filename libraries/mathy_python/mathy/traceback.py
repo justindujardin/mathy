@@ -1,5 +1,6 @@
 # coding: utf8
 # inlined from: https://github.com/ines/wasabi/blob/master/wasabi/traceback.py
+# TODO: add more context than one line: https://stackoverflow.com/questions/11503419/python-multi-line-expressions-and-stack-trace
 from __future__ import print_function, unicode_literals
 
 import os

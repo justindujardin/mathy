@@ -38,7 +38,9 @@ class A3CConfig(BaseConfig):
     mcts_recover_time_threshold: float = 0.66
 
     # Whether to use the grouping change aux task
-    use_grouping_control = False
+    use_grouping_control = True
+    # Clip signal at 0.0 so it does not optimize into the negatives
+    clip_grouping_control = False
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
@@ -56,7 +58,7 @@ class A3CConfig(BaseConfig):
     #       destabilizing the overall loss when it grows very small
     entropy_loss_scaling = 1.0
     # Whether to scale entropy loss so it's 0-1
-    normalize_entropy_loss = False
+    normalize_entropy_loss = True
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 1.0

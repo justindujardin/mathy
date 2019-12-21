@@ -335,7 +335,7 @@ class A3CWorker(threading.Thread):
 
             new_text = env.state.agent.problem
             grouping_change = calculate_grouping_control_signal(
-                last_text, new_text, clip_at_zero=True
+                last_text, new_text, clip_at_zero=self.args.clip_grouping_control
             )
             ep_reward += reward
             episode_memory.store(
@@ -652,7 +652,10 @@ class A3CWorker(threading.Thread):
 
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
-                    done, observation, episode_memory
+                    done,
+                    observation,
+                    episode_memory,
+                    clip=self.args.clip_grouping_control,
                 )
                 gc_loss *= aux_weight
                 total_loss += gc_loss
