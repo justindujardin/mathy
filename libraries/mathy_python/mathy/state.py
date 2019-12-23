@@ -14,7 +14,7 @@ NodeValuesFloatList = List[float]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
 ProblemTimeFloatList = List[float]
-RNNStatesFloatList = List[List[List[float]]]
+RNNStatesFloatList = List[List[float]]
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
@@ -72,19 +72,39 @@ class MathyWindowObservation(NamedTuple):
     rnn_state: WindowRNNStatesFloatList
     rnn_history: WindowRNNStatesFloatList
 
-    def to_inputs(self) -> MathyInputsType:
+    def to_inputs(self) -> dict:
         import tensorflow as tf
 
-        result = [
-            tf.convert_to_tensor(self.nodes),
-            tf.convert_to_tensor(self.mask),
-            tf.convert_to_tensor(self.values),
-            tf.convert_to_tensor(self.type),
-            tf.convert_to_tensor(self.time),
-            tf.convert_to_tensor([self.rnn_state]),
-            tf.convert_to_tensor([self.rnn_history]),
-        ]
-        for r in result:
+        result = {
+            "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
+            "mask_in": tf.convert_to_tensor(self.mask, dtype=tf.int32),
+            "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
+            "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
+            "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
+            "rnn_state_in": tf.convert_to_tensor(self.rnn_state, dtype=tf.float32),
+            "rnn_history_in": tf.convert_to_tensor(self.rnn_history, dtype=tf.float32),
+        }
+        for r in result.values():
+            for s in r.shape:
+                assert s is not None
+        return result
+
+    def to_inputs_tiled(self) -> dict:
+        import tensorflow as tf
+
+        batch_size = len(self.nodes)
+        sequence_length = len(self.nodes[0])
+
+        result = {
+            "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
+            "mask_in": tf.convert_to_tensor(self.mask, dtype=tf.int32),
+            "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
+            "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
+            "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
+            "rnn_state_in": tf.convert_to_tensor(self.rnn_state, dtype=tf.float32),
+            "rnn_history_in": tf.convert_to_tensor(self.rnn_history, dtype=tf.float32),
+        }
+        for r in result.values():
             for s in r.shape:
                 assert s is not None
         return result
@@ -98,8 +118,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values).shape,
             tf.convert_to_tensor(self.type).shape,
             tf.convert_to_tensor(self.time).shape,
-            tf.convert_to_tensor([self.rnn_state]).shape,
-            tf.convert_to_tensor([self.rnn_history]).shape,
+            tf.convert_to_tensor(self.rnn_state).shape,
+            tf.convert_to_tensor(self.rnn_history).shape,
         ]
         return result
 
@@ -141,10 +161,10 @@ def rnn_placeholder_state(rnn_size: int) -> RNNStatesFloatList:
     observation. """
     global _cached_placeholder
     # Not in cache, or rnn_size differs
-    if _cached_placeholder is None or len(_cached_placeholder[0][0]) != rnn_size:
+    if _cached_placeholder is None or len(_cached_placeholder[0]) != rnn_size:
         _cached_placeholder = [
-            [[0.0] * rnn_size],
-            [[0.0] * rnn_size],
+            [0.0] * rnn_size,
+            [0.0] * rnn_size,
         ]
     return _cached_placeholder
 
@@ -154,13 +174,7 @@ def observations_to_window(
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(
-        nodes=[],
-        mask=[],
-        values=[],
-        type=[],
-        time=[],
-        rnn_state=[[], []],
-        rnn_history=[[], []],
+        nodes=[], mask=[], values=[], type=[], time=[], rnn_state=[], rnn_history=[],
     )
     sequence_lengths: List[int] = []
     max_mask_length: int = 0
@@ -177,10 +191,10 @@ def observations_to_window(
         output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(obs.type)
         output.time.append(obs.time)
-        output.rnn_state[0].append(obs.rnn_state[0])
-        output.rnn_state[1].append(obs.rnn_state[1])
-        output.rnn_history[0].append(obs.rnn_history[0])
-        output.rnn_history[1].append(obs.rnn_history[1])
+        output.rnn_state.append(obs.rnn_state)
+        output.rnn_history.append(obs.rnn_history)
+        # output.rnn_history[0].append(obs.rnn_history[0])
+        # output.rnn_history[1].append(obs.rnn_history[1])
     return output
 
 
