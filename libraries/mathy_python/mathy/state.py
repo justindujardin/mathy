@@ -92,8 +92,20 @@ class MathyWindowObservation(NamedTuple):
     def to_inputs_tiled(self) -> dict:
         import tensorflow as tf
 
-        batch_size = len(self.nodes)
         sequence_length = len(self.nodes[0])
+
+        # The RNN states have to be tiled along the node sequence axis to be the
+        # correct size for an initial state input to the LSTM.
+        # TODO: Is there a better way to do this RNN state without tiling? It feels
+        #       SO wrong and I have to pick off only the last part of the state to
+        #       carry forward. |x_X| Someone help!
+        # https://github.com/justindujardin/mathy/issues/new?title=RemoveRNNStateTiling
+        rnn_state_t = tf.convert_to_tensor(self.rnn_state, dtype=tf.float32)
+        rnn_history_t = tf.convert_to_tensor(self.rnn_history, dtype=tf.float32)
+        time_initial_h = tf.tile(rnn_state_t[:, 0], [sequence_length, 1])
+        time_initial_c = tf.tile(rnn_state_t[:, 1], [sequence_length, 1])
+        # Select the last historical h for concatenation
+        historical_state_h = tf.concat(rnn_history_t[0][-1:], axis=0)
 
         result = {
             "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
@@ -101,10 +113,13 @@ class MathyWindowObservation(NamedTuple):
             "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
             "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
             "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
-            "rnn_state_in": tf.convert_to_tensor(self.rnn_state, dtype=tf.float32),
-            "rnn_history_in": tf.convert_to_tensor(self.rnn_history, dtype=tf.float32),
+            "rnn_state_h_in": time_initial_h,
+            "rnn_state_c_in": time_initial_c,
+            "rnn_history_h_in": historical_state_h,
         }
         for r in result.values():
+            if isinstance(r, list):
+                continue
             for s in r.shape:
                 assert s is not None
         return result
@@ -189,8 +204,8 @@ def observations_to_window(
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
         output.values.append(pad_array(obs.values, max_length, 0.0))
-        output.type.append(obs.type)
-        output.time.append(obs.time)
+        output.type.append(pad_array([], max_length, obs.type))
+        output.time.append(pad_array([], max_length, obs.time))
         output.rnn_state.append(obs.rnn_state)
         output.rnn_history.append(obs.rnn_history)
         # output.rnn_history[0].append(obs.rnn_history[0])
