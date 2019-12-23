@@ -150,6 +150,11 @@ def model_to_dot(
 
         # Append a wrapped layer's label to node's label, if it exists.
         layer_name = layer.name
+
+        is_op = False
+        if "tf_op_layer_" in layer_name:
+            layer_name = layer_name.replace("tf_op_layer_", "")
+            is_op = True
         class_name = layer.__class__.__name__
 
         if isinstance(layer, wrappers.Wrapper):
@@ -193,8 +198,8 @@ def model_to_dot(
         label = ""
         if show_layer_names:
             label += layer_name
-        if show_classes:
-            label += f"|{class_name}"
+        if show_classes and not is_op:
+            label = f"{class_name}|{label}"
 
         # Rebuild the label as a table including input/output shapes.
         if show_shapes:
@@ -215,12 +220,15 @@ def model_to_dot(
             else:
                 inputlabels = "?"
             # nodes_in: InputLayer\n|{input:|output:}|{{[(?, ?)]}|{[(?, ?)]}}
-            label = "{input:%s|%s|output:%s}" % (inputlabels, label, outputlabels,)
+            label = "{%s|input:%s|output:%s}" % (label, inputlabels, outputlabels,)
 
         if not expand_nested or not isinstance(layer, network.Network):
             node = pydot.Node(layer_id, label=label)
-            node.set_fontname("Roboto Mono")
-            node.set_fontsize(10)
+            node.set_fontname("Roboto")
+            node.set_fontsize(12)
+            if not is_op:
+                node.set_fillcolor("#b4c8ff")
+                node.set_style("rounded")
             dot.add_node(node)
 
     # Connect nodes with edges.

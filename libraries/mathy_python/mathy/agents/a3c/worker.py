@@ -261,7 +261,7 @@ class A3CWorker(threading.Thread):
         selector = self.build_episode_selector(env)
 
         # Set RNN to 0 state for start of episode
-        selector.model.embedding.reset_rnn_state()
+        selector.model.state.reset_state()
 
         # Start with the "init" sequence [n] times
         for i in range(self.args.num_thinking_steps_begin):

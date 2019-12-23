@@ -13,12 +13,13 @@ from ..traceback import print_error
 
 from ..state import MathyInputsType, MathyWindowObservation, ObservationFeatureIndices
 from .base_config import BaseConfig
-from .embedding import MathyEmbedding
+from .embedding import mathy_embedding, EmbeddingsState
 
 
 class PolicyValueModel(tf.keras.Model):
     args: BaseConfig
     optimizer: tf.optimizers.Optimizer
+    state: EmbeddingsState
 
     def __init__(
         self,
@@ -33,8 +34,11 @@ class PolicyValueModel(tf.keras.Model):
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.args = args
         self.predictions = predictions
-        self.embedding = MathyEmbedding(
-            self.args.units, self.args.lstm_units, self.args.embedding_units
+        self.embedding, self.state = mathy_embedding(
+            units=self.args.units,
+            lstm_units=self.args.lstm_units,
+            embedding_units=self.args.embedding_units,
+            return_state=True,
         )
         self.value_logits = tf.keras.layers.Dense(
             1, name="value_logits", kernel_initializer="he_normal", activation=None,
@@ -66,7 +70,7 @@ class PolicyValueModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = self.normalize_v(self.value_logits(self.embedding.state_h))
+        values = self.normalize_v(self.value_logits(self.state.state_h))
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = logits if not apply_mask else mask_logits
