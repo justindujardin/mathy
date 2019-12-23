@@ -14,7 +14,6 @@ from ..traceback import print_error
 from ..state import MathyInputsType, MathyWindowObservation, ObservationFeatureIndices
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
-from .swish_activation import swish
 
 
 class PolicyValueModel(tf.keras.Model):
@@ -22,8 +21,14 @@ class PolicyValueModel(tf.keras.Model):
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
-        self, args: BaseConfig, predictions=2, initial_state: Any = None, **kwargs,
+        self,
+        args: Optional[BaseConfig] = None,
+        predictions=2,
+        initial_state: Any = None,
+        **kwargs,
     ):
+        if args is None:
+            args = BaseConfig()
         super(PolicyValueModel, self).__init__(**kwargs)
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.args = args
@@ -179,9 +184,7 @@ def get_or_create_policy_model(
                 )
 
     model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
-    model.compile(
-        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
-    )
+    model.compile(optimizer=model.optimizer, loss="binary_crossentropy")
     model.predict(initial_state.to_inputs())
     model.build(initial_state.to_input_shapes())
 

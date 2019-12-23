@@ -3,6 +3,13 @@ import re
 import svgwrite
 from typing import List
 
+try:
+    from .vis_utils import model_to_dot
+except BaseException:
+    # This is a hack so I can run this file in the debugger standalone where there
+    # is no context for resolving the relative path
+    from vis_utils import model_to_dot  # type:ignore
+
 from mathy import (
     BinaryExpression,
     ExpressionParser,
@@ -21,6 +28,7 @@ tokenizer = Tokenizer()
 parser = ExpressionParser()
 
 expression_re = r"<code>([a-z\_]*):([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
+model_re = r"<code>model:([a-z\.\_]+):([a-zA-Z\_]+)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 snippet_matcher_re = r"```[pP]ython[\n]+{!\.(\/snippets\/[a-z\_\/]+).py!}[\n]+```"
 # Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
@@ -306,12 +314,44 @@ def render_tokens_from_text(input_text: str):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
+def render_model_architecture(match):
+    import importlib
+    import gym  # noqa
+
+    model_module_full: str = match.group(1)
+    model_type: str = match.group(2)
+    try:
+        pass
+        model_mod = importlib.import_module(model_module_full)
+        if hasattr(model_mod, model_type) is False:
+            return f"Failed to render architecture because module has no {model_type}"
+
+        model_fn = getattr(model_mod, model_type)
+        model = model_fn()
+        dot = model_to_dot(
+            model,
+            show_shapes=True,
+            show_classes=True,
+            show_layer_names=True,
+            rankdir="TB",
+            dpi=64,
+        )
+        if dot is None:
+            return f"Failed to render architecture: model_to_dot returned None"
+        return dot.create_svg().decode("utf-8")
+
+    except ModuleNotFoundError as err:
+        return f"Failed to render model architecture with error: {err}"
+    return model_type
+
+
 def render_colab_link_to_snippet(match):
     global link_template
     input_text = match.group(1)
     url = link_template.format(input_text)
     target = "{target=_blank}"
-    return f"""[![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)]({url}){target}
+    badge = "https://colab.research.google.com/assets/colab-badge.svg"
+    return f"""[![Open Example In Colab]({badge})]({url}){target}
 {match.group(0)}"""
 
 
@@ -344,16 +384,18 @@ def render_code_match(match):
     return input_text
 
 
-def render_html(input_text: str):
+def render_html(text: str):
     global expression_re
-    text = re.sub(expression_re, render_code_match, input_text, flags=re.IGNORECASE)
+    text = re.sub(expression_re, render_code_match, text, flags=re.IGNORECASE)
+    text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
     return text
 
 
 if __name__ == "__main__":
     res = render_html("<code>features:4x^3 * 2x - 7</code>")
-    # with open("./features.svg", "w") as f:
-    #     f.write(res)
+    res = render_html("<code>model:mathy.agents.embedding:mathy_embedding</code>")
+    with open("./features.svg", "w") as f:
+        f.write(res)
     print(res)
     print(render_html("<code>mathy:4x^3 * 2x - 7</code>"))
     print(render_markdown("`rule_tests:constants_simplify`"))
@@ -382,6 +424,7 @@ Build your own tree transformation actions and use them with the built-in agents
 ```"""
         )
     )
+    print(render_html("<code>model:mathy.agents.embedding:mathy_embedding</code>"))
 else:
     from mkdocs.plugins import BasePlugin
 
