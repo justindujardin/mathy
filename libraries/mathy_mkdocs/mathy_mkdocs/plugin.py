@@ -1,14 +1,13 @@
+import hashlib
+import inspect
+import os
 import re
+from pathlib import Path
+from typing import List, Dict
+from wasabi import msg
 
 import svgwrite
-from typing import List
-
-try:
-    from .vis_utils import model_to_dot
-except BaseException:
-    # This is a hack so I can run this file in the debugger standalone where there
-    # is no context for resolving the relative path
-    from vis_utils import model_to_dot  # type:ignore
+from mathy.cli import setup_tf_env
 
 from mathy import (
     BinaryExpression,
@@ -23,6 +22,14 @@ from mathy import (
     VariableExpression,
     testing,
 )
+
+try:
+    from .vis_utils import model_to_dot
+except BaseException:
+    # This is a hack so I can run this file in the debugger standalone where there
+    # is no context for resolving the relative path
+    from vis_utils import model_to_dot  # type:ignore
+
 
 tokenizer = Tokenizer()
 parser = ExpressionParser()
@@ -52,6 +59,9 @@ rules_note = """!!! info
     All the examples shown below are drawn from the mathy test suite
     that verifies the expected input/output combinations for rule
     transformations."""
+
+
+model_hashes: Dict[str, str] = dict()
 
 
 def render_examples_from_tests(match):
@@ -315,30 +325,44 @@ def render_tokens_from_text(input_text: str):
 
 
 def render_model_architecture(match):
+    global model_hashes
     import importlib
     import gym  # noqa
 
+    setup_tf_env()
     model_module_full: str = match.group(1)
     model_type: str = match.group(2)
+    mathy_python = Path(__file__).parent.parent.parent / "mathy_python"
+    model_file_name = os.path.join(
+        mathy_python, model_module_full.replace(".", os.path.sep) + ".py"
+    )
+    assert os.path.exists(model_file_name), f"model file not found: {model_file_name}"
+    model_hash = hashlib.md5(open(model_file_name, "r").read().encode()).hexdigest()
+    if model_hash in model_hashes:
+        return model_hashes[model_hash]
     try:
-        pass
-        model_mod = importlib.import_module(model_module_full)
-        if hasattr(model_mod, model_type) is False:
-            return f"Failed to render architecture because module has no {model_type}"
+        with msg.loading(f"Loading model: {model_module_full}"):
+            model_mod = importlib.import_module(model_module_full)
+            if hasattr(model_mod, model_type) is False:
+                return (
+                    f"Failed to render architecture because module has no {model_type}"
+                )
 
-        model_fn = getattr(model_mod, model_type)
-        model = model_fn()
-        dot = model_to_dot(
-            model,
-            show_shapes=True,
-            show_classes=True,
-            show_layer_names=True,
-            rankdir="TB",
-            dpi=64,
-        )
-        if dot is None:
-            return f"Failed to render architecture: model_to_dot returned None"
-        return dot.create_svg().decode("utf-8")
+            model_fn = getattr(model_mod, model_type)
+            model = model_fn()
+            dot = model_to_dot(
+                model,
+                show_shapes=True,
+                show_classes=True,
+                show_layer_names=True,
+                rankdir="TB",
+                dpi=64,
+            )
+            if dot is None:
+                return f"Failed to render architecture: model_to_dot returned None"
+        msg.good(f"Rendered model: {model_module_full}")
+        model_hashes[model_hash] = dot.create_svg().decode("utf-8")
+        return model_hashes[model_hash]
 
     except ModuleNotFoundError as err:
         return f"Failed to render model architecture with error: {err}"
