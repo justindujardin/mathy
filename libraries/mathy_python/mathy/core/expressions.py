@@ -678,6 +678,8 @@ class ConstantExpression(MathExpression):
 
     @property
     def name(self):
+        if self.value % 1 == 0:
+            return f"{int(self.value)}"
         return np.format_float_positional(self.value, trim="-")
 
     @property

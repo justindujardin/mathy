@@ -58,3 +58,29 @@ Specify (or calculate) custom floating point terminal reward values:
 ```Python
 {!./snippets/envs/custom_episode_rewards.py!}
 ```
+
+### Other Libraries
+
+Mathy has basic support for alternative Reinforcement Learning libraries.
+
+#### OpenAI Gym
+
+Mathy has support [OpenAI gym](https://gym.openai.com/){target=\_blank} via a small wrapper.
+
+You can import the `mathy.envs.gym` module separately to register the environments:
+
+```python
+{!./snippets/envs/openai_gym.py!}
+```
+
+#### Tensorflow Agents
+
+Mathy does not currently have a TF-agents environment wrapper.
+
+That being said, it may be possible to use it indirectly through the OpenAI Gym wrapper.
+
+!!! info "Help Wanted"
+
+    [TF-Agents](https://github.com/tensorflow/agents){target=\_blank} seems like a great library.
+
+    If you use it and would like to [contribute a PR](https://github.com/justindujardin/mathy) to add support, it would be very welcomed.

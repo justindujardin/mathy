@@ -12,8 +12,8 @@ def test_parser_to_string():
     parser = ExpressionParser()
     expects = [
         {
-            "input": "(-2.2578933001594296e+16h^2 * v) * j^4",
-            "output": "(-2.2578933001594296e+16h^2 * v) * j^4",
+            "input": "(-2.257893300159429e+16h^2 * v) * j^4",
+            "output": "(-2.257893300159429e + 16h^2 * v) * j^4",
         },
         {"input": "1f + 98i + 3f + 14t", "output": "1f + 98i + 3f + 14t"},
         {"input": "4x * p^(1 + 3) * 12x^2", "output": "4x * p^(1 + 3) * 12x^2"},

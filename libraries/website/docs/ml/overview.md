@@ -54,9 +54,3 @@ While feature lists may be directly passable to a ML model, they don't include a
 - **Episode Relative Time**: each observation is able to see a 0-1 floating point value that indicates how close the agent is to running out of moves.
 - **[Current](/about/#r2d2) and [Historical](/about/#persistence-pays-off) RNN states**: observations include the recurrent neural network (RNN) state of the agent, and a historical average state from all the timesteps in the current episode.
 - **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are 5 possible actions, and 10 nodes in the tree, there are **up to** 50 possible actions to choose from. A same sized (e.g. 50) mask of 0/1 values are provided so that the model can mask out nodes with no valid actions when returning probability distributions.
-
-### Observations to Embeddings
-
-
-
-2. [embedded](/ml/math_embeddings) into variable length sequences of fixed size vectors that can be fed into a Sequence-to-Sequence ML model.
