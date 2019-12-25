@@ -11,8 +11,26 @@ def render_ipynb(from_file: str, to_file: str):
 """
 
     with open(from_file, "r") as fpin:
-        text = fpin.read()
-
+        lines = fpin.readlines()
+    header_installs = True
+    out_lines = []
+    for line in lines:
+        # NOTE: the weird use of f-string is to workaround vscode highlight
+        #       getting really confused by the "!pip install" attached to a #
+        if line.startswith(f"#{'!pip install'}"):
+            if header_installs is False:
+                raise ValueError(
+                    "All !pip install comments must be the first lines in a snippet."
+                    f" Found the following line after a non-install comment: {line}"
+                )
+            # output without the comment so ipynb installs the requirement
+            out_lines.append(line[1:])
+            continue
+        # The header installs must be the first (n) lines in a file. After the
+        # first non-comment, nothing will be installed.
+        header_installs = False
+        out_lines.append(line)
+    text = "".join(out_lines)
     nbook = v4.upgrade(v3.reads_py(f"{header}{text}"))
     with open(to_file, "w") as fpout:
         fpout.write(f"{v4.writes(nbook)}\n")
