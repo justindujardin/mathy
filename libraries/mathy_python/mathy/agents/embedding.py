@@ -49,7 +49,7 @@ def mathy_embedding(
     use_env_features: bool = False,
     use_node_values: bool = True,
     name="mathy_embedding",
-    return_state=False,
+    return_states=False,
 ) -> Union[Tuple[tf.keras.Model, EmbeddingsState], tf.keras.Model]:
     from mathy.envs import PolySimplify
     from mathy.agents.base_config import BaseConfig
@@ -60,19 +60,21 @@ def mathy_embedding(
     env = PolySimplify()
     state, _ = env.get_initial_state()
     window: MathyWindowObservation = state.to_empty_window(1, args.lstm_units)
-    model, state = build_model(args)
-    model.build(window.to_input_shapes())
-    inputs = window.to_inputs_tiled()
+    model = build_math_embeddings_model(args)
+    inputs = window.to_inputs()
     model.predict(inputs)
-    return model if not return_state else (model, state)
+    return model if not return_states else (model, state)
 
 
 def mathy_embedding_with_env_features():
     return mathy_embedding(use_env_features=True)
 
 
-def build_model(config: BaseConfig) -> Tuple[tf.keras.Model, EmbeddingsState]:
+def build_math_embeddings_model(
+    config: BaseConfig, name="embeddings", return_states=False,
+) -> tf.keras.Model:
     nodes_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="nodes_in")
+    mask_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="mask_in")
     values_in = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, name="values_in")
     type_in = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, name="type_in")
     time_in = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, name="time_in")
@@ -84,25 +86,6 @@ def build_model(config: BaseConfig) -> Tuple[tf.keras.Model, EmbeddingsState]:
     )
     rnn_history_h_in = tf.keras.layers.Input(
         batch_shape=(1, config.lstm_units), dtype=tf.float32, name="rnn_history_h_in",
-    )
-
-    state = EmbeddingsState(
-        config=config,
-        state_c=tf.Variable(
-            tf.zeros([1, config.lstm_units]),
-            trainable=False,
-            name="embedding/rnn/agent_state_c",
-        ),
-        state_h=tf.Variable(
-            tf.zeros([1, config.lstm_units]),
-            trainable=False,
-            name="embedding/rnn/agent_state_h",
-        ),
-        state_history_h=tf.Variable(
-            tf.zeros([1, config.lstm_units * 2]),
-            trainable=False,
-            name="embedding/rnn/agent_state_h_with_history",
-        ),
     )
 
     token_embedding = tf.keras.layers.Embedding(
@@ -188,15 +171,12 @@ def build_model(config: BaseConfig) -> Tuple[tf.keras.Model, EmbeddingsState]:
         query, initial_state=[rnn_state_h_in, rnn_state_c_in]
     )
     query = time_lstm_norm(query)
-    state.state_h.assign(state_h[-1:])
-    state.state_c.assign(state_c[-1:])
 
     # Concatenate the RNN output state with our historical RNN state
     # See: https://arxiv.org/pdf/1810.04437.pdf
     rnn_state_with_history = tf.concat(
         [state_h[-1:], rnn_history_h_in], axis=-1, name="state_h_with_history"
     )
-    state.state_history_h.assign(rnn_state_with_history)
     lstm_context = tf.tile(
         tf.expand_dims(rnn_state_with_history, axis=0),
         [batch_size, sequence_length, 1],
@@ -211,16 +191,17 @@ def build_model(config: BaseConfig) -> Tuple[tf.keras.Model, EmbeddingsState]:
     # Result
     inputs = [
         nodes_in,
+        mask_in,
         values_in,
+        type_in,
+        time_in,
         rnn_state_h_in,
         rnn_state_c_in,
         rnn_history_h_in,
     ]
-    if config.use_env_features:
-        inputs += [type_in, time_in]
-    out_model = tf.keras.Model(inputs=inputs, outputs=[final_out],)
+    outputs = [final_out]
+    if return_states:
+        outputs += [state_h[-1:], state_c[-1:]]
+    out_model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
 
-    return (
-        out_model,
-        state,
-    )
+    return out_model
