@@ -38,3 +38,25 @@ The coordinator/worker architecture used by A3C has a few features that stabiliz
 
         If you would like to help out with making the A3C implementation scaling using multiprocessing
         [open an issue here](https://github.com/justindujardin/mathy/issues/new?title=A3CMultiprocessing){target=\_blank}
+
+# Examples
+
+The A3C agent can be interacted with via the CLI or the API directly.
+
+## CLI
+
+You can view the available training command help:
+
+```bash
+mathy train --help
+```
+
+Then train a new agent:
+
+```bash
+mathy train a3c poly output/my_agent --show
+```
+
+!!! info "Viewing the agent training"
+
+    You can view the agent's in-episode actions by providing the `--show` argument when using the CLI
