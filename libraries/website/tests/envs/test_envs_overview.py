@@ -17,3 +17,7 @@ def test_envs_overview_custom_episode_rewards():
 def test_envs_overview_custom_actions():
     from ...docs.snippets.envs import custom_actions
 
+
+def test_envs_overview_openai_gym():
+    from ...docs.snippets.envs import openai_gym
+
