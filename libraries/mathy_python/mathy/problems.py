@@ -446,7 +446,7 @@ def gen_commute_haystack(
     `mathy:4y + 12j + 73q + 19k + 13z + 24x + 56l + 12x  + 43n + 17j`
     """
     total_terms = random.randint(min_terms, max_terms)
-    num_noise_terms = total_terms - 2
+    num_noise_terms = max(total_terms - 2, commute_blockers)
     var = rand_var()
     noise_vars = get_rand_vars(num_noise_terms, [var])
     power_chance = 80 if powers is True else 0
