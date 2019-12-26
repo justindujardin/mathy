@@ -411,7 +411,7 @@ def render_code_match(match):
 def render_html(text: str):
     global expression_re
     text = re.sub(expression_re, render_code_match, text, flags=re.IGNORECASE)
-    text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
+    # text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
     return text
 
 

@@ -14,7 +14,7 @@ NodeValuesFloatList = List[float]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
 ProblemTimeFloatList = List[float]
-RNNStatesFloatList = List[List[float]]
+RNNStatesFloatList = List[List[List[float]]]
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
@@ -72,54 +72,19 @@ class MathyWindowObservation(NamedTuple):
     rnn_state: WindowRNNStatesFloatList
     rnn_history: WindowRNNStatesFloatList
 
-    def to_inputs(self) -> dict:
+    def to_inputs(self) -> MathyInputsType:
         import tensorflow as tf
 
-        result = {
-            "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
-            "mask_in": tf.convert_to_tensor(self.mask, dtype=tf.int32),
-            "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
-            "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
-            "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
-            "rnn_state_in": tf.convert_to_tensor(self.rnn_state, dtype=tf.float32),
-            "rnn_history_in": tf.convert_to_tensor(self.rnn_history, dtype=tf.float32),
-        }
-        for r in result.values():
-            for s in r.shape:
-                assert s is not None
-        return result
-
-    def to_inputs_tiled(self) -> dict:
-        import tensorflow as tf
-
-        sequence_length = len(self.nodes[0])
-
-        # The RNN states have to be tiled along the node sequence axis to be the
-        # correct size for an initial state input to the LSTM.
-        # TODO: Is there a better way to do this RNN state without tiling? It feels
-        #       SO wrong and I have to pick off only the last part of the state to
-        #       carry forward. |x_X| Someone help!
-        # https://github.com/justindujardin/mathy/issues/new?title=RemoveRNNStateTiling
-        rnn_state_t = tf.convert_to_tensor(self.rnn_state, dtype=tf.float32)
-        rnn_history_t = tf.convert_to_tensor(self.rnn_history, dtype=tf.float32)
-        time_initial_h = tf.tile(rnn_state_t[:, 0], [sequence_length, 1])
-        time_initial_c = tf.tile(rnn_state_t[:, 1], [sequence_length, 1])
-        # Select the last historical h for concatenation
-        historical_state_h = tf.concat(rnn_history_t[0][-1:], axis=0)
-
-        result = {
-            "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
-            "mask_in": tf.convert_to_tensor(self.mask, dtype=tf.int32),
-            "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
-            "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
-            "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
-            "rnn_state_h_in": time_initial_h,
-            "rnn_state_c_in": time_initial_c,
-            "rnn_history_h_in": historical_state_h,
-        }
-        for r in result.values():
-            if isinstance(r, list):
-                continue
+        result = [
+            tf.convert_to_tensor(self.nodes),
+            tf.convert_to_tensor(self.mask),
+            tf.convert_to_tensor(self.values),
+            tf.convert_to_tensor(self.type),
+            tf.convert_to_tensor(self.time),
+            tf.convert_to_tensor([self.rnn_state]),
+            tf.convert_to_tensor([self.rnn_history]),
+        ]
+        for r in result:
             for s in r.shape:
                 assert s is not None
         return result
@@ -133,8 +98,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values).shape,
             tf.convert_to_tensor(self.type).shape,
             tf.convert_to_tensor(self.time).shape,
-            tf.convert_to_tensor(self.rnn_state).shape,
-            tf.convert_to_tensor(self.rnn_history).shape,
+            tf.convert_to_tensor([self.rnn_state]).shape,
+            tf.convert_to_tensor([self.rnn_history]).shape,
         ]
         return result
 
@@ -189,7 +154,13 @@ def observations_to_window(
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(
-        nodes=[], mask=[], values=[], type=[], time=[], rnn_state=[], rnn_history=[],
+        nodes=[],
+        mask=[],
+        values=[],
+        type=[],
+        time=[],
+        rnn_state=[[], []],
+        rnn_history=[[], []],
     )
     sequence_lengths: List[int] = []
     max_mask_length: int = 0
@@ -206,10 +177,10 @@ def observations_to_window(
         output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(pad_array([], max_length, obs.type))
         output.time.append(pad_array([], max_length, obs.time))
-        output.rnn_state.append(obs.rnn_state)
-        output.rnn_history.append(obs.rnn_history)
-        # output.rnn_history[0].append(obs.rnn_history[0])
-        # output.rnn_history[1].append(obs.rnn_history[1])
+        output.rnn_state[0].append(obs.rnn_state[0])
+        output.rnn_state[1].append(obs.rnn_state[1])
+        output.rnn_history[0].append(obs.rnn_history[0])
+        output.rnn_history[1].append(obs.rnn_history[1])
     return output
 
 

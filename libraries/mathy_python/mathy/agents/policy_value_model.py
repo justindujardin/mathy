@@ -2,7 +2,7 @@ import os
 import pickle
 import time
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import srsly
@@ -13,13 +13,8 @@ from ..traceback import print_error
 
 from ..state import MathyInputsType, MathyWindowObservation, ObservationFeatureIndices
 from .base_config import BaseConfig
-from .embedding import mathy_embedding, EmbeddingsState
-
-
-def build_policy_value_model(
-    config: BaseConfig, return_state=False
-) -> Union[Tuple[tf.keras.Model, EmbeddingsState], tf.keras.Model]:
-    pass
+from .embedding import MathyEmbedding
+from .swish_activation import swish
 
 
 class PolicyValueModel(tf.keras.Model):
@@ -27,27 +22,13 @@ class PolicyValueModel(tf.keras.Model):
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
-        self,
-        args: Optional[BaseConfig] = None,
-        predictions=2,
-        initial_state: Any = None,
-        return_states=False,
-        **kwargs,
+        self, args: BaseConfig, predictions=2, initial_state: Any = None, **kwargs,
     ):
-        if args is None:
-            args = BaseConfig()
         super(PolicyValueModel, self).__init__(**kwargs)
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.args = args
         self.predictions = predictions
-        self.embedding = mathy_embedding(
-            units=self.args.units,
-            lstm_units=self.args.lstm_units,
-            embedding_units=self.args.embedding_units,
-            return_states=return_states,
-            use_env_features=self.args.use_env_features,
-            use_node_values=self.args.use_node_values,
-        )
+        self.embedding = MathyEmbedding(self.args)
         self.value_logits = tf.keras.layers.Dense(
             1, name="value_logits", kernel_initializer="he_normal", activation=None,
         )
@@ -66,9 +47,9 @@ class PolicyValueModel(tf.keras.Model):
             0.0, trainable=False, name="loss_placeholder", dtype=tf.float32
         )
 
-    def call(self, features_window, apply_mask=True):
+    def call(self, features_window: MathyInputsType, apply_mask=True):
         call_print = False
-        nodes = features_window["nodes_in"]
+        nodes = features_window[ObservationFeatureIndices.nodes]
         batch_size = (
             len(nodes)
             if not isinstance(nodes, (tf.Tensor, np.ndarray))
@@ -78,7 +59,7 @@ class PolicyValueModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = self.normalize_v(self.value_logits(self.state.state_h))
+        values = self.normalize_v(self.value_logits(self.embedding.state_h))
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = logits if not apply_mask else mask_logits
@@ -91,11 +72,11 @@ class PolicyValueModel(tf.keras.Model):
         return logits, values, mask_result
 
     def apply_pi_mask(
-        self, logits: tf.Tensor, features_window,
+        self, logits: tf.Tensor, features_window: MathyInputsType,
     ):
         """Take the policy_mask from a batch of features and multiply
         the policy logits by it to remove any invalid moves"""
-        mask = features_window["mask_in"]
+        mask = features_window[ObservationFeatureIndices.mask]
         logits_shape = tf.shape(logits)
         features_mask = tf.reshape(
             mask, (logits_shape[0], -1, self.predictions), name="pi_mask_reshape"
@@ -196,7 +177,9 @@ def get_or_create_policy_model(
                 )
 
     model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
-    model.compile(optimizer=model.optimizer, loss="binary_crossentropy")
+    model.compile(
+        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
+    )
     model.predict(initial_state.to_inputs())
 
     if args.model_format == "keras":
