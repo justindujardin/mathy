@@ -11,13 +11,9 @@ done
 
 echo "Combining and reporting total mathy coverage:"
 . ./libraries/website/.env/bin/activate
-rm -rf .temp-cov
-mkdir .temp-cov
-cp ./libraries/mathy_python/.coverage ./.temp-cov/.coverage.mathy_python
-cp ./libraries/website/.coverage ./.temp-cov/.coverage.website
-cp ./libraries/website/.coveragerc ./.temp-cov/.coveragerc
-cd .temp-cov
+cp ./libraries/mathy_python/.coverage ./.coverage.mathy_python
+cp ./libraries/website/.coverage ./.coverage.website
 coverage combine
 coverage report
-rm -rf .temp-cov
-cd -
+coverage html
+coverage erase
