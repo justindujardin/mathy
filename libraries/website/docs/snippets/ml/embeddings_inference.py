@@ -1,22 +1,22 @@
-import tensorflow as tf
-
 from mathy import envs
 from mathy.agents.base_config import BaseConfig
-from mathy.agents.embedding import build_math_embeddings_model
+from mathy.agents.embedding import MathyEmbedding
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
+
 
 args = BaseConfig()
 env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(
     env.get_initial_state()[0], rnn_size=args.lstm_units
 )
-model: tf.keras.Model = build_math_embeddings_model(args)
+model = MathyEmbedding(args)
 # output shape is: [num_observations, max_nodes_len, embedding_dimensions]
-embeddings = model.predict(observations_to_window([observation]).to_inputs())
+inputs = observations_to_window([observation, observation]).to_inputs()
+embeddings = model(inputs)
 
-# We only passed one observation sequence
-assert embeddings.shape[0] == 1
+# We provided two observations in a sequence
+assert embeddings.shape[0] == 2
 # There are as many outputs as input sequences
 assert embeddings.shape[1] == len(observation.nodes)
 # Outputs vectors with the provided embedding units
