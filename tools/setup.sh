@@ -8,6 +8,8 @@ do
    (cd libraries/$library && sh tools/setup.sh)
 done
 
+echo "Updating virtualenv"
+pip install virtualenv --upgrade
 
 # Make the virtualenv only if the folder doesn't exist
 echo "Installing root virtualenv (.env)"
