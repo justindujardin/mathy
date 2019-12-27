@@ -1,0 +1,17 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup Packages
+      run: sh tools/setup.sh
+    - name: Build Packages
+      run: sh tools/build.sh
+    - name: Test Packages
+      run: sh tools/test.sh
