@@ -83,3 +83,11 @@ You can <a href="https://github.com/justindujardin/mathy" target="_blank">create
 - To propose new documentation sections.
 - To fix an existing issue/bug.
 - To add a new feature.
+
+## Get Recognized for Contributing
+
+Mathy likes to recognize all contributions, not just code. When you contribute to the project you can be added to the [list of contributors](/about/#contributors).
+
+When you submit a PR you'll be eligible to have your contributor status added.
+
+Our maintainers will try to do this by default, but if they forget please don't hesitate to ask!
