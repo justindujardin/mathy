@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Setup Packages
-      run: sh tools/setup.sh
+      run: sh tools/setup-ci.sh
     - name: Build Packages
       run: sh tools/build.sh
     - name: Test Packages
