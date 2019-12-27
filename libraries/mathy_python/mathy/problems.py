@@ -143,10 +143,16 @@ def get_rand_vars(num_vars, exclude_vars=[], common_variables=False):
     if num_vars > 25:
         raise ValueError("out of range: there are only twenty-six variables")
     rand_vars = set()
+    iters = 0
     while len(rand_vars) < num_vars:
         _rand = rand_var(common_variables)
         if _rand not in exclude_vars:
             rand_vars.add(_rand)
+        iters += 1
+        if iters > num_vars * 10:
+            raise ValueError(
+                f"Unable to fulfill request for {num_vars} random variables"
+            )
     out = list(rand_vars)
     random.shuffle(out)
     return out
