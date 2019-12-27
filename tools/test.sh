@@ -13,4 +13,5 @@ cp ./libraries/mathy_python/.coverage ./.coverage.mathy_python
 cp ./libraries/website/.coverage ./.coverage.website
 coverage combine
 coverage report
+coverage xml
 coverage html

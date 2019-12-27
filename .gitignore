@@ -1,23 +1,20 @@
 *.pyc
 .DS_Store
-doom/
-.coverage
-.temp-cov
 .env
 .pytest_cache
-.terraform
 .mypy_cache
-
 # node
 node_modules
 .cache
-
+# python coverage
+.coverage
+coverage.xml
+htmlcov
 
 /training/
 /hoarding/
 /images/
 
-htmlcov
 .env
 venv
 *.orig
