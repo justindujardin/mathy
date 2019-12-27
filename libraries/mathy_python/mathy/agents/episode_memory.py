@@ -9,12 +9,9 @@ from ..state import (
 
 
 def rnn_weighted_history(observations: List[MathyObservation], rnn_size: int = 128):
-    # Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
-    #
-    # Take the mean of the previous LSTM states for this episode, which has
-    # contains weighted information where stored states that persisted have
-    # weight proportional to the number of timesteps the LSTM gating mechanism
-    # kept the value in its memory.
+    """Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
+
+    Take the mean of the previous LSTM states for this episode."""
     if len(observations) > 0:
         in_h = []
         in_c = []

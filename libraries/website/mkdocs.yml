@@ -26,6 +26,7 @@ nav:
   - Binomial Multiply: envs/binomial_multiply.md
 - Machine learning:
   - Overview: ml/overview.md
+  - Debugging: ml/debugging.md
   - Math Embeddings: ml/embeddings.md
   - Policy/Value Model: ml/policy_value_model.md
   - Agent - A3C : ml/a3c.md
@@ -45,6 +46,8 @@ nav:
   - testing: api/testing.md
   - time_step: api/time_step.md
   - util: api/util.md
+- Contributing: contributing.md
+- Getting Help: help.md
 - About: about.md
 - License: license.md
 

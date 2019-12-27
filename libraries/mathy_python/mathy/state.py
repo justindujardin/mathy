@@ -81,8 +81,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values),
             tf.convert_to_tensor(self.type),
             tf.convert_to_tensor(self.time),
-            tf.convert_to_tensor([self.rnn_state]),
-            tf.convert_to_tensor([self.rnn_history]),
+            tf.convert_to_tensor(self.rnn_state),
+            tf.convert_to_tensor(self.rnn_history),
         ]
         for r in result:
             for s in r.shape:
@@ -98,8 +98,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values).shape,
             tf.convert_to_tensor(self.type).shape,
             tf.convert_to_tensor(self.time).shape,
-            tf.convert_to_tensor([self.rnn_state]).shape,
-            tf.convert_to_tensor([self.rnn_history]).shape,
+            tf.convert_to_tensor(self.rnn_state).shape,
+            tf.convert_to_tensor(self.rnn_history).shape,
         ]
         return result
 
@@ -141,7 +141,7 @@ def rnn_placeholder_state(rnn_size: int) -> RNNStatesFloatList:
     observation. """
     global _cached_placeholder
     # Not in cache, or rnn_size differs
-    if _cached_placeholder is None or len(_cached_placeholder[0][0]) != rnn_size:
+    if _cached_placeholder is None or len(_cached_placeholder[0]) != rnn_size:
         _cached_placeholder = [
             [[0.0] * rnn_size],
             [[0.0] * rnn_size],
@@ -175,8 +175,8 @@ def observations_to_window(
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
         output.values.append(pad_array(obs.values, max_length, 0.0))
-        output.type.append(obs.type)
-        output.time.append(obs.time)
+        output.type.append(pad_array([], max_length, obs.type))
+        output.time.append(pad_array([], max_length, obs.time))
         output.rnn_state[0].append(obs.rnn_state[0])
         output.rnn_state[1].append(obs.rnn_state[1])
         output.rnn_history[0].append(obs.rnn_history[0])

@@ -55,7 +55,7 @@
     },
     {
       "input": "6 + 4",
-      "output": "(3.0 + 2) * 2",
+      "output": "(3 + 2) * 2",
       "args": {
         "constants": true
       }

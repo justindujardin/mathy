@@ -9,3 +9,4 @@ srsly
 pydantic>=1.0.0
 click
 wasabi
+tensorflow_probability

@@ -41,7 +41,6 @@ class PracticeSession:
         self.runner = runner
         self.config = config
         self.env = env_name
-        self.training_iterations = 50
         self.problem_count = self.runner.config.self_play_problems
         self.all_examples = []
         self.skip_first_self_play = False
@@ -51,7 +50,7 @@ class PracticeSession:
 
     def learn(self):
         iterations = self.problem_count
-        for i in range(1, self.training_iterations + 1):
+        for i in range(1, self.config.training_iterations + 1):
             solve, fail, summary, new_examples = self.run_self_play(i, iterations)
             self.run_network_training(i)
 

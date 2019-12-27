@@ -64,6 +64,11 @@
   ],
   "invalid": [
     {
+      "input": "42x^3 + 6 * x * (x * z) * 5 + 48z^2 * x",
+      "output": "42x^3 + 6 * x * (x * z) * 5 + 48z^2 * x",
+      "why": "my impl sucks and can't deal with this nesting. should be: invariant to sibling grouping"
+    },
+    {
       "input": "x * z"
     },
     {

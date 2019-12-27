@@ -2,7 +2,7 @@
   <a href="https://mathy.ai"><img mathy-logo src="img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
-    <em>Computer Algebra System and Reinforcement Learning Environments platform, with agents trained to solve math problems step-by-step</em>
+    <em>Compute-friendly, easy-to-use, reinforcement learning platform for interpretable symbolic mathematics.</em>
 </p>
 <p align="center">
 <a href="https://travis-ci.org/justindujardin/mathy" target="_blank">

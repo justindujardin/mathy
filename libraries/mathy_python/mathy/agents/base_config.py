@@ -35,3 +35,17 @@ class BaseConfig(BaseModel):
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
 
+    # How naturally ordered are the terms in the expression?
+    use_term_order = False
+    # How much internal branching complexity is in the tree?
+    use_tree_complexity = False
+    # Whether to use the grouping change aux task
+    use_grouping_control = False
+    # Clip signal at 0.0 so it does not optimize into the negatives
+    clip_grouping_control = False
+
+    # Include the time/type environment features in the embeddings
+    use_env_features = False
+
+    # Include the node values floating point features in the embeddings
+    use_node_values = True

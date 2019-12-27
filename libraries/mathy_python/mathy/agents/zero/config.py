@@ -7,4 +7,5 @@ class SelfPlayConfig(BaseConfig):
     mcts_sims: int = 50
     temperature_threshold: float = 0.5
     self_play_problems: int = 64
+    training_iterations: int = 100
     cpuct: float = 1.0

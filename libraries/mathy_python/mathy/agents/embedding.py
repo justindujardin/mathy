@@ -1,36 +1,33 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
 import tensorflow as tf
-import json
-from ..core.expressions import MathTypeKeysMax
-from ..state import MathyWindowObservation, ObservationFeatureIndices, MathyInputsType
-from .swish_activation import swish
+from mathy.core.expressions import MathTypeKeysMax
+from mathy.state import (
+    MathyWindowObservation,
+    ObservationFeatureIndices,
+    MathyInputsType,
+)
+from mathy.agents.base_config import BaseConfig
 
 
-class MathyEmbedding(tf.keras.layers.Layer):
+class MathyEmbedding(tf.keras.Model):
     def __init__(
         self,
-        units: int,
-        lstm_units: int,
-        embedding_units: int,
-        use_env_features: bool = False,
-        use_node_values: bool = True,
+        config: BaseConfig = None,
         episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
-        self.units = units
-        self.use_env_features = use_env_features
-        self.use_node_values = use_node_values
+        if config is None:
+            config = BaseConfig()
+        self.config = config
         self.episode_reset_state_h = episode_reset_state_h
         self.episode_reset_state_c = episode_reset_state_c
-        self.lstm_units = lstm_units
         self.init_rnn_state()
-        self.embedding_units = embedding_units
         self.token_embedding = tf.keras.layers.Embedding(
             input_dim=MathTypeKeysMax,
-            output_dim=self.embedding_units,
+            output_dim=self.config.embedding_units,
             name="nodes_embedding",
             mask_zero=True,
         )
@@ -39,24 +36,32 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # +1 for the time
         # +2 for the problem type hashes
         self.concat_size = (
-            4 if self.use_env_features else 1 if self.use_node_values else 0
+            4
+            if self.config.use_env_features
+            else 1
+            if self.config.use_node_values
+            else 0
         )
-        # if self.use_node_values:
-        #     self.values_dense = tf.keras.layers.Dense(self.units, name="values_input")
-        if self.use_env_features:
-            self.time_dense = tf.keras.layers.Dense(self.units, name="time_input")
-            self.type_dense = tf.keras.layers.Dense(self.units, name="type_input")
+        # if self.config.use_node_values:
+        #     self.values_dense = tf.keras.layers.Dense(self.config.units, name="values_input")
+        if self.config.use_env_features:
+            self.time_dense = tf.keras.layers.Dense(
+                self.config.units, name="time_input"
+            )
+            self.type_dense = tf.keras.layers.Dense(
+                self.config.units, name="type_input"
+            )
         self.in_dense = tf.keras.layers.Dense(
-            self.units,
+            self.config.units,
             # In transform gets the embeddings concatenated with the
             # floating point value at each node.
-            input_shape=(None, self.embedding_units + self.concat_size),
+            input_shape=(None, self.config.embedding_units + self.concat_size),
             name="in_dense",
             activation="relu",
             kernel_initializer="he_normal",
         )
         self.output_dense = tf.keras.layers.Dense(
-            self.embedding_units,
+            self.config.embedding_units,
             name="out_dense",
             activation="relu",
             kernel_initializer="he_normal",
@@ -67,14 +72,14 @@ class MathyEmbedding(tf.keras.layers.Layer):
             name="lstm_nodes_norm"
         )
         self.time_lstm = tf.keras.layers.LSTM(
-            self.lstm_units,
+            self.config.lstm_units,
             name="timestep_lstm",
             return_sequences=True,
             time_major=True,
             return_state=True,
         )
         self.nodes_lstm = tf.keras.layers.LSTM(
-            self.lstm_units,
+            self.config.lstm_units,
             name="nodes_lstm",
             return_sequences=True,
             time_major=False,
@@ -84,19 +89,19 @@ class MathyEmbedding(tf.keras.layers.Layer):
     def init_rnn_state(self):
         """Track RNN states with variables in the graph"""
         self.state_c = tf.Variable(
-            tf.zeros([1, self.lstm_units]),
+            tf.zeros([1, self.config.lstm_units]),
             trainable=False,
             name="embedding/rnn/agent_state_c",
         )
         self.state_h = tf.Variable(
-            tf.zeros([1, self.lstm_units]),
+            tf.zeros([1, self.config.lstm_units]),
             trainable=False,
             name="embedding/rnn/agent_state_h",
         )
         # Historical state is twice the size of the RNN state because it's a
         # concatenation of the current state_h and the historical average state_h
         self.state_h_with_history = tf.Variable(
-            tf.zeros([1, self.lstm_units * 2]),
+            tf.zeros([1, self.config.lstm_units * 2]),
             trainable=False,
             name="embedding/rnn/agent_state_h_with_history",
         )
@@ -104,10 +109,15 @@ class MathyEmbedding(tf.keras.layers.Layer):
     def reset_rnn_state(self, force: bool = False):
         """Zero out the RNN state for a new episode"""
         if self.episode_reset_state_h or force is True:
-            self.state_h.assign(tf.zeros([1, self.lstm_units]))
-            self.state_h_with_history.assign(tf.zeros([1, self.lstm_units * 2]))
+            self.state_h.assign(tf.zeros([1, self.config.lstm_units]))
+            self.state_h_with_history.assign(tf.zeros([1, self.config.lstm_units * 2]))
         if self.episode_reset_state_c or force is True:
-            self.state_c.assign(tf.zeros([1, self.lstm_units]))
+            self.state_c.assign(tf.zeros([1, self.config.lstm_units]))
+
+    @tf.function
+    def call_graph(self, inputs: MathyInputsType) -> tf.Tensor:
+        """Autograph optimized function"""
+        return self.call(inputs)
 
     def call(self, features: MathyInputsType) -> tf.Tensor:
         nodes = tf.convert_to_tensor(features[ObservationFeatureIndices.nodes])
@@ -124,14 +134,16 @@ class MathyEmbedding(tf.keras.layers.Layer):
             values = tf.expand_dims(values, axis=-1, name="values_input")
             query = self.token_embedding(nodes)
 
-            # if self.use_node_values:
+            # if self.config.use_node_values:
             #     values = self.values_dense(values)
 
             # If not using env features, only concatenate the tokens and values
-            if not self.use_env_features and self.use_node_values:
+            if not self.config.use_env_features and self.config.use_node_values:
                 query = tf.concat([query, values], axis=-1, name="tokens_and_values")
-                query.set_shape((None, None, self.embedding_units + self.concat_size))
-            elif self.use_env_features:
+                query.set_shape(
+                    (None, None, self.config.embedding_units + self.concat_size)
+                )
+            elif self.config.use_env_features:
                 # Reshape the "type" information and combine it with each node in the
                 # sequence so the nodes have context for the current task
                 #
@@ -159,22 +171,21 @@ class MathyEmbedding(tf.keras.layers.Layer):
                     self.type_dense(type_tiled),
                     self.time_dense(time_tiled),
                 ]
-                if self.use_node_values:
+                if self.config.use_node_values:
                     env_inputs.insert(1, values)
 
                 query = tf.concat(env_inputs, axis=-1, name="tokens_and_values",)
-                # query.set_shape((None, None, self.embedding_units + self.concat_size))
 
         # Input dense transforms
         query = self.in_dense(query)
 
         with tf.name_scope("prepare_initial_states"):
+            in_time_h = tf.expand_dims(in_rnn_state[0][-1], axis=0)
+            in_time_c = tf.expand_dims(in_rnn_state[0][-1], axis=0)
             time_initial_h = tf.tile(
-                in_rnn_state[0][0], [sequence_length, 1], name="time_hidden"
+                in_time_h, [sequence_length, 1], name="time_hidden",
             )
-            time_initial_c = tf.tile(
-                in_rnn_state[1][0], [sequence_length, 1], name="time_cell"
-            )
+            time_initial_c = tf.tile(in_time_c, [sequence_length, 1], name="time_cell",)
 
         with tf.name_scope("rnn"):
             query = self.nodes_lstm(query)
@@ -183,10 +194,10 @@ class MathyEmbedding(tf.keras.layers.Layer):
                 query, initial_state=[time_initial_h, time_initial_c]
             )
             query = self.time_lstm_norm(query)
-            historical_state_h = tf.squeeze(
-                tf.concat(in_rnn_history[0], axis=0, name="average_history_hidden"),
-                axis=1,
-            )
+            # historical_state_h = tf.squeeze(
+            #     tf.concat(in_rnn_history[0], axis=0, name="average_history_hidden"),
+            #     axis=1,
+            # )
 
         self.state_h.assign(state_h[-1:])
         self.state_c.assign(state_c[-1:])
@@ -195,7 +206,7 @@ class MathyEmbedding(tf.keras.layers.Layer):
         # See: https://arxiv.org/pdf/1810.04437.pdf
         with tf.name_scope("combine_outputs"):
             rnn_state_with_history = tf.concat(
-                [state_h[-1:], historical_state_h[-1:]], axis=-1,
+                [state_h[-1:], in_rnn_history[0][-1:]], axis=-1,
             )
             self.state_h_with_history.assign(rnn_state_with_history)
             lstm_context = tf.tile(
@@ -207,3 +218,19 @@ class MathyEmbedding(tf.keras.layers.Layer):
             output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
 
         return self.out_dense_norm(self.output_dense(output))
+
+
+def mathy_embedding(
+    config: BaseConfig = None, name="mathy_embedding"
+) -> MathyEmbedding:
+    from mathy.envs import PolySimplify
+    from mathy.agents.base_config import BaseConfig
+
+    args = BaseConfig()
+    env = PolySimplify()
+    state, _ = env.get_initial_state()
+    window: MathyWindowObservation = state.to_empty_window(1, args.lstm_units)
+    model = MathyEmbedding(config, name=name)
+    inputs = window.to_inputs()
+    model.call_graph(inputs)
+    return model

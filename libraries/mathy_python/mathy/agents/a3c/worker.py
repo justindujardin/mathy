@@ -76,11 +76,7 @@ class A3CWorker(threading.Thread):
             first_env = self.teacher.get_env(self.worker_idx, self.iteration)
             self.envs[first_env] = gym.make(first_env)
             self.writer = writer
-            self.local_model = get_or_create_policy_model(
-                args,
-                self.action_size,
-                self.envs[first_env].initial_window(self.args.lstm_units),
-            )
+            self.local_model = get_or_create_policy_model(args, self.action_size)
             self.reset_episode_loss()
             self.last_model_write = -1
             self.last_histogram_write = -1
