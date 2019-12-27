@@ -2,6 +2,16 @@
 
 Mathy was built over a period of about a decade in my spare time. I believe education should be free. Want to help?
 
+## Contributors
+
+Mathy wouldn't be possible without the wonderful contributions of the following people:
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+
 ## Research
 
 A lot of research has informed the design of Mathy's machine learning model and agents.
