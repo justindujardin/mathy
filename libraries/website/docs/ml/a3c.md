@@ -1,6 +1,6 @@
 Mathy provides an on-policy learning agent (a3c) that can be trained on a modern desktop CPU using python's [threading APIs](https://docs.python.org/3.6/library/threading.html#module-threading){target=\_blank}. For simple tasks the A3C agent trains quickly, but for complex tasks it can require long training periods, and may not find reasonable solutions to difficult problems. For more difficult problems, the [zero agent](/ml/zero) performs a tree search that requires more computation, but finds reasonable solutions in large search spaces.
 
-# A3C
+## Asynchronous Advantage Actor-Critic
 
 Asynchronous Advantage Actor-Critic (A3C) is an algorithm that uses multiple workers to train a shared model. It roughly breaks down like this:
 
@@ -39,19 +39,21 @@ The coordinator/worker architecture used by A3C has a few features that stabiliz
         If you would like to help out with making the A3C implementation scaling using multiprocessing
         [open an issue here](https://github.com/justindujardin/mathy/issues/new?title=A3CMultiprocessing){target=\_blank}
 
-# Examples
+## Examples
 
 The A3C agent can be interacted with via the CLI or the API directly.
 
-## CLI
+### Training
 
-You can view the available training command help:
+You can import the required bits and train an A3C agent using your own custom python code:
 
-```bash
-mathy train --help
+```python
+{!./snippets/ml/a3c_training.py!}
 ```
 
-Then train a new agent:
+### Training with the CLI
+
+Once mathy is installed on your system, you can train an agent using the CLI:
 
 ```bash
 mathy train a3c poly output/my_agent --show
