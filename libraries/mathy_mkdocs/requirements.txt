@@ -1,3 +1,5 @@
 # IMPORTANT: This file isn't used in setup.py..
 -e ../mathy_python/ # depend on mathy for parsing/layout
 pydot
+pytest
+pytest-cov

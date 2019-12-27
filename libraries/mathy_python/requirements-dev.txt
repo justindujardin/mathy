@@ -1,14 +1,6 @@
 mypy
 pytest
 pytest-cov
-matplotlib
 black
 flake8
-graphviz
 snakeviz
-
-pydot
-# Docs 
-mkdocs
-mkdocs-material
-markdown-include
