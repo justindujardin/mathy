@@ -4,7 +4,8 @@ set -e
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
 if [ ! -d "${DIR}" ]; then
-  virtualenv .env -p python3.6
+  pip install virtualenv --upgrade
+  python -m virtualenv .env -p python3.6
 fi
 
 . .env/bin/activate

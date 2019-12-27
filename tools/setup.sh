@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "Updating virtualenv"
-pip install virtualenv --upgrade
 
 echo "Setting up all apps..."
 libraries="mathy_python mathy_mkdocs mathy_pydoc_markdown website"
@@ -11,6 +9,10 @@ do
    echo "=== Setting up: $library"
    (cd libraries/$library && sh tools/setup.sh)
 done
+
+
+echo "Updating virtualenv"
+pip install virtualenv --upgrade
 
 # Make the virtualenv only if the folder doesn't exist
 echo "Installing root virtualenv (.env)"
