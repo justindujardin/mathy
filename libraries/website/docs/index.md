@@ -2,11 +2,11 @@
   <a href="https://mathy.ai"><img mathy-logo src="img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
-    <em>Compute-friendly, easy-to-use, reinforcement learning platform for interpretable symbolic mathematics.</em>
+    <em>A modern platform for combining machine learning with interpretable symbolic mathematics.</em>
 </p>
 <p align="center">
 <a href="https://github.com/justindujardin/mathy/actions">
-    <img src="https://github.com/justindujardin/mathy/workflows/build/badge.svg" />
+    <img src="https://github.com/justindujardin/mathy/workflows/Build/badge.svg" />
 </a>
 <a href="https://codecov.io/gh/justindujardin/mathy">
     <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg?token=CqPEOdEMJX" />
@@ -45,7 +45,7 @@
 
 ---
 
-Mathy wants to be your free and open source math tutor. It uses machine learning to manipulate math problems step-by-step.
+Mathy wants to be your free and open source math tutor. It uses machine learning to manipulate math problems step-by-step. 
 
 ## Features
 
