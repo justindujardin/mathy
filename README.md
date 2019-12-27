@@ -11,6 +11,9 @@
 <a href="https://codecov.io/gh/justindujardin/mathy">
     <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg?token=CqPEOdEMJX" />
 </a>
+<a href="https://greenkeeper.io/" target="_blank">
+    <img src="https://badges.greenkeeper.io/justindujardin/mathy.svg?token=2044b55958862978215ac670d51d87517f45bd312855e113460807d9532469a4&ts=1577489087722">
+</a>
 <a href="https://pypi.org/project/mathy" target="_blank">
     <img src="https://badge.fury.io/py/mathy.svg" alt="Package version">
 </a>
@@ -19,11 +22,12 @@
 </a>
 </p>
 
-Mathy has rich documentation with visualization and examples: <a href="https://mathy.ai" target="_blank">https://mathy.ai</a>
+
+## Website
+
+Mathy's website has rich documentation with visualizations and examples that can be directly executed in Google Colab: <a href="https://mathy.ai" target="_blank">https://mathy.ai</a>
 
 ## Contributors
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/justindujardin/mathy.svg?token=2044b55958862978215ac670d51d87517f45bd312855e113460807d9532469a4&ts=1577489087722)](https://greenkeeper.io/)
 
 Mathy wouldn't be possible without the wonderful contributions of the following people:
 
