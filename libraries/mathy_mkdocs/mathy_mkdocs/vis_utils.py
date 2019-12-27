@@ -135,11 +135,11 @@ def model_to_dot(
     sub_w_first_node = {}
     sub_w_last_node = {}
 
-    if not model._is_graph_network:
-        node = pydot.Node(str(id(model)), label=model.name)
-        dot.add_node(node)
-        return dot
-    elif isinstance(model, sequential.Sequential):
+    # if not model._is_graph_network:
+    #     node = pydot.Node(str(id(model)), label=model.name)
+    #     dot.add_node(node)
+    #     return dot
+    if isinstance(model, sequential.Sequential):
         if not model.built:
             model.build()
     layers = model._layers

@@ -325,6 +325,11 @@ def render_tokens_from_text(input_text: str):
 
 
 def render_model_architecture(match):
+    # HACK: disable this until I can figure out how to render graphs from models
+    #       without using the Functional keras API (which can't cope with variable)
+    #       length LSTM sequence inputs.
+    if True or False:
+        return ""
     global model_hashes
     import importlib
     import gym  # noqa
@@ -411,7 +416,7 @@ def render_code_match(match):
 def render_html(text: str):
     global expression_re
     text = re.sub(expression_re, render_code_match, text, flags=re.IGNORECASE)
-    # text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
+    text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
     return text
 
 
@@ -448,7 +453,7 @@ Build your own tree transformation actions and use them with the built-in agents
 ```"""
         )
     )
-    print(render_html("<code>model:mathy.agents.embedding:mathy_embedding</code>"))
+    print(render_html("<code>model:mathy.agents.embedding:MathyEmbedding</code>"))
 else:
     from mkdocs.plugins import BasePlugin
 
