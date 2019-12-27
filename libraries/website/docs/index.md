@@ -5,11 +5,11 @@
     <em>Compute-friendly, easy-to-use, reinforcement learning platform for interpretable symbolic mathematics.</em>
 </p>
 <p align="center">
-<a href="https://travis-ci.org/justindujardin/mathy" target="_blank">
-    <img src="https://travis-ci.org/justindujardin/mathy.svg?branch=master" alt="Build Status">
+<a href="https://github.com/justindujardin/mathy/actions">
+    <img src="https://github.com/justindujardin/mathy/workflows/build/badge.svg" />
 </a>
-<a href="https://codecov.io/gh/justindujardin/mathy" target="_blank">
-    <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg" alt="Coverage">
+<a href="https://codecov.io/gh/justindujardin/mathy">
+    <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg?token=CqPEOdEMJX" />
 </a>
 <a href="https://pypi.org/project/mathy" target="_blank">
     <img src="https://badge.fury.io/py/mathy.svg" alt="Package version">
