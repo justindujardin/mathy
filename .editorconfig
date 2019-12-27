@@ -1,2 +1,8 @@
+[*]
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
 [*.tf]
 indent_size = 2

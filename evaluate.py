@@ -143,7 +143,7 @@ def main(
             if print_every is not None:
                 print_problem = i_episode % print_every == 0
             if agent == "a3c" and __agent is not None:
-                __agent.global_model.state.reset_state()
+                __agent.global_model.embedding.reset_rnn_state()
                 observation = env.reset(rnn_size=__agent.args.lstm_units)
             else:
                 observation = env.reset()
