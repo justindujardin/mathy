@@ -38,9 +38,7 @@ def self_play_runner(config: SelfPlayConfig):
             )
 
             model: PolicyValueModel = get_or_create_policy_model(
-                args=config,
-                env_actions=game.action_space.n,
-                initial_state=game.initial_window(config.lstm_units),
+                args=config, env_actions=game.action_space.n,
             )
             return model
 

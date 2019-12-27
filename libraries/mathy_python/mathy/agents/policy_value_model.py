@@ -9,12 +9,19 @@ import srsly
 import tensorflow as tf
 from tensorflow.python.keras import backend as K
 from wasabi import msg
-from ..traceback import print_error
 
-from ..state import MathyInputsType, MathyWindowObservation, ObservationFeatureIndices
+from ..env import MathyEnv
+from ..envs import PolySimplify
+from ..state import (
+    MathyInputsType,
+    MathyObservation,
+    MathyWindowObservation,
+    ObservationFeatureIndices,
+    observations_to_window,
+)
+from ..traceback import print_error
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
-from .swish_activation import swish
 
 
 class PolicyValueModel(tf.keras.Model):
@@ -22,9 +29,15 @@ class PolicyValueModel(tf.keras.Model):
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
-        self, args: BaseConfig, predictions=2, initial_state: Any = None, **kwargs,
+        self,
+        args: BaseConfig = None,
+        predictions=2,
+        initial_state: Any = None,
+        **kwargs,
     ):
         super(PolicyValueModel, self).__init__(**kwargs)
+        if args is None:
+            args = BaseConfig()
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.args = args
         self.predictions = predictions
@@ -130,12 +143,13 @@ def _load_model(model: PolicyValueModel, model_file: str, optimizer_file: str):
 
 
 def get_or_create_policy_model(
-    args: BaseConfig,
-    env_actions: int,
-    initial_state: MathyWindowObservation,
-    is_main=False,
-    required=False,
+    args: BaseConfig, env_actions: int, is_main=False, required=False,
 ) -> PolicyValueModel:
+    env: MathyEnv = PolySimplify()
+    observation: MathyObservation = env.state_to_observation(
+        env.get_initial_state()[0], rnn_size=args.lstm_units
+    )
+    initial_state: MathyWindowObservation = observations_to_window([observation])
 
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
@@ -180,7 +194,8 @@ def get_or_create_policy_model(
     model.compile(
         optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
     )
-    model.predict(initial_state.to_inputs())
+    model.build(initial_state.to_input_shapes())
+    model.call(initial_state.to_inputs())
 
     if args.model_format == "keras":
         opt = f"{model_path}.optimizer"

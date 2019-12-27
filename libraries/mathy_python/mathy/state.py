@@ -81,8 +81,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values),
             tf.convert_to_tensor(self.type),
             tf.convert_to_tensor(self.time),
-            tf.convert_to_tensor([self.rnn_state]),
-            tf.convert_to_tensor([self.rnn_history]),
+            tf.convert_to_tensor(self.rnn_state),
+            tf.convert_to_tensor(self.rnn_history),
         ]
         for r in result:
             for s in r.shape:
@@ -98,8 +98,8 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.values).shape,
             tf.convert_to_tensor(self.type).shape,
             tf.convert_to_tensor(self.time).shape,
-            tf.convert_to_tensor([self.rnn_state]).shape,
-            tf.convert_to_tensor([self.rnn_history]).shape,
+            tf.convert_to_tensor(self.rnn_state).shape,
+            tf.convert_to_tensor(self.rnn_history).shape,
         ]
         return result
 
@@ -143,8 +143,8 @@ def rnn_placeholder_state(rnn_size: int) -> RNNStatesFloatList:
     # Not in cache, or rnn_size differs
     if _cached_placeholder is None or len(_cached_placeholder[0]) != rnn_size:
         _cached_placeholder = [
-            [0.0] * rnn_size,
-            [0.0] * rnn_size,
+            [[0.0] * rnn_size],
+            [[0.0] * rnn_size],
         ]
     return _cached_placeholder
 

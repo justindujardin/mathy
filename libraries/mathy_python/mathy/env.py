@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -7,7 +7,6 @@ from . import time_step
 from .core.expressions import STOP, MathExpression
 from .core.parser import ExpressionParser
 from .core.rule import BaseRule, ExpressionChangeRule
-from .util import TermEx, compare_expression_string_values, get_term_ex
 from .rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
@@ -23,7 +22,8 @@ from .state import (
     RNNStatesFloatList,
     rnn_placeholder_state,
 )
-from .types import MathyEnvProblem, MathyEnvProblemArgs, EnvRewards
+from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
+from .util import compare_expression_string_values, is_terminal_transition
 
 
 class MathyEnv:
@@ -75,6 +75,18 @@ class MathyEnv:
     def action_size(self) -> int:
         """Return the number of available actions"""
         return len(self.rules)
+
+    def step(
+        self, state: MathyEnvState, action: int, as_observation=False
+    ) -> Tuple[Union[MathyEnvState, MathyObservation], float, bool, Any]:
+        new_state, transition, change = self.get_next_state(state, action)
+        observation = self.state_to_observation(state)
+        info = {"transition": transition}
+        done = is_terminal_transition(transition)
+        self.last_action = action
+        self.last_change = change
+        self.last_reward = round(float(transition.reward), 4)
+        return observation, transition.reward, done, info
 
     def finalize_state(self, state: MathyEnvState):
         """Perform final checks on a problem state, to ensure the episode yielded

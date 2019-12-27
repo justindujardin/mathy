@@ -79,10 +79,7 @@ def cli_simplify(
     episode_memory = EpisodeMemory()
     env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
     __model: PolicyValueModel = get_or_create_policy_model(
-        args=args,
-        env_actions=env.action_space.n,
-        initial_state=env.initial_window(args.lstm_units),
-        required=True,
+        args=args, env_actions=env.action_space.n, required=True,
     )
     last_observation: MathyObservation = env.reset_with_input(
         problem_text=problem, rnn_size=args.lstm_units, max_moves=max_steps
@@ -94,7 +91,7 @@ def cli_simplify(
     selector = A3CGreedyActionSelector(model=__model, episode=0, worker_id=0)
 
     # Set RNN to 0 state for start of episode
-    selector.model.state.reset_state()
+    selector.model.embedding.reset_rnn_state()
 
     # Start with the "init" sequence [n] times
     for i in range(args.num_thinking_steps_begin + 1):

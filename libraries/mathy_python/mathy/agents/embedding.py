@@ -10,15 +10,17 @@ from mathy.state import (
 from mathy.agents.base_config import BaseConfig
 
 
-class MathyEmbedding(tf.keras.layers.Layer):
+class MathyEmbedding(tf.keras.Model):
     def __init__(
         self,
-        config: BaseConfig,
+        config: BaseConfig = None,
         episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
+        if config is None:
+            config = BaseConfig()
         self.config = config
         self.episode_reset_state_h = episode_reset_state_h
         self.episode_reset_state_c = episode_reset_state_c
@@ -112,6 +114,11 @@ class MathyEmbedding(tf.keras.layers.Layer):
         if self.episode_reset_state_c or force is True:
             self.state_c.assign(tf.zeros([1, self.config.lstm_units]))
 
+    @tf.function
+    def call_graph(self, inputs: MathyInputsType) -> tf.Tensor:
+        """Autograph optimized function"""
+        return self.call(inputs)
+
     def call(self, features: MathyInputsType) -> tf.Tensor:
         nodes = tf.convert_to_tensor(features[ObservationFeatureIndices.nodes])
         values = tf.convert_to_tensor(features[ObservationFeatureIndices.values])
@@ -173,16 +180,12 @@ class MathyEmbedding(tf.keras.layers.Layer):
         query = self.in_dense(query)
 
         with tf.name_scope("prepare_initial_states"):
+            in_time_h = tf.expand_dims(in_rnn_state[0][-1], axis=0)
+            in_time_c = tf.expand_dims(in_rnn_state[0][-1], axis=0)
             time_initial_h = tf.tile(
-                tf.expand_dims(in_rnn_state[0][-1], axis=0),
-                [sequence_length, 1],
-                name="time_hidden",
+                in_time_h, [sequence_length, 1], name="time_hidden",
             )
-            time_initial_c = tf.tile(
-                tf.expand_dims(in_rnn_state[1][-1], axis=0),
-                [sequence_length, 1],
-                name="time_cell",
-            )
+            time_initial_c = tf.tile(in_time_c, [sequence_length, 1], name="time_cell",)
 
         with tf.name_scope("rnn"):
             query = self.nodes_lstm(query)
@@ -215,3 +218,19 @@ class MathyEmbedding(tf.keras.layers.Layer):
             output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
 
         return self.out_dense_norm(self.output_dense(output))
+
+
+def mathy_embedding(
+    config: BaseConfig = None, name="mathy_embedding"
+) -> MathyEmbedding:
+    from mathy.envs import PolySimplify
+    from mathy.agents.base_config import BaseConfig
+
+    args = BaseConfig()
+    env = PolySimplify()
+    state, _ = env.get_initial_state()
+    window: MathyWindowObservation = state.to_empty_window(1, args.lstm_units)
+    model = MathyEmbedding(config, name=name)
+    inputs = window.to_inputs()
+    model.call_graph(inputs)
+    return model
