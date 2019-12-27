@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 pip install codecov
-codecov
+python -m codecov
