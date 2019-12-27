@@ -23,6 +23,8 @@ Mathy has rich documentation with visualization and examples: <a href="https://m
 
 ## Contributors
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/justindujardin/mathy.svg?token=2044b55958862978215ac670d51d87517f45bd312855e113460807d9532469a4&ts=1577489087722)](https://greenkeeper.io/)
+
 Mathy wouldn't be possible without the wonderful contributions of the following people:
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
