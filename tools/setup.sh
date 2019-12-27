@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-sh tools/setup-ci.sh
+sh tools/ci-setup.sh
 
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
