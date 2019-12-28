@@ -35,7 +35,7 @@ selector.model.embedding.reset_rnn_state()
 for i in range(args.num_thinking_steps_begin + 1):
     rnn_state_h = selector.model.embedding.state_h.numpy()
     rnn_state_c = selector.model.embedding.state_c.numpy()
-    seq_start = env_state.to_start_observation([rnn_state_h, rnn_state_c])
+    seq_start = env_state.to_start_observation(rnn_state_h, rnn_state_c)
     selector.model.call(observations_to_window([seq_start]).to_inputs())
 
 done = False

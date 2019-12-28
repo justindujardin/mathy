@@ -46,8 +46,3 @@ def self_play_runner(config: SelfPlayConfig):
     runner = LessonRunner(config)
     c = PracticeSession(runner, config, env_name=lesson_name)
     c.learn()
-
-
-def write_lesson_state(file_path, file_data):
-    with Path(file_path).open("w", encoding="utf-8") as f:
-        f.write(json.dumps(file_data))

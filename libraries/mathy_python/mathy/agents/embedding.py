@@ -1,13 +1,14 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
+
+from mathy.agents.base_config import BaseConfig
 from mathy.core.expressions import MathTypeKeysMax
 from mathy.state import (
+    MathyInputsType,
     MathyWindowObservation,
     ObservationFeatureIndices,
-    MathyInputsType,
 )
-from mathy.agents.base_config import BaseConfig
 
 
 class MathyEmbedding(tf.keras.Model):
@@ -86,6 +87,16 @@ class MathyEmbedding(tf.keras.Model):
             return_state=False,
         )
 
+    def compute_output_shape(self, input_shapes: List[tf.TensorShape]) -> Any:
+        nodes_shape: tf.TensorShape = input_shapes[0]
+        return tf.TensorShape(
+            (
+                nodes_shape.dims[0].value,
+                nodes_shape.dims[1].value,
+                self.config.embedding_units,
+            )
+        )
+
     def init_rnn_state(self):
         """Track RNN states with variables in the graph"""
         self.state_c = tf.Variable(
@@ -124,11 +135,15 @@ class MathyEmbedding(tf.keras.Model):
         values = tf.convert_to_tensor(features[ObservationFeatureIndices.values])
         type = tf.cast(features[ObservationFeatureIndices.type], dtype=tf.float32)
         time = tf.cast(features[ObservationFeatureIndices.time], dtype=tf.float32)
-        nodes_shape = tf.shape(nodes)
+        nodes_shape = tf.shape(features[ObservationFeatureIndices.nodes])
         batch_size = nodes_shape[0]  # noqa
         sequence_length = nodes_shape[1]
-        in_rnn_state = features[ObservationFeatureIndices.rnn_state][0]
-        in_rnn_history = features[ObservationFeatureIndices.rnn_history][0]
+        # batch_size = features[ObservationFeatureIndices.nodes].shape[0]  # noqa
+        # sequence_length = features[ObservationFeatureIndices.nodes].shape[1]  # noqa
+
+        in_rnn_state_h = features[ObservationFeatureIndices.rnn_state_h]
+        in_rnn_state_c = features[ObservationFeatureIndices.rnn_state_c]
+        in_rnn_history_h = features[ObservationFeatureIndices.rnn_history_h]
 
         with tf.name_scope("prepare_inputs"):
             values = tf.expand_dims(values, axis=-1, name="values_input")
@@ -180,8 +195,8 @@ class MathyEmbedding(tf.keras.Model):
         query = self.in_dense(query)
 
         with tf.name_scope("prepare_initial_states"):
-            in_time_h = tf.expand_dims(in_rnn_state[0][-1], axis=0)
-            in_time_c = tf.expand_dims(in_rnn_state[0][-1], axis=0)
+            in_time_h = in_rnn_state_h[-1:, :]
+            in_time_c = in_rnn_state_c[-1:, :]
             time_initial_h = tf.tile(
                 in_time_h, [sequence_length, 1], name="time_hidden",
             )
@@ -195,7 +210,7 @@ class MathyEmbedding(tf.keras.Model):
             )
             query = self.time_lstm_norm(query)
             # historical_state_h = tf.squeeze(
-            #     tf.concat(in_rnn_history[0], axis=0, name="average_history_hidden"),
+            #     tf.concat(in_rnn_history_h[0], axis=0, name="average_history_hidden"),
             #     axis=1,
             # )
 
@@ -206,7 +221,7 @@ class MathyEmbedding(tf.keras.Model):
         # See: https://arxiv.org/pdf/1810.04437.pdf
         with tf.name_scope("combine_outputs"):
             rnn_state_with_history = tf.concat(
-                [state_h[-1:], in_rnn_history[0][-1:]], axis=-1,
+                [state_h[-1:], in_rnn_history_h[-1:]], axis=-1,
             )
             self.state_h_with_history.assign(rnn_state_with_history)
             lstm_context = tf.tile(

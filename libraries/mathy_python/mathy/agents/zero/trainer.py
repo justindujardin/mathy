@@ -137,9 +137,13 @@ class SelfPlayTrainer:
     def compute_policy_value_loss(
         self, inputs: MathyWindowObservation, target_pi: Any, target_v: Any, gamma=0.99,
     ):
+        import tensorflow as tf
+
         batch_size = len(inputs.nodes)
-        step = self.model.global_step
-        logits, values, trimmed_logits = self.model(inputs, apply_mask=False)
+        step = self.model.optimizer.iterations
+        logits, values, trimmed_logits = self.model(
+            inputs.to_inputs(), apply_mask=False
+        )
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
@@ -167,6 +171,8 @@ class SelfPlayTrainer:
         episode_memory: EpisodeMemory,
         clip: bool = True,
     ):
+        import tensorflow as tf
+
         change_signals = [signal for signal in episode_memory.grouping_changes]
         signals_tensor = tf.convert_to_tensor(change_signals)
         loss = tf.reduce_mean(signals_tensor)
@@ -178,7 +184,7 @@ class SelfPlayTrainer:
         self, inputs: MathyWindowObservation, target_pi: Any, target_v: Any, gamma=0.99,
     ):
         # with self.writer.as_default():
-        # step = self.model.global_step
+        # step = self.global_model.optimizer.iterations
         loss_tuple = self.compute_policy_value_loss(inputs, target_pi, target_v)
         pi_loss, v_loss, total_loss = loss_tuple
         # tf.summary.scalar(f"{self.tb_prefix}/total_loss", data=total_loss, step=step)
@@ -186,23 +192,21 @@ class SelfPlayTrainer:
         return pi_loss, v_loss, {}, total_loss
 
     def maybe_write_histograms(self):
+        import tensorflow as tf
+
         if self.worker_idx != 0:
             return
-        step = self.model.global_step.numpy()
+        step = self.global_model.optimizer.iterations
         next_write = self.last_histogram_write + self.args.summary_interval
         if step >= next_write or self.last_histogram_write == -1:
             with self.writer.as_default():
                 self.last_histogram_write = step
                 for var in self.model.trainable_variables:
-                    tf.summary.histogram(var.name, var, step=self.model.global_step)
+                    tf.summary.histogram(var.name, var, step=step)
                 # Write out current LSTM hidden/cell states
                 tf.summary.histogram(
-                    "agent/lstm_c",
-                    self.model.embedding.state_c,
-                    step=self.model.global_step,
+                    "agent/lstm_c", self.model.embedding.state_c, step=step,
                 )
                 tf.summary.histogram(
-                    "agent/lstm_h",
-                    self.model.embedding.state_h,
-                    step=self.model.global_step,
+                    "agent/lstm_h", self.model.embedding.state_h, step=step,
                 )

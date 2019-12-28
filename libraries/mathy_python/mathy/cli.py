@@ -97,7 +97,7 @@ def cli_simplify(
     for i in range(args.num_thinking_steps_begin + 1):
         rnn_state_h = selector.model.embedding.state_h.numpy()
         rnn_state_c = selector.model.embedding.state_c.numpy()
-        seq_start = env.state.to_start_observation([rnn_state_h, rnn_state_c])
+        seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
         selector.model.call(observations_to_window([seq_start]).to_inputs())
 
     done = False
@@ -277,7 +277,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "mcts_sims",
     "--mcts-sims",
-    default=250,
+    default=10,
     type=int,
     help="Number of rollouts per timestep when using MCTS",
 )
@@ -366,7 +366,6 @@ def cli_train(
             verbose=verbose,
             train=True,
             difficulty=difficulty,
-            action_strategy=strategy,
             topics=topics_list,
             lstm_units=rnn,
             units=units,
@@ -375,7 +374,6 @@ def cli_train(
             model_dir=folder,
             init_model_from=transfer,
             num_workers=workers,
-            profile=profile,
             print_training=show,
         )
 
