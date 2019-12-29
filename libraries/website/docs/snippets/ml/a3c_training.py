@@ -14,7 +14,6 @@ args = A3CConfig(
     num_workers=2,
     print_training=True,
 )
-instance = A3CAgent(args)
-instance.train()
+A3CAgent(args).train()
 # Comment this out to keep your model
 shutil.rmtree(model_folder)

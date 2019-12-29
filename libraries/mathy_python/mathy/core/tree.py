@@ -28,8 +28,18 @@ class BinaryTreeNode:
     y: Optional[float]
     offset: Optional[float]
 
+    left: Optional["BinaryTreeNode"]
+    right: Optional["BinaryTreeNode"]
+    parent: Optional["BinaryTreeNode"]
+
     #  Allow specifying children in the constructor
-    def __init__(self, left=None, right=None, parent=None, id=None):
+    def __init__(
+        self,
+        left: Optional["BinaryTreeNode"] = None,
+        right: Optional["BinaryTreeNode"] = None,
+        parent: Optional["BinaryTreeNode"] = None,
+        id: Optional[str] = None,
+    ):
         if id is None:
             BinaryTreeNode._idCounter = BinaryTreeNode._idCounter + 1
             id = f"mn-{BinaryTreeNode._idCounter}"

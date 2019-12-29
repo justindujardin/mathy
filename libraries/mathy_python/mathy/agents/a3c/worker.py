@@ -54,7 +54,6 @@ class A3CWorker(threading.Thread):
         optimizer,
         greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,
-        cmd_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -65,7 +64,6 @@ class A3CWorker(threading.Thread):
         self.iteration = 0
         self.action_size = action_size
         self.result_queue = result_queue
-        self.cmd_queue = cmd_queue
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
@@ -123,13 +121,6 @@ class A3CWorker(threading.Thread):
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
         ):
-            try:
-                ctrl, data = self.cmd_queue.get_nowait()
-                if ctrl == "noop":
-                    pass
-            except queue.Empty:
-                pass
-
             reward = self.run_episode(episode_memory)
             if (
                 A3CWorker.global_episode
@@ -154,28 +145,27 @@ class A3CWorker(threading.Thread):
             profile_path = os.path.join(self.args.model_dir, profile_name)
             pr.disable()
             pr.dump_stats(profile_path)
-            print(f"PROFILER: saved {profile_path}")
+            if self.args.verbose:
+                print(f"PROFILER: saved {profile_path}")
         self.result_queue.put(None)
 
     def build_episode_selector(
         self, env: MathyGymEnv
     ) -> "action_selectors.ActionSelector":
-        mcts: Optional[MCTS] = None
-        if "mcts" in self.args.action_strategy:
-            if self.worker_idx == 0:
-                # disable dirichlet noise in worker_0
-                epsilon = 0.0
-            else:
-                # explore based on eGreedy param (wild guess for values)
-                epsilon = 0.1 + self.epsilon
+        if self.worker_idx == 0:
+            # disable dirichlet noise in worker_0
+            epsilon = 0.0
+        else:
+            # explore based on eGreedy param (wild guess for values)
+            epsilon = 0.1 + self.epsilon
+        selector: action_selectors.ActionSelector
+        if self.args.action_strategy == "mcts_worker_0":
             mcts = MCTS(
                 env=env.mathy,
                 model=self.local_model,
                 num_mcts_sims=self.args.mcts_sims,
                 epsilon=epsilon,
             )
-        selector: action_selectors.ActionSelector
-        if mcts is not None and self.args.action_strategy == "mcts_worker_0":
             if self.worker_idx == 0:
                 selector = action_selectors.MCTSActionSelector(
                     model=self.global_model,
@@ -190,7 +180,13 @@ class A3CWorker(threading.Thread):
                     epsilon=self.epsilon,
                     episode=A3CWorker.global_episode,
                 )
-        elif mcts is not None and self.args.action_strategy == "mcts_worker_n":
+        elif self.args.action_strategy == "mcts_worker_n":
+            mcts = MCTS(
+                env=env.mathy,
+                model=self.local_model,
+                num_mcts_sims=self.args.mcts_sims,
+                epsilon=epsilon,
+            )
             if self.worker_idx != 0:
                 selector = action_selectors.MCTSActionSelector(
                     model=self.global_model,
@@ -205,20 +201,6 @@ class A3CWorker(threading.Thread):
                     epsilon=self.epsilon,
                     episode=A3CWorker.global_episode,
                 )
-        elif mcts is not None and self.args.action_strategy == "mcts_recover":
-            selector = action_selectors.MCTSRecoveryActionSelector(
-                model=self.global_model,
-                worker_id=self.worker_idx,
-                mcts=mcts,
-                episode=A3CWorker.global_episode,
-                recover_threshold=self.args.mcts_recover_time_threshold,
-                base_selector=action_selectors.A3CEpsilonGreedyActionSelector(
-                    model=self.global_model,
-                    worker_id=self.worker_idx,
-                    epsilon=self.epsilon,
-                    episode=A3CWorker.global_episode,
-                ),
-            )
         elif self.args.action_strategy in ["a3c"]:
             selector = action_selectors.A3CEpsilonGreedyActionSelector(
                 model=self.global_model,

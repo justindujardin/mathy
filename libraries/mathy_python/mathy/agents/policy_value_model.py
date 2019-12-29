@@ -140,11 +140,10 @@ class PolicyValueModel(tf.keras.Model):
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
-        if self.args.model_format == "keras":
-            with open(f"{model_path}.optimizer", "wb") as f:
-                pickle.dump(self.optimizer.get_weights(), f)
-            model_path += ".h5"
-        self.save_weights(model_path, save_format=self.args.model_format)
+        with open(f"{model_path}.optimizer", "wb") as f:
+            pickle.dump(self.optimizer.get_weights(), f)
+        model_path += ".h5"
+        self.save_weights(model_path, save_format="keras")
         step = self.optimizer.iterations.numpy()
         print(f"[save] step({step}) model({model_path})")
 
@@ -174,39 +173,25 @@ def get_or_create_policy_model(
     model_path = os.path.join(args.model_dir, args.model_name)
     # Transfer weights/optimizer from a different model
     if is_main and args.init_model_from is not None:
-        if args.model_format == "keras":
-            init_model_path = os.path.join(args.init_model_from, args.model_name)
-            opt = f"{init_model_path}.optimizer"
-            mod = f"{init_model_path}.h5"
-            if os.path.exists(f"{model_path}.h5"):
-                print_error(
-                    ValueError("Model Exists"),
-                    f"Cannot initialize on top of model: {model_path}",
-                    print_error=False,
-                )
-            if os.path.exists(opt) and os.path.exists(mod):
-                print(f"initialize model from: {init_model_path}")
-                copyfile(opt, f"{model_path}.optimizer")
-                copyfile(mod, f"{model_path}.h5")
-            else:
-                print_error(
-                    ValueError("Model Exists"),
-                    f"Cannot initialize on top of model: {model_path}",
-                    print_error=False,
-                )
-        elif args.model_format == "tf":
-            raise ValueError(
-                "TODO: copy file checkpoint, data, etc, but not tensorboard"
+        init_model_path = os.path.join(args.init_model_from, args.model_name)
+        opt = f"{init_model_path}.optimizer"
+        mod = f"{init_model_path}.h5"
+        if os.path.exists(f"{model_path}.h5"):
+            print_error(
+                ValueError("Model Exists"),
+                f"Cannot initialize on top of model: {model_path}",
+                print_error=False,
             )
-            init_model_path = os.path.join(args.init_model_from, args.model_name)
-            if not os.path.exists(model_path):
-                if os.path.exists(init_model_path):
-                    print(f"initialize model weights from: {init_model_path}")
-                    copyfile(init_model_path, model_path)
-            else:
-                raise ValueError(
-                    f"model already exists at: {model_path}, cannot initialize"
-                )
+        if os.path.exists(opt) and os.path.exists(mod):
+            print(f"initialize model from: {init_model_path}")
+            copyfile(opt, f"{model_path}.optimizer")
+            copyfile(mod, f"{model_path}.h5")
+        else:
+            print_error(
+                ValueError("Model Exists"),
+                f"Cannot initialize on top of model: {model_path}",
+                print_error=False,
+            )
 
     model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
     init_inputs = initial_state.to_inputs()
@@ -217,49 +202,30 @@ def get_or_create_policy_model(
     model.predict(init_inputs)
     model.predict_next(init_inputs)
 
-    if args.model_format == "keras":
-        opt = f"{model_path}.optimizer"
-        mod = f"{model_path}.h5"
-        if os.path.exists(mod):
-            if is_main and args.verbose:
-                with msg.loading(f"Loading model: {mod}..."):
-                    _load_model(model, mod, opt)
-                msg.good(f"Loaded model: {mod}")
-            else:
+    opt = f"{model_path}.optimizer"
+    mod = f"{model_path}.h5"
+    if os.path.exists(mod):
+        if is_main and args.verbose:
+            with msg.loading(f"Loading model: {mod}..."):
                 _load_model(model, mod, opt)
+            msg.good(f"Loaded model: {mod}")
+        else:
+            _load_model(model, mod, opt)
 
-            # If we're doing transfer, reset optimizer steps
-            if is_main and args.init_model_from is not None:
-                msg.info("reset optimizer steps to 0 for transfer model")
-                model.optimizer.iterations.assign(0)
-        elif required:
-            print_error(
-                ValueError("Model Not Found"),
-                f"Cannot find model: {mod}",
-                print_error=False,
-            )
-        elif is_main:
-            cfg = f"{model_path}.config.json"
-            if args.verbose:
-                msg.info(f"wrote model config: {cfg}")
-            srsly.write_json(cfg, args.dict(exclude_defaults=False))
-
-    elif args.model_format == "tf":
-        if os.path.exists(os.path.join(args.model_dir, "checkpoint")):
-            if args.verbose:
-                print("Loading model from: {}".format(model_path))
-            model.load_weights(model_path)
-        elif is_main:
-            cfg = f"{model_path}.config.json"
-            if args.verbose:
-                msg.info(f"wrote model config: {cfg}")
-            srsly.write_json(cfg, args.dict(exclude_defaults=False))
-    else:
+        # If we're doing transfer, reset optimizer steps
+        if is_main and args.init_model_from is not None:
+            msg.info("reset optimizer steps to 0 for transfer model")
+            model.optimizer.iterations.assign(0)
+    elif required:
         print_error(
-            ValueError("Unknown Format"),
-            f"The model format ({args.model_format}) is not understood."
-            f"Choose one of 'tf' or 'keras'.",
+            ValueError("Model Not Found"),
+            f"Cannot find model: {mod}",
             print_error=False,
         )
+    elif is_main:
+        cfg = f"{model_path}.config.json"
+        if args.verbose:
+            msg.info(f"wrote model config: {cfg}")
+        srsly.write_json(cfg, args.dict(exclude_defaults=False))
 
     return model

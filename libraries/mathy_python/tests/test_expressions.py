@@ -99,9 +99,13 @@ def test_expressions_abstract_properties_and_methods(node_instance: MathExpressi
 
 
 def test_expressions_equality_evaluate_error():
-    expr = EqualExpression(VariableExpression("x"), ConstantExpression(2))
+    one = VariableExpression("x")
+    two = ConstantExpression(2)
+    expr = EqualExpression(one, two)
     with pytest.raises(ValueError):
         expr.evaluate()
+    with pytest.raises(ValueError):
+        expr.operate(one, two)
 
 
 def test_expressions_binary_errors():
@@ -130,10 +134,22 @@ def test_expressions_to_math_ml(text: str):
     assert "</math>" in ml_string
 
 
+def test_expressions_find_id():
+    expr: MathExpression = ExpressionParser().parse("4 / x")
+    node: MathExpression = expr.find_type(VariableExpression)[0]
+    assert expr.find_id(node.id) == node
+
+
 @pytest.mark.parametrize("visit_order", ["preorder", "inorder", "postorder"])
 def test_expressions_to_list(visit_order: str):
     expr: MathExpression = ExpressionParser().parse("4 / x")
     assert len(expr.to_list(visit_order)) == 3
+
+
+def test_expressions_to_list_errors():
+    expr: MathExpression = ExpressionParser().parse("4 / x")
+    with pytest.raises(ValueError):
+        expr.to_list("invalid")
 
 
 def test_expressions_clone():

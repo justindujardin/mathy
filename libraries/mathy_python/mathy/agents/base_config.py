@@ -8,13 +8,12 @@ class BaseConfig(BaseModel):
         extra = "forbid"
 
     units: int = 64
-    embedding_units: int = 512
-    lstm_units: int = 256
+    embedding_units: int = 128
+    lstm_units: int = 128
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
-    model_format: str = "keras"
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False

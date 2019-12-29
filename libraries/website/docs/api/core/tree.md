@@ -18,7 +18,7 @@ BinarySearchTree.insert(self, key) -> mathy.core.tree.BinaryTreeNode
 Insert a node in the tree with the specified key.
 ## BinaryTreeNode
 ```python
-BinaryTreeNode(self, left=None, right=None, parent=None, id=None)
+BinaryTreeNode(self, left:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, right:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, parent:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, id:Union[str, NoneType]=None)
 ```
 
 The binary tree node is the base node for all of our trees, and provides a

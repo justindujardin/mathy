@@ -20,8 +20,6 @@ class A3CConfig(BaseConfig):
     # Strategy for introducing MCTS into the A3C agent training process
     #
     #   - "a3c" Do not use MCTS when training the A3C agent
-    #   - "mcts" Use MCTS for everything. The slowest option, generates the best
-    #            samples.
     #   - "mcts_worker_0" uses MCTS for observations on the greediest worker. This
     #                usually looks the best visually, because mcts_worker_0 is print
     #                to stdout, so it results in lots of green. It's unclear that
@@ -30,12 +28,10 @@ class A3CConfig(BaseConfig):
     #                This adds the strength of MCTS to observation gathering, without
     #                biasing the observed strength of the model (because only worker_0)
     #                reports statistics.
-    #   - "mcts_recover" after a certain point in the episode, use MCTS to try and
-    #                turn a loss into a weak win.
     action_strategy = "a3c"
     # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 200
-    mcts_recover_time_threshold: float = 0.66
+
 
     # Whether to use the grouping change aux task
     use_grouping_control = True

@@ -54,7 +54,6 @@ class A3CAgent:
     def train(self):
         res_queue = Queue()
         exp_out_queue = Queue()
-        cmd_queues: List[Queue] = [Queue() for i in range(self.args.num_workers)]
         worker_exploration_epsilons = np.geomspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
         )
@@ -62,7 +61,6 @@ class A3CAgent:
             A3CWorker(
                 global_model=self.global_model,
                 action_size=self.action_size,
-                cmd_queue=cmd_queues[i],
                 greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
                 teacher=self.teacher,

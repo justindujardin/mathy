@@ -85,31 +85,3 @@ class MCTSActionSelector(ActionSelector):
     ) -> Tuple[int, float]:
         probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
         return np.argmax(probs), value
-
-
-class MCTSRecoveryActionSelector(MCTSActionSelector):
-    def __init__(self, base_selector: ActionSelector, recover_threshold=0.80, **kwargs):
-        super(MCTSRecoveryActionSelector, self).__init__(**kwargs)
-        self.base_selector = base_selector
-        self.recover_threshold = recover_threshold
-
-    def select(
-        self,
-        *,
-        last_state: MathyEnvState,
-        last_window: MathyWindowObservation,
-        last_action: int,
-        last_reward: float,
-        last_rnn_state: List[float],
-    ) -> Tuple[int, float]:
-        last_time = last_window.time[-1][0]
-        if last_time >= self.recover_threshold:
-            probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
-            return np.argmax(probs), value
-        return self.base_selector.select(
-            last_state=last_state,
-            last_window=last_window,
-            last_action=last_action,
-            last_reward=last_reward,
-            last_rnn_state=last_rnn_state,
-        )

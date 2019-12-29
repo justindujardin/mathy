@@ -1,9 +1,10 @@
-from typing import Union, Optional
-from .tree import BinaryTreeNode, STOP
-import numpy
-from colr import color
 import math
+from typing import List, Optional, Union, Type
+
 import numpy as np
+from colr import color
+
+from .tree import STOP, BinaryTreeNode
 
 OOO_FUNCTION = 4
 OOO_PARENS = 3
@@ -164,7 +165,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return results
 
-    def find_type(self, instanceType):
+    def find_type(self, instanceType: Type["MathExpression"]) -> List["MathExpression"]:
         """Find an expression in this tree by type.
 
         - instanceType: The type to check for instances of
@@ -180,12 +181,12 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
         return results
 
-    def find_id(self, id):
+    def find_id(self, id: str) -> Optional["MathExpression"]:
         """Find an expression by its unique ID.
 
         Returns: The found #MathExpression or `None`
         """
-        result = None
+        result: Optional[MathExpression] = None
 
         def visit_fn(node, depth, data):
             nonlocal result
@@ -479,7 +480,7 @@ class EqualExpression(BinaryExpression):
 
             TODO: Investigate this thoroughly.
         """
-        raise Exception("Unsupported operation. Euqality has no operation to perform.")
+        raise ValueError("Unsupported operation. Euqality has no operation to perform.")
 
 
 class AddExpression(BinaryExpression):
@@ -603,7 +604,7 @@ class PowerExpression(BinaryExpression):
         return self.make_ml_tag("msup", "{}{}".format(left_ml, right_ml), self.classes)
 
     def operate(self, one, two):
-        return numpy.power(one, two)
+        return np.power(one, two)
 
     def __str__(self):
         return "{}{}{}".format(self.left, self.with_color(self.name), self.right)
@@ -698,7 +699,7 @@ class AbsExpression(FunctionExpression):
         return "abs"
 
     def operate(self, value):
-        return numpy.absolute(value)
+        return np.absolute(value)
 
 
 class SgnExpression(FunctionExpression):

@@ -116,7 +116,7 @@ MathExpression.evaluate(self, context=None)
 Evaluate the expression, resolving all variables to constant values
 ### find_id
 ```python
-MathExpression.find_id(self, id)
+MathExpression.find_id(self, id:str) -> Union[_ForwardRef('MathExpression'), NoneType]
 ```
 Find an expression by its unique ID.
 
@@ -124,7 +124,7 @@ Returns: The found `MathExpression` or `None`
 
 ### find_type
 ```python
-MathExpression.find_type(self, instanceType)
+MathExpression.find_type(self, instanceType:Type[_ForwardRef('MathExpression')]) -> List[_ForwardRef('MathExpression')]
 ```
 Find an expression in this tree by type.
 

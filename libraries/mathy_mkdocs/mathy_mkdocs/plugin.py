@@ -37,7 +37,7 @@ parser = ExpressionParser()
 expression_re = r"<code>([a-z\_]*):([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
 model_re = r"<code>model:([a-z\.\_]+):([a-zA-Z\_]+)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
-snippet_matcher_re = r"```[pP]ython[\n]+{!\.(\/snippets\/[a-z\_\/]+).py!}[\n]+```"
+snippet_matcher_re = r"```[pP]ython[\n]+{!\.(\/snippets\/[0-9a-z\_\/]+).py!}[\n]+```"
 # Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
 
 # TODO: add links to code highlight blocks next to clipboard
@@ -450,7 +450,13 @@ Build your own tree transformation actions and use them with the built-in agents
 
 ```Python
 {!./snippets/envs/custom_actions.py!}
-```"""
+```
+
+
+```python
+{!./snippets/ml/a3c_profiling.py!}
+```
+"""
         )
     )
     print(render_html("<code>model:mathy.agents.embedding:MathyEmbedding</code>"))
