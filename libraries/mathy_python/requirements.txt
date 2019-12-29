@@ -1,6 +1,6 @@
 numpy
-tensorflow>=2.0.0
-tensorboard>=2.0.0
+tensorflow==2.0.0
+tensorboard==2.0.0
 tqdm
 colr
 srsly
@@ -8,3 +8,5 @@ pydantic>=1.0.0
 click
 wasabi
 tensorflow_probability
+# After 0.12.5 they added a conflicting version of cloudpickle. Hopefully tensorflow 2.1.0 will resolve this
+gym<=0.12.5

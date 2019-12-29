@@ -9,9 +9,9 @@ if [ ! -d "${DIR}" ]; then
   echo "Installing root virtualenv (.env)"
   pip install virtualenv --upgrade
   python -m virtualenv .env -p python3.6
-  echo "Installing/updating requirements..."
-  .env/bin/pip install -e ./libraries/mathy_python
 fi
+echo "Installing/updating requirements..."
+.env/bin/pip install -e ./libraries/mathy_python
 
 . .env/bin/activate
 

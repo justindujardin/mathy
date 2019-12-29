@@ -1,3 +1,4 @@
+from json import JSONEncoder
 from typing import Any, List
 import json
 import os
@@ -16,7 +17,6 @@ import numpy as np
 
 import srsly
 from .types import EpisodeHistory, EpisodeSummary
-from .examination_runner import ExaminationRunner
 from ...agents.mcts import MCTS
 from .lib.progress.bar import Bar
 from .lib.average_meter import AverageMeter
@@ -155,10 +155,6 @@ class PracticeSession:
         # Write to local then copy (don't thrash virtual file systems like GCS)
         _, tmp_file = tempfile.mkstemp()
         srsly.write_jsonl(tmp_file, self.all_examples)
-        # with Path(tmp_file).open("w", encoding="utf-8") as f:
-        #     for line in self.all_examples:
-        #         f.write(ujson.dumps(line, escape_forward_slashes=False) + "\n")
-
         out_file = model_dir / INPUT_EXAMPLES_FILE_NAME
         copyfile(tmp_file, str(out_file))
         os.remove(tmp_file)

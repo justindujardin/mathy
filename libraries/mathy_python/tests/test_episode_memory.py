@@ -59,7 +59,9 @@ def test_episode_memory_rnn_history():
     # Insert the RNN states into memory
     for r_state in rnn_states:
         memory.store(
-            observation=env.state_to_observation(state, rnn_state=r_state),
+            observation=env.state_to_observation(
+                state, rnn_state_h=r_state[0], rnn_state_c=r_state[1]
+            ),
             action=0.0,
             reward=0.0,
             grouping_change=0.0,

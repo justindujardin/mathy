@@ -42,7 +42,8 @@ class A3CAgent:
         )
         with self.writer.as_default():
             tf.summary.trace_on(graph=True)
-            self.global_model.call_graph(init_window.to_inputs())
+            inputs = init_window.to_inputs()
+            self.global_model.call_graph(inputs)
             tf.summary.trace_export(
                 name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
             )

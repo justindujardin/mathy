@@ -43,9 +43,13 @@ class SelfPlayTrainer:
         self.iteration = 0
         self.action_size = action_size
         self.writer = None
-        self.model = PolicyValueModel(args=args, predictions=self.action_size)
-        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
         self.last_histogram_write = -1
+        if self.args.use_grouping_control:
+            raise NotImplementedError(
+                "Grouping Control signal is not implemented for the Zero agent."
+                " Support shouldn't be very difficult to add by looking at the"
+                " compute_policy_value_loss in the A3C agent."
+            )
 
     @property
     def tb_prefix(self) -> str:
@@ -97,16 +101,15 @@ class SelfPlayTrainer:
                         [MathyObservation(*o) for o in observation]
                     )
                     with tf.GradientTape() as tape:
-                        loss_tuple = self.compute_loss(
+                        pi_loss, value_loss, total_loss = self.compute_loss(
                             gamma=self.args.gamma,
                             inputs=inputs,
                             target_pi=pi,
                             target_v=v,
                         )
-                        pi_loss, value_loss, aux_losses, total_loss = loss_tuple
                     grads = tape.gradient(total_loss, self.model.trainable_weights)
                     zipped_gradients = zip(grads, self.model.trainable_weights)
-                    self.optimizer.apply_gradients(zipped_gradients)
+                    self.model.optimizer.apply_gradients(zipped_gradients)
 
                     # measure data loading time
                     data_time.update(time.time() - end)
@@ -137,9 +140,13 @@ class SelfPlayTrainer:
     def compute_policy_value_loss(
         self, inputs: MathyWindowObservation, target_pi: Any, target_v: Any, gamma=0.99,
     ):
+        import tensorflow as tf
+
         batch_size = len(inputs.nodes)
-        step = self.model.global_step
-        logits, values, trimmed_logits = self.model(inputs, apply_mask=False)
+        step = self.model.optimizer.iterations
+        logits, values, trimmed_logits = self.model(
+            inputs.to_inputs(), apply_mask=False
+        )
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
@@ -148,11 +155,6 @@ class SelfPlayTrainer:
             labels=tf.reshape(target_pi, policy_logits.shape), logits=policy_logits
         )
         policy_loss = tf.reduce_mean(policy_loss)
-        # # Scale the policy/value losses down by the sequence length to normalize
-        # # for combination with aux losses.
-        # policy_loss /= sequence_length
-        # # value_loss /= sequence_length
-
         total_loss = value_loss + policy_loss
         prefix = self.tb_prefix
         tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)
@@ -160,49 +162,9 @@ class SelfPlayTrainer:
 
         return (policy_loss, value_loss, total_loss)
 
-    def compute_grouping_change_loss(
-        self,
-        done,
-        observation: MathyObservation,
-        episode_memory: EpisodeMemory,
-        clip: bool = True,
-    ):
-        change_signals = [signal for signal in episode_memory.grouping_changes]
-        signals_tensor = tf.convert_to_tensor(change_signals)
-        loss = tf.reduce_mean(signals_tensor)
-        if clip is True:
-            loss = tf.clip_by_value(loss, -1.0, 1.0)
-        return loss
-
     def compute_loss(
         self, inputs: MathyWindowObservation, target_pi: Any, target_v: Any, gamma=0.99,
     ):
-        # with self.writer.as_default():
-        # step = self.model.global_step
         loss_tuple = self.compute_policy_value_loss(inputs, target_pi, target_v)
         pi_loss, v_loss, total_loss = loss_tuple
-        # tf.summary.scalar(f"{self.tb_prefix}/total_loss", data=total_loss, step=step)
-
-        return pi_loss, v_loss, {}, total_loss
-
-    def maybe_write_histograms(self):
-        if self.worker_idx != 0:
-            return
-        step = self.model.global_step.numpy()
-        next_write = self.last_histogram_write + self.args.summary_interval
-        if step >= next_write or self.last_histogram_write == -1:
-            with self.writer.as_default():
-                self.last_histogram_write = step
-                for var in self.model.trainable_variables:
-                    tf.summary.histogram(var.name, var, step=self.model.global_step)
-                # Write out current LSTM hidden/cell states
-                tf.summary.histogram(
-                    "agent/lstm_c",
-                    self.model.embedding.state_c,
-                    step=self.model.global_step,
-                )
-                tf.summary.histogram(
-                    "agent/lstm_h",
-                    self.model.embedding.state_h,
-                    step=self.model.global_step,
-                )
+        return pi_loss, v_loss, total_loss

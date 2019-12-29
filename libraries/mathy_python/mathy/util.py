@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Union, Any
 import re
 from typing import Dict, List, Tuple
+from wasabi import TracebackPrinter
 
 import numpy as np
 
@@ -48,7 +49,6 @@ def compare_expression_string_values(
 def raise_with_history(
     title: str, description: str, history: Optional[List[Any]] = None,
 ):
-    from wasabi import TracebackPrinter
     import traceback
 
     history_text: List[str] = []
@@ -832,3 +832,26 @@ def calculate_grouping_control_signal(
 
     # It changed, negative error based on magnitude of the change
     return -abs(in_signal_normalized - out_signal_normalized)
+
+
+def print_error(error, text, print_error=True):
+
+    caught_error = TracebackPrinter(
+        color_error="yellow", tb_base=".", tb_range_start=-15
+    )(
+        error.__class__.__name__,
+        f"{error}",
+        tb=traceback.extract_tb(error.__traceback__),
+    )
+    caught_at = TracebackPrinter(tb_base=".", tb_range_start=-15, tb_range_end=-1)(
+        f"Error: {text}", f"Caught at:", tb=traceback.extract_stack(),
+    )
+
+    if print_error:
+        print(caught_at + caught_error)
+    else:
+        raise ValueError(caught_at + caught_error)
+
+def configure_tensorflow_for_mp():
+    import multiprocessing
+    

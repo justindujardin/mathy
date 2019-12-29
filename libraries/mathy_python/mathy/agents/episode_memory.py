@@ -16,14 +16,14 @@ def rnn_weighted_history(observations: List[MathyObservation], rnn_size: int = 1
         in_h = []
         in_c = []
         for obs in observations:
-            in_h.append(obs.rnn_state[0])
-            in_c.append(obs.rnn_state[1])
+            in_h.append(obs.rnn_state_h)
+            in_c.append(obs.rnn_state_c)
         # Take the mean of the historical states:
         memory_context_h = np.array(in_h).mean(axis=0)
         memory_context_c = np.array(in_c).mean(axis=0)
     else:
-        memory_context_h = np.zeros([1, rnn_size])
-        memory_context_c = np.zeros([1, rnn_size])
+        memory_context_h = np.zeros([rnn_size])
+        memory_context_c = np.zeros([rnn_size])
     return [memory_context_h, memory_context_c]
 
 

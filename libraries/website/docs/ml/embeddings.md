@@ -8,8 +8,6 @@ The **Mathy** embeddings model is a stateful model that predicts over sequences.
 
 The model accepts an encoded sequence of tokens and values extracted from the current state's expression tree, and RNN state variables to use wit the recurrent processing layers.
 
-`model:mathy.agents.embedding:mathy_embedding`
-
 ## Examples
 
 ### Observations to Embeddings

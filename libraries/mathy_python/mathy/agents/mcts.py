@@ -106,6 +106,7 @@ class MCTS:
         Returns:
             v: the value of the current state
         """
+        import tensorflow as tf
 
         s = self.env.to_hash_key(env_state)
 
@@ -120,17 +121,17 @@ class MCTS:
         if s not in self.Ps or s not in self.Rs:
             # leaf node
             valids = self.env.get_valid_moves(env_state)
-            observations = observations_to_window(
-                [
-                    env_state.to_observation(
-                        valids, rnn_state=rnn_state, rnn_history=rnn_state
-                    )
-                ]
-            ).to_inputs()
+            obs = env_state.to_observation(
+                valids,
+                rnn_state_h=rnn_state[0],
+                rnn_state_c=rnn_state[1],
+                rnn_history_h=rnn_state[0],
+            )
+            observations = observations_to_window([obs]).to_inputs()
             out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
-                self.model.embedding.state_h.numpy(),
-                self.model.embedding.state_c.numpy(),
+                tf.squeeze(self.model.embedding.state_h).numpy(),
+                tf.squeeze(self.model.embedding.state_c).numpy(),
             ]
             self.Rs[s] = out_rnn_state
             self.Ps[s] = out_policy

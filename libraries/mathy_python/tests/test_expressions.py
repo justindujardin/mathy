@@ -1,10 +1,16 @@
 from ..mathy import (
-    ConstantExpression,
-    VariableExpression,
+    MathExpression,
+    PowerExpression,
     AddExpression,
     SubtractExpression,
+    MultiplyExpression,
+    DivideExpression,
+    FunctionExpression,
+    ConstantExpression,
+    VariableExpression,
     ExpressionParser,
 )
+import pytest
 
 
 def test_expression_get_children():
@@ -18,14 +24,20 @@ def test_expression_get_children():
     assert expr.evaluate({"x": 10}) == 14
 
 
-def test_expressions_to_math_ml():
+def test_expression_type_id_abstract():
+    expr = MathExpression()
+    with pytest.raises(NotImplementedError):
+        cool_var = expr.type_id
+
+
+def test_expression_to_math_ml():
     expr = ExpressionParser().parse("4 / x")
     ml_string = expr.to_math_ml()
     assert "<math xmlns='http:#www.w3.org/1998/Math/MathML'>" in ml_string
     assert "</math>" in ml_string
 
 
-def test_clone_expressions():
+def test_expression_clone():
     constant = ConstantExpression(4)
     assert constant.value == 4
     assert constant.clone().value == 4

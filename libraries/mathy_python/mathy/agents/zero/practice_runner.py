@@ -1,3 +1,4 @@
+import queue
 import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
@@ -7,21 +8,20 @@ from typing import Any, List, Tuple
 import numpy as np
 from pydantic import BaseModel
 
-from ...agents.mcts import MCTS
 from ...agents.episode_memory import rnn_weighted_history
+from ...agents.mcts import MCTS
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
     MathyEnvState,
     MathyObservation,
-    observations_to_window,
     MathyWindowObservation,
+    observations_to_window,
 )
-from ...util import discount, is_terminal_transition, pad_array
+from ...util import discount, is_terminal_transition, pad_array, print_error
 from ..policy_value_model import PolicyValueModel
 from .config import SelfPlayConfig
-from .types import EpisodeHistory, EpisodeSummary
-
 from .trainer import SelfPlayTrainer
+from .types import EpisodeHistory, EpisodeSummary
 
 
 class PracticeRunner:
@@ -56,17 +56,26 @@ class PracticeRunner:
         move_count,
         history: List[EpisodeHistory],
     ):
+        import tensorflow as tf
+
         # Hold on to the episode example data for training the neural net
         valids = game.mathy.get_valid_moves(env_state)
-        rnn_states = [
-            model.embedding.state_h.numpy().tolist(),
-            model.embedding.state_c.numpy().tolist(),
-        ]
-        rnn_history = rnn_weighted_history(
-            [o.observation for o in history], len(rnn_states[0][0])
+        rnn_state_h = tf.squeeze(model.embedding.state_h).numpy().tolist()
+        rnn_state_c = tf.squeeze(model.embedding.state_c).numpy().tolist()
+        rnn_history_h = (
+            tf.squeeze(
+                rnn_weighted_history(
+                    [o.observation for o in history], len(rnn_state_h)
+                )[0]
+            )
+            .numpy()
+            .tolist()
         )
         last_observation: MathyObservation = env_state.to_observation(
-            valids, rnn_state=rnn_states, rnn_history=rnn_history
+            valids,
+            rnn_state_h=rnn_state_h,
+            rnn_state_c=rnn_state_c,
+            rnn_history_h=rnn_history_h,
         )
 
         # If the move_count is less than threshold, set temp = 1 else 0
@@ -75,7 +84,7 @@ class PracticeRunner:
         )
         mcts_state_copy = env_state.clone()
         predicted_policy, value = mcts.estimate_policy(
-            mcts_state_copy, rnn_states, temp=temp
+            mcts_state_copy, [rnn_state_h, rnn_state_c], temp=temp
         )
         action = np.random.choice(len(predicted_policy), p=predicted_policy)
 
@@ -205,8 +214,6 @@ class PracticeRunner:
         )
 
     def train_with_examples(self, iteration, train_examples, model_path=None):
-        import tensorflow as tf
-
         game = self.get_game()
         new_net = self.get_predictor(game)
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
@@ -217,6 +224,8 @@ class PracticeRunner:
 class ParallelPracticeRunner(PracticeRunner):
     """Run (n) parallel self-play or training processes in parallel."""
 
+    request_quit = False
+
     def execute_episodes(
         self, episode_args_list
     ) -> Tuple[List[EpisodeHistory], List[EpisodeSummary]]:
@@ -225,7 +234,10 @@ class ParallelPracticeRunner(PracticeRunner):
             no items left"""
             game = self.get_game()
             predictor = self.get_predictor(game)
-            while work_queue.empty() is False:
+            while (
+                ParallelPracticeRunner.request_quit is False
+                and work_queue.empty() is False
+            ):
                 episode, args = work_queue.get()
                 start = time.time()
                 try:
@@ -235,14 +247,11 @@ class ParallelPracticeRunner(PracticeRunner):
                         is_win,
                         problem,
                     ) = self.execute_episode(episode, game, predictor, **args)
+                except KeyboardInterrupt:
+                    break
                 except Exception as e:
-                    print(
-                        "ERROR: self practice thread threw an exception: {}".format(
-                            str(e)
-                        )
-                    )
-                    print(e)
-                    result_queue.put((i, [], {"error": str(e)}))
+                    err = print_error(e, f"Self-practice episode threw")
+                    result_queue.put((i, [], {"error": err}))
                     continue
                 duration = time.time() - start
                 episode_summary = EpisodeSummary(
@@ -256,12 +265,12 @@ class ParallelPracticeRunner(PracticeRunner):
             return 0
 
         # Fill a work queue with episodes to be executed.
-        work_queue = Queue()
-        result_queue = Queue()
+        work_queue: Queue = Queue()
+        result_queue: Queue = Queue()
         for i, args in enumerate(episode_args_list):
             work_queue.put((i, args))
         processes = [
-            Process(target=worker, args=(work_queue, result_queue))
+            Process(target=worker, args=(work_queue, result_queue), daemon=True)
             for i in range(self.config.num_workers)
         ]
         for proc in processes:
@@ -271,13 +280,18 @@ class ParallelPracticeRunner(PracticeRunner):
         examples = []
         results = []
         count = 0
-        while count != len(episode_args_list):
-            i, episode_examples, summary = result_queue.get()
-            self.episode_complete(i, summary)
-            count += 1
-            if "error" not in summary:
-                examples.append(episode_examples)
-                results.append(summary)
+        while ParallelPracticeRunner.request_quit is False and count != len(
+            episode_args_list
+        ):
+            try:
+                i, episode_examples, summary = result_queue.get_nowait()
+                self.episode_complete(i, summary)
+                count += 1
+                if "error" not in summary:
+                    examples.append(episode_examples)
+                    results.append(summary)
+            except queue.Empty:
+                pass
 
         # Wait for the workers to exit completely
         for proc in processes:

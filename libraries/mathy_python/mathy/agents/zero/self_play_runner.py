@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 
 from mathy.core.parser import ExpressionParser, ParserException
-from mathy.envs.gym import MathyGymEnv
 
 from ...env import MathyEnv
 from .config import SelfPlayConfig
@@ -31,7 +30,7 @@ def self_play_runner(config: SelfPlayConfig):
 
             return gym.make(lesson_name)
 
-        def get_predictor(self, game: MathyGymEnv):
+        def get_predictor(self, game):
             from ...agents.policy_value_model import (
                 get_or_create_policy_model,
                 PolicyValueModel,
@@ -46,8 +45,3 @@ def self_play_runner(config: SelfPlayConfig):
     runner = LessonRunner(config)
     c = PracticeSession(runner, config, env_name=lesson_name)
     c.learn()
-
-
-def write_lesson_state(file_path, file_data):
-    with Path(file_path).open("w", encoding="utf-8") as f:
-        f.write(json.dumps(file_data))

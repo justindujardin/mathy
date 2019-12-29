@@ -3,6 +3,14 @@
   min-width: 100%;
 }
 
+.contributors-wrapper .md-typeset__table {
+  min-width: 100px;
+}
+.contributors-wrapper .md-typeset__table table {
+  border: none;
+  box-shadow: none;
+}
+
 /**
  * termynal.js
  *

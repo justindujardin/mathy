@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
-from ...traceback import print_error
+from ...util import print_error
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
@@ -263,7 +263,9 @@ class A3CWorker(threading.Thread):
         for i in range(self.args.num_thinking_steps_begin):
             rnn_state_h = selector.model.embedding.state_h.numpy()
             rnn_state_c = selector.model.embedding.state_c.numpy()
-            seq_start = env.state.to_start_observation([rnn_state_h, rnn_state_c])
+            seq_start = env.state.to_start_observation(
+                tf.squeeze(rnn_state_h), tf.squeeze(rnn_state_c)
+            )
             try:
                 window = observations_to_window([seq_start, last_observation])
                 selector.model.call(window.to_inputs())
@@ -288,8 +290,11 @@ class A3CWorker(threading.Thread):
                 values=last_observation.values,
                 type=last_observation.type,
                 time=last_observation.time,
-                rnn_state=last_rnn_state,
-                rnn_history=episode_memory.rnn_weighted_history(self.args.lstm_units),
+                rnn_state_h=tf.squeeze(rnn_state_h),
+                rnn_state_c=tf.squeeze(rnn_state_c),
+                rnn_history_h=episode_memory.rnn_weighted_history(self.args.lstm_units)[
+                    0
+                ],
             )
             # before_rnn_state_h = selector.model.embedding.state_h.numpy()
             # before_rnn_state_c = selector.model.embedding.state_c.numpy()
@@ -325,8 +330,11 @@ class A3CWorker(threading.Thread):
                 values=observation.values,
                 type=observation.type,
                 time=observation.time,
-                rnn_state=[rnn_state_h, rnn_state_c],
-                rnn_history=episode_memory.rnn_weighted_history(self.args.lstm_units),
+                rnn_state_h=rnn_state_h,
+                rnn_state_c=rnn_state_c,
+                rnn_history_h=episode_memory.rnn_weighted_history(self.args.lstm_units)[
+                    0
+                ],
             )
 
             new_text = env.state.agent.problem
@@ -356,19 +364,19 @@ class A3CWorker(threading.Thread):
                 # for obs in episode_memory.observations:
                 #     if check_rnn is not None:
                 #         h_equal_indices = (
-                #             tf.squeeze(tf.math.equal(obs.rnn_state[0], check_rnn[0]))
+                #             tf.squeeze(tf.math.equal(obs.rnn_state_h, check_rnn[0]))
                 #             .numpy()
                 #             .tolist()
                 #         )
                 #         c_equal_indices = (
-                #             tf.squeeze(tf.math.equal(obs.rnn_state[1], check_rnn[1]))
+                #             tf.squeeze(tf.math.equal(obs.rnn_state_c, check_rnn[1]))
                 #             .numpy()
                 #             .tolist()
                 #         )
                 #         assert False in h_equal_indices
                 #         assert False in c_equal_indices
 
-                #     check_rnn = obs.rnn_state
+                #     check_rnn = [obs.rnn_state_h, obs.rnn_state_c]
 
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()

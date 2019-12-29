@@ -36,7 +36,7 @@ Mathy wouldn't be possible without the wonderful contributions of the following 
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="https://www.justindujardin.com/"><img src="https://avatars0.githubusercontent.com/u/101493?v=4" width="100px;" alt=""/><br /><sub><b>Justin DuJardin</b></sub></a></td>
+    <td align="center"><a target="_blank" href="https://www.justindujardin.com/"><img src="https://avatars0.githubusercontent.com/u/101493?v=4" width="100px;" alt=""/><br /><sub><b>Justin DuJardin</b></sub></a></td>
   </tr>
 </table>
 

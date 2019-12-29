@@ -7,8 +7,9 @@ from ...core.expressions import MathExpression
 from ...state import (
     MathyEnvState,
     MathyObservation,
-    RNNStatesFloatList,
+    RNNStateFloatList,
     rnn_placeholder_state,
+    observations_to_window,
 )
 from ...types import MathyEnvProblemArgs
 from ...util import is_terminal_transition
@@ -103,7 +104,9 @@ class MathyGymEnv(gym.Env):
     def initial_window(self, rnn_size: int):
         """return an n-step set of observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)
-        return state.to_empty_window(1, rnn_size)
+        return observations_to_window(
+            [self.mathy.state_to_observation(state, rnn_size=rnn_size)]
+        )
 
     def _observe(self, state: MathyEnvState) -> MathyObservation:
         """Observe the environment at the given state, updating the observation
