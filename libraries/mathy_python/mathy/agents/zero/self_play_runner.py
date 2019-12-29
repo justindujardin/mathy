@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 
 from mathy.core.parser import ExpressionParser, ParserException
-from mathy.envs.gym import MathyGymEnv
 
 from ...env import MathyEnv
 from .config import SelfPlayConfig
@@ -31,7 +30,7 @@ def self_play_runner(config: SelfPlayConfig):
 
             return gym.make(lesson_name)
 
-        def get_predictor(self, game: MathyGymEnv):
+        def get_predictor(self, game):
             from ...agents.policy_value_model import (
                 get_or_create_policy_model,
                 PolicyValueModel,

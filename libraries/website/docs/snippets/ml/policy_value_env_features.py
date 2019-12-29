@@ -1,12 +1,10 @@
-import tensorflow as tf
-
 from mathy import envs
 from mathy.agents.base_config import BaseConfig
 from mathy.agents.policy_value_model import PolicyValueModel
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
 
-args = BaseConfig()
+args = BaseConfig(use_env_features=True)
 env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(
     env.get_initial_state()[0], rnn_size=args.lstm_units

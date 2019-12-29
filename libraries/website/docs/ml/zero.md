@@ -24,6 +24,10 @@ Because of this, the Zero agent will prefer to use the Python **[threading](http
 
 In this mode you can set breakpoints in the debugger to help diagnose errors.
 
+```python
+{!./snippets/ml/zero_debugging.py!}
+```
+
 ### Visual Studio Code
 
 For VSCode, you can edit your `launch.json` file to add a configuration for launching Mathy with the debugger attached:

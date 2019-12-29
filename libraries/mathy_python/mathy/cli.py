@@ -380,7 +380,9 @@ def cli_train(
         self_play_runner(self_play_cfg)
 
 
-def setup_tf_env():
+def setup_tf_env(use_mp=False):
+    if use_mp:
+        setup_tf_env_mp()
     import os
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
@@ -393,6 +395,19 @@ def setup_tf_env():
     tf.random.set_seed(1337)
 
     tf.compat.v1.logging.set_verbosity("CRITICAL")
+
+
+def setup_tf_env_mp():
+    import multiprocessing
+
+    def worker():
+        import tensorflow as tf
+
+        return 0
+
+    proc = multiprocessing.Process(target=worker)
+    proc.start()
+    proc.join()
 
 
 if __name__ == "__main__":

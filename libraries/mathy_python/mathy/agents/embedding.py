@@ -14,14 +14,12 @@ from mathy.state import (
 class MathyEmbedding(tf.keras.Model):
     def __init__(
         self,
-        config: BaseConfig = None,
+        config: BaseConfig,
         episode_reset_state_h: Optional[bool] = True,
         episode_reset_state_c: Optional[bool] = True,
         **kwargs,
     ):
         super(MathyEmbedding, self).__init__(**kwargs)
-        if config is None:
-            config = BaseConfig()
         self.config = config
         self.episode_reset_state_h = episode_reset_state_h
         self.episode_reset_state_c = episode_reset_state_c
@@ -159,32 +157,10 @@ class MathyEmbedding(tf.keras.Model):
                     (None, None, self.config.embedding_units + self.concat_size)
                 )
             elif self.config.use_env_features:
-                # Reshape the "type" information and combine it with each node in the
-                # sequence so the nodes have context for the current task
-                #
-                # [Batch, len(Type)] => [Batch, 1, len(Type)]
-                type_with_batch = type[:, tf.newaxis, :]
-                # Repeat the type values for each node in the sequence
-                #
-                # [Batch, 1, len(Type)] => [Batch, len(Sequence), len(Type)]
-                type_tiled = tf.tile(
-                    type_with_batch, [1, sequence_length, 1], name="type_tiled"
-                )
-
-                # Reshape the "time" information so it has a time axis
-                #
-                # [Batch, 1] => [Batch, 1, 1]
-                time_with_batch = time[:, tf.newaxis, :]
-                # Repeat the time values for each node in the sequence
-                #
-                # [Batch, 1, 1] => [Batch, len(Sequence), 1]
-                time_tiled = tf.tile(
-                    time_with_batch, [1, sequence_length, 1], name="time_tiled"
-                )
                 env_inputs = [
                     query,
-                    self.type_dense(type_tiled),
-                    self.time_dense(time_tiled),
+                    self.type_dense(type),
+                    self.time_dense(time),
                 ]
                 if self.config.use_node_values:
                     env_inputs.insert(1, values)
@@ -233,19 +209,3 @@ class MathyEmbedding(tf.keras.Model):
             output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
 
         return self.out_dense_norm(self.output_dense(output))
-
-
-def mathy_embedding(
-    config: BaseConfig = None, name="mathy_embedding"
-) -> MathyEmbedding:
-    from mathy.envs import PolySimplify
-    from mathy.agents.base_config import BaseConfig
-
-    args = BaseConfig()
-    env = PolySimplify()
-    state, _ = env.get_initial_state()
-    window: MathyWindowObservation = state.to_empty_window(1, args.lstm_units)
-    model = MathyEmbedding(config, name=name)
-    inputs = window.to_inputs()
-    model.call_graph(inputs)
-    return model

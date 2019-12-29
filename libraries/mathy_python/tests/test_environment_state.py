@@ -16,3 +16,9 @@ def test_math_state_encode_player():
     assert agent.moves_remaining == 10
     assert agent.action == 0
     assert agent.focus_index == 3
+
+
+def test_math_state_to_observation():
+    """to_observation has defaults to allow calling with no arguments"""
+    env_state = MathyEnvState(problem="4x+2")
+    assert env_state.to_observation() is not None

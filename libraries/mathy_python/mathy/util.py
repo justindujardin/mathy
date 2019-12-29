@@ -851,3 +851,7 @@ def print_error(error, text, print_error=True):
         print(caught_at + caught_error)
     else:
         raise ValueError(caught_at + caught_error)
+
+def configure_tensorflow_for_mp():
+    import multiprocessing
+    

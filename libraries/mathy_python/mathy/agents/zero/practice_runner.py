@@ -1,3 +1,4 @@
+import queue
 import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
 from random import shuffle
@@ -7,23 +8,20 @@ from typing import Any, List, Tuple
 import numpy as np
 from pydantic import BaseModel
 
-
-from ...agents.mcts import MCTS
 from ...agents.episode_memory import rnn_weighted_history
+from ...agents.mcts import MCTS
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
     MathyEnvState,
     MathyObservation,
-    observations_to_window,
     MathyWindowObservation,
+    observations_to_window,
 )
-from ...util import discount, is_terminal_transition, pad_array
-from ...util import print_error
+from ...util import discount, is_terminal_transition, pad_array, print_error
 from ..policy_value_model import PolicyValueModel
 from .config import SelfPlayConfig
-from .types import EpisodeHistory, EpisodeSummary
-
 from .trainer import SelfPlayTrainer
+from .types import EpisodeHistory, EpisodeSummary
 
 
 class PracticeRunner:
@@ -226,6 +224,8 @@ class PracticeRunner:
 class ParallelPracticeRunner(PracticeRunner):
     """Run (n) parallel self-play or training processes in parallel."""
 
+    request_quit = False
+
     def execute_episodes(
         self, episode_args_list
     ) -> Tuple[List[EpisodeHistory], List[EpisodeSummary]]:
@@ -234,7 +234,10 @@ class ParallelPracticeRunner(PracticeRunner):
             no items left"""
             game = self.get_game()
             predictor = self.get_predictor(game)
-            while work_queue.empty() is False:
+            while (
+                ParallelPracticeRunner.request_quit is False
+                and work_queue.empty() is False
+            ):
                 episode, args = work_queue.get()
                 start = time.time()
                 try:
@@ -244,6 +247,8 @@ class ParallelPracticeRunner(PracticeRunner):
                         is_win,
                         problem,
                     ) = self.execute_episode(episode, game, predictor, **args)
+                except KeyboardInterrupt:
+                    break
                 except Exception as e:
                     err = print_error(e, f"Self-practice episode threw")
                     result_queue.put((i, [], {"error": err}))
@@ -260,12 +265,12 @@ class ParallelPracticeRunner(PracticeRunner):
             return 0
 
         # Fill a work queue with episodes to be executed.
-        work_queue = Queue()
-        result_queue = Queue()
+        work_queue: Queue = Queue()
+        result_queue: Queue = Queue()
         for i, args in enumerate(episode_args_list):
             work_queue.put((i, args))
         processes = [
-            Process(target=worker, args=(work_queue, result_queue))
+            Process(target=worker, args=(work_queue, result_queue), daemon=True)
             for i in range(self.config.num_workers)
         ]
         for proc in processes:
@@ -275,14 +280,18 @@ class ParallelPracticeRunner(PracticeRunner):
         examples = []
         results = []
         count = 0
-        while count != len(episode_args_list):
-            i, episode_examples, summary = result_queue.get()
-            summary = EpisodeSummary(**summary)
-            self.episode_complete(i, summary)
-            count += 1
-            if "error" not in summary:
-                examples.append(episode_examples)
-                results.append(summary)
+        while ParallelPracticeRunner.request_quit is False and count != len(
+            episode_args_list
+        ):
+            try:
+                i, episode_examples, summary = result_queue.get_nowait()
+                self.episode_complete(i, summary)
+                count += 1
+                if "error" not in summary:
+                    examples.append(episode_examples)
+                    results.append(summary)
+            except queue.Empty:
+                pass
 
         # Wait for the workers to exit completely
         for proc in processes:

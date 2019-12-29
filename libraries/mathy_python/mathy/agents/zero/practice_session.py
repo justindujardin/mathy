@@ -17,7 +17,6 @@ import numpy as np
 
 import srsly
 from .types import EpisodeHistory, EpisodeSummary
-from .examination_runner import ExaminationRunner
 from ...agents.mcts import MCTS
 from .lib.progress.bar import Bar
 from .lib.average_meter import AverageMeter
