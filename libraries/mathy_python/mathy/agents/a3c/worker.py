@@ -226,12 +226,6 @@ class A3CWorker(threading.Thread):
                 epsilon=self.epsilon,
                 episode=A3CWorker.global_episode,
             )
-        elif self.args.action_strategy == "a3c-eval":
-            selector = action_selectors.A3CGreedyActionSelector(
-                model=self.global_model,
-                worker_id=self.worker_idx,
-                episode=A3CWorker.global_episode,
-            )
         else:
             raise EnvironmentError(
                 f"Unknown action_strategy: {self.args.action_strategy}"
@@ -261,11 +255,9 @@ class A3CWorker(threading.Thread):
 
         # Start with the "init" sequence [n] times
         for i in range(self.args.num_thinking_steps_begin):
-            rnn_state_h = selector.model.embedding.state_h.numpy()
-            rnn_state_c = selector.model.embedding.state_c.numpy()
-            seq_start = env.state.to_start_observation(
-                tf.squeeze(rnn_state_h), tf.squeeze(rnn_state_c)
-            )
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
+            seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
             try:
                 window = observations_to_window([seq_start, last_observation])
                 selector.model.call(window.to_inputs())
@@ -279,8 +271,8 @@ class A3CWorker(threading.Thread):
             if self.args.print_training and self.worker_idx == 0:
                 env.render(self.args.print_mode, None)
             # store rnn state for replay training
-            rnn_state_h = selector.model.embedding.state_h.numpy()
-            rnn_state_c = selector.model.embedding.state_c.numpy()
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             last_rnn_state = [rnn_state_h, rnn_state_c]
 
             # named tuples are read-only, so add rnn state to a new copy
@@ -314,8 +306,8 @@ class A3CWorker(threading.Thread):
 
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            rnn_state_h = selector.model.embedding.state_h.numpy()
-            rnn_state_c = selector.model.embedding.state_c.numpy()
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
 
             # TODO: make this a unit test, check that EpisodeMemory states are not equal
             #       across time steps.
@@ -405,9 +397,7 @@ class A3CWorker(threading.Thread):
     def maybe_write_episode_summaries(
         self, episode_reward: float, episode_steps: int, last_state: MathyEnvState
     ):
-        if self.worker_idx != 0:
-            return
-
+        assert self.worker_idx == 0, "only write summaries for greedy worker"
         # Track metrics for all workers
         name = self.teacher.get_env(self.worker_idx, self.iteration)
         step = self.global_model.optimizer.iterations

@@ -343,7 +343,6 @@ def cli_train(
 
         args = A3CConfig(
             verbose=verbose,
-            train=True,
             difficulty=difficulty,
             action_strategy=strategy,
             topics=topics_list,
@@ -367,7 +366,6 @@ def cli_train(
 
         self_play_cfg = SelfPlayConfig(
             verbose=verbose,
-            train=True,
             difficulty=difficulty,
             topics=topics_list,
             lstm_units=rnn,

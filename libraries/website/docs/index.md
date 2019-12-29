@@ -2,7 +2,7 @@
   <a href="/"><img mathy-logo src="/img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
-    <em>A modern computer algebra system and reinforcement learning platform, for interpretable symbolic mathematics.</em>
+    <em>A modern computer algebra system and reinforcement learning platform for interpretable symbolic mathematics.</em>
 </p>
 <p align="center">
 <a href="https://github.com/justindujardin/mathy/actions">

@@ -7,11 +7,11 @@ edit_uri: edit/master/libraries/website/docs/
 
 nav:
 - Mathy: index.md
-- Computer algebra system:
+- Computer Algebra System:
   - Overview: cas/overview.md
   - Tokenizer: cas/tokenizer.md
   - Parser: cas/parser.md
-- Rules-based transformations:
+- Rules-based Transformations:
   - Overview: rules/overview.md
   - Associative Swap: rules/associative_property.md
   - Commutative Swap: rules/commutative_property.md
@@ -19,18 +19,18 @@ nav:
   - Distributive Multiply: rules/distributive_property_multiply_across.md
   - Variable Multiply: rules/variable_multiplication.md
   - Constant Arithmetic: rules/constant_arithmetic.md
-- Environments:
-  - Overview: envs/overview.md
-  - Poly Simplify: envs/poly_simplify.md
-  - Complex Simplify: envs/complex_simplify.md
-  - Binomial Multiply: envs/binomial_multiply.md
-- Machine learning:
+- Machine Learning:
   - Overview: ml/overview.md
   - Debugging: ml/debugging.md
   - Math Embeddings: ml/embeddings.md
   - Policy/Value Model: ml/policy_value_model.md
   - A3C Agent: ml/a3c.md
   - Zero Agent: ml/zero.md
+- Environments:
+  - Overview: envs/overview.md
+  - Poly Simplify: envs/poly_simplify.md
+  - Complex Simplify: envs/complex_simplify.md
+  - Binomial Multiply: envs/binomial_multiply.md
 - API Documentation:
   - core:
     - expressions: api/core/expressions.md
@@ -58,6 +58,8 @@ extra:
     link: https://github.com/justindujardin
   - type: twitter
     link: https://twitter.com/justindujardin
+  - type: linkedin
+    link: https://linkedin.com/in/justindujardin
 
 extra_css:
 - lib/styles.css

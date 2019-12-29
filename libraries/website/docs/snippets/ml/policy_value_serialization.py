@@ -12,18 +12,9 @@ setup_tf_env()
 args = A3CConfig(
     max_eps=1,
     verbose=True,
-    train=True,
-    difficulty="easy",
-    action_strategy="a3c",
     topics=["poly-combine"],
-    lstm_units=16,
-    units=32,
-    embedding_units=24,
-    mcts_sims=100,
     model_dir=model_folder,
     num_workers=1,
-    profile=False,
-    print_training=False,
 )
 instance = A3CAgent(args)
 instance.train()

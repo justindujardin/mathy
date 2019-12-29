@@ -13,17 +13,17 @@ Eat all of the tokens of a given type from the front of the stream
 until a different type is hit, and return the text.
 ### identify_alphas
 ```python
-Tokenizer.identify_alphas(self, context)
+Tokenizer.identify_alphas(self, context:mathy.core.tokenizer.TokenContext) -> int
 ```
 Identify and tokenize functions and variables.
 ### identify_constants
 ```python
-Tokenizer.identify_constants(self, context)
+Tokenizer.identify_constants(self, context:mathy.core.tokenizer.TokenContext) -> int
 ```
 Identify and tokenize a constant number.
 ### identify_operators
 ```python
-Tokenizer.identify_operators(self, context)
+Tokenizer.identify_operators(self, context:mathy.core.tokenizer.TokenContext) -> bool
 ```
 Identify and tokenize operators.
 ### is_alpha

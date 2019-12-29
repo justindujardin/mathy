@@ -84,11 +84,6 @@ Set the right node to the passed `child`
 BinaryTreeNode.set_side(self, child, side)
 ```
 Set a new `child` on the given `side`
-### to_json
-```python
-BinaryTreeNode.to_json(self)
-```
-Serialize the node as JSON
 ### visit_inorder
 ```python
 BinaryTreeNode.visit_inorder(self, visit_fn, depth=0, data=None)

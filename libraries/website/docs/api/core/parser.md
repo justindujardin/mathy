@@ -42,7 +42,7 @@ Rules:
 
 ### check
 ```python
-ExpressionParser.check(self, tokens)
+ExpressionParser.check(self, tokens) -> bool
 ```
 Check if the `self.current_token` is a member of a set Token types
 
@@ -52,7 +52,7 @@ Args:
 `Returns` True if the `current_token`'s type is in the set else False
 ### eat
 ```python
-ExpressionParser.eat(self, type)
+ExpressionParser.eat(self, type) -> bool
 ```
 Assign the next token in the queue to current_token if its type
 matches that of the specified parameter. If the type does not match,
@@ -63,7 +63,7 @@ Args:
 
 ### next
 ```python
-ExpressionParser.next(self)
+ExpressionParser.next(self) -> bool
 ```
 Assign the next token in the queue to `self.current_token`.
 
@@ -71,7 +71,7 @@ Return True if there are still more tokens in the queue, or False if there
 are no more tokens to look at.
 ### parse
 ```python
-ExpressionParser.parse(self, input)
+ExpressionParser.parse(self, input_text:str) -> mathy.core.expressions.MathExpression
 ```
 Parse a string representation of an expression into a tree
 that can be later evaluated.

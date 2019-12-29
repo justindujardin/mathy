@@ -9,19 +9,14 @@ setup_tf_env()
 self_play_cfg = SelfPlayConfig(
     # Setting to 1 worker uses single-threaded implementation
     num_workers=1,
+    mcts_sims=1,
     max_eps=1,
     self_play_problems=1,
+    training_iterations=1,
     verbose=True,
-    train=True,
-    difficulty="easy",
     topics=["poly-combine"],
-    lstm_units=16,
-    units=32,
-    embedding_units=16,
-    mcts_sims=1,
     model_dir=model_folder,
     print_training=True,
-    training_iterations=1,
 )
 
 self_play_runner(self_play_cfg)

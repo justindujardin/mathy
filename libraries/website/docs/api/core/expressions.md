@@ -2,31 +2,14 @@
 
 ## AbsExpression
 ```python
-AbsExpression(self, child=None, operatorOnLeft=True)
+AbsExpression(self, child=None, child_on_left=True)
 ```
 Evaluates the absolute value of an expression.
-### differentiate
-```python
-AbsExpression.differentiate(self, by_variable)
-```
-```
-.       f(x)   = abs( g(x) )
-.    d( f(x) ) = sgn( g(x) ) * d( g(x) )
-```
 ## AddExpression
 ```python
 AddExpression(self, left=None, right=None)
 ```
 Add one and two
-### differentiate
-```python
-AddExpression.differentiate(self, by_variable)
-```
-```
-.           f(x) = g(x) + h(x)
-.      d( f(x) ) = d( g(x) ) + d( h(x) )
-.          f'(x) = g'(x) + h'(x)
-```
 ## BinaryExpression
 ```python
 BinaryExpression(self, left=None, right=None)
@@ -41,13 +24,6 @@ of this node.  This can be used to check if a node is `locked`
 with respect to another node, i.e. the other node must be resolved
 first during evaluation because of it's priority.
 
-### self_parens
-```python
-BinaryExpression.self_parens(self) -> bool
-```
-Return a boolean indicating whether this node should render itself with
-a set of enclosing parnetheses or not. This is used when serializing an
-expression, to ensure the tree maintains the proper order of operations.
 ### to_math_ml_fragment
 ```python
 BinaryExpression.to_math_ml_fragment(self)
@@ -63,14 +39,6 @@ A Constant value node, where the value is accessible as `node.value`
 DivideExpression(self, left=None, right=None)
 ```
 Divide one by two
-### differentiate
-```python
-DivideExpression.differentiate(self, by_variable)
-```
-```
-.      f(x) = g(x)/h(x)
-.     f'(x) = ( g'(x)*h(x) - g(x)*h'(x) ) / ( h(x)^2 )
-```
 ## EqualExpression
 ```python
 EqualExpression(self, left=None, right=None)
@@ -89,7 +57,7 @@ is not present in the expression's `operate` method.
 
 ## FunctionExpression
 ```python
-FunctionExpression(self, child=None, operatorOnLeft=True)
+FunctionExpression(self, child=None, child_on_left=True)
 ```
 A Specialized UnaryExpression that is used for functions.  The function name in
 text (used by the parser and tokenizer) is derived from the name() method on the
@@ -141,16 +109,6 @@ Returns: The cloned `MathExpression` node.
 
 ### color
 Color to use for this node when rendering it as changed with `.terminal_text`
-### count_nodes
-```python
-MathExpression.count_nodes(self)
-```
-Return the number of nodes in this expression
-### differentiate
-```python
-MathExpression.differentiate(self, by_variable)
-```
-Differentiate the expression by a given variable
 ### evaluate
 ```python
 MathExpression.evaluate(self, context=None)
@@ -229,29 +187,11 @@ Render a string that is colored if something has changed
 MultiplyExpression(self, left=None, right=None)
 ```
 Multiply one and two
-### differentiate
-```python
-MultiplyExpression.differentiate(self, by_variable)
-```
-```
-.         f(x) = g(x)*h(x)
-.        f'(x) = g(x)*h'(x) + g'(x)*h(x)
-```
 ## NegateExpression
 ```python
-NegateExpression(self, child=None, operatorOnLeft=True)
+NegateExpression(self, child=None, child_on_left=True)
 ```
 Negate an expression, e.g. `4` becomes `-4`
-### differentiate
-```python
-NegateExpression.differentiate(self, by_variable)
-```
-
-```
-.        f(x) = -g(x)
-.    d( f(x) ) = -( d( g(x) ) )
-```
-
 ### to_math_ml_fragment
 ```python
 NegateExpression.to_math_ml_fragment(self)
@@ -262,30 +202,11 @@ Convert this single node into MathML.
 PowerExpression(self, left=None, right=None)
 ```
 Raise one to the power of two
-### differentiate
-```python
-PowerExpression.differentiate(self, by_variable)
-```
-
-!!! warn Unimplemented
-
-    This needs to be implemented
-
 ## SgnExpression
 ```python
-SgnExpression(self, child=None, operatorOnLeft=True)
+SgnExpression(self, child=None, child_on_left=True)
 ```
 
-### differentiate
-```python
-SgnExpression.differentiate(self, by_variable)
-```
-```
-.         f(x) = sgn( g(x) )
-.    d( f(x) ) = 0
-```
-
-Note: in general sgn'(x) = 2δ(x) where δ(x) is the Dirac delta function.
 ### operate
 ```python
 SgnExpression.operate(self, value)
@@ -298,45 +219,8 @@ Returns: -1 if negative, 1 if positive, 0 if 0
 SubtractExpression(self, left=None, right=None)
 ```
 Subtract one from two
-### differentiate
-```python
-SubtractExpression.differentiate(self, by_variable)
-```
-```
-.           f(x) = g(x) - h(x)
-.      d( f(x) ) = d( g(x) ) - d( h(x) )
-.          f'(x) = g'(x) - h'(x)
-```
 ## UnaryExpression
 ```python
-UnaryExpression(self, child=None, operatorOnLeft=True)
+UnaryExpression(self, child=None, child_on_left=True)
 ```
 An expression that operates on one sub-expression
-## VariableExpression
-```python
-VariableExpression(self, identifier=None)
-```
-
-### differentiate
-```python
-VariableExpression.differentiate(self, by_variable)
-```
-
-Differentiating by this variable yields 1
-
-```
-.         f(x) = x
-.    d( f(x) ) = 1 * d( x )
-.       d( x ) = 1
-.        f'(x) = 1
-```
-
-Differentiating by any other variable yields 0
-
-```
-.         f(x) = c
-.    d( f(x) ) = c * d( c )
-.       d( c ) = 0
-.        f'(x) = 0
-```
-

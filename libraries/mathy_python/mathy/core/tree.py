@@ -64,13 +64,6 @@ class BinaryTreeNode:
         """Human readable name for this node."""
         return "BinaryTreeNode"
 
-    def to_json(self):
-        """Serialize the node as JSON"""
-        return {
-            "name": self.name,
-            "children": [c.to_json() for c in self.get_children()],
-        }
-
     def rotate(self):
         """
         Rotate a node, changing the structure of the tree, without modifying

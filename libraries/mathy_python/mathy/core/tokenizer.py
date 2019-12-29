@@ -1,11 +1,11 @@
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
 # # Tokenizer
 
 # ##Constants
 
 # Define the known types of tokens for the Tokenizer.
-TokensMap = {
+TokensMap: Dict[str, int] = {
     "None": 1 << 0,
     "Constant": 1 << 1,
     "Variable": 1 << 2,
@@ -39,6 +39,9 @@ TokenEOF = TokensMap["EOF"]
 
 
 class Token:
+    value: Union[str, int, float]
+    type: int
+
     def __init__(self, value: Union[str, int, float], type: int):
         self.value = value
         self.type = type
@@ -48,7 +51,19 @@ class Token:
 
 
 class TokenContext:
-    def __init__(self, *, tokens=None, index=0, buffer="", chunk=""):
+    tokens: List[Token]
+    index: int
+    buffer: str
+    chunk: str
+
+    def __init__(
+        self,
+        *,
+        tokens: Optional[List[Token]] = None,
+        index: int = 0,
+        buffer: str = "",
+        chunk: str = "",
+    ):
         self.tokens = tokens if tokens is not None else []
         self.index = index
         self.buffer = buffer
@@ -117,7 +132,7 @@ class Tokenizer:
         context.tokens.append(Token("", TokenEOF))
         return context.tokens
 
-    def identify_operators(self, context):
+    def identify_operators(self, context: TokenContext) -> bool:
         """Identify and tokenize operators."""
         ch = context.chunk[0]
         if ch == " " or ch == "\t" or ch == "\r" or ch == "\n":
@@ -141,13 +156,11 @@ class Tokenizer:
         elif ch == "=":
             context.tokens.append(Token("=", TokenEqual))
         else:
-            raise Exception(
-                'Invalid token "{}" in expression: {}'.format(ch, context.buffer)
-            )
+            raise Exception(f'Invalid token "{ch}" in expression: {context.buffer}')
         context.index = context.index + 1
         return True
 
-    def identify_alphas(self, context):
+    def identify_alphas(self, context: TokenContext) -> int:
         """Identify and tokenize functions and variables."""
         if not self.is_alpha(context.chunk[0]):
             return False
@@ -157,12 +170,13 @@ class Tokenizer:
             context.tokens.append(Token(variable, TokenFunction))
         else:
             # Each letter is its own variable
-            [context.tokens.append(Token(c, TokenVariable)) for c in variable]
+            for c in variable:
+                context.tokens.append(Token(c, TokenVariable))
 
         context.index += len(variable)
         return len(variable)
 
-    def identify_constants(self, context):
+    def identify_constants(self, context: TokenContext) -> int:
         """Identify and tokenize a constant number."""
         if not self.is_number(context.chunk[0]):
             return 0
@@ -173,5 +187,5 @@ class Tokenizer:
         return len(val)
 
 
-def coerce_to_number(value):
+def coerce_to_number(value: str) -> Union[int, float]:
     return float(value) if "e" in value or "." in value else int(value)

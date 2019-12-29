@@ -34,7 +34,6 @@ self_play_cfg = SelfPlayConfig(
     # higher than your CPU count does not produce good performance usually.
     num_workers=2,
     verbose=True,
-    train=True,
     difficulty="easy",
     topics=["poly-combine"],
     model_dir=model_folder,
