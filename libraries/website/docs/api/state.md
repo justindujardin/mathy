@@ -38,22 +38,9 @@ __Example__
 - `mycorp.envs.solve_impossible_problems` -> `[12375561, -2838517]`
 
 
-### to_empty_observation
-```python
-MathyEnvState.to_empty_observation(self, hash=None, rnn_size:int=128) -> mathy.state.MathyObservation
-```
-Generate an empty MathyObservation. This is different than
-to_start_observation in that uses a zero'd placeholder RNN state
-rather than the given start state from the agent.
-### to_empty_window
-```python
-MathyEnvState.to_empty_window(self, samples:int, rnn_size:int) -> mathy.state.MathyWindowObservation
-```
-Generate an empty window of observations that can be passed
-through the model
 ### to_start_observation
 ```python
-MathyEnvState.to_start_observation(self, rnn_state:List[List[List[float]]]) -> mathy.state.MathyObservation
+MathyEnvState.to_start_observation(self, rnn_state_h:List[float], rnn_state_c:List[float]) -> mathy.state.MathyObservation
 ```
 Generate an episode start MathyObservation
 ## MathyEnvStateStep
@@ -77,10 +64,12 @@ A featurized observation from an environment state.
 0/1 mask where 0 indicates an invalid action shape=[n,]
 ### nodes
 tree node types in the current environment state shape=[n,]
-### rnn_history
-rnn historical state pairs shape=[2*dimensions]
-### rnn_state
-rnn state pairs shape=[2*dimensions]
+### rnn_history_h
+rnn historical state_h shape=[dimensions]
+### rnn_state_c
+rnn state_c shape=[dimensions]
+### rnn_state_h
+rnn state_h shape=[dimensions]
 ### time
 float value between 0.0-1.0 for how much time has passed shape=[1,]
 ### type
@@ -96,10 +85,12 @@ A featurized observation from an n-step sequence of environment states.
 n-step list of node sequence masks `shape=[n, max(len(s))]`
 ### nodes
 n-step list of node sequences `shape=[n, max(len(s))]`
-### rnn_history
-n-step rnn historical state pairs `shape=[n, 2*dimensions]`
-### rnn_state
-n-step rnn state pairs `shape=[n, 2*dimensions]`
+### rnn_history_h
+n-step rnn historical state `shape=[n, dimensions]`
+### rnn_state_c
+n-step rnn state `shape=[n, dimensions]`
+### rnn_state_h
+n-step rnn state `shape=[n, dimensions]`
 ### time
 float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`
 ### type
@@ -115,9 +106,11 @@ An enumeration.
 An enumeration.
 ### nodes
 An enumeration.
-### rnn_history
+### rnn_history_h
 An enumeration.
-### rnn_state
+### rnn_state_c
+An enumeration.
+### rnn_state_h
 An enumeration.
 ### time
 An enumeration.
@@ -132,7 +125,7 @@ observations_to_window(observations:List[mathy.state.MathyObservation]) -> mathy
 Combine a sequence of observations into an observation window
 ## rnn_placeholder_state
 ```python
-rnn_placeholder_state(rnn_size:int) -> List[List[List[float]]]
+rnn_placeholder_state(rnn_size:int) -> List[float]
 ```
 Create a placeholder state for the RNN hidden states in an observation. This
 is useful because we don't always know the RNN state when we initialize an

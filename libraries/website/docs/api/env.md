@@ -158,7 +158,7 @@ MathyEnv.render_state(self, env_state:mathy.state.MathyEnvState, action_name:str
 Render the given state to a string suitable for printing to a log
 ### state_to_observation
 ```python
-MathyEnv.state_to_observation(self, state:mathy.state.MathyEnvState, rnn_size:Union[int, NoneType]=None, rnn_state:Union[List[List[List[float]]], NoneType]=None, rnn_history:Union[List[List[List[float]]], NoneType]=None) -> mathy.state.MathyObservation
+MathyEnv.state_to_observation(self, state:mathy.state.MathyEnvState, rnn_size:Union[int, NoneType]=None, rnn_state_h:Union[List[float], NoneType]=None, rnn_state_c:Union[List[float], NoneType]=None, rnn_history_h:Union[List[float], NoneType]=None) -> mathy.state.MathyObservation
 ```
 Convert an environment state into an observation that can be used
 by a training agent.

@@ -77,7 +77,7 @@ the increased sanity check measurements.
 is_preferred_term_form(expression:mathy.core.expressions.MathExpression) -> bool
 ```
 
-Return True if a given term has been simplified such that it only has
+Return True if a given term has been simplified so that it only has
 a max of one coefficient and variable, with the variable on the right
 and the coefficient on the left side
 

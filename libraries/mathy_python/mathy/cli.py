@@ -55,6 +55,7 @@ def cli_simplify(
     """Simplify an input polynomial expression."""
     setup_tf_env()
     import gym
+    import tensorflow as tf
     from mathy.envs.gym import MathyGymEnv
     from colr import color
 
@@ -95,8 +96,8 @@ def cli_simplify(
 
     # Start with the "init" sequence [n] times
     for i in range(args.num_thinking_steps_begin + 1):
-        rnn_state_h = selector.model.embedding.state_h.numpy()
-        rnn_state_c = selector.model.embedding.state_c.numpy()
+        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
         seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
         selector.model.call(observations_to_window([seq_start]).to_inputs())
 
@@ -104,8 +105,8 @@ def cli_simplify(
     while not done:
         env.render(args.print_mode, None)
         # store rnn state for replay training
-        rnn_state_h = selector.model.embedding.state_h.numpy()
-        rnn_state_c = selector.model.embedding.state_c.numpy()
+        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
         last_rnn_state = [rnn_state_h, rnn_state_c]
 
         # named tuples are read-only, so add rnn state to a new copy
@@ -115,8 +116,9 @@ def cli_simplify(
             values=last_observation.values,
             type=last_observation.type,
             time=last_observation.time,
-            rnn_state=last_rnn_state,
-            rnn_history=episode_memory.rnn_weighted_history(args.lstm_units),
+            rnn_state_h=rnn_state_h,
+            rnn_state_c=rnn_state_c,
+            rnn_history_h=episode_memory.rnn_weighted_history(args.lstm_units)[0],
         )
         window = episode_memory.to_window_observation(last_observation)
         try:
@@ -136,16 +138,17 @@ def cli_simplify(
             continue
         # Take an env step
         observation, reward, done, _ = env.step(action)
-        rnn_state_h = selector.model.embedding.state_h.numpy()
-        rnn_state_c = selector.model.embedding.state_c.numpy()
+        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
         observation = MathyObservation(
             nodes=observation.nodes,
             mask=observation.mask,
             values=observation.values,
             type=observation.type,
             time=observation.time,
-            rnn_state=[rnn_state_h, rnn_state_c],
-            rnn_history=episode_memory.rnn_weighted_history(args.lstm_units),
+            rnn_state_h=rnn_state_h,
+            rnn_state_c=rnn_state_c,
+            rnn_history_h=episode_memory.rnn_weighted_history(args.lstm_units)[0],
         )
 
         new_text = env.state.agent.problem

@@ -269,7 +269,7 @@ def is_simple_term(node: MathExpression) -> bool:
 
 def is_preferred_term_form(expression: MathExpression) -> bool:
     """
-    Return True if a given term has been simplified such that it only has
+    Return True if a given term has been simplified so that it only has
     a max of one coefficient and variable, with the variable on the right
     and the coefficient on the left side
 
