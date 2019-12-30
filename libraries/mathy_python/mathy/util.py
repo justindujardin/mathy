@@ -835,6 +835,7 @@ def calculate_grouping_control_signal(
 
 
 def print_error(error, text, print_error=True):
+    import traceback
 
     caught_error = TracebackPrinter(
         color_error="yellow", tb_base=".", tb_range_start=-15
@@ -852,6 +853,7 @@ def print_error(error, text, print_error=True):
     else:
         raise ValueError(caught_at + caught_error)
 
+
 def configure_tensorflow_for_mp():
     import multiprocessing
-    
+

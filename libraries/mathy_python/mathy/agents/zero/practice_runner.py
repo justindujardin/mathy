@@ -177,6 +177,8 @@ class PracticeRunner:
         if predictor is None:
             raise NotImplementedError("PracticeRunner.get_predictor returned None type")
         game.reset()
+        if game.state is None:
+            raise ValueError("Cannot start self-play practice with a None game state.")
         env_state = game.state
         episode_history: List[Any] = []
         move_count = 0

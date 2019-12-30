@@ -9,7 +9,7 @@ setup_tf_env()
 self_play_cfg = SelfPlayConfig(
     # Setting to 1 worker uses single-threaded implementation
     num_workers=1,
-    mcts_sims=1,
+    mcts_sims=3,
     max_eps=1,
     self_play_problems=1,
     training_iterations=1,

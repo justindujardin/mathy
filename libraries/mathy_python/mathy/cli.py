@@ -60,7 +60,7 @@ def cli_simplify(
     from colr import color
 
     from .agents.a3c import A3CConfig
-    from .agents.action_selectors import A3CGreedyActionSelector
+    from .agents.action_selectors import A3CEpsilonGreedyActionSelector
     from .state import observations_to_window, MathyObservation
     from .agents.policy_value_model import get_or_create_policy_model, PolicyValueModel
     from .agents.episode_memory import EpisodeMemory
@@ -89,7 +89,9 @@ def cli_simplify(
     last_action = -1
     last_reward = -1
 
-    selector = A3CGreedyActionSelector(model=__model, episode=0, worker_id=0)
+    selector = A3CEpsilonGreedyActionSelector(
+        model=__model, episode=0, worker_id=0, epsilon=0
+    )
 
     # Set RNN to 0 state for start of episode
     selector.model.embedding.reset_rnn_state()
@@ -299,6 +301,18 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Set to gather profiler outputs for workers",
 )
 @click.option(
+    "self_play_problems",
+    "--self-play-problems",
+    default=100,
+    help="The number of self-play problems per gather/training iteration",
+)
+@click.option(
+    "training_iterations",
+    "--training-iterations",
+    default=10,
+    help="The max number of time to perform gather/training loops for the zero agent",
+)
+@click.option(
     "verbose",
     "--verbose",
     default=False,
@@ -321,6 +335,8 @@ def cli_train(
     mcts_sims: int,
     show: bool,
     verbose: bool,
+    training_iterations: int,
+    self_play_problems: int,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -361,7 +377,7 @@ def cli_train(
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
-        setup_tf_env()
+        setup_tf_env(use_mp=True)
         from .agents.zero import SelfPlayConfig, self_play_runner
 
         self_play_cfg = SelfPlayConfig(
@@ -375,8 +391,12 @@ def cli_train(
             model_dir=folder,
             init_model_from=transfer,
             num_workers=workers,
+            training_iterations=training_iterations,
+            self_play_problems=self_play_problems,
             print_training=show,
         )
+        if episodes is not None:
+            self_play_cfg.max_eps = episodes
 
         self_play_runner(self_play_cfg)
 
@@ -399,6 +419,9 @@ def setup_tf_env(use_mp=False):
 
 
 def setup_tf_env_mp():
+    """Create a sub-process and import Tensorflow inside of it
+    so that the library is loaded first in a subprocess. This is
+    the hacky way we get multiprocessing to work reliably. |o_O|"""
     import multiprocessing
 
     def worker():
