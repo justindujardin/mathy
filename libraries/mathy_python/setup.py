@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 def setup_package():
 
     package_name = "mathy"
-    root = pathlib.Path(__file__).parent.resolve()
+    root = Path(__file__).parent.resolve()
 
     # Read in package meta from about.py
     about_path = root / package_name / "about.py"
