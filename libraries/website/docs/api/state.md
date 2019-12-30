@@ -2,12 +2,28 @@
 
 ## MathyAgentState
 ```python
-MathyAgentState(self, moves_remaining, problem, problem_type, reward=0.0, history=None, focus_index=0, last_action=None)
+MathyAgentState(
+    self,
+    moves_remaining,
+    problem,
+    problem_type,
+    reward = 0.0,
+    history = None,
+    focus_index = 0,
+    last_action = None,
+)
 ```
 The state related to an agent for a given environment state
 ## MathyEnvState
 ```python
-MathyEnvState(self, state:Union[_ForwardRef('MathyEnvState'), NoneType]=None, problem:str=None, max_moves:int=10, num_rules:int=0, problem_type:str='mathy.unknown')
+MathyEnvState(
+    self,
+    state: Union[_ForwardRef('MathyEnvState'), NoneType] = None,
+    problem: str = None,
+    max_moves: int = 10,
+    num_rules: int = 0,
+    problem_type: str = mathy.unknown,
+)
 ```
 Class for holding environment state and extracting features
 to be passed to the policy/value neural network.
@@ -21,7 +37,13 @@ by two different sources.
 
 ### get_out_state
 ```python
-MathyEnvState.get_out_state(self, problem:str, action:int, focus_index:int, moves_remaining:int) -> 'MathyEnvState'
+MathyEnvState.get_out_state(
+    self,
+    problem: str,
+    action: int,
+    focus_index: int,
+    moves_remaining: int,
+) -> 'MathyEnvState'
 ```
 Get the next environment state based on the current one with updated
 history and agent information based on an action being taken.
@@ -40,7 +62,11 @@ __Example__
 
 ### to_start_observation
 ```python
-MathyEnvState.to_start_observation(self, rnn_state_h:List[float], rnn_state_c:List[float]) -> mathy.state.MathyObservation
+MathyEnvState.to_start_observation(
+    self,
+    rnn_state_h: List[float],
+    rnn_state_c: List[float],
+) -> mathy.state.MathyObservation
 ```
 Generate an episode start MathyObservation
 ## MathyEnvStateStep
@@ -120,7 +146,9 @@ An enumeration.
 An enumeration.
 ## observations_to_window
 ```python
-observations_to_window(observations:List[mathy.state.MathyObservation]) -> mathy.state.MathyWindowObservation
+observations_to_window(
+    observations: List[mathy.state.MathyObservation],
+) -> mathy.state.MathyWindowObservation
 ```
 Combine a sequence of observations into an observation window
 ## rnn_placeholder_state

@@ -2,39 +2,54 @@
 
 ## calculate_grouping_control_signal
 ```python
-calculate_grouping_control_signal(input:str, output:str, clip_at_zero:bool=False) -> float
+calculate_grouping_control_signal(
+    input: str,
+    output: str,
+    clip_at_zero: bool = False,
+) -> float
 ```
 Calculate grouping_control signals as the sum of all distances between
 all like terms. Gather all the terms in an expression and add an error value
 whenever a like term is separated by another term.
-
-Examples:
-    "2x + 2x" = 0
-    "2x + 4y + 2x" = 1
-    "2x + 4y + 2x + 4y" = 2
-    "2x + 2x + 4y + 4y" = 0
-
 ## compare_expression_string_values
 ```python
-compare_expression_string_values(from_expression:str, to_expression:str, history:Union[List[Any], NoneType]=None)
+compare_expression_string_values(
+    from_expression: str,
+    to_expression: str,
+    history: Union[List[Any], NoneType] = None,
+)
 ```
 Compare and evaluate two expressions strings to verify they have the
 same value
 ## compare_expression_values
 ```python
-compare_expression_values(from_expression:mathy.core.expressions.MathExpression, to_expression:mathy.core.expressions.MathExpression, history:Union[List[Any], NoneType]=None)
+compare_expression_values(
+    from_expression: mathy.core.expressions.MathExpression,
+    to_expression: mathy.core.expressions.MathExpression,
+    history: Union[List[Any], NoneType] = None,
+)
 ```
 Compare and evaluate two expressions to verify they have the same value
 ## discount
 ```python
-discount(r, gamma=0.99)
+discount(values:List[float], gamma=0.99) -> List[float]
 ```
-Discount a list of float rewards to encourage rapid convergance.
-r: input array of floats
-gamma: a float value between 0 and 0.99
+Discount a list of floating point values.
+
+__Arguments__
+
+- __r (List[float])__: the list of floating point values to discount
+- __gamma (float)__: a value between 0 and 0.99 to use when discounting the inputs
+
+__Returns__
+
+`(List[float])`: a list of the same size as the input with discounted values
+
 ## get_term_ex
 ```python
-get_term_ex(node:Union[mathy.core.expressions.MathExpression, NoneType]) -> Union[mathy.util.TermEx, NoneType]
+get_term_ex(
+    node: Union[mathy.core.expressions.MathExpression, NoneType],
+) -> Union[mathy.util.TermEx, NoneType]
 ```
 Extract the 3 components of a naturally ordered term.
 
@@ -81,60 +96,41 @@ Return True if a given term has been simplified so that it only has
 a max of one coefficient and variable, with the variable on the right
 and the coefficient on the left side
 
-__Example__
+Examples
 
-
-    Complex   = 2 * 2x^2
-    Simple    = x^2 * 4
-    Preferred = 4x^2
+  - Complex   = 2 * 2x^2
+  - Simple    = x^2 * 4
+  - Preferred = 4x^2
 
 ## is_simple_term
 ```python
 is_simple_term(node:mathy.core.expressions.MathExpression) -> bool
 ```
-
 Return True if a given term has been simplified so it only has at
 most one of each variable and a constant.
 
 __Examples__
 
+  - Simple = 2x^2 * 2y
+  - Complex = 2x * 2x * 2y
+  - Simple = x^2 * 4
+  - Complex = 2 * 2x^2
 
-    Simple = 2x^2 * 2y
-    Complex = 2x * 2x * 2y
-
-    Simple = x^2 * 4
-    Complex = 2 * 2x^2
-
-## negate
-```python
-negate(node)
-```
-Negate an addition node: `l - r = l + (-r)`
-
-```
-            -                  +
-           / \                / \
-          /   \     ->       /   \
-         /     \            /     \
-        *       2          *       -
-       / \                / \       \
-      4   x              4   x       2
-```
-
-## normalize_rewards
-```python
-normalize_rewards(r)
-```
-Normalize a set of rewards to values between -1 and 1
 ## pad_array
 ```python
-pad_array(A, max_length, value=0, backwards=False, cleanup=False)
+pad_array(in_list:List[Any], max_length:int, value:Any=0) -> List[Any]
 ```
-Pad a list to the given size with the given padding value
+Pad a list to the given size with the given padding value.
 
-If backwards=True the input will be reversed after padding, and
-the output will be reversed after padding, to correctly pad for
-LSTMs, e.g. "4x+2----" padded backwards would be "----2+x4"
+__Arguments:__
+
+in_list (List[Any]): List of values to pad to the given length
+max_length (int): The desired length of the array
+value (Any): a value to insert in order to pad the array to max length
+
+__Returns__
+
+`(List[Any])`: An array padded to `max_length` size
 
 ## TermEx
 ```python
@@ -151,14 +147,22 @@ An optional variable
 ```python
 terms_are_like(one, two)
 ```
+Determine if two math expression nodes are **like terms**.
 
-@param {Object|MathExpression} one The first term {@link `get_term`}
-@param {Object|MathExpression} two The second term {@link `get_term`}
-@returns {Boolean} Whether the terms are like or not.
+__Arguments__
+
+- __one (MathExpression)__: A math expression that represents a term
+- __two (MathExpression)__: Another math expression that represents a term
+
+__Returns__
+
+`(bool)`: Whether the terms are like or not.
 
 ## unlink
 ```python
-unlink(node:Union[mathy.core.expressions.MathExpression, NoneType]=None) -> Union[mathy.core.expressions.MathExpression, NoneType]
+unlink(
+    node: Union[mathy.core.expressions.MathExpression, NoneType] = None,
+) -> Union[mathy.core.expressions.MathExpression, NoneType]
 ```
 Unlink an expression from it's parent.
 

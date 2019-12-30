@@ -32,7 +32,6 @@ class MathyEnv:
     basic representation in as few moves as possible."""
 
     rules: List[BaseRule]
-    rewarding_actions: List[Type[BaseRule]]
     max_moves: int
     verbose: bool
     reward_discount: float
@@ -42,25 +41,24 @@ class MathyEnv:
 
     def __init__(
         self,
-        rules=None,
-        rewarding_actions=None,
-        max_moves=20,
-        verbose=False,
-        reward_discount=0.99,
+        rules: List[BaseRule] = None,
+        max_moves: int = 20,
+        verbose: bool = False,
+        reward_discount: float = 0.99,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
         self.parser = ExpressionParser()
-        self.rules = rules
-        if self.rules is None:
+        if rules is None:
             self.rules = MathyEnv.core_rules()
-        self.rewarding_actions = rewarding_actions
+        else:
+            self.rules = rules
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
 
     @classmethod
-    def core_rules(cls, preferred_term_commute=False) -> List[BaseRule]:
+    def core_rules(cls, preferred_term_commute: bool = False) -> List[BaseRule]:
         """Return the mathy core agent actions"""
         return [
             ConstantsSimplifyRule(),
@@ -77,7 +75,7 @@ class MathyEnv:
         return len(self.rules)
 
     def step(
-        self, state: MathyEnvState, action: int, as_observation=False
+        self, state: MathyEnvState, action: int, as_observation: bool = False
     ) -> Tuple[Union[MathyEnvState, MathyObservation], float, bool, Any]:
         new_state, transition, change = self.get_next_state(state, action)
         observation = self.state_to_observation(state)
@@ -272,14 +270,16 @@ class MathyEnv:
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         # Parameters
-            env_state: current env_state
-            action:    action taken
-            searching: boolean set to True when called by MCTS
+        env_state: current env_state
+        action:    action taken
+        searching: boolean set to True when called by MCTS
 
         # Returns
-            - next_state: env_state after applying action
-            - transition: the timestep that represents the state transition
-            - change: the change descriptor describing the change that happened
+        next_state: env_state after applying action
+
+        transition: the timestep that represents the state transition
+        
+        change: the change descriptor describing the change that happened
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
@@ -464,9 +464,7 @@ class MathyEnv:
         return self.rules[time_step.action]
 
     def get_actions_for_node(
-        self,
-        expression: MathExpression,
-        rule_list: Optional[List[Type[BaseRule]]] = None,
+        self, expression: MathExpression, rule_list: List[Type[BaseRule]] = None,
     ) -> List[int]:
         key = str(expression)
         if rule_list is None and key in self.valid_actions_mask_cache:

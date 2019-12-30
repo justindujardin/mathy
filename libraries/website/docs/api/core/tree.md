@@ -7,7 +7,10 @@ BinarySearchTree(self, key:Union[str, int, float]=None, **kwargs)
 A binary search tree by key
 ### find
 ```python
-BinarySearchTree.find(self, key) -> Union[mathy.core.tree.BinaryTreeNode, NoneType]
+BinarySearchTree.find(
+    self,
+    key,
+) -> Union[mathy.core.tree.BinaryTreeNode, NoneType]
 ```
 Find a node in the tree by its key and return it.  Return None if the key
 is not found in the tree.
@@ -18,7 +21,13 @@ BinarySearchTree.insert(self, key) -> mathy.core.tree.BinaryTreeNode
 Insert a node in the tree with the specified key.
 ## BinaryTreeNode
 ```python
-BinaryTreeNode(self, left:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, right:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, parent:Union[_ForwardRef('BinaryTreeNode'), NoneType]=None, id:Union[str, NoneType]=None)
+BinaryTreeNode(
+    self,
+    left: 'BinaryTreeNode' = None,
+    right: 'BinaryTreeNode' = None,
+    parent: 'BinaryTreeNode' = None,
+    id: Union[str, NoneType] = None,
+)
 ```
 
 The binary tree node is the base node for all of our trees, and provides a
@@ -44,7 +53,9 @@ BinaryTreeNode.get_root(self)
 Return the root element of this tree
 ### get_sibling
 ```python
-BinaryTreeNode.get_sibling(self) -> Union[_ForwardRef('BinaryTreeNode'), NoneType]
+BinaryTreeNode.get_sibling(
+    self,
+) -> Union[_ForwardRef('BinaryTreeNode'), NoneType]
 ```
 Get the sibling node of this node.  If there is no parent, or the node
 has no sibling, the return value will be None.
@@ -71,12 +82,20 @@ the order of the nodes in the tree.
 
 ### set_left
 ```python
-BinaryTreeNode.set_left(self, child:'BinaryTreeNode', clear_old_child_parent=False) -> 'BinaryTreeNode'
+BinaryTreeNode.set_left(
+    self,
+    child: 'BinaryTreeNode' = None,
+    clear_old_child_parent = False,
+) -> 'BinaryTreeNode'
 ```
 Set the left node to the passed `child`
 ### set_right
 ```python
-BinaryTreeNode.set_right(self, child:'BinaryTreeNode', clear_old_child_parent=False) -> 'BinaryTreeNode'
+BinaryTreeNode.set_right(
+    self,
+    child: 'BinaryTreeNode' = None,
+    clear_old_child_parent = False,
+) -> 'BinaryTreeNode'
 ```
 Set the right node to the passed `child`
 ### set_side

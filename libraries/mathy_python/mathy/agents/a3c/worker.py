@@ -129,7 +129,7 @@ class A3CWorker(threading.Thread):
                 win_pct = self.teacher.report_result(self.worker_idx, reward)
                 if win_pct is not None:
                     with self.writer.as_default():
-                        student = self.teacher.get_student(self.worker_idx)
+                        student = self.teacher.students[self.worker_idx]
                         step = self.global_model.optimizer.iterations
                         if self.worker_idx == 0:
                             tf.summary.scalar(

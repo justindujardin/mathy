@@ -132,7 +132,9 @@ class MathExpression(BinaryTreeNode):
     def add_class(self, classes):
         """Associate a class name with an expression. This class name will be
         attached to nodes when the expression is converted to a capable output
-        format.  See #MathExpression.to_math_ml_fragment"""
+        format.  
+
+        See #MathExpression.to_math_ml_fragment"""
         if type(classes) == str:
             classes = [classes]
         self.classes = list(set(self.classes).union(classes))
@@ -211,21 +213,22 @@ class MathExpression(BinaryTreeNode):
             ]
         )
 
-    def make_ml_tag(self, tag: str, content, classes=[]) -> str:
+    def make_ml_tag(self, tag: str, content: str, classes: List[str] = []) -> str:
         """Make a MathML tag for the given content while respecting the node's given
         classes.
 
-        Params:
+        # Arguments
+        tag (str): The ML tag name to create.
+        content (str): The ML content to place inside of the tag.
+        classes (List[str]) An array of classes to attach to this tag.
 
-            - `tag` The ML tag name to create.
-            - `content` The ML content to place inside of the tag.
-            - `classes` An array of classes to attach to this tag.
+        # Returns
+        (str): A MathML element with the given tag, content, and classes
         """
-        if len(classes) == 0:
-            classes = ""
-        else:
-            classes = " class='{}'".format(" ".join(classes))
-        return f"<{tag}{classes}>{content}</{tag}>"
+        classes_attr = ""
+        if len(classes) > 0:
+            classes_attr = f' class="{" ".join(classes)}"'
+        return f"<{tag}{classes_attr}>{content}</{tag}>"
 
     def path_to_root(self) -> str:
         """Generate a namespaced path key to from the current node to the root.
@@ -247,11 +250,11 @@ class MathExpression(BinaryTreeNode):
         is useful when you want to clone a subtree and still maintain the overall
         hierarchy.
 
-        Params:
+        # Arguments
+        node (MathExpression): The node to clone.
 
-            - `node` The node to clone.
-
-        Returns: The cloned #MathExpression node.
+        # Returns
+        (MathExpression): The cloned node.
         """
         node = node if node is not None else self
         self.cloned_node = None
@@ -270,7 +273,9 @@ class MathExpression(BinaryTreeNode):
 
     def clone(self) -> "MathExpression":
         """A specialization of the clone method that can track and report a cloned
-        subtree node. See #MathExpression.clone_from_root for more details."""
+        subtree node. 
+        
+        See #MathExpression.clone_from_root for more details."""
         result = super().clone()
         if self.cloned_target is not None and self.path_to_root() == self.cloned_target:
             self.cloned_node = result

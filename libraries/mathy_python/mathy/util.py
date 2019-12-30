@@ -235,17 +235,14 @@ def get_sub_terms(node: MathExpression):
 
 
 def is_simple_term(node: MathExpression) -> bool:
-    """
-    Return True if a given term has been simplified so it only has at
+    """Return True if a given term has been simplified so it only has at
     most one of each variable and a constant.
 
     # Examples
-
-        Simple = 2x^2 * 2y
-        Complex = 2x * 2x * 2y
-
-        Simple = x^2 * 4
-        Complex = 2 * 2x^2
+      - Simple = 2x^2 * 2y
+      - Complex = 2x * 2x * 2y
+      - Simple = x^2 * 4
+      - Complex = 2 * 2x^2
     """
     sub_terms = get_sub_terms(node)
     if sub_terms is False:
@@ -274,11 +271,11 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
     a max of one coefficient and variable, with the variable on the right
     and the coefficient on the left side
 
-    # Example
-
-        Complex   = 2 * 2x^2
-        Simple    = x^2 * 4
-        Preferred = 4x^2
+    Examples
+    
+      - Complex   = 2 * 2x^2
+      - Simple    = x^2 * 4
+      - Preferred = 4x^2
     """
     if not is_simple_term(expression):
         return False
@@ -399,7 +396,7 @@ class TermResult:
 
 # Extract term information from the given node
 #
-def get_term(node) -> TermResult:
+def get_term(node: MathExpression) -> TermResult:
     result = TermResult()
     # Constant with add/sub parent should be OKAY.
     if isinstance(node, ConstantExpression):
@@ -652,10 +649,14 @@ def get_terms(expression: MathExpression):
 
 
 def terms_are_like(one, two):
-    """
-    @param {Object|MathExpression} one The first term {@link #get_term}
-    @param {Object|MathExpression} two The second term {@link #get_term}
-    @returns {Boolean} Whether the terms are like or not.
+    """Determine if two math expression nodes are **like terms**.
+
+    # Arguments
+    one (MathExpression): A math expression that represents a term
+    two (MathExpression): Another math expression that represents a term
+
+    # Returns
+    (bool): Whether the terms are like or not.
     """
     # Both must be valid terms
     if one is False or two is False:
@@ -688,41 +689,44 @@ def terms_are_like(one, two):
     return True
 
 
-
 def is_terminal_transition(transition: time_step.TimeStep) -> bool:
     return bool(transition.step_type == time_step.StepType.LAST)
 
 
-def discount(r, gamma=0.99):
-    """Discount a list of float rewards to encourage rapid convergance.
-    r: input array of floats
-    gamma: a float value between 0 and 0.99"""
-    discounted_r = np.zeros_like(r, dtype=np.float32)
+def discount(values: List[float], gamma=0.99) -> List[float]:
+    """Discount a list of floating point values.
+
+    # Arguments
+    r (List[float]): the list of floating point values to discount
+    gamma (float): a value between 0 and 0.99 to use when discounting the inputs
+    
+    # Returns
+    (List[float]): a list of the same size as the input with discounted values
+    """
+    discounted_r = np.zeros_like(values, dtype=np.float32)
     running_add = 0
-    for t in reversed(range(len(r))):
-        running_add = running_add * gamma + r[t]
+    for t in reversed(range(len(values))):
+        running_add = running_add * gamma + values[t]
         discounted_r[t] = running_add
     # reverse them to restore the correct order
     np.flip(discounted_r)
     return discounted_r
 
 
-def pad_array(A, max_length, value=0, backwards=False, cleanup=False):
-    """Pad a list to the given size with the given padding value
+def pad_array(in_list: List[Any], max_length: int, value: Any = 0) -> List[Any]:
+    """Pad a list to the given size with the given padding value.
+    
+    # Arguments:
+    in_list (List[Any]): List of values to pad to the given length
+    max_length (int): The desired length of the array
+    value (Any): a value to insert in order to pad the array to max length
 
-    If backwards=True the input will be reversed after padding, and
-    the output will be reversed after padding, to correctly pad for
-    LSTMs, e.g. "4x+2----" padded backwards would be "----2+x4"
+    # Returns
+    (List[Any]): An array padded to `max_length` size
     """
-    if backwards:
-        A.reverse()
-    while len(A) < max_length:
-        A.append(value)
-    if backwards:
-        A.reverse()
-    if cleanup is True:
-        A = np.array(A).tolist()
-    return A
+    while len(in_list) < max_length:
+        in_list.append(value)
+    return in_list
 
 
 def calculate_term_grouping_distances(input: str) -> Tuple[float, float]:
@@ -758,14 +762,7 @@ def calculate_grouping_control_signal(
 ) -> float:
     """Calculate grouping_control signals as the sum of all distances between
     all like terms. Gather all the terms in an expression and add an error value
-    whenever a like term is separated by another term.
-
-    Examples:
-        "2x + 2x" = 0
-        "2x + 4y + 2x" = 1
-        "2x + 4y + 2x + 4y" = 2
-        "2x + 2x + 4y + 4y" = 0
-    """
+    whenever a like term is separated by another term."""
 
     # We cheat the term grouping a bit by not parsing the expression
     # and finding the real set of terms. Instead we remove all the non-variables
@@ -806,3 +803,4 @@ def print_error(error, text, print_error=True):
         print(caught_at + caught_error)
     else:
         raise ValueError(caught_at + caught_error)
+

@@ -24,7 +24,7 @@ yaml = YAML()
 
 
 print("Building API docs...")
-exclude_files = ["__init__.py", "README.md", "types.py", "cli.py"]
+exclude_files = ["__init__.py", "README.md", "types.py", "cli.py", "about.py"]
 include_folders = ["", "core"]
 
 
