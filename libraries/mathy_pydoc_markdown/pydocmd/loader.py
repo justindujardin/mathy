@@ -28,6 +28,7 @@ from __future__ import print_function
 from .imp import import_object_with_scope
 import inspect
 import types
+from typing import Callable, Optional, List, Any
 
 function_types = (
     types.FunctionType,
@@ -107,7 +108,39 @@ def get_docstring(function):
         return function.__doc__ or ""
 
 
-def get_function_signature(function, owner_class=None, show_module=False):
+class CallableArg:
+    name: str
+    type_hint: Optional[str]
+    default: Optional[str]
+
+    def __init__(self, name: str, type_hint: Optional[str], default: Optional[str]):
+        self.name = name
+        self.type_hint = type_hint
+        self.default = default
+
+
+class CallablePlaceholder:
+    simple: str
+    name: str
+    args: List[CallableArg]
+    return_type: Optional[str]
+
+    def __init__(
+        self,
+        simple: str,
+        name: str,
+        args: List[CallableArg],
+        return_type: Optional[Any] = None,
+    ):
+        self.simple = simple
+        self.name = name
+        self.args = args
+        self.return_type = return_type
+
+
+def get_callable_placeholder(
+    function: Callable, owner_class=None, show_module=False
+) -> CallablePlaceholder:
     isclass = inspect.isclass(function)
 
     # Get base name.
@@ -122,31 +155,61 @@ def get_function_signature(function, owner_class=None, show_module=False):
         name_parts.append(type(function).__name__)
         name_parts.append("__call__")
         function = function.__call__
-    name = ".".join(name_parts)
-
     if isclass:
         function = getattr(function, "__init__", None)
-    if hasattr(inspect, "signature"):
-        sig = str(inspect.signature(function))
-    else:
-        try:
-            argspec = inspect.getargspec(function)
-        except TypeError:
-            # handle Py2 classes that don't define __init__
-            args = ["self"]
-        else:
-            # Generate the argument list that is separated by colons.
-            args = argspec.args[:]
-            if argspec.defaults:
-                offset = len(args) - len(argspec.defaults)
-                for i, default in enumerate(argspec.defaults):
-                    args[i + offset] = "{}={!r}".format(
-                        args[i + offset], argspec.defaults[i]
-                    )
-            if argspec.varargs:
-                args.append("*" + argspec.varargs)
-            if argspec.keywords:
-                args.append("**" + argspec.keywords)
-        sig = "(" + ", ".join(args) + ")"
 
-    return name + sig
+    name = ".".join(name_parts)
+    sig = inspect.signature(function)
+
+    params = []
+    for p in sig.parameters.values():
+        annotation = None
+        default_value = None
+        if p.annotation is not inspect._empty:  # type: ignore
+            annotation = inspect.formatannotation(p.annotation)
+        if p.default is not inspect._empty:  # type: ignore
+            default_value = str(p.default)
+        params.append(CallableArg(p.name, annotation, default_value))
+
+    return_annotation = None
+    if sig.return_annotation is not inspect._empty:  # type: ignore
+        return_annotation = inspect.formatannotation(
+            sig.return_annotation, base_module="mathy"
+        )
+    return CallablePlaceholder(
+        simple=str(sig), name=name, args=params, return_type=return_annotation
+    )
+
+
+def get_function_signature(
+    function: Callable,
+    owner_class: Optional[Any] = None,
+    show_module: bool = False,
+    indent: int = 4,
+    max_width: int = 82,
+) -> str:
+    isclass = inspect.isclass(function)
+
+    placeholder: CallablePlaceholder = get_callable_placeholder(
+        function=function, owner_class=owner_class, show_module=show_module
+    )
+
+    out_str = placeholder.name + placeholder.simple
+    if len(out_str) < max_width:
+        return out_str
+    out_str = f"{placeholder.name}(\n"
+    arg: CallableArg
+    indent = " " * indent
+    for arg in placeholder.args:
+        arg_str = f"{indent}{arg.name}"
+        if arg.type_hint is not None:
+            arg_str += f": {arg.type_hint}"
+        if arg.default is not None:
+            arg_str += f" = {arg.default}"
+        arg_str += ",\n"
+        out_str += arg_str
+    out_str += f")"
+    if placeholder.return_type is not None:
+        out_str += f" -> {placeholder.return_type}"
+
+    return out_str
