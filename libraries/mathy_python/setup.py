@@ -1,40 +1,55 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
-# DO_NOT_MODIFY_THIS_VALUE_IS_SET_BY_THE_BUILD_MACHINE
-VERSION = "1.3.0"
+
+def setup_package():
+
+    package_name = "mathy"
+    root = pathlib.Path(__file__).parent.resolve()
+
+    # Read in package meta from about.py
+    about_path = root / package_name / "about.py"
+    with about_path.open("r", encoding="utf8") as f:
+        about = {}
+        exec(f.read(), about)
+
+    with open("README.md", "r") as fh:
+        long_description = fh.read()
+
+    with open("requirements.txt") as file:
+        REQUIRED_MODULES = [line.strip() for line in file]
+
+    with open("requirements-dev.txt") as file:
+        DEVELOPMENT_MODULES = [line.strip() for line in file]
+
+    setup(
+        name=package_name,
+        description=about["__summary__"],
+        author=about["__author__"],
+        author_email=about["__email__"],
+        url=about["__uri__"],
+        version=about["__version__"],
+        license=about["__license__"],
+        long_description=long_description,
+        keywords="math",
+        install_requires=REQUIRED_MODULES,
+        packages=find_packages(),
+        extras_require={"dev": DEVELOPMENT_MODULES},
+        package_data={"mathy": ["tests/api/*.json", "tests/rules/*.json"]},
+        entry_points="""
+            [console_scripts]
+            mathy=mathy.cli:cli
+        """,
+        classifiers=[
+            "Programming Language :: Python :: 3",
+            "License :: OSI Approved :: MIT License",
+            "Operating System :: OS Independent",
+            "Development Status :: 2 - Pre-Alpha",
+        ],
+        python_requires=">=3.6",
+        include_package_data=True,
+    )
 
 
-def readme():
-    with open("README.md") as f:
-        return f.read()
-
-
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
-with open("requirements.txt") as file:
-    REQUIRED_MODULES = [line.strip() for line in file]
-
-with open("requirements-dev.txt") as file:
-    DEVELOPMENT_MODULES = [line.strip() for line in file]
-
-
-setup(
-    name="mathy",
-    version=VERSION,
-    description="making math fantastic",
-    long_description=readme(),
-    keywords="math",
-    url="https://github.com/justindujardin/mathy",
-    author="Justin DuJardin",
-    author_email="justin@dujardinconsulting.com",
-    packages=find_packages(),
-    install_requires=REQUIRED_MODULES,
-    extras_require={"dev": DEVELOPMENT_MODULES},
-    package_data={"mathy": ["tests/api/*.json", "tests/rules/*.json"]},
-    entry_points="""
-        [console_scripts]
-        mathy=mathy.cli:cli
-    """,
-    include_package_data=True,
-)
+if __name__ == "__main__":
+    setup_package()

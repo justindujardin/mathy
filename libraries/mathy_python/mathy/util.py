@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from . import time_step
 from pydantic import BaseModel
@@ -687,50 +688,9 @@ def terms_are_like(one, two):
     return True
 
 
-def negate(node):
-    r"""Negate an addition node: `l - r = l + (-r)`
-
-    ```
-                -                  +
-               / \                / \
-              /   \     ->       /   \
-             /     \            /     \
-            *       2          *       -
-           / \                / \       \
-          4   x              4   x       2
-    ```
-    """
-    save = node.parent
-    saveSide = save.get_side(node) if save is not None else None
-    unlink(node)
-    newNode = AddExpression(node.left, NegateExpression(node.right))
-    if save is None:
-        save.set_side(newNode, saveSide)
-
-    return newNode
-
-
-# Determine if an expression represents a constant term
-def is_const(node):
-    if isinstance(node, ConstantExpression):
-        return True
-
-    if isinstance(node, NegateExpression) and is_const(node.child):
-        return True
-
-    return False
-
 
 def is_terminal_transition(transition: time_step.TimeStep) -> bool:
     return bool(transition.step_type == time_step.StepType.LAST)
-
-
-def is_win_reward(reward):
-    return reward == EnvRewards.WIN
-
-
-def is_lose_reward(reward):
-    return reward == EnvRewards.LOSE
 
 
 def discount(r, gamma=0.99):
@@ -745,12 +705,6 @@ def discount(r, gamma=0.99):
     # reverse them to restore the correct order
     np.flip(discounted_r)
     return discounted_r
-
-
-def normalize_rewards(r):
-    """Normalize a set of rewards to values between -1 and 1"""
-    d = 2 * (r - np.min(r)) / np.ptp(r) - 1
-    return d
 
 
 def pad_array(A, max_length, value=0, backwards=False, cleanup=False):
@@ -852,8 +806,3 @@ def print_error(error, text, print_error=True):
         print(caught_at + caught_error)
     else:
         raise ValueError(caught_at + caught_error)
-
-
-def configure_tensorflow_for_mp():
-    import multiprocessing
-
