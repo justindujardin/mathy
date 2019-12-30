@@ -17,7 +17,12 @@ TreeLayout(self, /, *args, **kwargs)
 Calculate a visual layout for input trees.
 ### layout
 ```python
-TreeLayout.layout(self, node:mathy.core.tree.BinaryTreeNode, unit_x_multiplier=1, unit_y_multiplier=1) -> 'TreeMeasurement'
+TreeLayout.layout(
+    self,
+    node: mathy.core.tree.BinaryTreeNode,
+    unit_x_multiplier = 1,
+    unit_y_multiplier = 1,
+) -> 'TreeMeasurement'
 ```
 Assign x/y values to all nodes in the tree, and return an object containing
 the measurements of the tree.
@@ -25,7 +30,14 @@ the measurements of the tree.
 Returns a TreeMeasurement object that describes the bounds of the tree
 ### transform
 ```python
-TreeLayout.transform(self, node:mathy.core.tree.BinaryTreeNode, x=0, unit_x_multiplier=1, unit_y_multiplier=1, measure=None) -> 'TreeMeasurement'
+TreeLayout.transform(
+    self,
+    node: mathy.core.tree.BinaryTreeNode,
+    x = 0,
+    unit_x_multiplier = 1,
+    unit_y_multiplier = 1,
+    measure = None,
+) -> 'TreeMeasurement'
 ```
 Transform relative to absolute coordinates, and measure the bounds of the tree.
 

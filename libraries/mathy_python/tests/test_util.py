@@ -1,26 +1,25 @@
-from ..mathy.core.parser import ExpressionParser
 from ..mathy.core.expressions import (
-    ConstantExpression,
-    VariableExpression,
     AddExpression,
-    MultiplyExpression,
+    ConstantExpression,
     DivideExpression,
+    MultiplyExpression,
     PowerExpression,
+    VariableExpression,
 )
-from ..mathy.util import (
-    is_preferred_term_form,
-    has_like_terms,
-    TermEx,
-    get_term_ex,
-    get_sub_terms,
-)
-from ..mathy.util import discount
+from ..mathy.core.parser import ExpressionParser
 from ..mathy.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
+    ConstantsSimplifyRule,
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
-    ConstantsSimplifyRule,
+)
+from ..mathy.util import (
+    TermEx,
+    get_sub_terms,
+    get_term_ex,
+    has_like_terms,
+    is_preferred_term_form,
 )
 
 

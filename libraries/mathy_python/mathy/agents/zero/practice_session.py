@@ -21,8 +21,6 @@ from ...agents.mcts import MCTS
 from .lib.progress.bar import Bar
 from .lib.average_meter import AverageMeter
 
-from ...util import is_lose_reward, is_win_reward
-
 INPUT_EXAMPLES_FILE_NAME = "examples.jsonl"
 
 

@@ -71,7 +71,10 @@ Return True if there are still more tokens in the queue, or False if there
 are no more tokens to look at.
 ### parse
 ```python
-ExpressionParser.parse(self, input_text:str) -> mathy.core.expressions.MathExpression
+ExpressionParser.parse(
+    self,
+    input_text: str,
+) -> mathy.core.expressions.MathExpression
 ```
 Parse a string representation of an expression into a tree
 that can be later evaluated.

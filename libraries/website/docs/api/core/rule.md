@@ -7,7 +7,10 @@ BaseRule(self, /, *args, **kwargs)
 Basic rule class that visits a tree with a specified visit order.
 ### apply_to
 ```python
-BaseRule.apply_to(self, node:mathy.core.expressions.MathExpression) -> 'ExpressionChangeRule'
+BaseRule.apply_to(
+    self,
+    node: mathy.core.expressions.MathExpression,
+) -> 'ExpressionChangeRule'
 ```
 Apply the rule transformation to the given node, and return a
 ExpressionChangeRule object that captures the input/output states

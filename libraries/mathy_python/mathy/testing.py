@@ -16,6 +16,15 @@ from .rules import (
 
 
 def get_rule_tests(name):
+    """Load a set of JSON rule test assertions.
+
+    # Arguments
+    name (str): The name of the test JSON file to open, e.g. "commutative_property"
+
+    # Returns
+    (dict): A dictionary with "valid" and "invalid" keys that contain pairs of 
+    expected inputs and outputs.
+    """
     rule_file = (
         Path(__file__).parent.parent / "tests" / "rules" / "{}.json".format(name)
     )
@@ -25,11 +34,23 @@ def get_rule_tests(name):
         return json.load(file)
 
 
-def init_rule_for_test(example, rule_class):
+def init_rule_for_test(example: dict, rule_class: Type[BaseRule]) -> BaseRule:
+    """Initialize a given rule_class from a test example.
+
+    This handles optionally passing the test example constructor arguments
+    to the Rule.
+
+    # Arguments:
+    example (dict): The example assertion loaded from a call to `get_rule_tests`
+    rule_class (Type[BaseRule]): The 
+
+    # Returns
+    (BaseRule): The rule instance.
+    """
     if "args" not in example:
         rule = rule_class()
     else:
-        rule = rule_class(**example["args"])
+        rule = rule_class(**example["args"])  # type: ignore
     return rule
 
 
@@ -82,19 +103,3 @@ def run_rule_tests(name, rule_class, callback=None):
             raise ValueError(
                 "expected not to find a node, but found: {}".format(str(node))
             )
-
-
-def get_test_from_class(class_type: Type[BaseRule]) -> str:
-    if class_type == AssociativeSwapRule:
-        return get_rule_tests("associative_property")
-    if class_type == CommutativeSwapRule:
-        return get_rule_tests("commutative_property")
-    if class_type == ConstantsSimplifyRule:
-        return get_rule_tests("constants_simplify")
-    if class_type == DistributiveFactorOutRule:
-        return get_rule_tests("distributive_factor_out")
-    if class_type == DistributiveMultiplyRule:
-        return get_rule_tests("distributive_multiply_across")
-    if class_type == VariableMultiplyRule:
-        return get_rule_tests("variable_multiply")
-    raise ValueError(f"unknown class-to-tests mapping for {class_type}")

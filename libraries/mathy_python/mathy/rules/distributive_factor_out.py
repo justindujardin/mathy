@@ -12,7 +12,6 @@ from ..util import (
     factor_add_terms_ex,
     get_term_ex,
     is_add_or_sub,
-    is_const,
     make_term,
     terms_are_like,
     unlink,

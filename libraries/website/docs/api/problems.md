@@ -6,7 +6,14 @@ Utility functions for helping generate input problems.
 
 ## gen_binomial_times_binomial
 ```python
-gen_binomial_times_binomial(*, op='+', min_vars=1, max_vars=2, simple_variables=True, powers_probability=0.33, like_variables_probability=1.0) -> Tuple[str, int]
+gen_binomial_times_binomial(
+    op = +,
+    min_vars = 1,
+    max_vars = 2,
+    simple_variables = True,
+    powers_probability = 0.33,
+    like_variables_probability = 1.0,
+) -> Tuple[str, int]
 ```
 Generate a binomial multiplied by another binomial.
 
@@ -21,7 +28,14 @@ __Example__
 
 ## gen_binomial_times_monomial
 ```python
-gen_binomial_times_monomial(*, op='+', min_vars=1, max_vars=2, simple_variables=True, powers_probability=0.33, like_variables_probability=1.0) -> Tuple[str, int]
+gen_binomial_times_monomial(
+    op = +,
+    min_vars = 1,
+    max_vars = 2,
+    simple_variables = True,
+    powers_probability = 0.33,
+    like_variables_probability = 1.0,
+) -> Tuple[str, int]
 ```
 Generate a binomial multiplied by a monomial.
 
@@ -36,7 +50,12 @@ __Example__
 
 ## gen_combine_terms_in_place
 ```python
-gen_combine_terms_in_place(min_terms=16, max_terms=26, easy=True, powers=False) -> Tuple[str, int]
+gen_combine_terms_in_place(
+    min_terms = 16,
+    max_terms = 26,
+    easy = True,
+    powers = False,
+) -> Tuple[str, int]
 ```
 Generate a problem that puts one pair of like terms next to each other
 somewhere inside a large tree of unlike terms.
@@ -61,7 +80,13 @@ __Example__
 
 ## gen_commute_haystack
 ```python
-gen_commute_haystack(min_terms=5, max_terms=8, commute_blockers=1, easy=True, powers=False)
+gen_commute_haystack(
+    min_terms = 5,
+    max_terms = 8,
+    commute_blockers = 1,
+    easy = True,
+    powers = False,
+)
 ```
 A problem with a bunch of terms that have no matches, and a single
 set of two terms that do match, but are separated by one other term.
@@ -122,7 +147,18 @@ __Example__
 
 ## gen_simplify_multiple_terms
 ```python
-gen_simplify_multiple_terms(num_terms, optional_var=False, op='+', common_variables=True, inner_terms_scaling=0.3, powers_probability=0.33, optional_var_probability=0.8, noise_probability=0.8, shuffle_probability=0.66, noise_terms=None) -> Tuple[str, int]
+gen_simplify_multiple_terms(
+    num_terms,
+    optional_var = False,
+    op = +,
+    common_variables = True,
+    inner_terms_scaling = 0.3,
+    powers_probability = 0.33,
+    optional_var_probability = 0.8,
+    noise_probability = 0.8,
+    shuffle_probability = 0.66,
+    noise_terms = None,
+) -> Tuple[str, int]
 ```
 Generate a polynomial problem with like terms that need to be combined and
 simplified.

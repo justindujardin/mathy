@@ -39,6 +39,7 @@ class Student(BaseModel):
 
 
 class Teacher:
+    
     students: List[Student]
 
     def __init__(
@@ -58,8 +59,6 @@ class Teacher:
         if self.difficulty is not None:
             print(f"difficulty will not adjust and is fixed to: {self.difficulty}")
         self.initialize_students(num_students)
-        self.directed_topics = self.topic_names[:]
-        self.directed_topic = self.directed_topics.pop()
 
     def initialize_students(self, num_students: int):
         self.num_students = num_students
@@ -74,17 +73,15 @@ class Teacher:
                 Student(id=i, topic=start_topic, topics=student_topics)
             )
 
-    def get_directed_topic(self, eval_win_ratio: Optional[float] = None) -> str:
-        """After each evaluation, student zero gets a new topic."""
-        if len(self.directed_topics) == 0:
-            self.directed_topics = self.topic_names[:]
-            random.shuffle(self.directed_topics)
-        return self.directed_topics.pop()
-
-    def get_student(self, student_id: int) -> Student:
-        return self.students[student_id]
-
     def previous_difficulty(self, difficulty: str) -> str:
+        """Return the previous difficulty level given an input difficulty.
+        
+        # Arguments
+        difficulty (str): The difficulty to decrease
+
+        # Returns
+        (str): The difficulty level before the input, if any.
+        """
         if difficulty == "hard":
             return "normal"
         elif difficulty == "normal":
@@ -92,6 +89,14 @@ class Teacher:
         return "easy"
 
     def next_difficulty(self, difficulty: str) -> str:
+        """Return the previous difficulty level given an input difficulty.
+        
+        # Arguments
+        difficulty (str): The difficulty to increase
+
+        # Returns
+        (str): The difficulty level after the input, if any.
+        """
         if difficulty == "easy":
             return "normal"
         elif difficulty == "normal":
@@ -99,9 +104,9 @@ class Teacher:
         return "hard"
 
     def report_result(
-        self, student_id: int, reward: float, data: Any = None
+        self, student_index: int, reward: float, data: Any = None
     ) -> Optional[float]:
-        student = self.get_student(student_id)
+        student = self.students[student_index]
         topic: Topic = student.topics[student.topic]
         if reward > 0.0:
             topic.positives += 1
@@ -121,7 +126,7 @@ class Teacher:
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)
                 action = "demoted"
-            if student_id == 0:
+            if student_index == 0:
                 pct = int(win_ratio * 100)
                 type = topic.name
                 diff = topic.difficulty
@@ -133,8 +138,17 @@ class Teacher:
             return win_ratio
         return None
 
-    def get_env(self, student_id: int, iteration: int) -> str:
-        student = self.get_student(student_id)
+    def get_env(self, student_index: int, iteration: int) -> str:
+        """Get the current environment a student should be using.
+
+        # Arguments
+        student_index (int): The index of the student in `self.students` array.
+        iteration (int): The current iteration (usually an episode).
+
+        # Returns
+        (str): The name of a mathy environment to use.
+        """
+        student = self.students[student_index]
         # The console printing student is special, it trains in everything
         len_topics = len(self.topic_names)
         student.topic = self.topic_names[iteration % len_topics]

@@ -35,9 +35,9 @@ class BinaryTreeNode:
     #  Allow specifying children in the constructor
     def __init__(
         self,
-        left: Optional["BinaryTreeNode"] = None,
-        right: Optional["BinaryTreeNode"] = None,
-        parent: Optional["BinaryTreeNode"] = None,
+        left: "BinaryTreeNode" = None,
+        right: "BinaryTreeNode" = None,
+        parent: "BinaryTreeNode" = None,
         id: Optional[str] = None,
     ):
         if id is None:
@@ -187,7 +187,7 @@ class BinaryTreeNode:
     # making sure that the proper parent assignments also take place.
 
     def set_left(
-        self, child: "BinaryTreeNode", clear_old_child_parent=False
+        self, child: "BinaryTreeNode" = None, clear_old_child_parent=False
     ) -> "BinaryTreeNode":
         """Set the left node to the passed `child`"""
         if child == self:
@@ -201,7 +201,7 @@ class BinaryTreeNode:
         return self
 
     def set_right(
-        self, child: "BinaryTreeNode", clear_old_child_parent=False
+        self, child: "BinaryTreeNode" = None, clear_old_child_parent=False
     ) -> "BinaryTreeNode":
         """Set the right node to the passed `child`"""
         if child == self:

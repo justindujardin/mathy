@@ -21,7 +21,7 @@ def test_teacher_evaluation_window_win_loss_record():
     teacher.report_result(me, -0.1)
     teacher.report_result(me, 1.0)
 
-    student: Student = teacher.get_student(me)
+    student: Student = teacher.students[me]
     assert student.topics[student.topic].positives == 2
     assert student.topics[student.topic].negatives == 1
 
@@ -33,7 +33,7 @@ def test_teacher_evaluation_objects():
     teacher.report_result(me, -0.1)
     teacher.report_result(me, 1.0)
 
-    student: Student = teacher.get_student(me)
+    student: Student = teacher.students[me]
     assert student.topics[student.topic].positives == 2
     assert student.topics[student.topic].negatives == 1
 
@@ -43,7 +43,7 @@ def test_teacher_evaluation_window_change_difficulty():
         topic_names, eval_window=10, win_threshold=0.7, lose_threshold=0.5
     )
     # Report win/loss
-    student = teacher.get_student(me)
+    student = teacher.students[me]
 
     assert student.topics[student.topic].difficulty == "easy"
 

@@ -46,7 +46,11 @@ EqualExpression(self, left=None, right=None)
 Evaluate equality of two expressions
 ### operate
 ```python
-EqualExpression.operate(self, one:mathy.core.expressions.BinaryExpression, two:mathy.core.expressions.BinaryExpression)
+EqualExpression.operate(
+    self,
+    one: mathy.core.expressions.BinaryExpression,
+    two: mathy.core.expressions.BinaryExpression,
+)
 ```
 This is where assignment of context variables might make sense. But context
 is not present in the expression's `operate` method.
@@ -76,7 +80,9 @@ MathExpression.add_class(self, classes)
 ```
 Associate a class name with an expression. This class name will be
 attached to nodes when the expression is converted to a capable output
-format.  See `MathExpression.to_math_ml_fragment`
+format.
+
+See `MathExpression.to_math_ml_fragment`
 ### all_changed
 ```python
 MathExpression.all_changed(self)
@@ -92,7 +98,9 @@ Clear all the classes currently set on the nodes in this expression.
 MathExpression.clone(self) -> 'MathExpression'
 ```
 A specialization of the clone method that can track and report a cloned
-subtree node. See `MathExpression.clone_from_root` for more details.
+subtree node.
+
+See `MathExpression.clone_from_root` for more details.
 ### clone_from_root
 ```python
 MathExpression.clone_from_root(self, node=None) -> 'MathExpression'
@@ -101,11 +109,13 @@ Clone this node including the entire parent hierarchy that it has. This
 is useful when you want to clone a subtree and still maintain the overall
 hierarchy.
 
-Params:
+__Arguments__
 
-    - `node` The node to clone.
+- __node (MathExpression)__: The node to clone.
 
-Returns: The cloned `MathExpression` node.
+__Returns__
+
+`(MathExpression)`: The cloned node.
 
 ### color
 Color to use for this node when rendering it as changed with `.terminal_text`
@@ -116,7 +126,10 @@ MathExpression.evaluate(self, context=None)
 Evaluate the expression, resolving all variables to constant values
 ### find_id
 ```python
-MathExpression.find_id(self, id:str) -> Union[_ForwardRef('MathExpression'), NoneType]
+MathExpression.find_id(
+    self,
+    id: str,
+) -> Union[_ForwardRef('MathExpression'), NoneType]
 ```
 Find an expression by its unique ID.
 
@@ -124,7 +137,10 @@ Returns: The found `MathExpression` or `None`
 
 ### find_type
 ```python
-MathExpression.find_type(self, instanceType:Type[_ForwardRef('MathExpression')]) -> List[_ForwardRef('MathExpression')]
+MathExpression.find_type(
+    self,
+    instanceType: Type[_ForwardRef('MathExpression')],
+) -> List[_ForwardRef('MathExpression')]
 ```
 Find an expression in this tree by type.
 
@@ -134,16 +150,25 @@ Returns the found `MathExpression` objects of the given type.
 
 ### make_ml_tag
 ```python
-MathExpression.make_ml_tag(self, tag:str, content, classes=[]) -> str
+MathExpression.make_ml_tag(
+    self,
+    tag: str,
+    content: str,
+    classes: List[str] = [],
+) -> str
 ```
 Make a MathML tag for the given content while respecting the node's given
 classes.
 
-Params:
+__Arguments__
 
-    - `tag` The ML tag name to create.
-    - `content` The ML content to place inside of the tag.
-    - `classes` An array of classes to attach to this tag.
+- __tag (str)__: The ML tag name to create.
+- __content (str)__: The ML content to place inside of the tag.
+classes (List[str]) An array of classes to attach to this tag.
+
+__Returns__
+
+`(str)`: A MathML element with the given tag, content, and classes
 
 ### path_to_root
 ```python

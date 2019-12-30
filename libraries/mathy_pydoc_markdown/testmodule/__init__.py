@@ -1,3 +1,13 @@
+from typing import List, Optional, Tuple, Dict, Any
+
+
+def a_function_with_types(
+    inputs: List[Dict[str, Any]], auxiliary: Tuple[Optional[str]], final: int = 3
+) -> List[str]:
+    """Sweet typed function"""
+    pass
+
+
 def function_without_docstrings(foo):
     pass
 
