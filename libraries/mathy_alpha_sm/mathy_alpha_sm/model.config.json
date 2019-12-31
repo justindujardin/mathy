@@ -31,7 +31,7 @@
   "clip_grouping_control":false,
   "use_env_features":false,
   "use_node_values":true,
-  "update_freq":64,
+  "update_gradients_every":64,
   "num_thinking_steps_begin":3,
   "mcts_sims":200,
   "worker_wait":0.01,
