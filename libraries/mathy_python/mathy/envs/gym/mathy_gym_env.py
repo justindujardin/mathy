@@ -1,21 +1,23 @@
-from typing import Optional, Type, List
+import math
+from typing import List, Optional, Type
 
 import gym
-from ...env import MathyEnv
-from ...core.rule import ExpressionChangeRule
+import numpy as np
+from gym.envs.registration import register
+
 from ...core.expressions import MathExpression
+from ...core.rule import ExpressionChangeRule
+from ...env import MathyEnv
 from ...state import (
     MathyEnvState,
     MathyObservation,
     RNNStateFloatList,
-    rnn_placeholder_state,
     observations_to_window,
+    rnn_placeholder_state,
 )
 from ...types import MathyEnvProblemArgs
 from ...util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
-import numpy as np
-import math
 
 
 class MathyGymEnv(gym.Env):
@@ -132,3 +134,11 @@ class MathyGymEnv(gym.Env):
             change=self.last_change,
             change_reward=self.last_reward,
         )
+
+
+def safe_register(id: str, **kwargs):
+    """Ignore re-register errors."""
+    try:
+        return register(id, **kwargs)
+    except gym.error.Error:
+        pass
