@@ -1,11 +1,21 @@
 from typing import List, Optional
 
 from pydantic import BaseModel
+from .. import about
 
 
 class BaseConfig(BaseModel):
     class Config:
-        extra = "forbid"
+        extra = "allow"
+
+    # The version of the model. You probably don't want to change this.
+    version: str = "0.0.1"
+    description: str = "Mathy.ai trained model"
+    license: str = "CC BY-SA 3.0"
+    author: str = about.__author__
+    email: str = about.__email__
+    url: str = about.__uri__
+    mathy_version: str = about.__version__
 
     units: int = 64
     embedding_units: int = 128

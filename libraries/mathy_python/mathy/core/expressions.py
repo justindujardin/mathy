@@ -69,6 +69,10 @@ class MathExpression(BinaryTreeNode):
     `mathy:x+y=z`
     """
 
+    left: Optional["MathExpression"]
+    right: Optional["MathExpression"]
+    parent: Optional["MathExpression"]
+
     @property
     def raw(self):
         """raw text representation of the expression."""

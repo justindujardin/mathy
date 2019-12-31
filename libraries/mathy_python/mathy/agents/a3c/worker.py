@@ -323,7 +323,7 @@ class A3CWorker(threading.Thread):
                 grouping_change=grouping_change,
                 value=value,
             )
-            if time_count == self.args.update_freq or done:
+            if time_count == self.args.update_gradients_every or done:
                 if done and self.args.print_training and self.worker_idx == 0:
                     env.render(self.args.print_mode, None)
 

@@ -9,7 +9,7 @@ class A3CConfig(BaseConfig):
     #   episode before syncing the replay buffer and gradients.
     # - for R2D2 agents this value indicates the number of episodes to run between
     #   syncing the latest model from the learner process.
-    update_freq: int = 64
+    update_gradients_every: int = 64
 
     # How many times to think about the initial state before acting.
     # (intuition) is that the LSTM updates the state each time it processes
