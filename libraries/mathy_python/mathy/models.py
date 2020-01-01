@@ -81,13 +81,18 @@ def load_model_from_package(name, **overrides):
     return cls.load(**overrides)
 
 
-def load_model_from_path(
-    model_data_directory: Path, meta: dict = None, **overrides
-) -> Mathy:
-    """Load a model from a data directory path."""
+def load_model_from_path(model_path: Path, meta: dict = None, **overrides) -> Mathy:
+    """Load a model from a data directory path.
+    
+    # Arguments
+    model_path (Path): The model folder to load from.
+
+    # Returns
+    (Mathy): a Mathy instance.
+    """
     if not meta:
-        meta = get_model_meta(model_data_directory)
-    mt = Mathy(model_path=str(model_data_directory), **overrides)
+        meta = get_model_meta(model_path)
+    mt = Mathy(model_path=str(model_path), **overrides)
     return mt
 
 
@@ -98,6 +103,9 @@ def load_model_from_init_py(init_file: Union[Path, str], **overrides):
     # Arguments
     init_file (unicode): Path to model's __init__.py, i.e. `__file__`.
     **overrides: Specific overrides, like pipeline components to disable.
+
+    # Raises
+    ValueError: If the model path does not exist.
     
     # Returns
     (Language): `Language` class with loaded model.
@@ -115,9 +123,9 @@ def get_model_meta(model_path: Path):
     path (unicode or Path): Path to model directory.
 
     # Raises
-    ValueError: If **model_path** does not point to a valid folder
-    ValueError: If **model_path** does not have a `model.config.json` file
-    ValueError: If any required settings are missing from the meta file
+    ValueError: If **model_path** does not point to a valid folder.
+    ValueError: If **model_path** does not have a `model.config.json` file.
+    ValueError: If any required settings are missing from the meta file.
 
     # Returns
     (dict): The model's meta data.
@@ -159,15 +167,26 @@ def package(
     input_dir: Union[str, Path],
     output_dir: Union[str, Path],
     meta_path: Union[str, Path] = None,
-    create_meta: bool = False,
     force: bool = False,
 ) -> str:
-    """
-    Generate Python package for model data, including meta and required
-    installation files. A new directory will be created in the specified
-    output directory, and model data will be copied over. If --create-meta is
-    set and a model.config.json already exists in the output directory, the existing
-    values will be used as the defaults in the command-line prompt.
+    """Generate a Python package from a Mathy model.
+    
+    A new directory will be created in the specified output directory, and model data will be copied over.
+
+    # Arguments
+    model_name: the lower-case with underscores name for the model, e.g. "mathy_alpha_sm".
+    input_dir: The folder containing a Mathy model to use as an input.
+    output_dir: The folder to put the packaged model in.
+    force: Delete any existing model in the output_dir rather than throw an error when this is true.
+
+    # Raises
+    SystemExit: If the input path does not exist.
+    SystemExit: If the input path has no model.config.json file.
+    SystemExit: If the model.config.json file is missing required keys.
+    SystemExit: If output folder exists and `force` is False.
+
+    # Returns
+    (str): The subfolder of the output path that contains the pypi package source.
     """
     input_path = Path(input_dir)
     output_path = Path(output_dir)
