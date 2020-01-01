@@ -255,6 +255,7 @@ class A3CWorker(threading.Thread):
             # store rnn state for replay training
             rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
             rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
+            rnn_history_h = episode_memory.rnn_weighted_history(self.args.lstm_units)[0]
             last_rnn_state = [rnn_state_h, rnn_state_c]
 
             # named tuples are read-only, so add rnn state to a new copy
@@ -266,9 +267,7 @@ class A3CWorker(threading.Thread):
                 time=last_observation.time,
                 rnn_state_h=tf.squeeze(rnn_state_h),
                 rnn_state_c=tf.squeeze(rnn_state_c),
-                rnn_history_h=episode_memory.rnn_weighted_history(self.args.lstm_units)[
-                    0
-                ],
+                rnn_history_h=rnn_history_h,
             )
             # before_rnn_state_h = selector.model.embedding.state_h.numpy()
             # before_rnn_state_c = selector.model.embedding.state_c.numpy()
@@ -306,9 +305,7 @@ class A3CWorker(threading.Thread):
                 time=observation.time,
                 rnn_state_h=rnn_state_h,
                 rnn_state_c=rnn_state_c,
-                rnn_history_h=episode_memory.rnn_weighted_history(self.args.lstm_units)[
-                    0
-                ],
+                rnn_history_h=rnn_history_h,
             )
 
             new_text = env.state.agent.problem
