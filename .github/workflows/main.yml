@@ -18,3 +18,9 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: sh tools/codecov.sh
+      - name: Deploy
+        if: github.ref == "master"
+        env:
+          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: sh tools/deploy.sh

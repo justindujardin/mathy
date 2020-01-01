@@ -1,6 +1,6 @@
 {
   "name": "mathy",
-  "version": "1.7.1",
+  "version": "0.0.0-development",
   "description": "making math fantastic",
   "keywords": [
     "math"
@@ -16,7 +16,7 @@
     "all-contributors-cli": "^6.11.2",
     "husky": "^3.1.0",
     "lint-staged": "^9.5.0",
-    "semantic-release": "^15.13.3",
+    "semantic-release": "^15.14.0",
     "stream-buffers": "^3.0.2",
     "ts-node": "^8.0.2",
     "typescript": "^3.0.3"
@@ -35,5 +35,50 @@
       "libraries/website/.env/bin/python libraries/website/tools/stage_ipynb.py"
     ]
   },
-  "peerDependencies": {}
+  "release": {
+    "plugins": [
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "angular",
+          "releaseRules": [
+            {
+              "breaking": true,
+              "release": "premajor"
+            },
+            {
+              "revert": true,
+              "release": "prepatch"
+            },
+            {
+              "type": "feat",
+              "release": "preminor"
+            },
+            {
+              "type": "fix",
+              "release": "prepatch"
+            },
+            {
+              "type": "perf",
+              "release": "prepatch"
+            }
+          ],
+          "parserOpts": {
+            "noteKeywords": [
+              "BREAKING CHANGE",
+              "BREAKING CHANGES"
+            ]
+          }
+        }
+      ],
+      "@semantic-release/release-notes-generator"
+    ]
+  },
+  "peerDependencies": {},
+  "scripts": {
+    "semantic-release": "semantic-release"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
 }
