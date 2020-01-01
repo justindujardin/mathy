@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from numpy.random import randint, uniform
 
@@ -18,6 +18,10 @@ class PolySimplify(MathyEnv):
      addition operations. Subtraction, Multiplication and Division
      operators are excluded. This is a good area for improvement.
     """
+
+    def __init__(self, ops: List[str] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.ops = ops
 
     def get_env_namespace(self) -> str:
         return "mathy.polynomials.simplify"
@@ -70,6 +74,7 @@ class PolySimplify(MathyEnv):
             scaling = uniform(0.35, 0.5)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
+                op=self.ops,
                 inner_terms_scaling=scaling,
                 powers_probability=0.2,
                 noise_probability=0.5,
@@ -89,6 +94,7 @@ class PolySimplify(MathyEnv):
             shuffle = uniform(0.35, 0.8)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
+                op=self.ops,
                 inner_terms_scaling=scaling,
                 powers_probability=powers,
                 noise_probability=noise,
@@ -103,6 +109,7 @@ class PolySimplify(MathyEnv):
             shuffle = uniform(0.35, 0.9)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
+                op=self.ops,
                 inner_terms_scaling=scaling,
                 powers_probability=powers,
                 noise_probability=noise,
