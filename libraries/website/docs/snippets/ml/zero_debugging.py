@@ -1,3 +1,4 @@
+#!pip install gym
 from mathy.cli import setup_tf_env
 from mathy.agents.zero import SelfPlayConfig, self_play_runner
 

@@ -1,3 +1,4 @@
+#!pip install gym
 import os
 from mathy.cli import setup_tf_env
 from mathy.agents.a3c import A3CAgent, A3CConfig
