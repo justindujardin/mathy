@@ -32,20 +32,6 @@ It can load models from **pypi packages** as well as **local folders** and **sys
     Check it out: **[https://spacy.io](https://spacy.io){target=\_blank}**
 
 
-## get_data_path
-```python
-get_data_path(require_exists=True) -> Union[pathlib.Path, NoneType]
-```
-Get path to Mathy data directory.
-
-__Arguments__
-
-- __require_exists (bool)__: Only return path if it exists, otherwise None.
-
-__Returns__
-
-`(Optional[Path])`: Data path or None.
-
 ## get_model_meta
 ```python
 get_model_meta(model_path:pathlib.Path)
@@ -126,17 +112,6 @@ __Returns__
 
 `(Language)`: `Language` class with loaded model.
 
-## load_model_from_link
-```python
-load_model_from_link(name:str, **overrides) -> mathy.mathy.Mathy
-```
-Load a model from a shortcut link, or directory in Mathy data path.
-
-__Arguments__
-
-- __name (str)__: Package name, shortcut link or model path.
-- __overrides (kwargs)__: Specific overrides, like how many MCTS sims to use
-
 ## load_model_from_package
 ```python
 load_model_from_package(name, **overrides)
@@ -145,7 +120,7 @@ Load a model from an installed package.
 ## load_model_from_path
 ```python
 load_model_from_path(
-    model_path: pathlib.Path,
+    model_data_directory: pathlib.Path,
     meta: dict = None,
     overrides,
 ) -> mathy.mathy.Mathy
@@ -168,14 +143,4 @@ installation files. A new directory will be created in the specified
 output directory, and model data will be copied over. If --create-meta is
 set and a model.config.json already exists in the output directory, the existing
 values will be used as the defaults in the command-line prompt.
-
-## set_data_path
-```python
-set_data_path(path)
-```
-Set path to Mathy data directory.
-
-__Arguments:__
-
-path (unicode or Path): Path to new data directory.
 

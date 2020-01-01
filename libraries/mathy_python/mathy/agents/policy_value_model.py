@@ -231,17 +231,20 @@ def get_or_create_policy_model(
     return model
 
 
-def load_policy_value_model(model_folder: str) -> Tuple[PolicyValueModel, BaseConfig]:
-    model_file = Path(model_folder) / "model.h5"
-    optimizer_file = Path(model_folder) / "model.optimizer"
-    meta_file = Path(model_folder) / "model.config.json"
+def load_policy_value_model(
+    model_data_folder: str,
+) -> Tuple[PolicyValueModel, BaseConfig]:
+    meta_file = Path(model_data_folder) / "model.config.json"
+    if not meta_file.exists():
+        raise ValueError(f"model meta not found: {meta_file}")
+    args = BaseConfig(**srsly.read_json(str(meta_file)))
+    model_file = Path(model_data_folder) / "model.h5"
+    optimizer_file = Path(model_data_folder) / "model.optimizer"
     if not model_file.exists():
         raise ValueError(f"model not found: {model_file}")
     if not optimizer_file.exists():
         raise ValueError(f"optimizer not found: {optimizer_file}")
-    if not meta_file.exists():
-        raise ValueError(f"model meta not found: {meta_file}")
-    args = BaseConfig(**srsly.read_json(str(meta_file)))
+
     env: MathyEnv = PolySimplify()
     observation: MathyObservation = env.state_to_observation(
         env.get_initial_state()[0], rnn_size=args.lstm_units

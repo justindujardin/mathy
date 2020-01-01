@@ -49,31 +49,7 @@ _data_path = Path(__file__).parent / "data"
 
 
 REQUIRED_META_KEYS = ["units", "embedding_units", "lstm_units", "version"]
-
-
-def get_data_path(require_exists=True) -> Optional[Path]:
-    """Get path to Mathy data directory.
-
-    # Arguments
-    require_exists (bool): Only return path if it exists, otherwise None.
-
-    # Returns
-    (Optional[Path]): Data path or None.
-    """
-    if not require_exists:
-        return _data_path
-    else:
-        return _data_path if _data_path.exists() else None
-
-
-def set_data_path(path):
-    """Set path to Mathy data directory.
-
-    # Arguments:
-    path (unicode or Path): Path to new data directory.
-    """
-    global _data_path
-    _data_path = ensure_path(path)
+REQUIRED_MODEL_FILES = ["model.h5", "model.optimizer", "model.config.json"]
 
 
 def load_model(name: str, **overrides) -> Mathy:
@@ -89,7 +65,7 @@ def load_model(name: str, **overrides) -> Mathy:
     # Returns
     (Mathy): Mathy class with the loaded model.
     """
-    if isinstance(name, str):  # in data dir / shortcut
+    if isinstance(name, str):
         if is_package(name):  # installed as package
             return load_model_from_package(name, **overrides)
         if Path(name).exists():  # path to model data directory
@@ -99,38 +75,19 @@ def load_model(name: str, **overrides) -> Mathy:
     raise ValueError(f"Unrecognized model input: {name}")
 
 
-def load_model_from_link(name: str, **overrides) -> Mathy:
-    """Load a model from a shortcut link, or directory in Mathy data path.
-    
-    # Arguments
-    name (str): Package name, shortcut link or model path.
-    overrides (kwargs): Specific overrides, like how many MCTS sims to use
-    """
-    data_path = get_data_path()
-    assert data_path is not None
-    import_path = data_path / name / "__init__.py"
-    try:
-        import importlib.util
-
-        spec = importlib.util.spec_from_file_location(name, str(import_path))
-        cls: Any = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)  # type: ignore
-    except AttributeError:
-        raise ValueError(f"Invalid module '{name}' at: {str(import_path)}")
-    return cls.load(**overrides)
-
-
 def load_model_from_package(name, **overrides):
     """Load a model from an installed package."""
     cls = importlib.import_module(name)
     return cls.load(**overrides)
 
 
-def load_model_from_path(model_path: Path, meta: dict = None, **overrides) -> Mathy:
+def load_model_from_path(
+    model_data_directory: Path, meta: dict = None, **overrides
+) -> Mathy:
     """Load a model from a data directory path."""
     if not meta:
-        meta = get_model_meta(model_path)
-    mt = Mathy(model_path=str(model_path), **overrides)
+        meta = get_model_meta(model_data_directory)
+    mt = Mathy(model_path=str(model_data_directory), **overrides)
     return mt
 
 
@@ -147,7 +104,7 @@ def load_model_from_init_py(init_file: Union[Path, str], **overrides):
     """
     model_path = Path(init_file).parent
     meta = get_model_meta(model_path)
-    data_path = model_path / f"{meta['name']}-{meta['version']}"
+    data_path = model_path
     if not model_path.exists():
         raise ValueError(f"model path does not exist: {model_path}")
     return load_model_from_path(data_path, meta, **overrides)
@@ -243,6 +200,7 @@ def package(
         meta = srsly.read_json(meta_path)
         msg.good("Loaded model.config.json from file", meta_path)
     meta["mathy_version"] = f">={about.__version__},<1.0.0"
+    meta["name"] = model_name
     for key in REQUIRED_META_KEYS:
         if key not in meta or meta[key] == "":
             msg.fail(
@@ -250,8 +208,8 @@ def package(
                 "This setting is required to build your package.",
                 exits=1,
             )
-    main_path = output_path
-    package_path = main_path / model_name
+    main_path = output_path / model_name
+    package_path = main_path
     if package_path.exists():
         if force:
             shutil.rmtree(str(package_path))
@@ -262,12 +220,19 @@ def package(
                 "`--force` flag to overwrite existing directories.",
                 exits=1,
             )
-    Path.mkdir(main_path, parents=True, exist_ok=True)
-    shutil.copytree(str(input_path), str(package_path))
-    meta["name"] = model_name
-    create_file(main_path / "model.config.json", srsly.json_dumps(meta, indent=2))
-    create_file(main_path / "setup.py", TEMPLATE_SETUP)
-    create_file(main_path / "MANIFEST.in", TEMPLATE_MANIFEST)
+    Path.mkdir(package_path, parents=True, exist_ok=True)
+    for f in REQUIRED_MODEL_FILES:
+        file_name: Path = input_path / f
+        if not file_name.exists():
+            msg.fail(
+                f"Input path '{input_path}' is missing a required file: '{f}'",
+                "This file is required to build your package.",
+                exits=1,
+            )
+        shutil.copyfile(file_name, main_path / f)
+    create_file(output_path / "model.config.json", srsly.json_dumps(meta, indent=2))
+    create_file(output_path / "setup.py", TEMPLATE_SETUP)
+    create_file(output_path / "MANIFEST.in", TEMPLATE_MANIFEST)
     create_file(package_path / "__init__.py", TEMPLATE_INIT)
     msg.good("Successfully created package '{}'".format(package_path), main_path)
     msg.text("To build the package, run `python setup.py sdist` in this directory.")
@@ -353,7 +318,7 @@ TEMPLATE_INIT = """
 # coding: utf8
 from __future__ import unicode_literals
 from pathlib import Path
-from mathy.util import load_model_from_init_py, get_model_meta
+from mathy.models import load_model_from_init_py, get_model_meta
 __version__ = get_model_meta(Path(__file__).parent)['version']
 def load(**overrides):
     return load_model_from_init_py(__file__, **overrides)

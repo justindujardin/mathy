@@ -1,4 +1,5 @@
 {
+  "name":"unnamed_model",
   "version":"0.0.1",
   "description":"Mathy.ai trained model",
   "license":"CC BY-SA 3.0",
@@ -13,7 +14,7 @@
     "poly-combine"
   ],
   "difficulty":null,
-  "model_dir":"/var/folders/q3/j42n3r692gb2yl9cp1ncs3q00000gn/T/tmpjjepjziy",
+  "model_dir":"/var/folders/q3/j42n3r692gb2yl9cp1ncs3q00000gn/T/tmpo6ivh9r6",
   "model_name":"model",
   "init_model_from":null,
   "train":false,
@@ -34,10 +35,10 @@
   "use_node_values":true,
   "update_gradients_every":64,
   "num_thinking_steps_begin":3,
-  "mcts_sims":3,
+  "mcts_sims":200,
   "worker_wait":0.01,
   "profile":false,
-  "action_strategy":"mcts_worker_0",
+  "action_strategy":"a3c",
   "main_worker_use_epsilon":false,
   "e_greedy_min":0.01,
   "e_greedy_max":0.1,

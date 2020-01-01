@@ -8,6 +8,7 @@ class BaseConfig(BaseModel):
     class Config:
         extra = "allow"
 
+    name: str = "unnamed_model"
     # The version of the model. You probably don't want to change this.
     version: str = "0.0.1"
     description: str = "Mathy.ai trained model"
