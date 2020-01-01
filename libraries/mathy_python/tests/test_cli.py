@@ -20,36 +20,37 @@ def test_cli_contribute():
 
 def test_cli_problems():
     runner = CliRunner()
-    # TODO: This happens because the gym registration happens at
-    #       module import time. Maybe make it a helper function?
-    #       For now, just quiet the errors because it won't happen
-    #       during normal usage.
-    with patch("gym.envs.registration.register") as mock:
-        for problem_type in ["poly", "poly-combine", "complex", "binomial"]:
-            result = runner.invoke(cli, ["problems", problem_type, "--number=100"])
-            assert result.exit_code == 0
+    for problem_type in ["poly", "poly-combine", "complex", "binomial"]:
+        result = runner.invoke(cli, ["problems", problem_type, "--number=100"])
+        assert result.exit_code == 0
+
+
+def test_cli_simplify():
+    runner = CliRunner()
+    for problem in ["4x + 2x", "(4 + 2) * x"]:
+        result = runner.invoke(cli, ["simplify", problem, "--max-steps=3"])
+        assert result.exit_code == 0
 
 
 @pytest.mark.parametrize("agent", ["a3c", "zero"])
 def test_cli_train(agent: str):
     runner = CliRunner()
     model_folder = tempfile.mkdtemp()
-    with patch("gym.envs.registration.register") as mock:
-        result = runner.invoke(
-            cli,
-            [
-                "train",
-                agent,
-                "poly-like-terms-haystack,poly-grouping",
-                model_folder,
-                "--verbose",
-                "--mcts-sims=3",
-                "--episodes=2",
-                "--self-play-problems=1",
-                "--training-iterations=1",
-                "--workers=1",
-            ],
-        )
+    result = runner.invoke(
+        cli,
+        [
+            "train",
+            agent,
+            "poly-like-terms-haystack,poly-grouping",
+            model_folder,
+            "--verbose",
+            "--mcts-sims=3",
+            "--episodes=2",
+            "--self-play-problems=1",
+            "--training-iterations=1",
+            "--workers=1",
+        ],
+    )
     assert result.exit_code == 0
 
     # Comment this out to keep your model

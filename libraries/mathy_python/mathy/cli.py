@@ -30,10 +30,7 @@ def cli_contribute():
 
 @cli.command("simplify")
 @click.option(
-    "model",
-    "--model",
-    default="training/alpha_piv_norm",
-    help="The path to a mathy model",
+    "model", "--model", default="mathy_alpha_sm", help="The path to a mathy model",
 )
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
 @click.option(
@@ -44,8 +41,8 @@ def cli_contribute():
 )
 @click.option(
     "max_steps",
-    "--steps",
-    default=32,
+    "--max-steps",
+    default=20,
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
@@ -54,128 +51,12 @@ def cli_simplify(
 ):
     """Simplify an input polynomial expression."""
     setup_tf_env()
-    import gym
-    import tensorflow as tf
-    from mathy.envs.gym import MathyGymEnv
-    from colr import color
 
-    from .agents.a3c import A3CConfig
-    from .agents.action_selectors import A3CEpsilonGreedyActionSelector
-    from .state import observations_to_window, MathyObservation
-    from .agents.policy_value_model import get_or_create_policy_model, PolicyValueModel
-    from .agents.episode_memory import EpisodeMemory
-    from .util import calculate_grouping_control_signal
+    from .models import load_model
+    from .mathy import Mathy
 
-    args = A3CConfig(
-        model_dir=model,
-        units=512,
-        num_thinking_steps_begin=thinking_steps,
-        embedding_units=512,
-        lstm_units=128,
-        verbose=True,
-    )
-    # print(args.json(indent=2))
-    environment = "poly"
-    difficulty = "easy"
-    episode_memory = EpisodeMemory()
-    env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
-    __model: PolicyValueModel = get_or_create_policy_model(
-        args=args, env_actions=env.action_space.n, required=True,
-    )
-    last_observation: MathyObservation = env.reset_with_input(
-        problem_text=problem, rnn_size=args.lstm_units, max_moves=max_steps
-    )
-    last_text = env.state.agent.problem
-    last_action = -1
-    last_reward = -1
-
-    selector = A3CEpsilonGreedyActionSelector(
-        model=__model, episode=0, worker_id=0, epsilon=0
-    )
-
-    # Set RNN to 0 state for start of episode
-    selector.model.embedding.reset_rnn_state()
-
-    # Start with the "init" sequence [n] times
-    for i in range(args.num_thinking_steps_begin + 1):
-        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-        seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
-        selector.model.call(observations_to_window([seq_start]).to_inputs())
-
-    done = False
-    while not done:
-        env.render(args.print_mode, None)
-        # store rnn state for replay training
-        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-        last_rnn_state = [rnn_state_h, rnn_state_c]
-
-        # named tuples are read-only, so add rnn state to a new copy
-        last_observation = MathyObservation(
-            nodes=last_observation.nodes,
-            mask=last_observation.mask,
-            values=last_observation.values,
-            type=last_observation.type,
-            time=last_observation.time,
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=episode_memory.rnn_weighted_history(args.lstm_units)[0],
-        )
-        window = episode_memory.to_window_observation(last_observation)
-        try:
-            action, value = selector.select(
-                last_state=env.state,
-                last_window=window,
-                last_action=last_action,
-                last_reward=last_reward,
-                last_rnn_state=last_rnn_state,
-            )
-        except KeyboardInterrupt:
-            print("Done!")
-            return
-        except BaseException as e:
-            print("Prediction failed with error:", e)
-            print("Inputs to model are:", window)
-            continue
-        # Take an env step
-        observation, reward, done, _ = env.step(action)
-        rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-        rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-        observation = MathyObservation(
-            nodes=observation.nodes,
-            mask=observation.mask,
-            values=observation.values,
-            type=observation.type,
-            time=observation.time,
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=episode_memory.rnn_weighted_history(args.lstm_units)[0],
-        )
-
-        new_text = env.state.agent.problem
-        grouping_change = calculate_grouping_control_signal(
-            last_text, new_text, clip_at_zero=args.clip_grouping_control
-        )
-        episode_memory.store(
-            observation=last_observation,
-            action=action,
-            reward=reward,
-            grouping_change=grouping_change,
-            value=value,
-        )
-        if done:
-            # Last timestep reward
-            win = reward > 0.0
-            env.render(args.print_mode, None)
-            print(
-                color(text="SOLVE" if win else "FAIL", fore="green" if win else "red",)
-            )
-            break
-
-        last_observation = observation
-        last_action = action
-        last_reward = reward
+    mt: Mathy = load_model(model)
+    mt.simplify(problem=problem, max_steps=max_steps, thinking_steps=thinking_steps)
 
 
 @cli.command("problems")

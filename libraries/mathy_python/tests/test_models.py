@@ -37,11 +37,10 @@ def test_models_package():
     setup_tf_env()
     input_folder = Path(__file__).parent / "test_model_sm"
     output_folder = tempfile.mkdtemp()
-    package(
+    out_dir = package(
         model_name="zote_the_mighty", input_dir=input_folder, output_dir=output_folder,
     )
-    model_data_folder = Path(output_folder) / "zote_the_mighty"
-    mt: Mathy = load_model(str(model_data_folder))
+    mt: Mathy = load_model(out_dir)
     assert mt is not None
     assert mt.model is not None
     assert mt.config is not None
@@ -64,10 +63,10 @@ def test_models_train_and_package():
     )
     agent = A3CAgent(args)
     agent.train()
-    out_folder = package(
+    out_dir = package(
         model_name="zote_the_mighty", input_dir=input_folder, output_dir=output_folder,
     )
-    mt: Mathy = load_model(str(model_data_folder))
+    mt: Mathy = load_model(out_dir)
     assert mt is not None
     assert mt.model is not None
     assert mt.config is not None
