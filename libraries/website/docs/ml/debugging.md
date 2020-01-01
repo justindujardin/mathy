@@ -12,14 +12,9 @@ Docs todo...
 
 ## Tensorboard
 
-Mathy agents export a rich set of information to Tensorboard including:
+Mathy agents export a rich set of information to Tensorboard whenever you do agent training.
 
-- **Model Graph Visualizations**: Mathy uses Tensorflow's trace API to record the agent's model and export it to the Graph tab in Tensorboard.
-- **Generated Problems and Outcomes**: See what kind of problems the agent is succeeding at solving and which ones it is struggling with.
-
-Whenever you do agent training, Mathy will save an extra folder in the model output call `tensorboard`
-
-The `tensorboard` folder contains event data that can be viewed in Tensorboard:
+Tensorboard is a tool developed by Google to analyze Tensorflow models.
 
 ### Installation
 

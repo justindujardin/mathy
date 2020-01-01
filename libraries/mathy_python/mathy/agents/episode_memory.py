@@ -12,9 +12,7 @@ from ..state import (
 
 
 def rnn_weighted_history(
-    observations: List[MathyObservation],
-    rnn_size: int = 128,
-    cache: Dict[str, List[int]] = None,
+    observations: List[MathyObservation], rnn_size: int = 128,
 ):
     """Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
 
@@ -25,7 +23,7 @@ def rnn_weighted_history(
     if len(observations) > 0:
         in_h = []
         in_c = []
-        for obs in observations[:5]:
+        for obs in observations:
             in_h.append(obs.rnn_state_h)
             in_c.append(obs.rnn_state_c)
         # Take the mean of the historical states:
@@ -53,7 +51,6 @@ class EpisodeMemory(object):
         self.clear()
 
     def clear(self):
-        self.history_cache = {}
         self.observations = []
         self.actions = []
         self.rewards = []
@@ -86,4 +83,4 @@ class EpisodeMemory(object):
         self.grouping_changes.append(grouping_change)
 
     def rnn_weighted_history(self, rnn_size):
-        return rnn_weighted_history(self.observations, rnn_size, self.history_cache)
+        return rnn_weighted_history(self.observations, rnn_size)
