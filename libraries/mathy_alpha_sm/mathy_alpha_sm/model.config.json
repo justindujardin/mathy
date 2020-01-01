@@ -7,9 +7,9 @@
   "email":"justin@dujardinconsulting.com",
   "url":"https://mathy.ai",
   "mathy_version":">=0.0.0,<1.0.0",
-  "units":3,
-  "embedding_units":3,
-  "lstm_units":3,
+  "units":512,
+  "embedding_units":512,
+  "lstm_units":128,
   "topics":[
     "poly-combine"
   ],
