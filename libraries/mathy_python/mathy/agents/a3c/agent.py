@@ -17,10 +17,11 @@ class A3CAgent:
     args: A3CConfig
     global_model: PolicyValueModel
 
-    def __init__(self, args: A3CConfig):
+    def __init__(self, args: A3CConfig, env_extra: dict = None):
         import tensorflow as tf
 
         self.args = args
+        self.env_extra = env_extra if env_extra is not None else {}
         if self.args.verbose:
             print(f"Agent: {os.path.join(args.model_dir, args.model_name)}")
             print(f"Config: {json.dumps(self.args.dict(), indent=2)}")
@@ -32,13 +33,13 @@ class A3CAgent:
             win_threshold=self.args.teacher_promote_wins,
             lose_threshold=self.args.teacher_demote_wins,
         )
-        env = gym.make(self.teacher.get_env(0, 0))
+        env = gym.make(self.teacher.get_env(0, 0), **self.env_extra)
         self.action_size = env.action_space.n
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
         init_window = env.initial_window(self.args.lstm_units)
         self.global_model = get_or_create_policy_model(
-            args=args, env_actions=self.action_size, is_main=True,
+            args=args, env_actions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
             tf.summary.trace_on(graph=True)
@@ -60,6 +61,7 @@ class A3CAgent:
         )
         workers = [
             A3CWorker(
+                env_extra=self.env_extra,
                 global_model=self.global_model,
                 action_size=self.action_size,
                 greedy_epsilon=worker_exploration_epsilons[i],

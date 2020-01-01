@@ -57,9 +57,11 @@ class A3CWorker(threading.Thread):
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
+        env_extra: dict,
     ):
         super(A3CWorker, self).__init__()
         self.args = args
+        self.env_extra = env_extra
         self.greedy_epsilon = greedy_epsilon
         self.iteration = 0
         self.action_size = action_size
@@ -68,13 +70,13 @@ class A3CWorker(threading.Thread):
         self.optimizer = optimizer
         self.worker_idx = worker_idx
         self.teacher = teacher
-        self.envs = {}
 
         with msg.loading(f"Worker {worker_idx} starting..."):
             first_env = self.teacher.get_env(self.worker_idx, self.iteration)
-            self.envs[first_env] = gym.make(first_env)
             self.writer = writer
-            self.local_model = get_or_create_policy_model(args, self.action_size)
+            self.local_model = get_or_create_policy_model(
+                args, self.action_size, env=gym.make(first_env, **self.env_extra).mathy
+            )
             self.reset_episode_loss()
             self.last_model_write = -1
             self.last_histogram_write = -1
@@ -216,9 +218,7 @@ class A3CWorker(threading.Thread):
 
     def run_episode(self, episode_memory: EpisodeMemory):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
-        if env_name not in self.envs:
-            self.envs[env_name] = gym.make(env_name)
-        env = self.envs[env_name]
+        env = gym.make(env_name, **self.env_extra)
         episode_memory.clear()
         self.ep_loss = 0
         ep_reward = 0.0
