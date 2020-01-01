@@ -12,6 +12,8 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@semantic-release/changelog": "^3.0.6",
+    "@semantic-release/git": "^7.0.18",
     "@types/node": "^13.1.1",
     "all-contributors-cli": "^6.11.2",
     "husky": "^3.1.0",
@@ -71,7 +73,23 @@
           }
         }
       ],
-      "@semantic-release/release-notes-generator"
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/changelog",
+        {
+          "changelogFile": "libraries/website/docs/changelog.md"
+        }
+      ],
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "libraries/website/docs/changelog.md",
+            "package.json"
+          ],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ]
     ]
   },
   "peerDependencies": {},
