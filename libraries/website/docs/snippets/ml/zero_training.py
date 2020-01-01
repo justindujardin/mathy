@@ -1,3 +1,4 @@
+#!pip install gym
 from mathy.cli import setup_tf_env
 
 setup_tf_env(use_mp=True)

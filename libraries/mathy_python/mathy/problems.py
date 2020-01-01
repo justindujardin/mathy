@@ -270,16 +270,16 @@ def gen_binomial_times_monomial(
 
 
 def gen_simplify_multiple_terms(
-    num_terms,
-    optional_var=False,
-    op="+",
-    common_variables=True,
-    inner_terms_scaling=0.3,
-    powers_probability=0.33,
-    optional_var_probability=0.8,
-    noise_probability=0.8,
-    shuffle_probability=0.66,
-    noise_terms=None,
+    num_terms: int,
+    optional_var: bool = False,
+    op: Union[List[str], str] = "+",
+    common_variables: bool = True,
+    inner_terms_scaling: float = 0.3,
+    powers_probability: float = 0.33,
+    optional_var_probability: float = 0.8,
+    noise_probability: float = 0.8,
+    shuffle_probability: float = 0.66,
+    noise_terms: int = None,
 ) -> Tuple[str, int]:
     """Generate a polynomial problem with like terms that need to be combined and
     simplified.
@@ -335,15 +335,20 @@ def gen_simplify_multiple_terms(
     if rand_bool(shuffle_probability * 100) is True:
         random.shuffle(term_templates)
 
+    def get_op() -> str:
+        if op is None:
+            return rand_op()
+        if isinstance(op, list):
+            return random.choice(op)
+        return op
+
     root_term = term_templates.pop(0)
     result = f"{rand_number()}{root_term}"
     for other_var in term_templates:
         # other_var = term_templates[i]
         if optional_var and rand_bool(optional_var_probability * 100) is False:
             other_var = ""
-        result = result + " {} {}{}".format(
-            rand_op() if op is None else op, rand_number(), other_var
-        )
+        result += f" {get_op()} {rand_number()}{other_var}"
     return result, complexity
 
 

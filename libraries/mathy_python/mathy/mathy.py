@@ -59,10 +59,7 @@ class Mathy:
         from .envs.gym import MathyGymEnv
         from .agents.action_selectors import A3CEpsilonGreedyActionSelector
         from .state import observations_to_window, MathyObservation
-        from .agents.policy_value_model import (
-            get_or_create_policy_model,
-            PolicyValueModel,
-        )
+        from .agents.policy_value_model import PolicyValueModel
         from .util import calculate_grouping_control_signal
 
         environment = "poly"

@@ -90,16 +90,6 @@ class MathyWindowObservation(NamedTuple):
             tf.convert_to_tensor(self.rnn_state_c),
             tf.convert_to_tensor(self.rnn_history_h),
         ]
-        # result = [
-        #     np.asarray(self.nodes),
-        #     np.asarray(self.mask),
-        #     np.asarray(self.values),
-        #     np.asarray(self.type),
-        #     np.asarray(self.time),
-        #     np.asarray(self.rnn_state_h),
-        #     np.asarray(self.rnn_state_c),
-        #     np.asarray(self.rnn_history_h),
-        # ]
         for r in result:
             for s in r.shape:
                 assert s is not None
@@ -108,16 +98,6 @@ class MathyWindowObservation(NamedTuple):
     def to_input_shapes(self) -> List[Any]:
         import tensorflow as tf
 
-        # result = [
-        #     tf.shape(tf.convert_to_tensor(self.nodes)),
-        #     tf.shape(tf.convert_to_tensor(self.mask)),
-        #     tf.shape(tf.convert_to_tensor(self.values)),
-        #     tf.shape(tf.convert_to_tensor(self.type)),
-        #     tf.shape(tf.convert_to_tensor(self.time)),
-        #     tf.shape(tf.convert_to_tensor(self.rnn_state_h)),
-        #     tf.shape(tf.convert_to_tensor(self.rnn_state_c)),
-        #     tf.shape(tf.convert_to_tensor(self.rnn_history_h)),
-        # ]
         result = [
             np.asarray(self.nodes).shape,
             np.asarray(self.mask).shape,
@@ -203,9 +183,9 @@ def observations_to_window(
         output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(pad_array([], max_length, obs.type))
         output.time.append(pad_array([], max_length, obs.time))
-        output.rnn_state_h.append(list(obs.rnn_state_h))
-        output.rnn_state_c.append(list(obs.rnn_state_c))
-        output.rnn_history_h.append(list(obs.rnn_history_h))
+        output.rnn_state_h.append(obs.rnn_state_h)
+        output.rnn_state_c.append(obs.rnn_state_c)
+        output.rnn_history_h.append(obs.rnn_history_h)
     return output
 
 

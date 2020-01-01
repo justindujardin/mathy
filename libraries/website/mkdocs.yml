@@ -1,73 +1,83 @@
+# Project information
 site_name: Mathy
-site_description: Reinforcement learning environment for working with Math
+site_description: A modern computer algebra system and reinforcement learning environments platform for interpretable symbolic mathematics.
+site_author: Justin DuJardin
+site_url: https://mathy.ai
+
+# Copyright
+copyright: "Copyright &copy; 2011 - 2019 Justin DuJardin"
 
 repo_name: justindujardin/mathy
 repo_url: https://github.com/justindujardin/mathy
 edit_uri: edit/master/libraries/website/docs/
 
+google_analytics:
+  - UA-8701293-12
+  - auto
+
 nav:
-- Mathy: index.md
-- Computer Algebra System:
-  - Overview: cas/overview.md
-  - Tokenizer: cas/tokenizer.md
-  - Parser: cas/parser.md
-- Rules-based Transformations:
-  - Overview: rules/overview.md
-  - Associative Swap: rules/associative_property.md
-  - Commutative Swap: rules/commutative_property.md
-  - Distributive Factor Out: rules/distributive_property_factor_out.md
-  - Distributive Multiply: rules/distributive_property_multiply_across.md
-  - Variable Multiply: rules/variable_multiplication.md
-  - Constant Arithmetic: rules/constant_arithmetic.md
-- Machine Learning:
-  - Overview: ml/overview.md
-  - Debugging: ml/debugging.md
-  - Math Embeddings: ml/embeddings.md
-  - Policy/Value Model: ml/policy_value_model.md
-  - A3C Agent: ml/a3c.md
-  - Zero Agent: ml/zero.md
-- Environments:
-  - Overview: envs/overview.md
-  - Poly Simplify: envs/poly_simplify.md
-  - Complex Simplify: envs/complex_simplify.md
-  - Binomial Multiply: envs/binomial_multiply.md
-- API Documentation:
-  - core:
-    - expressions: api/core/expressions.md
-    - layout: api/core/layout.md
-    - parser: api/core/parser.md
-    - rule: api/core/rule.md
-    - tokenizer: api/core/tokenizer.md
-    - tree: api/core/tree.md
-  - env: api/env.md
-  - mathy: api/mathy.md
-  - models: api/models.md
-  - problems: api/problems.md
-  - state: api/state.md
-  - teacher: api/teacher.md
-  - testing: api/testing.md
-  - time_step: api/time_step.md
-  - util: api/util.md
-- Contributing: contributing.md
-- Getting Help: help.md
-- About: about.md
-- License: license.md
+  - Mathy: index.md
+  - Computer Algebra System:
+      - Overview: cas/overview.md
+      - Tokenizer: cas/tokenizer.md
+      - Parser: cas/parser.md
+  - Rules-based Transformations:
+      - Overview: rules/overview.md
+      - Associative Swap: rules/associative_property.md
+      - Commutative Swap: rules/commutative_property.md
+      - Distributive Factor Out: rules/distributive_property_factor_out.md
+      - Distributive Multiply: rules/distributive_property_multiply_across.md
+      - Variable Multiply: rules/variable_multiplication.md
+      - Constant Arithmetic: rules/constant_arithmetic.md
+  - Machine Learning:
+      - Overview: ml/overview.md
+      - Debugging: ml/debugging.md
+      - Math Embeddings: ml/embeddings.md
+      - Policy/Value Model: ml/policy_value_model.md
+      - A3C Agent: ml/a3c.md
+      - Zero Agent: ml/zero.md
+  - Environments:
+      - Overview: envs/overview.md
+      - Poly Simplify: envs/poly_simplify.md
+      - Complex Simplify: envs/complex_simplify.md
+      - Binomial Multiply: envs/binomial_multiply.md
+  - API Documentation:
+      - core:
+          - expressions: api/core/expressions.md
+          - layout: api/core/layout.md
+          - parser: api/core/parser.md
+          - rule: api/core/rule.md
+          - tokenizer: api/core/tokenizer.md
+          - tree: api/core/tree.md
+      - env: api/env.md
+      - mathy: api/mathy.md
+      - models: api/models.md
+      - problems: api/problems.md
+      - state: api/state.md
+      - teacher: api/teacher.md
+      - testing: api/testing.md
+      - time_step: api/time_step.md
+      - util: api/util.md
+  - Contributing: contributing.md
+  - Getting Help: help.md
+  - About: about.md
+  - License: license.md
 
 extra:
   manifest: img/favicon/site.webmanifest
   social:
-  - type: github
-    link: https://github.com/justindujardin
-  - type: twitter
-    link: https://twitter.com/justindujardin
-  - type: linkedin
-    link: https://linkedin.com/in/justindujardin
+    - type: github
+      link: https://github.com/justindujardin
+    - type: twitter
+      link: https://twitter.com/justindujardin
+    - type: linkedin
+      link: https://linkedin.com/in/justindujardin
 
 extra_css:
-- lib/styles.css
+  - lib/styles.css
 
 extra_javascript:
-- lib/termynal.js
+  - lib/termynal.js
 
 theme:
   name: material
@@ -78,24 +88,24 @@ theme:
     accent: orange
   highlightjs: true
   hljs_languages:
-  - python
-  - typescript
+    - python
+    - typescript
 
 markdown_extensions:
-- markdown.extensions.codehilite:
-    guess_lang: false
-- toc:
-    permalink: true
-- markdown_include.include:
-    base_path: docs
-- admonition
-- codehilite
-- extra
-- pymdownx.superfences
-- pymdownx.details
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
+  - markdown_include.include:
+      base_path: docs
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.superfences
+  - pymdownx.details
 
 plugins:
-- mathy
-- search
-- minify:
-    minify_html: true
+  - mathy
+  - search
+  - minify:
+      minify_html: true

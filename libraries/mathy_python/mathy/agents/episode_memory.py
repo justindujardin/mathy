@@ -1,17 +1,25 @@
 from multiprocessing import Queue
-from typing import List, Optional
+from typing import Dict, List, Optional
+
 import numpy as np
+
 from ..state import (
     MathyObservation,
     MathyWindowObservation,
     observations_to_window,
+    rnn_placeholder_state,
 )
 
 
-def rnn_weighted_history(observations: List[MathyObservation], rnn_size: int = 128):
+def rnn_weighted_history(
+    observations: List[MathyObservation], rnn_size: int = 128,
+):
     """Build a historical LSTM state: https://arxiv.org/pdf/1810.04437.pdf
 
-    Take the mean of the previous LSTM states for this episode."""
+    Take the mean of the previous LSTM states for this episode. """
+
+    import tensorflow as tf
+
     if len(observations) > 0:
         in_h = []
         in_c = []
@@ -19,11 +27,11 @@ def rnn_weighted_history(observations: List[MathyObservation], rnn_size: int = 1
             in_h.append(obs.rnn_state_h)
             in_c.append(obs.rnn_state_c)
         # Take the mean of the historical states:
-        memory_context_h = np.array(in_h).mean(axis=0)
-        memory_context_c = np.array(in_c).mean(axis=0)
+        memory_context_h = tf.reduce_mean(in_h, axis=0)
+        memory_context_c = tf.reduce_mean(in_c, axis=0)
     else:
-        memory_context_h = np.zeros([rnn_size])
-        memory_context_c = np.zeros([rnn_size])
+        memory_context_h = rnn_placeholder_state(rnn_size)
+        memory_context_c = memory_context_h
     return [memory_context_h, memory_context_c]
 
 

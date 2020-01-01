@@ -160,9 +160,14 @@ def _load_model(
 
 
 def get_or_create_policy_model(
-    args: BaseConfig, env_actions: int, is_main=False, required=False,
+    args: BaseConfig,
+    env_actions: int,
+    is_main=False,
+    required=False,
+    env: MathyEnv = None,
 ) -> PolicyValueModel:
-    env: MathyEnv = PolySimplify()
+    if env is None:
+        env = PolySimplify()
     observation: MathyObservation = env.state_to_observation(
         env.get_initial_state()[0], rnn_size=args.lstm_units
     )
