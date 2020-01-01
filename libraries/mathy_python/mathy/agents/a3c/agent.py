@@ -54,6 +54,7 @@ class A3CAgent:
     def train(self):
         res_queue = Queue()
         exp_out_queue = Queue()
+        A3CWorker.global_episode = 0
         worker_exploration_epsilons = np.geomspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
         )
@@ -83,7 +84,10 @@ class A3CAgent:
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
             A3CWorker.request_quit = True
-            self.global_model.save()
 
+        # Do an optimistic save incase there's a problem joining the workers
+        self.global_model.save()
         [w.join() for w in workers]
+        # Do a final save after joining to get the very latest model
+        self.global_model.save()
         print("Done. Bye!")

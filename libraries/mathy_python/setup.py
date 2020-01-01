@@ -13,14 +13,14 @@ def setup_package():
         about = {}
         exec(f.read(), about)
 
-    with open("README.md", "r") as fh:
+    with open(root / "README.md", "r") as fh:
         long_description = fh.read()
 
-    with open("requirements.txt") as file:
+    with open(root / "requirements.txt") as file:
         REQUIRED_MODULES = [line.strip() for line in file]
 
-    with open("requirements-dev.txt") as file:
-        DEVELOPMENT_MODULES = [line.strip() for line in file]
+    with open(root / "requirements-dev.txt") as file:
+        DEVELOPMENT_MODULES = [line.strip() for line in file if "-e" not in line]
 
     setup(
         name=package_name,

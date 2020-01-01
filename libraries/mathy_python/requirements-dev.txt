@@ -4,3 +4,5 @@ pytest-cov
 black
 flake8
 snakeviz
+tensorboard>=2.0.0
+-e ../mathy_alpha_sm/ # depend on the dev model for tests

@@ -3,7 +3,7 @@ import pickle
 import time
 from shutil import copyfile
 from typing import Any, Dict, Optional, Tuple, List
-
+from pathlib import Path
 import numpy as np
 import srsly
 import tensorflow as tf
@@ -229,3 +229,39 @@ def get_or_create_policy_model(
         srsly.write_json(cfg, args.dict(exclude_defaults=False))
 
     return model
+
+
+def load_policy_value_model(
+    model_data_folder: str,
+) -> Tuple[PolicyValueModel, BaseConfig]:
+    meta_file = Path(model_data_folder) / "model.config.json"
+    if not meta_file.exists():
+        raise ValueError(f"model meta not found: {meta_file}")
+    args = BaseConfig(**srsly.read_json(str(meta_file)))
+    model_file = Path(model_data_folder) / "model.h5"
+    optimizer_file = Path(model_data_folder) / "model.optimizer"
+    if not model_file.exists():
+        raise ValueError(f"model not found: {model_file}")
+    if not optimizer_file.exists():
+        raise ValueError(f"optimizer not found: {optimizer_file}")
+
+    env: MathyEnv = PolySimplify()
+    observation: MathyObservation = env.state_to_observation(
+        env.get_initial_state()[0], rnn_size=args.lstm_units
+    )
+    initial_state: MathyWindowObservation = observations_to_window([observation])
+    model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
+    init_inputs = initial_state.to_inputs()
+    model.compile(
+        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
+    )
+    model.build(initial_state.to_input_shapes())
+    model.predict(init_inputs)
+    model.predict_next(init_inputs)
+    if args.verbose:
+        with msg.loading(f"Loading model: {model_file}..."):
+            _load_model(model, str(model_file), str(optimizer_file))
+        msg.good(f"Loaded model: {model_file}")
+    else:
+        _load_model(model, str(model_file), str(optimizer_file))
+    return model, args

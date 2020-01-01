@@ -40,6 +40,8 @@ nav:
     - tokenizer: api/core/tokenizer.md
     - tree: api/core/tree.md
   - env: api/env.md
+  - mathy: api/mathy.md
+  - models: api/models.md
   - problems: api/problems.md
   - state: api/state.md
   - teacher: api/teacher.md
