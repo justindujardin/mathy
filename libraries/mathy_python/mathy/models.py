@@ -103,10 +103,10 @@ def load_model_from_init_py(init_file: Union[Path, str], **overrides):
     (Language): `Language` class with loaded model.
     """
     model_path = Path(init_file).parent
-    meta = get_model_meta(model_path)
-    data_path = model_path
     if not model_path.exists():
         raise ValueError(f"model path does not exist: {model_path}")
+    meta = get_model_meta(model_path)
+    data_path = model_path
     return load_model_from_path(data_path, meta, **overrides)
 
 
@@ -122,6 +122,7 @@ def get_model_meta(model_path: Path):
     # Returns
     (dict): The model's meta data.
     """
+    model_path = Path(model_path)
     if not model_path.exists():
         raise ValueError(f"cannot get meta from invalid model path: {model_path}")
     meta_path = model_path / "model.config.json"
@@ -153,22 +154,6 @@ def is_package(name: str) -> bool:
     return False
 
 
-def get_package_path(name: str) -> Path:
-    """Get the path to an installed package.
-
-    # Arguments
-    name (unicode): Package name.
-
-    # Returns
-    (Path): Path to installed package.
-    """
-    name = name.lower()  # use lowercase version to be safe
-    # Here we're importing the module just to find it. This is worryingly
-    # indirect, but it's otherwise very difficult to find the package.
-    pkg = importlib.import_module(name)
-    return Path(pkg.__file__).parent
-
-
 def package(
     model_name: str,
     input_dir: Union[str, Path],
@@ -190,11 +175,8 @@ def package(
         meta_path = Path(meta_path)
     if not input_path or not input_path.exists():
         msg.fail("Can't locate model data", input_path, exits=1)
-    if not output_path or not output_path.exists():
-        msg.fail("Output directory not found", output_path, exits=1)
     if meta_path and not meta_path.exists():
         msg.fail("Can't find model model.config.json", meta_path, exits=1)
-
     meta_path = meta_path or input_path / "model.config.json"
     if meta_path.is_file():
         meta = srsly.read_json(meta_path)

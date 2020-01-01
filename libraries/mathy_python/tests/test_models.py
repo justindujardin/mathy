@@ -12,8 +12,33 @@ from ..mathy.agents.policy_value_model import (
 from ..mathy.cli import setup_tf_env
 from ..mathy.envs import PolySimplify
 from ..mathy.mathy import Mathy
-from ..mathy.models import load_model, package
+from ..mathy.models import load_model, package, load_model_from_init_py, get_model_meta
 from pathlib import Path
+
+
+def test_models_package_errors():
+    with pytest.raises(SystemExit):
+        package("model", "/fake/path", "/fake/pout")
+    input_folder = Path(__file__).parent / "test_model_sm"
+    output_folder = tempfile.mkdtemp()
+    with pytest.raises(SystemExit):
+        package("model", input_folder, output_folder, meta_path="fake")
+    shutil.rmtree(output_folder)
+
+
+def test_models_load_model_errors():
+    with pytest.raises(ValueError):
+        mt: Mathy = load_model(None)
+
+
+def test_models_load_model_from_init_py_errors():
+    with pytest.raises(ValueError):
+        load_model_from_init_py("./fake/__init__.py")
+
+
+def test_models_get_model_meta():
+    with pytest.raises(ValueError):
+        get_model_meta("./fake/")
 
 
 def test_models_from_package():
