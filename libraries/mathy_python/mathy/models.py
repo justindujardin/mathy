@@ -286,7 +286,7 @@ def setup_package():
     meta_path = path.join(root, "model.config.json")
     meta = load_meta(meta_path)
     model_name = meta["name"]
-    model_dir = path.join(model_name, model_name + "-" + str(meta["version"]))
+    model_dir = path.join(model_name, model_name))
     copy(meta_path, path.join(model_name))
     copy(meta_path, model_dir)
     setup(
