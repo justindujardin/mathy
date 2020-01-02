@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/justindujardin/mathy/compare/v0.2.2...v0.2.3) (2020-01-02)
+
+
+### Bug Fixes
+
+* **ci:** use tag filter workaround ([bc3cac6](https://github.com/justindujardin/mathy/commit/bc3cac64da15dc21a8797b5d2cdc0920c6f4fe5e))
+
 ## [0.2.2](https://github.com/justindujardin/mathy/compare/v0.2.1...v0.2.2) (2020-01-02)
 
 
