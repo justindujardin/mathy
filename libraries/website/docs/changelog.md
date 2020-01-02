@@ -1,3 +1,15 @@
+# [0.3.0](https://github.com/justindujardin/mathy/compare/v0.2.3...v0.3.0) (2020-01-02)
+
+
+### Bug Fixes
+
+* **mathy:** add long desc content type to setup.py ([ca8fa39](https://github.com/justindujardin/mathy/commit/ca8fa39703dd5fd046cb5059bb106da8e9595e0b))
+
+
+### Features
+
+* **mathy_alpha_sm:** add deploy for small model ([11e63d5](https://github.com/justindujardin/mathy/commit/11e63d521e7f2fe7d0bf8ceab5e31341a3c79f1c))
+
 ## [0.2.3](https://github.com/justindujardin/mathy/compare/v0.2.2...v0.2.3) (2020-01-02)
 
 
