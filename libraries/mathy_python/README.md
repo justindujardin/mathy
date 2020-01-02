@@ -1,10 +1,3 @@
-Mathtastic
----
+## Placeholder
 
-
-# Development
-
- - run scripts in `ci` folder from the root
- - `./tools/setup.sh
-
-. . .
+This file is replaced during the CI build with the readme from the root of the repository.
