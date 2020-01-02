@@ -31,6 +31,20 @@ function getBuildVersion() {
 getBuildVersion()
   .then((version: any) => {
     console.log("--- UPDATING build version in python modules to : " + version)
+
+    const modelFiles = [
+      "../libraries/mathy_alpha_sm/mathy_alpha_sm/model.config.json",
+      "../libraries/mathy_alpha_sm/model.config.json"
+    ]
+
+    modelFiles.forEach((modelName: string) => {
+      const modelPath = path.join(__dirname, modelName)
+      const json = require(modelPath)
+      json.version = version
+      const fs = require("fs")
+      fs.writeFileSync(modelPath, JSON.stringify(json, null, 2), "utf8")
+    })
+
     const filePath = path.join(
       __dirname,
       "../libraries/mathy_python/mathy/about.py"
