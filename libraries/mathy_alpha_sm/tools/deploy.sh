@@ -8,9 +8,8 @@ echo "Build and publish to pypi..."
 rm -rf build dist
 echo "--- Install requirements"
 pip install twine wheel
-pip install -r requirements.txt
 echo "--- Buid dists"
 python setup.py sdist bdist_wheel
 echo "--- Upload to PyPi"
-twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
+twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*.whl
 rm -rf build dist
