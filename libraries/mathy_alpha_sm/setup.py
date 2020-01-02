@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf8
-from __future__ import unicode_literals
+from typing import List
 import io
 import json
 from os import path, walk
@@ -13,15 +13,17 @@ def load_meta(fp):
         return json.load(f)
 
 
-def list_files(data_dir):
+def list_files(data_dir: str, root: str) -> List[str]:
     output = []
-    for root, _, filenames in walk(data_dir):
+    package_dir = path.join(root, data_dir)
+    for folder, _, filenames in walk(package_dir):
+        if "__pycache__" in folder:
+            continue
         for filename in filenames:
             if not filename.startswith("."):
-                output.append(path.join(root, filename))
-    output = [path.relpath(p, path.dirname(data_dir)) for p in output]
-    output.append("model.config.json")
-    return output
+                output.append(path.join(folder, filename))
+    rel_output = [path.relpath(p, package_dir) for p in output]
+    return rel_output
 
 
 def list_requirements(meta):
@@ -39,9 +41,7 @@ def setup_package():
     meta_path = path.join(root, "model.config.json")
     meta = load_meta(meta_path)
     model_name = meta["name"]
-    model_dir = path.join(model_name, model_name)
-    copy(meta_path, path.join(model_name))
-    copy(meta_path, model_dir)
+    model_dir = path.join(model_name)
     setup(
         name=model_name,
         description=meta["description"],
@@ -51,7 +51,7 @@ def setup_package():
         version=meta["version"],
         license=meta["license"],
         packages=[model_name],
-        package_data={model_name: list_files(model_dir)},
+        package_data={model_name: list_files(model_dir, root)},
         install_requires=list_requirements(meta),
         zip_safe=False,
     )
