@@ -22,7 +22,7 @@
     <div id="termynal" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
         <span data-ty="input">pip install mathy mathy_alpha_sm</span>
         <span data-ty="progress"></span>
-        <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy</span>
+        <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy, mathy_alpha_sm</span>
         <span data-ty-lineDelay="0" class="u-hide-sm" data-ty=""></span>
         <span data-ty="input">mathy simplify "2x + 1y^3 + 7b + 4x"</span>
         <span data-ty="" data-ty-text="initial                   | 2x + 1y^3 + 7b + 4x"></span>
@@ -44,8 +44,6 @@
 **Source Code**: <a href="https://github.com/justindujardin/mathy" target="_blank">https://github.com/justindujardin/mathy</a>
 
 ---
-
-Mathy wants to be your free and open source math tutor. It uses machine learning to manipulate math problems step-by-step.
 
 ## Features
 
@@ -70,6 +68,8 @@ $ pip install mathy mathy_alpha_sm
 ## Try It
 
 Let's start by simplifying a polynomial problem using the CLI:
+
+### Simplify a Polynomial
 
 ```bash
 $ mathy simplify "2x + 4 + 3x * 6"
@@ -100,21 +100,15 @@ The output will vary based on the model, but it might look like this:
 
 Above we simplified a polynomial problem using the CLI, but what if the output steps had failed to find a solution?
 
-Perhaps we put a [subtraction](/api/core/expressions/#subtractexpression) between two like terms.
+Perhaps we put a [subtraction](/api/core/expressions/#subtractexpression) between two like terms, like `4x - 2x`
 
 Recall that we can't move subtraction terms around with the [commutative property](/rules/commutative_property), so how can Mathy solve this problem?
 
 We can write custom code for Mathy in order to add features or correct issues.
 
-!!! tip "The power of Open Source"
-
-    By contributing improvements to Mathy, we help ourselves better understand Math and Programming.
-
-    We also create examples for others around the world that are trying to get help with Math or learn Programming!
-
 In order to combine these terms, we need to convert the subtraction into an addition.
 
-Remember that a subtraction (e.g. `4x - 2x`) can be restated as a "plus negative" (`4x + -2x`) in order to make it [commutable](/rules/commutative_property).
+Remember that a subtraction like `4x - 2x` can be restated as a "plus negative" like `4x + -2x` to make it [commutable](/rules/commutative_property).
 
 ### Create a Rule
 
@@ -123,7 +117,7 @@ Mathy uses the available set of **[rules](/rules/overview)** (sometimes referred
 To create a custom rule, we extend the [BaseRule](/api/core/rule/#baserule) class and define two main functions:
 
 - `can_apply_to` determines if a rule can be applied to an expression node.
-- `apply_to` applies the rule to a node and returns an [expression change](/api/core/rule/#expressionchange) object.
+- `apply_to` applies the rule to a node and returns an [expression change](/api/core/rule/#expressionchangerule) object.
 
 Let's define a rule that looks for a [subtraction](/api/core/expressions/#subtractionexpression) and converts it to a "plus negation" node:
 
@@ -142,6 +136,14 @@ All together it looks like:
 ```python
 {!./snippets/use_a_custom_rule.py!}
 ```
+
+### Go further
+
+Building new actions and problem sets are great ways to contribute to Mathy.
+
+By contributing improvements to Mathy, we help ourselves better understand Math and Programming.
+
+We also create examples for others around the world that are trying to get help with Math or learn Programming!
 
 ## Contributors
 
@@ -163,7 +165,3 @@ Mathy wouldn't be possible without the wonderful contributions of the following 
 </div>
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
-
-```
-
-```
