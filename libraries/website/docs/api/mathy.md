@@ -7,6 +7,7 @@ Mathy(
     model_path: str = None,
     model: mathy.agents.policy_value_model.PolicyValueModel = None,
     config: mathy.agents.base_config.BaseConfig = None,
+    silent: bool = False,
 )
 ```
 The standard interface for working with Mathy models and agents.

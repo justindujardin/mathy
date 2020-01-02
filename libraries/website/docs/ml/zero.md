@@ -1,6 +1,6 @@
 ## Zero
 
-The MCTS and Neural Network powered (Zero) agent is inspired by the work of Google's DeepMind and their AlphZero board-game playing AI. It uses a Monte Carlo Tree Search algorithm to produce quality actions that are unbiased by things like Actor/Critic errors.
+The MCTS and Neural Network powered (Zero) agent is inspired by the work of Google's DeepMind and their [AlphZero](/about/#alphazero) board-game playing AI. It uses a [Monte Carlo Tree Search](https://en.wikipedia.org/wiki/Monte_Carlo_tree_search){target=\_blank} algorithm to produce quality actions that are unbiased by things like Actor/Critic errors.
 
 ## Multiple Process Training
 
