@@ -31,6 +31,7 @@ def setup_package():
         version=about["__version__"],
         license=about["__license__"],
         long_description=long_description,
+        long_description_content_type="text/markdown",
         keywords="math",
         install_requires=REQUIRED_MODULES,
         packages=find_packages(),
