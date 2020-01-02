@@ -1,3 +1,11 @@
+## [0.3.1](https://github.com/justindujardin/mathy/compare/v0.3.0...v0.3.1) (2020-01-02)
+
+
+### Bug Fixes
+
+* **ci:** replace mathy/mathy_alpha_sm readmes during build ([c9d53ee](https://github.com/justindujardin/mathy/commit/c9d53ee0b9b9561f44da1b30f77e7406c7792b71))
+* **ci:** setup/build mathy_alpha_sm model before deploy ([a990a24](https://github.com/justindujardin/mathy/commit/a990a245ccbd1330e4d0fea7b80190b8e3f2a816))
+
 # [0.3.0](https://github.com/justindujardin/mathy/compare/v0.2.3...v0.3.0) (2020-01-02)
 
 
