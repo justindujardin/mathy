@@ -97,6 +97,38 @@ The output will vary based on the model, but it might look like this:
     </div>
 </div>
 
+### Generate Input Problems
+
+Mathy can generate lists of random problems. Rather than force users to generate solutions, Mathy uses
+environment-specific functions for determining when a problem is solved.
+
+In this way users do not need to know the answer to a problem that is generated.
+
+```bash
+$ mathy problems poly
+```
+
+### Train an A3C agent
+
+Mathy has an [A3C agent](/ml/a3c) built-in that you can train from the CLI:
+
+A3C uses multiple worker threads to train a shared model in a CPU-friendly setting.
+
+```bash
+$ mathy train a3c poly ./training/my_model
+```
+
+### Train an MCTS agent
+
+Mathy has a [MCTS agent](/ml/zero) built-in that you can train from the CLI:
+
+MCTS is a powerful tree search that is combined with a neural network to produce
+high quality actions.
+
+```bash
+$ mathy train zero poly ./training/my_model
+```
+
 ## Code It
 
 Above we simplified a polynomial problem using the CLI, but what if the output steps had failed to find a solution?
@@ -144,7 +176,7 @@ All together it looks like:
 
 Congratulations, you've extended Mathy and begun training a new model with your custom action!
 
-### Go further
+## Become a Contributor
 
 Building new actions and problem sets are great ways to contribute to Mathy.
 
