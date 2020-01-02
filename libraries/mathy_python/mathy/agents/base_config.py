@@ -37,7 +37,7 @@ class BaseConfig(BaseModel):
     num_workers: int = 3
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.3
+    td_lambda: float = 0.2
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
@@ -52,7 +52,7 @@ class BaseConfig(BaseModel):
     # Whether to use the grouping change aux task
     use_grouping_control = False
     # Clip signal at 0.0 so it does not optimize into the negatives
-    clip_grouping_control = False
+    clip_grouping_control = True
 
     # Include the time/type environment features in the embeddings
     use_env_features = False

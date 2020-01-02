@@ -32,7 +32,6 @@ class A3CConfig(BaseConfig):
     # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 200
 
-
     # Whether to use the grouping change aux task
     use_grouping_control = True
     # Clip signal at 0.0 so it does not optimize into the negatives
@@ -45,19 +44,19 @@ class A3CConfig(BaseConfig):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.01
+    worker_wait: float = 0.1
 
     # The number of worker agents to create.
     num_workers: int = 3
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 1.0
+    entropy_loss_scaling = 0.05
     # Whether to scale entropy loss so it's 0-1
     normalize_entropy_loss = True
 
     # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 1.0
+    aux_tasks_weight_scale = 0.1
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
     td_lambda: float = 0.2

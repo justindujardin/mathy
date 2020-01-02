@@ -17,9 +17,10 @@ class Mathy:
         model_path: str = None,
         model: PolicyValueModel = None,
         config: BaseConfig = None,
+        silent: bool = False,
     ):
         if model_path is not None:
-            self.model, self.config = load_policy_value_model(model_path)
+            self.model, self.config = load_policy_value_model(model_path, silent=silent)
         elif model is not None and config is not None:
             if not isinstance(model, PolicyValueModel):
                 raise ValueError("model must derive PolicyValueModel for compatibility")

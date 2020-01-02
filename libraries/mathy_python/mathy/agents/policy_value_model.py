@@ -237,7 +237,7 @@ def get_or_create_policy_model(
 
 
 def load_policy_value_model(
-    model_data_folder: str,
+    model_data_folder: str, silent: bool = False
 ) -> Tuple[PolicyValueModel, BaseConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
@@ -263,7 +263,7 @@ def load_policy_value_model(
     model.build(initial_state.to_input_shapes())
     model.predict(init_inputs)
     model.predict_next(init_inputs)
-    if args.verbose:
+    if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
             _load_model(model, str(model_file), str(optimizer_file))
         msg.good(f"Loaded model: {model_file}")
