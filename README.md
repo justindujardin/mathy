@@ -11,9 +11,6 @@
 <a href="https://codecov.io/gh/justindujardin/mathy">
     <img src="https://codecov.io/gh/justindujardin/mathy/branch/master/graph/badge.svg?token=CqPEOdEMJX" />
 </a>
-<a href="https://greenkeeper.io/" target="_blank">
-    <img src="https://badges.greenkeeper.io/justindujardin/mathy.svg?token=2044b55958862978215ac670d51d87517f45bd312855e113460807d9532469a4&ts=1577489087722">
-</a>
 <a href="https://pypi.org/project/mathy" target="_blank">
     <img src="https://badge.fury.io/py/mathy.svg" alt="Package version">
 </a>
