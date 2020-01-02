@@ -42,9 +42,14 @@ def setup_package():
     meta = load_meta(meta_path)
     model_name = meta["name"]
     model_dir = path.join(model_name)
+    # Copy in mathy readme
+    with open(path.join(root, "../../README.md"), "r") as fh:
+        long_description = fh.read()
     setup(
         name=model_name,
         description=meta["description"],
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         author=meta["author"],
         author_email=meta["email"],
         url=meta["url"],
