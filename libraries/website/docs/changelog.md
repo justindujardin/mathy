@@ -1,3 +1,10 @@
+# [0.2.0-0](https://github.com/justindujardin/mathy/compare/v0.1.0...v0.2.0-0) (2020-01-02)
+
+
+### Features
+
+* **ci:** add github action for publishing to pypi ([02dc8bf](https://github.com/justindujardin/mathy/commit/02dc8bf9590211f15abd5af226299f27b1438b24))
+
 # 0.1.0 (2020-01-01)
 
 
