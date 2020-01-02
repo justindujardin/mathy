@@ -21,6 +21,8 @@ class PolySimplify(MathyEnv):
 
     def __init__(self, ops: List[str] = None, **kwargs):
         super().__init__(**kwargs)
+        if ops is None:
+            ops = ["+"]
         self.ops = ops
 
     def get_env_namespace(self) -> str:
