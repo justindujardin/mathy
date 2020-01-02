@@ -1,3 +1,10 @@
+## [0.3.3](https://github.com/justindujardin/mathy/compare/v0.3.2...v0.3.3) (2020-01-02)
+
+
+### Bug Fixes
+
+* **readme:** use absolute image path for logo ([0fb137f](https://github.com/justindujardin/mathy/commit/0fb137fd55dcd66bef5991388fdee5aa70cda087))
+
 ## [0.3.2](https://github.com/justindujardin/mathy/compare/v0.3.1...v0.3.2) (2020-01-02)
 
 
