@@ -1,3 +1,11 @@
+## [0.3.4](https://github.com/justindujardin/mathy/compare/v0.3.3...v0.3.4) (2020-01-02)
+
+
+### Bug Fixes
+
+* **deploy:** sync mathy/mathy_alpha_sm versions ([cbee0fb](https://github.com/justindujardin/mathy/commit/cbee0fb0fd0601409c8e630fa347602eb9cafd7d))
+* **mathy_alpha_sm:** include model data and readme ([13db587](https://github.com/justindujardin/mathy/commit/13db587a9ffa8b8959eb4b36081eefa5b84665cf))
+
 ## [0.3.3](https://github.com/justindujardin/mathy/compare/v0.3.2...v0.3.3) (2020-01-02)
 
 
