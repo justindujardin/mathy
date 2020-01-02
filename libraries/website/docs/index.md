@@ -100,7 +100,7 @@ The output will vary based on the model, but it might look like this:
 
 Above we simplified a polynomial problem using the CLI, but what if the output steps had failed to find a solution?
 
-Perhaps we put a [subtraction](/api/core/expressions/#subtractexpression) between two like terms, like `4x - 2x`
+Perhaps we put a [subtraction](/api/core/expressions/#subtractexpression) between two like terms, like `4x + 3y - 2x`
 
 Recall that we can't move subtraction terms around with the [commutative property](/rules/commutative_property), so how can Mathy solve this problem?
 
@@ -108,18 +108,22 @@ We can write custom code for Mathy in order to add features or correct issues.
 
 In order to combine these terms, we need to convert the subtraction into an addition.
 
-Remember that a subtraction like `4x - 2x` can be restated as a "plus negative" like `4x + -2x` to make it [commutable](/rules/commutative_property).
+Remember that a subtraction like `4x + 3y - 2x` can be restated as a "plus negative" like `4x + 3y + -2x` to make it [commutable](/rules/commutative_property).
+
+Once we've restated the expression, we can now use the commutative property to swap the positions of `3y` and `-2x` so we end up with `4x + -2x + 3y`
+
+Now the expression is in a state that Mathy's existing rules can handle the rest.
 
 ### Create a Rule
 
-Mathy uses the available set of **[rules](/rules/overview)** (sometimes referred to as **actions**) when transforming a problem.
+To continue our `4x + 3y - 2x` example, we'll write some code to convert the subtraction into an addition: `4x + -2x + 3y`
 
-To create a custom rule, we extend the [BaseRule](/api/core/rule/#baserule) class and define two main functions:
+Mathy uses the available set of **[rules](/rules/overview)** (also referred to as **actions**) when transforming a problem.
+
+To create a custom rule we extend the [BaseRule](/api/core/rule/#baserule) class and define two main functions:
 
 - `can_apply_to` determines if a rule can be applied to an expression node.
 - `apply_to` applies the rule to a node and returns an [expression change](/api/core/rule/#expressionchangerule) object.
-
-Let's define a rule that looks for a [subtraction](/api/core/expressions/#subtractionexpression) and converts it to a "plus negation" node:
 
 ```Python
 {!./snippets/create_a_rule.py!}
@@ -127,15 +131,17 @@ Let's define a rule that looks for a [subtraction](/api/core/expressions/#subtra
 
 ### Use it during training
 
-Now that we've created a custom rule, we need Mathy to use it while training.
+Now that we've created a custom rule for converting subtract nodes into "plus negative" ones, we need Mathy to use it while training.
 
-We do this with custom environment arguments when using the [A3C Agent](/ml/a3c).
+We do this with custom environment arguments when using the [A3C Agent](/ml/a3c) and the [Poly Simplify](/envs/poly_simplify) environment.
 
 All together it looks like:
 
 ```python
 {!./snippets/use_a_custom_rule.py!}
 ```
+
+Congratulations, you've extended Mathy and begun training a new model with your custom action!
 
 ### Go further
 
