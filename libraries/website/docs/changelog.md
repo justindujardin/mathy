@@ -1,3 +1,16 @@
+# [0.5.0](https://github.com/justindujardin/mathy/compare/v0.4.0...v0.5.0) (2020-01-02)
+
+
+### Bug Fixes
+
+* **docs:** don't generate api docs for .DS_Store ([cb24977](https://github.com/justindujardin/mathy/commit/cb2497761d1db97a626bf1ea6b9ddfbfbcdaefb0))
+* **mathy_alpha_sm:** set more liberal mathy range ([3a4e59c](https://github.com/justindujardin/mathy/commit/3a4e59c0006b80d80608db2684ab667b2629da35))
+
+
+### Features
+
+* **expressions:** better type hints ([ff8bd65](https://github.com/justindujardin/mathy/commit/ff8bd65b690e762443c014e235fd6f742e8122f0))
+
 # [0.4.0](https://github.com/justindujardin/mathy/compare/v0.3.5...v0.4.0) (2020-01-02)
 
 
