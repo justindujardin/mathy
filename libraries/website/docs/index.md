@@ -53,6 +53,7 @@
 - **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
 - **[Compute Friendly](/ml/a3c)**: Maybe we don't have to burn down the world with GPU compute all the time? Text-based environments can be small enough to train on a CPU while still having real-world value.
 - **[Free and Open Source](/license)**: Mathy is and will always be free, because educational tools are too important to our world to be gated by money.
+- **[Python with Type Hints](https://fastapi.tiangolo.com/python-types/){target=\_blank}**: typing hints are used everywhere in Mathy to help provide rich autocompletion and linting in modern IDEs.
 
 ## Requirements
 
