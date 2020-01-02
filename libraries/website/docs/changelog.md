@@ -1,3 +1,16 @@
+# [0.4.0](https://github.com/justindujardin/mathy/compare/v0.3.5...v0.4.0) (2020-01-02)
+
+
+### Bug Fixes
+
+* **mathy_alpha_sm:** revert defaults to last known good model ([fc27522](https://github.com/justindujardin/mathy/commit/fc275229425f984642dbe12d4a7f637c8267a526))
+* **poly_simplify:** set default ops to + ([0ad2f5c](https://github.com/justindujardin/mathy/commit/0ad2f5c12b40d51620926047795f90cbf27a5935))
+
+
+### Features
+
+* **mathy_alpha_sm:** updated multi-task model ([a8f47a4](https://github.com/justindujardin/mathy/commit/a8f47a4654d677f72d4b83f199cd5045b9254933))
+
 ## [0.3.5](https://github.com/justindujardin/mathy/compare/v0.3.4...v0.3.5) (2020-01-02)
 
 
