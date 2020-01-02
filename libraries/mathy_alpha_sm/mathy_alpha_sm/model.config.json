@@ -6,7 +6,7 @@
   "author": "Justin DuJardin",
   "email": "justin@dujardinconsulting.com",
   "url": "https://mathy.ai",
-  "mathy_version": "0.3.5",
+  "mathy_version": ">=0.0.0,<1.0.0",
   "units": 512,
   "embedding_units": 512,
   "lstm_units": 128,
