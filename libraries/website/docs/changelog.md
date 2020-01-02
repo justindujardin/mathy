@@ -1,3 +1,10 @@
+## [0.3.5](https://github.com/justindujardin/mathy/compare/v0.3.4...v0.3.5) (2020-01-02)
+
+
+### Bug Fixes
+
+* **mathy_alpha_sm:** add long_description to setup ([cd68ff0](https://github.com/justindujardin/mathy/commit/cd68ff0abda877e479d0674bc994197e3557321c))
+
 ## [0.3.4](https://github.com/justindujardin/mathy/compare/v0.3.3...v0.3.4) (2020-01-02)
 
 
