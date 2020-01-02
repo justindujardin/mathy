@@ -1,13 +1,9 @@
-name: Build
+name: Publish
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - *
-
+    tags:
+      - v*
 
 jobs:
   build:
@@ -25,10 +21,10 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: sh tools/codecov.sh
-      - name: Conditional Tag/Release
+      - name: Deploy 
         env:
           GH_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: sh tools/deploy.sh
+        run: sh tools/deploy_packages.sh

@@ -1,7 +1,7 @@
-const fs = require('fs')
-const path = require('path')
-const semanticRelease = require('semantic-release')
-const { WritableStreamBuffer } = require('stream-buffers')
+const fs = require("fs")
+const path = require("path")
+const semanticRelease = require("semantic-release")
+const { WritableStreamBuffer } = require("stream-buffers")
 
 const stdoutBuffer = new WritableStreamBuffer()
 const stderrBuffer = new WritableStreamBuffer()
@@ -11,11 +11,11 @@ function getBuildVersion() {
     {
       // Core options
       dryRun: true,
-      branch: 'master',
-      repositoryUrl: 'https://github.com/justindujardin/mathy.git'
+      branch: "master",
+      repositoryUrl: "https://github.com/justindujardin/mathy.git"
     },
     {
-      cwd: './',
+      cwd: "./",
       stdout: stdoutBuffer,
       stderr: stderrBuffer
     }
@@ -30,23 +30,30 @@ function getBuildVersion() {
 
 getBuildVersion()
   .then((version: any) => {
-    console.log('--- UPDATING build version in python modules to : ' + version)
-    const filePath = path.join(__dirname, '../libraries/mt_python/setup.py')
+    console.log("--- UPDATING build version in python modules to : " + version)
+    const filePath = path.join(
+      __dirname,
+      "../libraries/mathy_python/mathy/about.py"
+    )
     if (!fs.existsSync(filePath)) {
-      console.error('setup.py for mt_python is missing!')
+      console.error("about.py for mathy_python is missing!")
       process.exit(1)
     }
-    const contents = fs.readFileSync(filePath, 'utf8')
-    const regexp = new RegExp(/(VERSION\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/)
+    const contents = fs.readFileSync(filePath, "utf8")
+    const regexp = new RegExp(
+      /(\_\_version\_\_\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/
+    )
     const match = contents.match(regexp)
     if (!match || match.length !== 3) {
-      console.error('VERSION="1.x.x" string in setup.py was not found.')
+      console.error('__version__="x.x.x" string in about.py was not found.')
     }
     const replaceVersion = `${match[1]}${version}${match[2]}`
     const newContents = contents.replace(regexp, replaceVersion)
-    fs.writeFileSync(filePath, newContents, 'utf8')
+    fs.writeFileSync(filePath, newContents, "utf8")
   })
   .catch((e: any) => {
     console.log(e)
-    console.log('--- SKIPPING update of build versions because no release is required')
+    console.log(
+      "--- SKIPPING update of build versions because no release is required"
+    )
   })

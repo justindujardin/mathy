@@ -46,7 +46,7 @@
           "releaseRules": [
             {
               "breaking": true,
-              "release": "premajor"
+              "release": "preminor"
             },
             {
               "revert": true,

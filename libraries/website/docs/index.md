@@ -83,7 +83,7 @@ The output will vary based on the model, but it might look like this:
 
 <div align="center" data-termynal-container>
     <div id="termynal-two" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
-        <span data-ty="input">mathy simplify "2x + 1y^3 + 7b + 4x"</span>
+        <span data-ty="input">mathy simplify "2x + 4 + 3x * 6"</span>
         <span data-ty="" data-ty-text="initial                   | 2x + 4 + 3x * 6"></span>
         <span data-ty="" data-ty-text="constant arithmetic       | 2x + 4 + 18x"></span>
         <span data-ty="" data-ty-text="commutative swap          | 4 + 2x + 18x"></span>
