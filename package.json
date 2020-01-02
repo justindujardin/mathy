@@ -85,6 +85,7 @@
         {
           "assets": [
             "libraries/website/docs/changelog.md",
+            "libraries/mathy_python/mathy/about.py",
             "package.json"
           ],
           "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"
