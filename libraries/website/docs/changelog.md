@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/justindujardin/mathy/compare/v0.3.1...v0.3.2) (2020-01-02)
+
+
+### Bug Fixes
+
+* **mathy_alpha_sm:** typo in deploy script ([5911ed2](https://github.com/justindujardin/mathy/commit/5911ed2d9019abf782073b1ffe828b40772696d9))
+
 ## [0.3.1](https://github.com/justindujardin/mathy/compare/v0.3.0...v0.3.1) (2020-01-02)
 
 
