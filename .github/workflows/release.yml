@@ -1,9 +1,9 @@
-name: Publish
+name: Release
 
 on:
-  create:
-    tags:
-      - "v*"
+  push:
+    branches:
+      - refs/tags/v*
 
 jobs:
   build:
