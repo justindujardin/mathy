@@ -1,3 +1,11 @@
+## [0.2.2](https://github.com/justindujardin/mathy/compare/v0.2.1...v0.2.2) (2020-01-02)
+
+
+### Bug Fixes
+
+* **ci:** add mathy/about.py to git changes from release ([ff411dd](https://github.com/justindujardin/mathy/commit/ff411dd01aa65521c1eb65c8de4a9ac3306b04a2))
+* **ci:** don't add skip-ci to release commits ([c666d93](https://github.com/justindujardin/mathy/commit/c666d93b847764b54e3a480217299e8625677591))
+
 ## [0.2.1](https://github.com/justindujardin/mathy/compare/v0.2.0...v0.2.1) (2020-01-02)
 
 
