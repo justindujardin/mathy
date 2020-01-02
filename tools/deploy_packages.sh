@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set +e
 
 echo "Publishing all apps..."
 libraries="mathy_python mathy_alpha_sm"

@@ -48,7 +48,7 @@
 ## Features
 
 - **[Computer Algebra System](/cas/overview)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
-- **[Reinforcement learning](/ml/reinforcement_learning)**: Train agents with machine learning in many environments with hyperparameters for controlling environment difficulties.
+- **[Reinforcement learning](/ml/overview)**: Train agents with machine learning in many environments with hyperparameters for controlling environment difficulties.
 - **[Custom Environments](/envs/overview)** Extend built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win-conditions.
 - **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
 - **[Compute Friendly](/ml/a3c)**: Maybe we don't have to burn down the world with GPU compute all the time? Text-based environments can be small enough to train on a CPU while still having real-world value.
