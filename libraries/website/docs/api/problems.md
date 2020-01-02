@@ -148,16 +148,16 @@ __Example__
 ## gen_simplify_multiple_terms
 ```python
 gen_simplify_multiple_terms(
-    num_terms,
-    optional_var = False,
-    op = +,
-    common_variables = True,
-    inner_terms_scaling = 0.3,
-    powers_probability = 0.33,
-    optional_var_probability = 0.8,
-    noise_probability = 0.8,
-    shuffle_probability = 0.66,
-    noise_terms = None,
+    num_terms: int,
+    optional_var: bool = False,
+    op: Union[List[str], str] = +,
+    common_variables: bool = True,
+    inner_terms_scaling: float = 0.3,
+    powers_probability: float = 0.33,
+    optional_var_probability: float = 0.8,
+    noise_probability: float = 0.8,
+    shuffle_probability: float = 0.66,
+    noise_terms: int = None,
 ) -> Tuple[str, int]
 ```
 Generate a polynomial problem with like terms that need to be combined and

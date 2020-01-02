@@ -2,7 +2,11 @@
 
 ## AbsExpression
 ```python
-AbsExpression(self, child=None, child_on_left=True)
+AbsExpression(
+    self,
+    child: mathy.core.expressions.MathExpression = None,
+    child_on_left: bool = True,
+)
 ```
 Evaluates the absolute value of an expression.
 ## AddExpression
@@ -17,7 +21,7 @@ BinaryExpression(self, left=None, right=None)
 An expression that operates on two sub-expressions
 ### get_priority
 ```python
-BinaryExpression.get_priority(self)
+BinaryExpression.get_priority(self) -> int
 ```
 Return a number representing the order of operations priority
 of this node.  This can be used to check if a node is `locked`
@@ -26,7 +30,7 @@ first during evaluation because of it's priority.
 
 ### to_math_ml_fragment
 ```python
-BinaryExpression.to_math_ml_fragment(self)
+BinaryExpression.to_math_ml_fragment(self) -> str
 ```
 Render this node as a MathML element fragment
 ## ConstantExpression
@@ -48,9 +52,9 @@ Evaluate equality of two expressions
 ```python
 EqualExpression.operate(
     self,
-    one: mathy.core.expressions.BinaryExpression,
-    two: mathy.core.expressions.BinaryExpression,
-)
+    one: Union[float, int],
+    two: Union[float, int],
+) -> Union[float, int]
 ```
 This is where assignment of context variables might make sense. But context
 is not present in the expression's `operate` method.
@@ -61,14 +65,24 @@ is not present in the expression's `operate` method.
 
 ## FunctionExpression
 ```python
-FunctionExpression(self, child=None, child_on_left=True)
+FunctionExpression(
+    self,
+    child: mathy.core.expressions.MathExpression = None,
+    child_on_left: bool = True,
+)
 ```
 A Specialized UnaryExpression that is used for functions.  The function name in
 text (used by the parser and tokenizer) is derived from the name() method on the
 class.
 ## MathExpression
 ```python
-MathExpression(self, id=None, left=None, right=None, parent=None)
+MathExpression(
+    self,
+    id: str = None,
+    left: 'MathExpression' = None,
+    right: 'MathExpression' = None,
+    parent: 'MathExpression' = None,
+)
 ```
 Math tree node with helpers for manipulating expressions.
 
@@ -76,7 +90,7 @@ Math tree node with helpers for manipulating expressions.
 
 ### add_class
 ```python
-MathExpression.add_class(self, classes)
+MathExpression.add_class(self, classes) -> 'MathExpression'
 ```
 Associate a class name with an expression. This class name will be
 attached to nodes when the expression is converted to a capable output
@@ -85,12 +99,12 @@ format.
 See `MathExpression.to_math_ml_fragment`
 ### all_changed
 ```python
-MathExpression.all_changed(self)
+MathExpression.all_changed(self) -> None
 ```
 Mark this node and all of its children as changed
 ### clear_classes
 ```python
-MathExpression.clear_classes(self)
+MathExpression.clear_classes(self) -> None
 ```
 Clear all the classes currently set on the nodes in this expression.
 ### clone
@@ -103,7 +117,10 @@ subtree node.
 See `MathExpression.clone_from_root` for more details.
 ### clone_from_root
 ```python
-MathExpression.clone_from_root(self, node=None) -> 'MathExpression'
+MathExpression.clone_from_root(
+    self,
+    node: 'MathExpression' = None,
+) -> 'MathExpression'
 ```
 Clone this node including the entire parent hierarchy that it has. This
 is useful when you want to clone a subtree and still maintain the overall
@@ -121,7 +138,10 @@ __Returns__
 Color to use for this node when rendering it as changed with `.terminal_text`
 ### evaluate
 ```python
-MathExpression.evaluate(self, context=None)
+MathExpression.evaluate(
+    self,
+    context: Dict[str, Union[float, int]] = None,
+) -> Union[float, int]
 ```
 Evaluate the expression, resolving all variables to constant values
 ### find_id
@@ -180,7 +200,7 @@ This key can be used to identify a node inside of a tree.
 raw text representation of the expression.
 ### set_changed
 ```python
-MathExpression.set_changed(self)
+MathExpression.set_changed(self) -> None
 ```
 Mark this node as having been changed by the application of a Rule
 ### terminal_text
@@ -189,17 +209,20 @@ highlight which nodes have been changed in this tree as a result of
 a transformation.
 ### to_list
 ```python
-MathExpression.to_list(self, visit='preorder')
+MathExpression.to_list(
+    self,
+    visit: str = preorder,
+) -> List[_ForwardRef('MathExpression')]
 ```
 Convert this node hierarchy into a list.
 ### to_math_ml
 ```python
-MathExpression.to_math_ml(self)
+MathExpression.to_math_ml(self) -> str
 ```
 Convert this expression into a MathML container.
 ### to_math_ml_fragment
 ```python
-MathExpression.to_math_ml_fragment(self)
+MathExpression.to_math_ml_fragment(self) -> str
 ```
 Convert this single node into MathML.
 ### with_color
@@ -214,12 +237,16 @@ MultiplyExpression(self, left=None, right=None)
 Multiply one and two
 ## NegateExpression
 ```python
-NegateExpression(self, child=None, child_on_left=True)
+NegateExpression(
+    self,
+    child: mathy.core.expressions.MathExpression = None,
+    child_on_left: bool = True,
+)
 ```
 Negate an expression, e.g. `4` becomes `-4`
 ### to_math_ml_fragment
 ```python
-NegateExpression.to_math_ml_fragment(self)
+NegateExpression.to_math_ml_fragment(self) -> str
 ```
 Convert this single node into MathML.
 ## PowerExpression
@@ -229,16 +256,22 @@ PowerExpression(self, left=None, right=None)
 Raise one to the power of two
 ## SgnExpression
 ```python
-SgnExpression(self, child=None, child_on_left=True)
+SgnExpression(
+    self,
+    child: mathy.core.expressions.MathExpression = None,
+    child_on_left: bool = True,
+)
 ```
 
 ### operate
 ```python
-SgnExpression.operate(self, value)
+SgnExpression.operate(self, value:Union[float, int]) -> Union[float, int]
 ```
 Determine the sign of an value.
 
-Returns: -1 if negative, 1 if positive, 0 if 0
+__Returns__
+
+`(int)`: -1 if negative, 1 if positive, 0 if 0
 ## SubtractExpression
 ```python
 SubtractExpression(self, left=None, right=None)
@@ -246,6 +279,10 @@ SubtractExpression(self, left=None, right=None)
 Subtract one from two
 ## UnaryExpression
 ```python
-UnaryExpression(self, child=None, child_on_left=True)
+UnaryExpression(
+    self,
+    child: mathy.core.expressions.MathExpression = None,
+    child_on_left: bool = True,
+)
 ```
 An expression that operates on one sub-expression
