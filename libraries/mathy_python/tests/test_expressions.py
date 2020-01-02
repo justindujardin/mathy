@@ -124,6 +124,13 @@ def test_expressions_unary_specify_child_side():
     assert expr.right == child
 
 
+def test_expressions_unary_evaluate_errors():
+    child = ConstantExpression(1337)
+    expr = UnaryExpression(None)
+    with pytest.raises(ValueError):
+        expr.evaluate()
+
+
 @pytest.mark.parametrize(
     "text", ["4/x^3+2-7x*12=0", "abs(-4) + abs(34)", "-sgn(-1) / sgn(2)", "sgn(0)"]
 )
