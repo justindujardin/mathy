@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://mathy.ai"><img mathy-logo src="libraries/website/docs/img/mathy_logo.png" alt="Mathy.ai"></a>
+  <a href="https://mathy.ai"><img mathy-logo src="https://mathy.ai/img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
     <em>A modern platform for combining machine learning with interpretable symbolic mathematics.</em>
