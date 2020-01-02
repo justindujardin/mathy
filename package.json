@@ -46,23 +46,23 @@
           "releaseRules": [
             {
               "breaking": true,
-              "release": "preminor"
+              "release": "minor"
             },
             {
               "revert": true,
-              "release": "prepatch"
+              "release": "patch"
             },
             {
               "type": "feat",
-              "release": "preminor"
+              "release": "minor"
             },
             {
               "type": "fix",
-              "release": "prepatch"
+              "release": "patch"
             },
             {
               "type": "perf",
-              "release": "prepatch"
+              "release": "patch"
             }
           ],
           "parserOpts": {

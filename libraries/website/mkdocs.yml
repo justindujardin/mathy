@@ -61,10 +61,10 @@ nav:
   - Contributing: contributing.md
   - Getting Help: help.md
   - About: about.md
+  - Releases: changelog.md
   - License: license.md
 
 extra:
-  manifest: img/favicon/site.webmanifest
   social:
     - type: github
       link: https://github.com/justindujardin
@@ -90,6 +90,7 @@ theme:
   hljs_languages:
     - python
     - typescript
+    - json
 
 markdown_extensions:
   - markdown.extensions.codehilite:
