@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/justindujardin/mathy/compare/v0.5.0...v0.5.1) (2020-01-03)
+
+
+### Bug Fixes
+
+* **models:** update default mathy version string to use range ([53292ac](https://github.com/justindujardin/mathy/commit/53292acc849c9fec7f863ba015c319dd103b902f))
+
 # [0.5.0](https://github.com/justindujardin/mathy/compare/v0.4.0...v0.5.0) (2020-01-02)
 
 
