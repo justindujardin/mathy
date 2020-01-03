@@ -219,8 +219,8 @@ class PracticeRunner:
         game = self.get_game()
         new_net = self.get_predictor(game)
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
-        trainer.train(train_examples, new_net)
-        new_net.save()
+        if trainer.train(train_examples, new_net):
+            new_net.save()
 
 
 class ParallelPracticeRunner(PracticeRunner):
