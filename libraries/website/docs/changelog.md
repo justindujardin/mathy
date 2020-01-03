@@ -5,7 +5,7 @@
 
 * **models:** update default mathy version string to use range ([53292ac](https://github.com/justindujardin/mathy/commit/53292acc849c9fec7f863ba015c319dd103b902f))
 
-# [0.5.0](https://github.com/justindujardin/mathy/compare/v0.4.0...v0.5.0) (2020-01-02)
+## [0.5.0](https://github.com/justindujardin/mathy/compare/v0.4.0...v0.5.0) (2020-01-02)
 
 
 ### Bug Fixes
@@ -18,7 +18,7 @@
 
 * **expressions:** better type hints ([ff8bd65](https://github.com/justindujardin/mathy/commit/ff8bd65b690e762443c014e235fd6f742e8122f0))
 
-# [0.4.0](https://github.com/justindujardin/mathy/compare/v0.3.5...v0.4.0) (2020-01-02)
+## [0.4.0](https://github.com/justindujardin/mathy/compare/v0.3.5...v0.4.0) (2020-01-02)
 
 
 ### Bug Fixes
@@ -68,7 +68,7 @@
 * **ci:** replace mathy/mathy_alpha_sm readmes during build ([c9d53ee](https://github.com/justindujardin/mathy/commit/c9d53ee0b9b9561f44da1b30f77e7406c7792b71))
 * **ci:** setup/build mathy_alpha_sm model before deploy ([a990a24](https://github.com/justindujardin/mathy/commit/a990a245ccbd1330e4d0fea7b80190b8e3f2a816))
 
-# [0.3.0](https://github.com/justindujardin/mathy/compare/v0.2.3...v0.3.0) (2020-01-02)
+## [0.3.0](https://github.com/justindujardin/mathy/compare/v0.2.3...v0.3.0) (2020-01-02)
 
 
 ### Bug Fixes
