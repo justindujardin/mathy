@@ -1,3 +1,10 @@
+## [0.5.2](https://github.com/justindujardin/mathy/compare/v0.5.1...v0.5.2) (2020-01-03)
+
+
+### Performance Improvements
+
+* **mathy_alpha_sm:** slightly more trained multi-task model ([0f16d61](https://github.com/justindujardin/mathy/commit/0f16d61c65e8b39842d17a592ffd5736ea6541b7))
+
 ## [0.5.1](https://github.com/justindujardin/mathy/compare/v0.5.0...v0.5.1) (2020-01-03)
 
 
