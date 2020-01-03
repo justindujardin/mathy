@@ -1,3 +1,10 @@
+## [0.5.3](https://github.com/justindujardin/mathy/compare/v0.5.2...v0.5.3) (2020-01-03)
+
+
+### Bug Fixes
+
+* **zero:** error on second set of training eps if model didn't train ([57513a6](https://github.com/justindujardin/mathy/commit/57513a6d6676f22d289226b9e9583f5241755a3d))
+
 ## [0.5.2](https://github.com/justindujardin/mathy/compare/v0.5.1...v0.5.2) (2020-01-03)
 
 
