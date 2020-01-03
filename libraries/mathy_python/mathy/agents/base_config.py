@@ -16,7 +16,7 @@ class BaseConfig(BaseModel):
     author: str = about.__author__
     email: str = about.__email__
     url: str = about.__uri__
-    mathy_version: str = about.__version__
+    mathy_version: str = f">={about.__version__},<1.0.0"
 
     units: int = 64
     embedding_units: int = 128
