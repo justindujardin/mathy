@@ -258,7 +258,7 @@ def cli_train(
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
-        setup_tf_env(use_mp=True)
+        setup_tf_env(use_mp=workers > 1)
         from .agents.zero import SelfPlayConfig, self_play_runner
 
         self_play_cfg = SelfPlayConfig(
@@ -275,6 +275,7 @@ def cli_train(
             training_iterations=training_iterations,
             self_play_problems=self_play_problems,
             print_training=show,
+            profile=profile,
         )
         if episodes is not None:
             self_play_cfg.max_eps = episodes

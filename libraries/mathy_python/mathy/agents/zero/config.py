@@ -9,3 +9,7 @@ class SelfPlayConfig(BaseConfig):
     self_play_problems: int = 64
     training_iterations: int = 100
     cpuct: float = 1.0
+
+
+    # When profile is true and workers == 1 the main thread will output worker_0.profile on exit
+    profile: bool = False

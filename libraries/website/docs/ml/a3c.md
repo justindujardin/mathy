@@ -93,29 +93,7 @@ The CLI A3C agent accepts a `--profile` option, or a config option when the API 
 {!./snippets/ml/a3c_profiling.py!}
 ```
 
-The output files can be visualized using **[Snakeviz](https://jiffyclub.github.io/snakeviz/){target=\_blank}**:
-
-You can install Snakeviz if it's not already present:
-
-```bash
-pip install snakeviz
-```
-
-You can view the output from the previous run:
-
-```bash
-snakeviz /the_folder_my_model_is_in/worker_0.profile
-```
-
-Running the above command will launch a webpage on your local system.
-
-The webpage has performance information about the training run that just finished.
-
-Clicking on the various functions will expand them further.
-
-You can use this "drilling in" to find spots of code that may be using lots of time when they should not be.
-
-<img mathy-logo src="/img/snakeviz_profile.png" alt="View agent performance profile in Skakeviz">
+Learn about how to view output profiles on the [debugging page](/ml/debugging)
 
 ## Multiprocess A3C
 

@@ -27,3 +27,18 @@ In this mode you can set breakpoints in the debugger to help diagnose errors.
 ```python
 {!./snippets/ml/zero_debugging.py!}
 ```
+
+### Performance Profiling
+
+The CLI Zero agent accepts `--profile` option along with `--num-workers=1` or the same config options when the API is used.
+
+!!! warning "Limited to num_workers=1"
+
+    It wasn't immediately clear how to profile multiple processes that start and stop over time, so to profile zero you must
+    specify a single worker process.
+
+```python
+{!./snippets/ml/a3c_profiling.py!}
+```
+
+Learn about how to view output profiles on the [debugging page](/ml/debugging)

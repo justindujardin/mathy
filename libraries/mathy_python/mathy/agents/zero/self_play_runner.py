@@ -20,6 +20,8 @@ def self_play_runner(config: SelfPlayConfig):
     BaseEpisodeRunner = (
         PracticeRunner if config.num_workers < 2 else ParallelPracticeRunner
     )
+    if config.profile and config.num_workers > 1:
+        raise NotImplementedError("zero agent does not support multiprocess profiling")
     lesson_name = "mathy-poly-easy-v0"
     if config.verbose:
         print(config.json(indent=2))

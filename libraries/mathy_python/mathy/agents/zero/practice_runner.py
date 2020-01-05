@@ -1,3 +1,4 @@
+import os
 import queue
 import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
@@ -141,25 +142,44 @@ class PracticeRunner:
         """
         examples = []
         results: List[EpisodeSummary] = []
+        if self.config.profile:
+            import cProfile
 
-        game = self.get_game()
-        predictor = self.get_predictor(game)
-        for i, args in enumerate(episode_args_list):
-            start = time.time()
-            (episode_examples, episode_reward, is_win, problem,) = self.execute_episode(
-                i, game, predictor, **args
-            )
-            duration = time.time() - start
-            examples.append(episode_examples)
-            episode_summary = EpisodeSummary(
-                solved=bool(is_win),
-                text=problem.text,
-                complexity=problem.complexity,
-                reward=episode_reward,
-                duration=duration,
-            )
-            results.append(episode_summary)
-            self.episode_complete(i, episode_summary)
+            pr = cProfile.Profile()
+            pr.enable()
+
+        try:
+            game = self.get_game()
+            predictor = self.get_predictor(game)
+            for i, args in enumerate(episode_args_list):
+                start = time.time()
+                (
+                    episode_examples,
+                    episode_reward,
+                    is_win,
+                    problem,
+                ) = self.execute_episode(i, game, predictor, **args)
+                duration = time.time() - start
+                examples.append(episode_examples)
+                episode_summary = EpisodeSummary(
+                    solved=bool(is_win),
+                    text=problem.text,
+                    complexity=problem.complexity,
+                    reward=episode_reward,
+                    duration=duration,
+                )
+                results.append(episode_summary)
+                self.episode_complete(i, episode_summary)
+        except KeyboardInterrupt:
+            print("Interrupt received. Exiting.")
+
+        if self.config.profile:
+            profile_name = f"worker_0.profile"
+            profile_path = os.path.join(self.config.model_dir, profile_name)
+            pr.disable()
+            pr.dump_stats(profile_path)
+            if self.config.verbose:
+                print(f"PROFILER: saved {profile_path}")
         return examples, results
 
     def execute_episode(
@@ -231,7 +251,7 @@ class ParallelPracticeRunner(PracticeRunner):
     def execute_episodes(
         self, episode_args_list
     ) -> Tuple[List[EpisodeHistory], List[EpisodeSummary]]:
-        def worker(work_queue, result_queue):
+        def worker(work_queue: Queue, result_queue: Queue):
             """Pull items out of the work queue and execute episodes until there are
             no items left"""
             game = self.get_game()
