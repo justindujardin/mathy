@@ -8,6 +8,7 @@ from typing import Any, List, Tuple
 
 import numpy as np
 from pydantic import BaseModel
+from wasabi import msg
 
 from ...agents.episode_memory import rnn_weighted_history
 from ...agents.mcts import MCTS
@@ -56,6 +57,7 @@ class PracticeRunner:
         model: PolicyValueModel,
         move_count,
         history: List[EpisodeHistory],
+        is_verbose_worker: bool,
     ):
         import tensorflow as tf
 
@@ -88,8 +90,12 @@ class PracticeRunner:
             mcts_state_copy, [rnn_state_h, rnn_state_c], temp=temp
         )
         action = np.random.choice(len(predicted_policy), p=predicted_policy)
-
-        next_state, transition, change = game.mathy.get_next_state(env_state, action)
+        observation, reward, done, meta = game.step(action)
+        next_state = game.state
+        assert next_state is not None
+        transition = meta["transition"]
+        if is_verbose_worker and self.config.print_training is True:
+            game.render()
         example_text = next_state.agent.problem
         r = float(transition.reward)
         is_term = is_terminal_transition(transition)
@@ -183,7 +189,12 @@ class PracticeRunner:
         return examples, results
 
     def execute_episode(
-        self, episode, game: MathyGymEnv, predictor: PolicyValueModel, model_dir: str
+        self,
+        episode,
+        game: MathyGymEnv,
+        predictor: PolicyValueModel,
+        model_dir: str,
+        is_verbose_worker: bool = False,
     ):
         """
         This function executes one episode.
@@ -203,12 +214,24 @@ class PracticeRunner:
         episode_history: List[Any] = []
         move_count = 0
         mcts = MCTS(game.mathy, predictor, self.config.cpuct, self.config.mcts_sims)
+        if is_verbose_worker and self.config.print_training is True:
+            game.render()
+
         while True:
             move_count += 1
             env_state, result = self.step(
-                game, env_state, mcts, predictor, move_count, episode_history
+                game=game,
+                env_state=env_state,
+                mcts=mcts,
+                model=predictor,
+                move_count=move_count,
+                history=episode_history,
+                is_verbose_worker=is_verbose_worker,
             )
             if result is not None:
+                if is_verbose_worker and self.config.print_training is True:
+                    game.render()
+
                 return result + (game.problem,)
 
     def episode_complete(self, episode: int, summary: EpisodeSummary):
@@ -251,11 +274,13 @@ class ParallelPracticeRunner(PracticeRunner):
     def execute_episodes(
         self, episode_args_list
     ) -> Tuple[List[EpisodeHistory], List[EpisodeSummary]]:
-        def worker(work_queue: Queue, result_queue: Queue):
+        def worker(worker_idx: int, work_queue: Queue, result_queue: Queue):
             """Pull items out of the work queue and execute episodes until there are
-            no items left"""
+            no items left """
             game = self.get_game()
             predictor = self.get_predictor(game)
+            msg.good(f"Worker {worker_idx} started.")
+
             while (
                 ParallelPracticeRunner.request_quit is False
                 and work_queue.empty() is False
@@ -268,7 +293,13 @@ class ParallelPracticeRunner(PracticeRunner):
                         episode_reward,
                         is_win,
                         problem,
-                    ) = self.execute_episode(episode, game, predictor, **args)
+                    ) = self.execute_episode(
+                        episode,
+                        game,
+                        predictor,
+                        is_verbose_worker=worker_idx == 0,
+                        **args,
+                    )
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
@@ -292,7 +323,7 @@ class ParallelPracticeRunner(PracticeRunner):
         for i, args in enumerate(episode_args_list):
             work_queue.put((i, args))
         processes = [
-            Process(target=worker, args=(work_queue, result_queue), daemon=True)
+            Process(target=worker, args=(i, work_queue, result_queue))
             for i in range(self.config.num_workers)
         ]
         for proc in processes:
