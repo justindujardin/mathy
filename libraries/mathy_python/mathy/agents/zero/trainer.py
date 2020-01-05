@@ -77,64 +77,61 @@ class SelfPlayTrainer:
             v_losses = AverageMeter()
             end = time.time()
 
-            bar = Bar("Training Net", max=self.args.batch_size)
+            batch_steps = int(len(examples) / self.args.batch_size)
+            bar = Bar("Training Net", max=batch_steps)
             batch_idx = 0
 
             # self.session.run(tf.local_variables_initializer())
             while batch_idx < total_batches:
                 sample_ids = np.random.randint(len(examples), size=self.args.batch_size)
-                sequences = [examples[i] for i in sample_ids]
-                for seq in sequences:
-                    samp = list(zip(*seq))
-                    (
-                        text,
-                        action,
-                        reward,
-                        discounted,
-                        terminal,
-                        observation,
-                        pi,
-                        v,
-                    ) = samp
-                    pi = tf.keras.preprocessing.sequence.pad_sequences(pi)
-                    inputs = observations_to_window(
-                        [MathyObservation(*o) for o in observation]
+                (
+                    text,
+                    action,
+                    reward,
+                    discounted,
+                    terminal,
+                    observation,
+                    pi_,
+                    v,
+                ) = list(zip(*[examples[i] for i in sample_ids]))
+                pi = tf.keras.preprocessing.sequence.pad_sequences(pi_)
+                inputs = observations_to_window(
+                    [MathyObservation(*o) for o in observation]
+                )
+                with tf.GradientTape() as tape:
+                    pi_loss, value_loss, total_loss = self.compute_loss(
+                        gamma=self.args.gamma, inputs=inputs, target_pi=pi, target_v=v,
                     )
-                    with tf.GradientTape() as tape:
-                        pi_loss, value_loss, total_loss = self.compute_loss(
-                            gamma=self.args.gamma,
-                            inputs=inputs,
-                            target_pi=pi,
-                            target_v=v,
-                        )
-                    grads = tape.gradient(total_loss, self.model.trainable_weights)
-                    zipped_gradients = zip(grads, self.model.trainable_weights)
-                    self.model.optimizer.apply_gradients(zipped_gradients)
+                grads = tape.gradient(total_loss, self.model.trainable_weights)
+                zipped_gradients = zip(grads, self.model.trainable_weights)
+                self.model.optimizer.apply_gradients(zipped_gradients)
 
-                    # measure data loading time
-                    data_time.update(time.time() - end)
+                # measure data loading time
+                data_time.update(time.time() - end)
 
-                    pi_losses.update(pi_loss, len(text))
-                    v_losses.update(value_loss, len(text))
+                pi_losses.update(pi_loss, len(text))
+                v_losses.update(value_loss, len(text))
 
-                    # measure elapsed time
-                    batch_time.update(time.time() - end)
-                    end = time.time()
-                    batch_idx += 1
+                # measure elapsed time
+                batch_time.update(time.time() - end)
+                end = time.time()
+                batch_idx += 1
 
-                    # plot progress
-                    bar.suffix = "({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss_pi: {lpi:.4f} | Loss_v: {lv:.3f}".format(
-                        batch=batch_idx,
-                        size=self.args.batch_size,
-                        data=data_time.avg,
-                        bt=batch_time.avg,
-                        total=bar.elapsed_td,
-                        eta=bar.eta_td,
-                        lpi=pi_losses.avg,
-                        lv=v_losses.avg,
-                    )
-                    bar.next()
+                # plot progress
+                bar.suffix = "({batch}/{size}) data: {data:.3f}s batch: {bt:.3f}s total: {total:} eta: {eta:} pi: {lpi:.4f} v: {lv:.3f}".format(
+                    batch=batch_idx,
+                    size=batch_steps,
+                    data=data_time.avg,
+                    bt=batch_time.avg,
+                    total=bar.elapsed_td,
+                    eta=bar.eta_td,
+                    lpi=pi_losses.avg,
+                    lv=v_losses.avg,
+                )
+
+                bar.next()
             bar.finish()
+
         return True
 
     def compute_policy_value_loss(
@@ -151,8 +148,9 @@ class SelfPlayTrainer:
             target_v, tf.reshape(values, shape=[-1])
         )
         policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
+        policy_logits = policy_logits[:, : target_pi.shape[1]]
         policy_loss = tf.nn.softmax_cross_entropy_with_logits(
-            labels=tf.reshape(target_pi, policy_logits.shape), logits=policy_logits
+            labels=target_pi, logits=policy_logits
         )
         policy_loss = tf.reduce_mean(policy_loss)
         total_loss = value_loss + policy_loss

@@ -160,7 +160,7 @@ class PracticeRunner:
                     problem,
                 ) = self.execute_episode(i, game, predictor, **args)
                 duration = time.time() - start
-                examples.append(episode_examples)
+                examples.extend(episode_examples)
                 episode_summary = EpisodeSummary(
                     solved=bool(is_win),
                     text=problem.text,
@@ -310,7 +310,7 @@ class ParallelPracticeRunner(PracticeRunner):
                 self.episode_complete(i, summary)
                 count += 1
                 if "error" not in summary:
-                    examples.append(episode_examples)
+                    examples.extend(episode_examples)
                     results.append(summary)
             except queue.Empty:
                 pass
