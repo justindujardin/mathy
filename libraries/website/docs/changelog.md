@@ -1,3 +1,24 @@
+# [0.6.0](https://github.com/justindujardin/mathy/compare/v0.5.3...v0.6.0) (2020-01-05)
+
+
+### Bug Fixes
+
+* **colab:** force upgrade mathy in snippets to avoid outdated dependency issues ([a902a8c](https://github.com/justindujardin/mathy/commit/a902a8c0b36feabcb83500bad6e1f36b9fa27077))
+* **envs:** use uniform random range for complex/binomial params ([8534239](https://github.com/justindujardin/mathy/commit/8534239c2f120569bcc9d77ee095f1b5a7dab849))
+* **zero:** default to non-recurrent architecture ([38690c2](https://github.com/justindujardin/mathy/commit/38690c241289de4d31918c383bb86f2a48d318bc))
+
+
+### Features
+
+* **embedding:** add optional non-recurrent DenseNet+Attention architecture `--use-lstm=False` ([8b97e9d](https://github.com/justindujardin/mathy/commit/8b97e9d7591f6fcac4532f7d7111c67d342b55a8))
+* **zero:** add `--profile` support for `num_workers=1` ([622cdfd](https://github.com/justindujardin/mathy/commit/622cdfd25a272614bde7607079c5b3a7e0e67370))
+* **zero:** support `--show` argument for worker 0 ([82b3f66](https://github.com/justindujardin/mathy/commit/82b3f6604459eaf3e1acc4b92704fa1659d76649))
+
+
+### Reverts
+
+* **zero:** use old-style batch training ([4d5fd37](https://github.com/justindujardin/mathy/commit/4d5fd37143483e578a70e3fed9a77a9b71048be9))
+
 ## [0.5.3](https://github.com/justindujardin/mathy/compare/v0.5.2...v0.5.3) (2020-01-03)
 
 
