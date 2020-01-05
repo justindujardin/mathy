@@ -93,7 +93,7 @@ The CLI A3C agent accepts a `--profile` option, or a config option when the API 
 {!./snippets/ml/a3c_profiling.py!}
 ```
 
-Learn about how to view output profiles on the [debugging page](/ml/debugging)
+Learn about how to view output profiles on the [debugging page](/ml/debugging/#snakeviz)
 
 ## Multiprocess A3C
 
