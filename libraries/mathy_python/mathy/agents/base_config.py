@@ -19,7 +19,7 @@ class BaseConfig(BaseModel):
     mathy_version: str = f">={about.__version__},<1.0.0"
 
     # One of "batch" or "layer"
-    normalization_style = "batch"
+    normalization_style = "layer"
 
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True
