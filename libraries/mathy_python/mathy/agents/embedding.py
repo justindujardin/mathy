@@ -9,6 +9,7 @@ from mathy.state import (
     MathyWindowObservation,
     ObservationFeatureIndices,
 )
+from mathy.agents.densenet import DenseNetStack
 
 
 class MathyEmbedding(tf.keras.Model):
@@ -65,25 +66,36 @@ class MathyEmbedding(tf.keras.Model):
             activation="relu",
             kernel_initializer="he_normal",
         )
-        self.out_dense_norm = tf.keras.layers.LayerNormalization(name="out_dense_norm")
-        self.time_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_time_norm")
-        self.nodes_lstm_norm = tf.keras.layers.LayerNormalization(
-            name="lstm_nodes_norm"
-        )
-        self.time_lstm = tf.keras.layers.LSTM(
-            self.config.lstm_units,
-            name="timestep_lstm",
-            return_sequences=True,
-            time_major=True,
-            return_state=True,
-        )
-        self.nodes_lstm = tf.keras.layers.LSTM(
-            self.config.lstm_units,
-            name="nodes_lstm",
-            return_sequences=True,
-            time_major=False,
-            return_state=False,
-        )
+
+        NormalizeClass = tf.keras.layers.LayerNormalization
+        if self.config.normalization_style == "batch":
+            NormalizeClass = tf.keras.layers.BatchNormalization
+        self.out_dense_norm = NormalizeClass(name="out_dense_norm")
+        if self.config.use_lstm:
+            self.time_lstm_norm = NormalizeClass(name="lstm_time_norm")
+            self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
+            self.time_lstm = tf.keras.layers.LSTM(
+                self.config.lstm_units,
+                name="timestep_lstm",
+                return_sequences=True,
+                time_major=True,
+                return_state=True,
+            )
+            self.nodes_lstm = tf.keras.layers.LSTM(
+                self.config.lstm_units,
+                name="nodes_lstm",
+                return_sequences=True,
+                time_major=False,
+                return_state=False,
+            )
+        else:
+            self.densenet = DenseNetStack(
+                units=self.config.units,
+                num_layers=6,
+                output_transform=self.output_dense,
+                normalization_style=self.config.normalization_style,
+            )
+            self.dense_attention = tf.keras.layers.Attention()
 
     def compute_output_shape(self, input_shapes: List[tf.TensorShape]) -> Any:
         nodes_shape: tf.TensorShape = input_shapes[0]
@@ -170,42 +182,52 @@ class MathyEmbedding(tf.keras.Model):
         # Input dense transforms
         query = self.in_dense(query)
 
-        with tf.name_scope("prepare_initial_states"):
-            in_time_h = in_rnn_state_h[-1:, :]
-            in_time_c = in_rnn_state_c[-1:, :]
-            time_initial_h = tf.tile(
-                in_time_h, [sequence_length, 1], name="time_hidden",
-            )
-            time_initial_c = tf.tile(in_time_c, [sequence_length, 1], name="time_cell",)
+        if self.config.use_lstm:
+            with tf.name_scope("prepare_initial_states"):
+                in_time_h = in_rnn_state_h[-1:, :]
+                in_time_c = in_rnn_state_c[-1:, :]
+                time_initial_h = tf.tile(
+                    in_time_h, [sequence_length, 1], name="time_hidden",
+                )
+                time_initial_c = tf.tile(
+                    in_time_c, [sequence_length, 1], name="time_cell",
+                )
 
-        with tf.name_scope("rnn"):
-            query = self.nodes_lstm(query)
-            query = self.nodes_lstm_norm(query)
-            query, state_h, state_c = self.time_lstm(
-                query, initial_state=[time_initial_h, time_initial_c]
-            )
-            query = self.time_lstm_norm(query)
-            # historical_state_h = tf.squeeze(
-            #     tf.concat(in_rnn_history_h[0], axis=0, name="average_history_hidden"),
-            #     axis=1,
-            # )
+            with tf.name_scope("rnn"):
+                query = self.nodes_lstm(query)
+                query = self.nodes_lstm_norm(query)
+                query, state_h, state_c = self.time_lstm(
+                    query, initial_state=[time_initial_h, time_initial_c]
+                )
+                query = self.time_lstm_norm(query)
+                # historical_state_h = tf.squeeze(
+                #     tf.concat(in_rnn_history_h[0], axis=0, name="average_history_hidden"),
+                #     axis=1,
+                # )
 
-        self.state_h.assign(state_h[-1:])
-        self.state_c.assign(state_c[-1:])
+            self.state_h.assign(state_h[-1:])
+            self.state_c.assign(state_c[-1:])
 
-        # Concatenate the RNN output state with our historical RNN state
-        # See: https://arxiv.org/pdf/1810.04437.pdf
-        with tf.name_scope("combine_outputs"):
-            rnn_state_with_history = tf.concat(
-                [state_h[-1:], in_rnn_history_h[-1:]], axis=-1,
-            )
-            self.state_h_with_history.assign(rnn_state_with_history)
-            lstm_context = tf.tile(
-                tf.expand_dims(rnn_state_with_history, axis=0),
-                [batch_size, sequence_length, 1],
-            )
-            # Combine the output LSTM states with the historical average LSTM states
-            # and concatenate it with the query
-            output = tf.concat([query, lstm_context], axis=-1, name="combined_outputs")
+            # Concatenate the RNN output state with our historical RNN state
+            # See: https://arxiv.org/pdf/1810.04437.pdf
+            with tf.name_scope("combine_outputs"):
+                rnn_state_with_history = tf.concat(
+                    [state_h[-1:], in_rnn_history_h[-1:]], axis=-1,
+                )
+                self.state_h_with_history.assign(rnn_state_with_history)
+                lstm_context = tf.tile(
+                    tf.expand_dims(rnn_state_with_history, axis=0),
+                    [batch_size, sequence_length, 1],
+                )
+                # Combine the output LSTM states with the historical average LSTM states
+                # and concatenate it with the query
+                output = tf.concat(
+                    [query, lstm_context], axis=-1, name="combined_outputs"
+                )
+                output = self.output_dense(output)
+        else:
+            # Non-recurrent model
+            output = self.densenet(query)
+            output = self.dense_attention([output, output])
 
-        return self.out_dense_norm(self.output_dense(output))
+        return self.out_dense_norm(output)

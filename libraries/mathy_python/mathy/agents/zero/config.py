@@ -8,8 +8,7 @@ class SelfPlayConfig(BaseConfig):
     temperature_threshold: float = 0.5
     self_play_problems: int = 64
     training_iterations: int = 100
-    cpuct: float = 1.0
-
-
+    cpuct: float = 1.0 
+    normalization_style: str = "batch"
     # When profile is true and workers == 1 the main thread will output worker_0.profile on exit
     profile: bool = False

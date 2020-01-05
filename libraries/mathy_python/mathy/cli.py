@@ -135,7 +135,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "units",
     "--units",
-    default=512,
+    default=256,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
@@ -145,6 +145,13 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     default=512,
     type=int,
     help="Number of dimensions to use for token embeddings",
+)
+@click.option(
+    "use_lstm",
+    "--use-lstm",
+    default=True,
+    type=bool,
+    help="Whether to use the recurrent architecture or not",
 )
 @click.option(
     "rnn",
@@ -218,6 +225,7 @@ def cli_train(
     verbose: bool,
     training_iterations: int,
     self_play_problems: int,
+    use_lstm: bool,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -252,6 +260,7 @@ def cli_train(
             num_workers=workers,
             profile=profile,
             print_training=show,
+            use_lstm=use_lstm,
         )
         if episodes is not None:
             args.max_eps = episodes
@@ -276,6 +285,7 @@ def cli_train(
             self_play_problems=self_play_problems,
             print_training=show,
             profile=profile,
+            use_lstm=use_lstm,
         )
         if episodes is not None:
             self_play_cfg.max_eps = episodes

@@ -18,11 +18,11 @@ class MCTS:
     env: MathyEnv
     # cpuct is a hyperparameter controlling the degree of exploration
     # (1.0 in Suragnair experiments.)
-    cpuct: int
+    cpuct: float
     num_mcts_sims: int
     # Set epsilon = 0 to disable dirichlet noise in root node.
     # e.g. for ExaminationRunner competitions
-    epsilon: int
+    epsilon: float
     dir_alpha: float
 
     def __init__(
@@ -128,7 +128,7 @@ class MCTS:
                 rnn_history_h=rnn_state[0],
             )
             observations = observations_to_window([obs]).to_inputs()
-            out_policy, state_v = self.model.predict_next(observations)
+            out_policy, state_v = self.model.predict_next(observations, use_graph=False)
             out_rnn_state = [
                 tf.squeeze(self.model.embedding.state_h).numpy(),
                 tf.squeeze(self.model.embedding.state_c).numpy(),

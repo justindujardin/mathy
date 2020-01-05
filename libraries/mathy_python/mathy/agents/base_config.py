@@ -18,6 +18,11 @@ class BaseConfig(BaseModel):
     url: str = about.__uri__
     mathy_version: str = f">={about.__version__},<1.0.0"
 
+    # One of "batch" or "layer"
+    normalization_style = "batch"
+
+    # Whether to use the LSTM or non-reccurrent architecture
+    use_lstm: bool = True
     units: int = 64
     embedding_units: int = 128
     lstm_units: int = 128
