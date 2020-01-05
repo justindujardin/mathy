@@ -1,20 +1,25 @@
 from typing import Any, List, Optional, Type
 
-from .. import time_step
+from numpy.random import randint, uniform
 
-from ..core.rule import BaseRule
+from .. import time_step
 from ..core.expressions import MathExpression
-from ..util import get_terms, has_like_terms, is_preferred_term_form
+from ..core.rule import BaseRule
 from ..env import MathyEnv, MathyEnvProblem
-from ..problems import gen_binomial_times_binomial, gen_binomial_times_monomial, rand_bool
+from ..problems import (
+    gen_binomial_times_binomial,
+    gen_binomial_times_monomial,
+    rand_bool,
+)
 from ..rules import (
-    ConstantsSimplifyRule,
     CommutativeSwapRule,
+    ConstantsSimplifyRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
+from ..util import get_terms, has_like_terms, is_preferred_term_form
 
 
 class BinomialDistribute(MathyEnv):
@@ -59,23 +64,23 @@ class BinomialDistribute(MathyEnv):
                 text, complexity = gen_binomial_times_binomial(
                     min_vars=2,
                     max_vars=3,
-                    powers_probability=0.1,
-                    like_variables_probability=0.5,
+                    powers_probability=uniform(0.1, 0.4),
+                    like_variables_probability=uniform(0.3, 0.7),
                 )
         elif params.difficulty == MathyEnvDifficulty.normal:
             text, complexity = gen_binomial_times_binomial(
                 min_vars=2,
                 max_vars=2,
-                powers_probability=0.4,
-                like_variables_probability=0.2,
+                powers_probability=uniform(0.2, 0.6),
+                like_variables_probability=uniform(0.2, 0.5),
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             text, complexity = gen_binomial_times_binomial(
                 min_vars=2,
                 max_vars=3,
                 simple_variables=False,
-                powers_probability=0.8,
-                like_variables_probability=0.8,
+                powers_probability=uniform(0.4, 0.8),
+                like_variables_probability=uniform(0.1, 0.3),
             )
             complexity += 2
         else:

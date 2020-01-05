@@ -44,8 +44,8 @@ class ComplexSimplify(PolySimplify):
                 op="*",
                 optional_var=True,
                 inner_terms_scaling=scaling,
-                powers_probability=0.4,
-                noise_probability=0.2,
+                powers_probability=uniform(0.2, 0.5),
+                noise_probability=uniform(0.2, 0.5),
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
             num_terms = randint(3, 6)
@@ -55,7 +55,7 @@ class ComplexSimplify(PolySimplify):
                 op="*",
                 optional_var=True,
                 inner_terms_scaling=scaling,
-                powers_probability=0.6,
+                powers_probability=uniform(0.4, 0.7),
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
             num_terms = randint(4, 8)
@@ -63,8 +63,8 @@ class ComplexSimplify(PolySimplify):
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
                 op="*",
-                shuffle_probability=0.5,
-                powers_probability=0.8,
+                shuffle_probability=uniform(0.3, 0.8),
+                powers_probability=uniform(0.4, 0.9),
                 inner_terms_scaling=scaling,
             )
         else:
