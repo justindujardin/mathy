@@ -17,6 +17,7 @@ class DenseNetBlock(tf.keras.layers.Layer):
         **kwargs,
     ):
         super(DenseNetBlock, self).__init__(**kwargs)
+        self.units = units
         self.use_shared = use_shared
         self.activate = tf.keras.layers.Activation("relu", name="relu")
         if normalization == "batch":
