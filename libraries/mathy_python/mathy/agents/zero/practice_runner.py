@@ -323,7 +323,7 @@ class ParallelPracticeRunner(PracticeRunner):
         for i, args in enumerate(episode_args_list):
             work_queue.put((i, args))
         processes = [
-            Process(target=worker, args=(i, work_queue, result_queue))
+            Process(target=worker, args=(i, work_queue, result_queue), daemon=True)
             for i in range(self.config.num_workers)
         ]
         for proc in processes:
