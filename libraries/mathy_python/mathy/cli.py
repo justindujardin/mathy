@@ -147,6 +147,13 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Number of dimensions to use for token embeddings",
 )
 @click.option(
+    "use_lstm",
+    "--use-lstm",
+    default=True,
+    type=bool,
+    help="Whether to use the recurrent architecture or not",
+)
+@click.option(
     "rnn",
     "--rnn",
     default=128,
@@ -218,6 +225,7 @@ def cli_train(
     verbose: bool,
     training_iterations: int,
     self_play_problems: int,
+    use_lstm: bool,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -252,13 +260,14 @@ def cli_train(
             num_workers=workers,
             profile=profile,
             print_training=show,
+            use_lstm=use_lstm,
         )
         if episodes is not None:
             args.max_eps = episodes
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
-        setup_tf_env(use_mp=True)
+        setup_tf_env(use_mp=workers > 1)
         from .agents.zero import SelfPlayConfig, self_play_runner
 
         self_play_cfg = SelfPlayConfig(
@@ -275,6 +284,8 @@ def cli_train(
             training_iterations=training_iterations,
             self_play_problems=self_play_problems,
             print_training=show,
+            profile=profile,
+            use_lstm=use_lstm,
         )
         if episodes is not None:
             self_play_cfg.max_eps = episodes

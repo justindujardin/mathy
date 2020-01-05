@@ -92,11 +92,7 @@ class PolicyValueModel(tf.keras.Model):
         mask_logits = self.apply_pi_mask(logits, features_window)
         mask_result = logits if not apply_mask else mask_logits
         if call_print is True:
-            print(
-                "call took : {0:03f} for batch of {1:03}".format(
-                    time.time() - start, batch_size
-                )
-            )
+            print("call took : {0:03f}".format(time.time() - start))
         return logits, values, mask_result
 
     def apply_pi_mask(
@@ -126,10 +122,15 @@ class PolicyValueModel(tf.keras.Model):
         """Autograph optimized function"""
         return self.call(inputs)
 
-    def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(
+        self, inputs: MathyInputsType, use_graph=False
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
-        given sequence of inputs"""
-        logits, values, masked = self.call(inputs)
+        given sequence of inputs """
+        if use_graph:
+            logits, values, masked = self.call_graph(inputs)
+        else:
+            logits, values, masked = self.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])

@@ -11,6 +11,8 @@ class A3CConfig(BaseConfig):
     #   syncing the latest model from the learner process.
     update_gradients_every: int = 64
 
+    normalization_style: str = "layer"
+
     # How many times to think about the initial state before acting.
     # (intuition) is that the LSTM updates the state each time it processes
     # the init sequence meaning that it gets more time to fine-tune the hidden

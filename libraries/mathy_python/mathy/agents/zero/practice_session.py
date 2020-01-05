@@ -79,7 +79,7 @@ class PracticeSession:
             bar.next()
 
         episodes_with_args = []
-        for _ in range(1, num_episodes + 1):
+        for i in range(1, num_episodes + 1):
             episodes_with_args.append(dict(model_dir=self.runner.config.model_dir))
 
         old_update = self.runner.episode_complete

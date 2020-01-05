@@ -1,3 +1,4 @@
+import os
 import queue
 import time
 from multiprocessing import Array, Pool, Process, Queue, cpu_count
@@ -7,6 +8,7 @@ from typing import Any, List, Tuple
 
 import numpy as np
 from pydantic import BaseModel
+from wasabi import msg
 
 from ...agents.episode_memory import rnn_weighted_history
 from ...agents.mcts import MCTS
@@ -39,10 +41,10 @@ class PracticeRunner:
             )
         self.config = config
 
-    def get_game(self):
+    def get_env(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_predictor(self, game):
+    def get_model(self, game):
         raise NotImplementedError(
             "predictor implementation must be provided by subclass"
         )
@@ -55,6 +57,7 @@ class PracticeRunner:
         model: PolicyValueModel,
         move_count,
         history: List[EpisodeHistory],
+        is_verbose_worker: bool,
     ):
         import tensorflow as tf
 
@@ -87,8 +90,12 @@ class PracticeRunner:
             mcts_state_copy, [rnn_state_h, rnn_state_c], temp=temp
         )
         action = np.random.choice(len(predicted_policy), p=predicted_policy)
-
-        next_state, transition, change = game.mathy.get_next_state(env_state, action)
+        observation, reward, done, meta = game.step(action)
+        next_state = game.state
+        assert next_state is not None
+        transition = meta["transition"]
+        if is_verbose_worker and self.config.print_training is True:
+            game.render()
         example_text = next_state.agent.problem
         r = float(transition.reward)
         is_term = is_terminal_transition(transition)
@@ -141,29 +148,53 @@ class PracticeRunner:
         """
         examples = []
         results: List[EpisodeSummary] = []
+        if self.config.profile:
+            import cProfile
 
-        game = self.get_game()
-        predictor = self.get_predictor(game)
-        for i, args in enumerate(episode_args_list):
-            start = time.time()
-            (episode_examples, episode_reward, is_win, problem,) = self.execute_episode(
-                i, game, predictor, **args
-            )
-            duration = time.time() - start
-            examples.append(episode_examples)
-            episode_summary = EpisodeSummary(
-                solved=bool(is_win),
-                text=problem.text,
-                complexity=problem.complexity,
-                reward=episode_reward,
-                duration=duration,
-            )
-            results.append(episode_summary)
-            self.episode_complete(i, episode_summary)
+            pr = cProfile.Profile()
+            pr.enable()
+
+        try:
+            game = self.get_env()
+            predictor = self.get_model(game)
+            for i, args in enumerate(episode_args_list):
+                start = time.time()
+                (
+                    episode_examples,
+                    episode_reward,
+                    is_win,
+                    problem,
+                ) = self.execute_episode(i, game, predictor, **args)
+                duration = time.time() - start
+                examples.extend(episode_examples)
+                episode_summary = EpisodeSummary(
+                    solved=bool(is_win),
+                    text=problem.text,
+                    complexity=problem.complexity,
+                    reward=episode_reward,
+                    duration=duration,
+                )
+                results.append(episode_summary)
+                self.episode_complete(i, episode_summary)
+        except KeyboardInterrupt:
+            print("Interrupt received. Exiting.")
+
+        if self.config.profile:
+            profile_name = f"worker_0.profile"
+            profile_path = os.path.join(self.config.model_dir, profile_name)
+            pr.disable()
+            pr.dump_stats(profile_path)
+            if self.config.verbose:
+                print(f"PROFILER: saved {profile_path}")
         return examples, results
 
     def execute_episode(
-        self, episode, game: MathyGymEnv, predictor: PolicyValueModel, model_dir: str
+        self,
+        episode,
+        game: MathyGymEnv,
+        predictor: PolicyValueModel,
+        model_dir: str,
+        is_verbose_worker: bool = False,
     ):
         """
         This function executes one episode.
@@ -173,9 +204,9 @@ class PracticeRunner:
         in trainExamples.
         """
         if game is None:
-            raise NotImplementedError("PracticeRunner.get_game returned None type")
+            raise ValueError("PracticeRunner.get_env returned None type")
         if predictor is None:
-            raise NotImplementedError("PracticeRunner.get_predictor returned None type")
+            raise ValueError("PracticeRunner.get_model returned None type")
         game.reset()
         if game.state is None:
             raise ValueError("Cannot start self-play practice with a None game state.")
@@ -183,12 +214,24 @@ class PracticeRunner:
         episode_history: List[Any] = []
         move_count = 0
         mcts = MCTS(game.mathy, predictor, self.config.cpuct, self.config.mcts_sims)
+        if is_verbose_worker and self.config.print_training is True:
+            game.render()
+
         while True:
             move_count += 1
             env_state, result = self.step(
-                game, env_state, mcts, predictor, move_count, episode_history
+                game=game,
+                env_state=env_state,
+                mcts=mcts,
+                model=predictor,
+                move_count=move_count,
+                history=episode_history,
+                is_verbose_worker=is_verbose_worker,
             )
             if result is not None:
+                if is_verbose_worker and self.config.print_training is True:
+                    game.render()
+
                 return result + (game.problem,)
 
     def episode_complete(self, episode: int, summary: EpisodeSummary):
@@ -216,8 +259,8 @@ class PracticeRunner:
         )
 
     def train_with_examples(self, iteration, train_examples, model_path=None):
-        game = self.get_game()
-        new_net = self.get_predictor(game)
+        game = self.get_env()
+        new_net = self.get_model(game)
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
         if trainer.train(train_examples, new_net):
             new_net.save()
@@ -231,11 +274,13 @@ class ParallelPracticeRunner(PracticeRunner):
     def execute_episodes(
         self, episode_args_list
     ) -> Tuple[List[EpisodeHistory], List[EpisodeSummary]]:
-        def worker(work_queue, result_queue):
+        def worker(worker_idx: int, work_queue: Queue, result_queue: Queue):
             """Pull items out of the work queue and execute episodes until there are
-            no items left"""
-            game = self.get_game()
-            predictor = self.get_predictor(game)
+            no items left """
+            game = self.get_env()
+            predictor = self.get_model(game)
+            msg.good(f"Worker {worker_idx} started.")
+
             while (
                 ParallelPracticeRunner.request_quit is False
                 and work_queue.empty() is False
@@ -248,7 +293,13 @@ class ParallelPracticeRunner(PracticeRunner):
                         episode_reward,
                         is_win,
                         problem,
-                    ) = self.execute_episode(episode, game, predictor, **args)
+                    ) = self.execute_episode(
+                        episode,
+                        game,
+                        predictor,
+                        is_verbose_worker=worker_idx == 0,
+                        **args,
+                    )
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
@@ -272,7 +323,7 @@ class ParallelPracticeRunner(PracticeRunner):
         for i, args in enumerate(episode_args_list):
             work_queue.put((i, args))
         processes = [
-            Process(target=worker, args=(work_queue, result_queue), daemon=True)
+            Process(target=worker, args=(i, work_queue, result_queue), daemon=True)
             for i in range(self.config.num_workers)
         ]
         for proc in processes:
@@ -290,7 +341,7 @@ class ParallelPracticeRunner(PracticeRunner):
                 self.episode_complete(i, summary)
                 count += 1
                 if "error" not in summary:
-                    examples.append(episode_examples)
+                    examples.extend(episode_examples)
                     results.append(summary)
             except queue.Empty:
                 pass

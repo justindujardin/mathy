@@ -24,7 +24,6 @@ self_play_cfg = SelfPlayConfig(
     # This is normally larger, try 10
     epochs=1,
     # This is a tiny model, designed to be fast for testing.
-    lstm_units=16,
     units=32,
     embedding_units=16,
     # The number of MCTS sims directly correlates with finding quality

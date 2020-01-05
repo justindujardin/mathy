@@ -27,3 +27,17 @@ In this mode you can set breakpoints in the debugger to help diagnose errors.
 ```python
 {!./snippets/ml/zero_debugging.py!}
 ```
+
+## Performance Profiling
+
+The CLI Zero agent can optionally output performance profiles.
+
+For the CLI you do this with `--profile --num-workers=1`.
+
+In python you pass `profile=True` and `num_workers=1` to the agent configuration.
+
+```python
+{!./snippets/ml/zero_profiling.py!}
+```
+
+Learn about how to view output profiles on the [debugging page](/ml/debugging/#snakeviz)

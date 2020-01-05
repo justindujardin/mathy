@@ -6,8 +6,8 @@ import os
 def render_ipynb(from_file: str, to_file: str):
     # print(f"{from_file} -> {to_file}")
     header = """
-# This file is generated from a mathy documentation code snippet.
-!pip install mathy
+# This file is generated from a Mathy (https://mathy.ai) code example.
+!pip install mathy --upgrade
 """
 
     with open(from_file, "r") as fpin:
