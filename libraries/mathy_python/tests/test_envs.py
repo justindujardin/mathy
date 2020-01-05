@@ -12,6 +12,8 @@ def test_mathy_env_init():
     # Default env is abstract and cannot be directly used for problem solving
     with pytest.raises(NotImplementedError):
         env.get_initial_state()
+    with pytest.raises(NotImplementedError):
+        env.get_env_namespace()
 
 
 def test_env_terminal_conditions():
@@ -62,7 +64,7 @@ def test_env_finalize_state():
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)
-        
+
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
         problem="4x + 2y", action=1, focus_index=-1, moves_remaining=0
     )

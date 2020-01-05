@@ -41,10 +41,10 @@ class PracticeRunner:
             )
         self.config = config
 
-    def get_game(self):
+    def get_env(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_predictor(self, game):
+    def get_model(self, game):
         raise NotImplementedError(
             "predictor implementation must be provided by subclass"
         )
@@ -155,8 +155,8 @@ class PracticeRunner:
             pr.enable()
 
         try:
-            game = self.get_game()
-            predictor = self.get_predictor(game)
+            game = self.get_env()
+            predictor = self.get_model(game)
             for i, args in enumerate(episode_args_list):
                 start = time.time()
                 (
@@ -204,9 +204,9 @@ class PracticeRunner:
         in trainExamples.
         """
         if game is None:
-            raise NotImplementedError("PracticeRunner.get_game returned None type")
+            raise ValueError("PracticeRunner.get_env returned None type")
         if predictor is None:
-            raise NotImplementedError("PracticeRunner.get_predictor returned None type")
+            raise ValueError("PracticeRunner.get_model returned None type")
         game.reset()
         if game.state is None:
             raise ValueError("Cannot start self-play practice with a None game state.")
@@ -259,8 +259,8 @@ class PracticeRunner:
         )
 
     def train_with_examples(self, iteration, train_examples, model_path=None):
-        game = self.get_game()
-        new_net = self.get_predictor(game)
+        game = self.get_env()
+        new_net = self.get_model(game)
         trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
         if trainer.train(train_examples, new_net):
             new_net.save()
@@ -277,8 +277,8 @@ class ParallelPracticeRunner(PracticeRunner):
         def worker(worker_idx: int, work_queue: Queue, result_queue: Queue):
             """Pull items out of the work queue and execute episodes until there are
             no items left """
-            game = self.get_game()
-            predictor = self.get_predictor(game)
+            game = self.get_env()
+            predictor = self.get_model(game)
             msg.good(f"Worker {worker_idx} started.")
 
             while (

@@ -27,12 +27,12 @@ def self_play_runner(config: SelfPlayConfig):
         print(config.json(indent=2))
 
     class LessonRunner(BaseEpisodeRunner):  # type:ignore
-        def get_game(self):
+        def get_env(self):
             import gym
 
             return gym.make(lesson_name)
 
-        def get_predictor(self, game):
+        def get_model(self, game):
             from ...agents.policy_value_model import (
                 get_or_create_policy_model,
                 PolicyValueModel,
