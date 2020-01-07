@@ -149,7 +149,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "use_lstm",
     "--use-lstm",
-    default=True,
     type=bool,
     help="Whether to use the recurrent architecture or not",
 )
@@ -260,10 +259,11 @@ def cli_train(
             num_workers=workers,
             profile=profile,
             print_training=show,
-            use_lstm=use_lstm,
         )
         if episodes is not None:
             args.max_eps = episodes
+        if use_lstm is not None:
+            args.use_lstm = use_lstm
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
@@ -285,8 +285,9 @@ def cli_train(
             self_play_problems=self_play_problems,
             print_training=show,
             profile=profile,
-            use_lstm=use_lstm,
         )
+        if use_lstm is not None:
+            self_play_cfg.use_lstm = use_lstm
         if episodes is not None:
             self_play_cfg.max_eps = episodes
 

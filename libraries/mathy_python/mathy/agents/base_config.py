@@ -46,6 +46,8 @@ class BaseConfig(BaseModel):
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
+    # This is very verbose and prints every policy_value_model.call time
+    print_model_call_times: bool = False
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"

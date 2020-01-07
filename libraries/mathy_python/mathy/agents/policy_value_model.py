@@ -76,7 +76,7 @@ class PolicyValueModel(tf.keras.Model):
     def call(
         self, features_window: MathyInputsType, apply_mask=True
     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        call_print = False
+        call_print = self.args.print_model_call_times
         nodes = features_window[ObservationFeatureIndices.nodes]
         batch_size = (
             len(nodes)
@@ -123,7 +123,7 @@ class PolicyValueModel(tf.keras.Model):
         return self.call(inputs)
 
     def predict_next(
-        self, inputs: MathyInputsType, use_graph=False
+        self, inputs: MathyInputsType, use_graph: bool = False
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
