@@ -98,7 +98,7 @@ class TreeLayout:
                 left_offset_sum += left.offset
                 current_separation -= left.offset
                 left = getattr(left, "thread", left.right)
-            elif left.offset:
+            elif left.offset is not None:
                 left_offset_sum -= left.offset
                 current_separation += left.offset
                 left = getattr(left, "thread", left.left)
@@ -107,7 +107,7 @@ class TreeLayout:
                 right_offset_sum -= right.offset
                 current_separation -= right.offset
                 right = getattr(right, "thread", right.left)
-            elif right.offset:
+            elif right.offset is not None:
                 right_offset_sum += right.offset
                 current_separation += right.offset
                 right = getattr(right, "thread", right.right)
