@@ -20,7 +20,7 @@ from ...state import (
     observations_to_window,
 )
 from ...util import discount, is_terminal_transition, pad_array, print_error
-from ..policy_value_model import PolicyValueModel
+from ..policy_value_model import ThincPolicyValueModel
 from .config import SelfPlayConfig
 from .trainer import SelfPlayTrainer
 from .types import EpisodeHistory, EpisodeSummary
@@ -44,7 +44,7 @@ class PracticeRunner:
     def get_env(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_model(self, game):
+    def get_model(self, game) -> ThincPolicyValueModel:
         raise NotImplementedError(
             "predictor implementation must be provided by subclass"
         )
@@ -54,7 +54,7 @@ class PracticeRunner:
         game: MathyGymEnv,
         env_state: MathyEnvState,
         mcts: MCTS,
-        model: PolicyValueModel,
+        model: ThincPolicyValueModel,
         move_count,
         history: List[EpisodeHistory],
         is_verbose_worker: bool,
@@ -63,8 +63,8 @@ class PracticeRunner:
 
         # Hold on to the episode example data for training the neural net
         valids = game.mathy.get_valid_moves(env_state)
-        rnn_state_h = tf.squeeze(model.embedding.state_h).numpy().tolist()
-        rnn_state_c = tf.squeeze(model.embedding.state_c).numpy().tolist()
+        rnn_state_h = tf.squeeze(model.unwrapped.embedding.state_h).numpy().tolist()
+        rnn_state_c = tf.squeeze(model.unwrapped.embedding.state_c).numpy().tolist()
         rnn_history_h = (
             tf.squeeze(
                 rnn_weighted_history(
@@ -190,9 +190,9 @@ class PracticeRunner:
 
     def execute_episode(
         self,
-        episode,
+        episode: int,
         game: MathyGymEnv,
-        predictor: PolicyValueModel,
+        predictor: ThincPolicyValueModel,
         model_dir: str,
         is_verbose_worker: bool = False,
     ):
@@ -261,7 +261,9 @@ class PracticeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_env()
         new_net = self.get_model(game)
-        trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
+        trainer = SelfPlayTrainer(
+            self.config, new_net, action_size=new_net.unwrapped.predictions
+        )
         if trainer.train(train_examples, new_net):
             new_net.save()
 

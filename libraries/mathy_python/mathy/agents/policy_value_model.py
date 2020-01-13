@@ -2,7 +2,7 @@ import os
 import pickle
 import time
 from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, List, Callable
 from pathlib import Path
 import numpy as np
 import srsly
@@ -22,9 +22,18 @@ from ..state import (
 from ..util import print_error
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
+import thinc
+from thinc.layers import Linear
+from thinc.api import TensorFlowWrapper, tensorflow2xp, xp2tensorflow
+from thinc.backends import Ops, get_current_ops
+from thinc.model import Model
+from thinc.optimizers import Adam
+from thinc.types import Array, Array1d, Array2d, ArrayNd
+from thinc.shims.tensorflow import TensorFlowShim
+from thinc.util import has_tensorflow, to_categorical
 
 
-class PolicyValueModel(tf.keras.Model):
+class TFPVModel(tf.keras.Model):
     args: BaseConfig
     optimizer: tf.optimizers.Optimizer
 
@@ -35,7 +44,7 @@ class PolicyValueModel(tf.keras.Model):
         initial_state: Any = None,
         **kwargs,
     ):
-        super(PolicyValueModel, self).__init__(**kwargs)
+        super(TFPVModel, self).__init__(**kwargs)
         if args is None:
             args = BaseConfig()
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
@@ -122,15 +131,23 @@ class PolicyValueModel(tf.keras.Model):
         """Autograph optimized function"""
         return self.call(inputs)
 
+
+class ThincPolicyValueModel(thinc.model.Model[ArrayNd, Tuple[Array1d, Array2d]]):
+    @property
+    def unwrapped(self) -> TFPVModel:
+        tf_shim: TensorFlowShim = self.shims[0]
+        assert isinstance(tf_shim, TensorFlowShim), "only tensorflow shim is supported"
+        return tf_shim._model
+
     def predict_next(
         self, inputs: MathyInputsType, use_graph: bool = False
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
         if use_graph:
-            logits, values, masked = self.call_graph(inputs)
+            logits, values, masked = self.unwrapped.call_graph(inputs)
         else:
-            logits, values, masked = self.call(inputs)
+            logits, values, masked = self.unwrapped.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
@@ -138,25 +155,44 @@ class PolicyValueModel(tf.keras.Model):
         return probs, tf.squeeze(values[-1])
 
     def save(self) -> None:
-        if not os.path.exists(self.args.model_dir):
-            os.makedirs(self.args.model_dir)
-        model_path = os.path.join(self.args.model_dir, self.args.model_name)
+        if not os.path.exists(self.unwrapped.args.model_dir):
+            os.makedirs(self.unwrapped.args.model_dir)
+        model_path = os.path.join(
+            self.unwrapped.args.model_dir, self.unwrapped.args.model_name
+        )
         with open(f"{model_path}.optimizer", "wb") as f:
-            pickle.dump(self.optimizer.get_weights(), f)
+            pickle.dump(self.unwrapped.optimizer.get_weights(), f)
         model_path += ".h5"
-        self.save_weights(model_path, save_format="keras")
-        step = self.optimizer.iterations.numpy()
+        self.unwrapped.save_weights(model_path, save_format="keras")
+        step = self.unwrapped.optimizer.iterations.numpy()
         print(f"[save] step({step}) model({model_path})")
 
 
+def PolicyValueModel(
+    args: BaseConfig = None, predictions=2, initial_state: Any = None, **kwargs,
+):
+    tf_model = TFPVModel(args, predictions, initial_state, **kwargs)
+    return TensorFlowWrapper(
+        tf_model,
+        build_model=False,
+        model_class=ThincPolicyValueModel,
+        model_name="agent",
+    )
+
+
 def _load_model(
-    model: PolicyValueModel, model_file: str, optimizer_file: str
-) -> PolicyValueModel:
-    model.load_weights(model_file)
-    model._make_train_function()
+    model: ThincPolicyValueModel,
+    model_file: str,
+    optimizer_file: str,
+    build_fn: Callable[[ThincPolicyValueModel], None] = None,
+) -> ThincPolicyValueModel:
+    model.unwrapped.load_weights(model_file)
+    if build_fn is not None:
+        build_fn(model)
+    model.unwrapped._make_train_function()
     with open(optimizer_file, "rb") as f:
         weight_values = pickle.load(f)
-    model.optimizer.set_weights(weight_values)
+    model.unwrapped.optimizer.set_weights(weight_values)
     return model
 
 
@@ -166,7 +202,7 @@ def get_or_create_policy_model(
     is_main=False,
     required=False,
     env: MathyEnv = None,
-) -> PolicyValueModel:
+) -> ThincPolicyValueModel:
     if env is None:
         env = PolySimplify()
     observation: MathyObservation = env.state_to_observation(
@@ -201,22 +237,29 @@ def get_or_create_policy_model(
 
     model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
     init_inputs = initial_state.to_inputs()
-    model.compile(
-        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
-    )
-    model.build(initial_state.to_input_shapes())
-    model.predict(init_inputs)
-    model.predict_next(init_inputs)
+
+    def handshake_keras(m: ThincPolicyValueModel):
+
+        m.unwrapped.compile(
+            optimizer=m.unwrapped.optimizer,
+            loss="binary_crossentropy",
+            metrics=["accuracy"],
+        )
+        m.unwrapped.build(initial_state.to_input_shapes())
+        m.unwrapped.predict(init_inputs)
+        m.predict_next(init_inputs)
+
+    handshake_keras(model)
 
     opt = f"{model_path}.optimizer"
     mod = f"{model_path}.h5"
     if os.path.exists(mod):
         if is_main and args.verbose:
             with msg.loading(f"Loading model: {mod}..."):
-                _load_model(model, mod, opt)
+                _load_model(model, mod, opt, build_fn=handshake_keras)
             msg.good(f"Loaded model: {mod}")
         else:
-            _load_model(model, mod, opt)
+            _load_model(model, mod, opt, build_fn=handshake_keras)
 
         # If we're doing transfer, reset optimizer steps
         if is_main and args.init_model_from is not None:
@@ -239,7 +282,7 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> Tuple[PolicyValueModel, BaseConfig]:
+) -> Tuple[thinc.model.Model, BaseConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
@@ -258,16 +301,27 @@ def load_policy_value_model(
     initial_state: MathyWindowObservation = observations_to_window([observation])
     model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
     init_inputs = initial_state.to_inputs()
-    model.compile(
-        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
-    )
-    model.build(initial_state.to_input_shapes())
-    model.predict(init_inputs)
-    model.predict_next(init_inputs)
+
+    def handshake_keras(m: ThincPolicyValueModel):
+
+        m.unwrapped.compile(
+            optimizer=m.unwrapped.optimizer,
+            loss="binary_crossentropy",
+            metrics=["accuracy"],
+        )
+        m.unwrapped.build(initial_state.to_input_shapes())
+        m.unwrapped.predict(init_inputs)
+        m.predict_next(init_inputs)
+
+    handshake_keras(model)
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
-            _load_model(model, str(model_file), str(optimizer_file))
+            _load_model(
+                model, str(model_file), str(optimizer_file), build_fn=handshake_keras
+            )
         msg.good(f"Loaded model: {model_file}")
     else:
-        _load_model(model, str(model_file), str(optimizer_file))
+        _load_model(
+            model, str(model_file), str(optimizer_file), build_fn=handshake_keras
+        )
     return model, args

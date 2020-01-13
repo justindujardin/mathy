@@ -42,15 +42,16 @@ class A3CAgent:
             args=args, env_actions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
+            tf_model: tf.keras.Model = self.global_model.unwrapped
             tf.summary.trace_on(graph=True)
             inputs = init_window.to_inputs()
-            self.global_model.call_graph(inputs)
+            tf_model.call_graph(inputs)
             tf.summary.trace_export(
                 name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
             )
             tf.summary.trace_off()
             if self.args.verbose:
-                print(self.global_model.summary())
+                print(tf_model.summary())
 
     def train(self):
         res_queue = Queue()
@@ -68,7 +69,7 @@ class A3CAgent:
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,
-                optimizer=self.global_model.optimizer,
+                optimizer=self.global_model.unwrapped.optimizer,
                 result_queue=res_queue,
                 writer=self.writer,
             )
@@ -93,3 +94,4 @@ class A3CAgent:
         # Do a final save after joining to get the very latest model
         self.global_model.save()
         print("Done. Bye!")
+
