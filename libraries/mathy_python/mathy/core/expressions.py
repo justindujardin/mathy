@@ -1,5 +1,5 @@
 import math
-from typing import Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Dict, List, Optional, Tuple, Type, Union, cast, TypeVar
 
 import numpy as np
 from colr import color
@@ -62,6 +62,8 @@ MathTypeKeys = {
 # The maximum value in type keys (for one-hot encoding)
 MathTypeKeysMax = max(MathTypeKeys.values()) + 1
 
+NodeType = TypeVar("NodeType", bound="MathExpression")
+
 
 class MathExpression(BinaryTreeNode):
     """Math tree node with helpers for manipulating expressions.
@@ -102,6 +104,10 @@ class MathExpression(BinaryTreeNode):
         return "green"
 
     _rendering_change: bool
+    _changed: bool
+    classes: List[str]
+    cloned_node: Optional["MathExpression"]
+    cloned_target: str
 
     def __init__(
         self,
@@ -111,11 +117,11 @@ class MathExpression(BinaryTreeNode):
         parent: "MathExpression" = None,
     ):
         super().__init__(left, right, parent, id)
-        self._rendering_change = None
+        self._rendering_change = False
         self._changed = False
         self.classes = [self.id]
         self.cloned_node = None
-        self.cloned_target = None
+        self.cloned_target = ""
 
     def evaluate(
         self, context: Dict[str, Union[float, int]] = None
@@ -177,7 +183,7 @@ class MathExpression(BinaryTreeNode):
 
         self.visit_inorder(visit_fn)
 
-    def find_type(self, instanceType: Type["MathExpression"]) -> List["MathExpression"]:
+    def find_type(self, instanceType: Type[NodeType]) -> List[NodeType]:
         """Find an expression in this tree by type.
 
         - instanceType: The type to check for instances of
@@ -575,8 +581,9 @@ class MultiplyExpression(BinaryExpression):
         return super().__str__()
 
     def to_math_ml_fragment(self) -> str:
-        right_ml = self.right.to_math_ml_fragment()
-        left_ml = self.left.to_math_ml_fragment()
+        left, right = self._check()
+        right_ml = right.to_math_ml_fragment()
+        left_ml = left.to_math_ml_fragment()
         if isinstance(self.left, ConstantExpression):
             if isinstance(self.right, VariableExpression) or isinstance(
                 self.right, PowerExpression
@@ -601,8 +608,9 @@ class DivideExpression(BinaryExpression):
         return "&#247;"
 
     def to_math_ml_fragment(self) -> str:
-        left_ml = self.left.to_math_ml_fragment()
-        right_ml = self.right.to_math_ml_fragment()
+        left, right = self._check()
+        left_ml = left.to_math_ml_fragment()
+        right_ml = right.to_math_ml_fragment()
         return f"<mfrac><mi>{left_ml}</mi><mi>{right_ml}</mi></mfrac>"
 
     def operate(
@@ -626,8 +634,9 @@ class PowerExpression(BinaryExpression):
         return "^"
 
     def to_math_ml_fragment(self) -> str:
-        right_ml = self.right.to_math_ml_fragment()
-        left_ml = self.left.to_math_ml_fragment()
+        left, right = self._check()
+        right_ml = right.to_math_ml_fragment()
+        left_ml = left.to_math_ml_fragment()
         # if left is mult, enclose only right in msup
         if isinstance(self.left, MultiplyExpression):
             left_ml = self.make_ml_tag("mrow", left_ml, self.classes)
@@ -689,7 +698,7 @@ class VariableExpression(MathExpression):
         id = f"_{self.identifier.lower()[0]}" if self.identifier is not None else ""
         return MathTypeKeys[f"variable{id}"]
 
-    def __init__(self, identifier: Optional[str] = None):
+    def __init__(self, identifier: str = None):
         super().__init__()
         self.identifier = identifier
 

@@ -129,7 +129,7 @@ class PolyHaystackLikeTerms(PolySimplify):
             distances = []
             if like_indices is not None:
                 for index in like_indices:
-                    distances.append(abs(index - action_node.r_index))  # type:ignore
+                    distances.append(abs(index - action_node.r_index))
                 loss_magnitude = min(distances) / max_index
             else:
                 loss_magnitude = 1.0

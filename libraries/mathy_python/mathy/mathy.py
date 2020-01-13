@@ -70,6 +70,7 @@ class Mathy:
         last_observation: MathyObservation = env.reset_with_input(
             problem_text=problem, rnn_size=self.config.lstm_units, max_moves=max_steps
         )
+        assert env.state is not None
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1

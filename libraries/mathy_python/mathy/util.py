@@ -12,7 +12,7 @@ from wasabi import TracebackPrinter
 
 import numpy as np
 
-from .types import EnvRewards
+from .types import EnvRewards, Literal
 
 from .core.expressions import (
     AddExpression,
@@ -293,6 +293,8 @@ def is_preferred_term_form(expression: MathExpression) -> bool:
     seen_vars: Dict[str, int] = dict()
     parent: MathExpression
     for var in vars:
+        if var.identifier is None:
+            continue
         if var.identifier not in seen_vars:
             seen_vars[var.identifier] = 0
         seen_vars[var.identifier] += 1
@@ -327,7 +329,7 @@ def has_like_terms(expression: MathExpression) -> bool:
     term_nodes = get_terms(expression)
     for node in term_nodes:
         term = get_term(node)
-        if term is False:
+        if not isinstance(term, TermResult):
             continue
         var_key = ("".join(term.variables), term.exponent)
         # If the same var/power combinaton is found in the expression more than once
@@ -396,7 +398,7 @@ class TermResult:
 
 # Extract term information from the given node
 #
-def get_term(node: MathExpression) -> TermResult:
+def get_term(node: MathExpression) -> Union[TermResult, Literal[False]]:
     result = TermResult()
     # Constant with add/sub parent should be OKAY.
     if isinstance(node, ConstantExpression):

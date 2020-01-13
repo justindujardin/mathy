@@ -343,7 +343,7 @@ class ExpressionParser:
             right = None
             opType = self.current_token.type
             if opType == TokenVariable:
-                factors.append(VariableExpression(self.current_token.value))
+                factors.append(VariableExpression(str(self.current_token.value)))
                 self.eat(TokenVariable)
             elif opType == TokenFunction:
                 factors.append(self.parse_function())

@@ -15,7 +15,7 @@ from ...state import (
     observations_to_window,
     rnn_placeholder_state,
 )
-from ...types import MathyEnvProblemArgs
+from ...types import MathyEnvProblemArgs, MathyEnvProblem
 from ...util import is_terminal_transition
 from .masked_discrete import MaskedDiscrete
 
@@ -28,7 +28,7 @@ class MathyGymEnv(gym.Env):
     metadata = {"render.modes": ["terminal", "attention"]}
     mathy: MathyEnv
     state: Optional[MathyEnvState]
-    problem: Optional[str]
+    problem: Optional[MathyEnvProblem]
     env_class: Type[MathyEnv]
     env_problem_args: Optional[MathyEnvProblemArgs]
     last_action: int

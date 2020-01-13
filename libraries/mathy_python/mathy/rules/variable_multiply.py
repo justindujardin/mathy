@@ -181,6 +181,9 @@ class VariableMultiplyRule(BaseRule):
                 else:
                     result = MultiplyExpression(coefficient_term, result)
         elif tree_position == VariableMultiplyRule.POS_CHAINED_LEFT_RIGHT:
+            assert (
+                node.left is not None
+            ), "invalid left node should have been rejected by can_apply"
             keep_child = node.left.left
 
             # Next, include the coefficient term (if any)

@@ -16,7 +16,10 @@ class TreeLayout:
     """Calculate a visual layout for input trees."""
 
     def layout(
-        self, node: BinaryTreeNode, unit_x_multiplier=1, unit_y_multiplier=1
+        self,
+        node: BinaryTreeNode,
+        unit_x_multiplier: float = 1.0,
+        unit_y_multiplier: float = 1.0,
     ) -> "TreeMeasurement":
         """Assign x/y values to all nodes in the tree, and return an object containing
         the measurements of the tree.
@@ -26,7 +29,7 @@ class TreeLayout:
         return self.transform(node, 0, unit_x_multiplier, unit_y_multiplier)
 
     def measure(
-        self, node: BinaryTreeNode, level=0, extremes: "TidierExtreme" = None
+        self, node: BinaryTreeNode = None, level=0, extremes: "TidierExtreme" = None,
     ) -> "TreeLayout":
         if extremes is None:
             extremes = TidierExtreme()
@@ -36,9 +39,9 @@ class TreeLayout:
         right_extremes = TidierExtreme()
 
         # separation at the root of the current subtree and current level.
-        current_separation = 0
-        root_separation = 0
-        min_separation = 1
+        current_separation = 0.0
+        root_separation = 0.0
+        min_separation = 1.0
 
         # The offset from left/right children to the root of the current subtree.
         left_offset_sum = 0.0
@@ -91,20 +94,20 @@ class TreeLayout:
                 root_separation += min_separation - current_separation
                 current_separation = min_separation
 
-            if left.right:
+            if left.right and left.offset:
                 left_offset_sum += left.offset
                 current_separation -= left.offset
                 left = getattr(left, "thread", left.right)
-            else:
+            elif left.offset:
                 left_offset_sum -= left.offset
                 current_separation += left.offset
                 left = getattr(left, "thread", left.left)
 
-            if right.left:
+            if right.left and right.offset:
                 right_offset_sum -= right.offset
                 current_separation -= right.offset
                 right = getattr(right, "thread", right.left)
-            else:
+            elif right.offset:
                 right_offset_sum += right.offset
                 current_separation += right.offset
                 right = getattr(right, "thread", right.right)
@@ -156,7 +159,7 @@ class TreeLayout:
 
     def transform(
         self,
-        node: BinaryTreeNode,
+        node: BinaryTreeNode = None,
         x=0,
         unit_x_multiplier=1,
         unit_y_multiplier=1,
