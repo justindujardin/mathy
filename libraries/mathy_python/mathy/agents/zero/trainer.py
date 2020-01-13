@@ -21,7 +21,7 @@ from ...teacher import Teacher
 from ...util import discount
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
-from ..policy_value_model import PolicyValueModel
+from ..policy_value_model import ThincPolicyValueModel
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import SelfPlayConfig
 from .lib.average_meter import AverageMeter
@@ -33,7 +33,7 @@ class SelfPlayTrainer:
     args: SelfPlayConfig
 
     def __init__(
-        self, args: SelfPlayConfig, model: PolicyValueModel, action_size: int,
+        self, args: SelfPlayConfig, model: ThincPolicyValueModel, action_size: int,
     ):
         super(SelfPlayTrainer, self).__init__()
         import tensorflow as tf

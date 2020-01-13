@@ -3,18 +3,19 @@ from typing import List, Tuple
 import numpy as np
 
 from ..state import MathyEnvState, MathyWindowObservation
-from .policy_value_model import PolicyValueModel
+from .policy_value_model import ThincPolicyValueModel
 from .mcts import MCTS
+import thinc
 
 
 class ActionSelector:
     """An episode-specific selector of actions"""
 
-    model: PolicyValueModel
+    model: ThincPolicyValueModel
     worker_id: int
     episode: int
 
-    def __init__(self, *, model: PolicyValueModel, episode: int, worker_id: int):
+    def __init__(self, *, model: ThincPolicyValueModel, episode: int, worker_id: int):
         self.model = model
         self.worker_id = worker_id
         self.episode = episode

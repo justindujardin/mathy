@@ -8,4 +8,5 @@ wasabi
 # After 0.12.5 they added a conflicting version of cloudpickle. Hopefully tensorflow 2.1.0 will resolve this
 gym<=0.12.5
 tensorflow_probability
+thinc
 typing-extensions>=3.7.4.1

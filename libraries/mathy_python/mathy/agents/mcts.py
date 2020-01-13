@@ -4,7 +4,7 @@ from typing import Any, List, Tuple
 import numpy
 
 from ..env import MathyEnv
-from .policy_value_model import PolicyValueModel
+from .policy_value_model import ThincPolicyValueModel
 from ..state import MathyEnvState, observations_to_window
 from ..util import is_terminal_transition
 
@@ -29,7 +29,7 @@ class MCTS:
     def __init__(
         self,
         env: MathyEnv,
-        model: PolicyValueModel,
+        model: ThincPolicyValueModel,
         cpuct: float = 1.0,
         num_mcts_sims: int = 15,
         epsilon: float = 0.25,
@@ -131,8 +131,8 @@ class MCTS:
             observations = observations_to_window([obs]).to_inputs()
             out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
-                tf.squeeze(self.model.embedding.state_h).numpy(),
-                tf.squeeze(self.model.embedding.state_c).numpy(),
+                tf.squeeze(self.model.unwrapped.embedding.state_h).numpy(),
+                tf.squeeze(self.model.unwrapped.embedding.state_c).numpy(),
             ]
             self.Rs[s] = out_rnn_state
             self.Ps[s] = out_policy
