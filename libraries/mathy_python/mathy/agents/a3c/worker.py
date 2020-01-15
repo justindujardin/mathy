@@ -1,3 +1,4 @@
+import gc
 import math
 import os
 import queue
@@ -9,9 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import gym
 import numpy as np
 import tensorflow as tf
+from memory_profiler import profile
 from wasabi import msg
-
-from ...util import print_error
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
@@ -22,7 +22,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import calculate_grouping_control_signal, discount
+from ...util import calculate_grouping_control_signal, discount, print_error
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
@@ -30,6 +30,8 @@ from ..policy_value_model import ThincPolicyValueModel, get_or_create_policy_mod
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import A3CConfig
 from .util import record, truncate
+
+gc.set_debug(gc.DEBUG_UNCOLLECTABLE | gc.DEBUG_SAVEALL)
 
 
 class A3CWorker(threading.Thread):
@@ -242,7 +244,7 @@ class A3CWorker(threading.Thread):
             seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
             try:
                 window = observations_to_window([seq_start, last_observation])
-                selector.model([window.to_inputs()], is_train=True)
+                selector.model([window.to_inputs()], is_train=False)
             except BaseException as err:
                 print_error(
                     err, f"Episode begin thinking steps prediction failed.",
@@ -462,7 +464,11 @@ class A3CWorker(threading.Thread):
 
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
-        self.local_model.unwrapped.set_weights(self.global_model.unwrapped.get_weights())
+        # TODO: This fails with a thread local error @honnibal
+        # self.local_model.from_bytes(self.global_model.to_bytes())
+        self.local_model.unwrapped.set_weights(
+            self.global_model.unwrapped.get_weights()
+        )
         episode_memory.clear()
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
@@ -519,7 +525,7 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model.unwrapped.call(
+            _, values, _ = self.local_model.predict(
                 observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
@@ -538,11 +544,10 @@ class A3CWorker(threading.Thread):
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
-        logits, values, trimmed_logits = self.local_model.unwrapped(inputs, apply_mask=False)
+        logits, values, trimmed_logits = self.local_model.unwrapped(inputs)
         # TODO: don't call unwrapped here
 
         logits = tf.reshape(logits, [batch_size, -1])
-        policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
         h_loss = discrete_policy_entropy_loss(
@@ -570,7 +575,7 @@ class A3CWorker(threading.Thread):
 
         # Policy Loss
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=episode_memory.actions, logits=policy_logits
+            labels=episode_memory.actions, logits=logits
         )
 
         policy_loss *= advantage

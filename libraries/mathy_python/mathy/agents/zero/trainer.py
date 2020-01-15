@@ -21,7 +21,7 @@ from ...teacher import Teacher
 from ...util import discount
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
-from ..policy_value_model import PolicyValueModel
+from ..policy_value_model import ThincPolicyValueModel
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import SelfPlayConfig
 from .lib.average_meter import AverageMeter
@@ -33,7 +33,7 @@ class SelfPlayTrainer:
     args: SelfPlayConfig
 
     def __init__(
-        self, args: SelfPlayConfig, model: PolicyValueModel, action_size: int,
+        self, args: SelfPlayConfig, model: ThincPolicyValueModel, action_size: int,
     ):
         super(SelfPlayTrainer, self).__init__()
         import tensorflow as tf
@@ -141,13 +141,11 @@ class SelfPlayTrainer:
 
         batch_size = len(inputs.nodes)
         step = self.model.optimizer.iterations
-        logits, values, trimmed_logits = self.model(
-            inputs.to_inputs(), apply_mask=False
-        )
+        logits, values, _ = self.model(inputs.to_inputs())
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
-        policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
+        policy_logits = tf.reshape(logits, [batch_size, -1])
         policy_logits = policy_logits[:, : target_pi.shape[1]]
         policy_loss = tf.nn.softmax_cross_entropy_with_logits(
             labels=target_pi, logits=policy_logits
