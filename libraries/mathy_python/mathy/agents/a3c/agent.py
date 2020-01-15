@@ -39,13 +39,18 @@ class A3CAgent:
         self.writer = tf.summary.create_file_writer(self.log_dir)
         init_window = env.initial_window(self.args.lstm_units)
         self.global_model = get_or_create_policy_model(
-            args=args, env_actions=self.action_size, is_main=True, env=env.mathy
+            args=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
             tf_model: tf.keras.Model = self.global_model.unwrapped
             tf.summary.trace_on(graph=True)
             inputs = init_window.to_inputs()
-            tf_model.call_graph(inputs)
+
+            @tf.function
+            def trace_fn():
+                return tf_model.call(inputs)
+
+            trace_fn()
             tf.summary.trace_export(
                 name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
             )

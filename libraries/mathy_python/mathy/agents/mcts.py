@@ -129,7 +129,7 @@ class MCTS:
                 rnn_history_h=rnn_state[0],
             )
             observations = observations_to_window([obs]).to_inputs()
-            out_policy, state_v = self.model.predict_next(observations, use_graph=False)
+            out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
                 tf.squeeze(self.model.unwrapped.embedding.state_h).numpy(),
                 tf.squeeze(self.model.unwrapped.embedding.state_c).numpy(),

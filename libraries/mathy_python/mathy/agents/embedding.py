@@ -135,16 +135,11 @@ class MathyEmbedding(tf.keras.Model):
         if self.episode_reset_state_c or force is True:
             self.state_c.assign(tf.zeros([1, self.config.lstm_units]))
 
-    @tf.function
-    def call_graph(self, inputs: MathyInputsType) -> tf.Tensor:
-        """Autograph optimized function"""
-        return self.call(inputs)
-
-    def call(self, features: MathyInputsType) -> tf.Tensor:
-        nodes = tf.convert_to_tensor(features[ObservationFeatureIndices.nodes])
-        values = tf.convert_to_tensor(features[ObservationFeatureIndices.values])
-        type = tf.cast(features[ObservationFeatureIndices.type], dtype=tf.float32)
-        time = tf.cast(features[ObservationFeatureIndices.time], dtype=tf.float32)
+    def call(self, features: MathyInputsType, train: tf.Tensor = None) -> tf.Tensor:
+        nodes = features[ObservationFeatureIndices.nodes]
+        values = features[ObservationFeatureIndices.values]
+        type = features[ObservationFeatureIndices.type]
+        time = features[ObservationFeatureIndices.time]
         nodes_shape = tf.shape(features[ObservationFeatureIndices.nodes])
         batch_size = nodes_shape[0]  # noqa
         sequence_length = nodes_shape[1]

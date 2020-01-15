@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import srsly
 import tensorflow as tf
-from tensorflow.python.keras import backend as K
+from tensorflow.keras import backend as K
 from wasabi import msg
 
 from ..env import MathyEnv
@@ -124,13 +124,6 @@ class TFPVModel(tf.keras.Model):
         )
         return negative_mask_logits
 
-    @tf.function
-    def call_graph(
-        self, inputs: MathyInputsType
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        """Autograph optimized function"""
-        return self.call(inputs)
-
 
 class ThincPolicyValueModel(thinc.model.Model[ArrayNd, Tuple[Array1d, Array2d]]):
     @property
@@ -139,15 +132,10 @@ class ThincPolicyValueModel(thinc.model.Model[ArrayNd, Tuple[Array1d, Array2d]])
         assert isinstance(tf_shim, TensorFlowShim), "only tensorflow shim is supported"
         return tf_shim._model
 
-    def predict_next(
-        self, inputs: MathyInputsType, use_graph: bool = False
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
-        if use_graph:
-            logits, values, masked = self.unwrapped.call_graph(inputs)
-        else:
-            logits, values, masked = self.unwrapped.call(inputs)
+        logits, values, masked = self.unwrapped.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
@@ -198,7 +186,7 @@ def _load_model(
 
 def get_or_create_policy_model(
     args: BaseConfig,
-    env_actions: int,
+    predictions: int,
     is_main=False,
     required=False,
     env: MathyEnv = None,
@@ -235,7 +223,7 @@ def get_or_create_policy_model(
                 print_error=False,
             )
 
-    model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
+    model = PolicyValueModel(args=args, predictions=predictions, name="agent")
     init_inputs = initial_state.to_inputs()
 
     def handshake_keras(m: ThincPolicyValueModel):

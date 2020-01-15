@@ -26,7 +26,7 @@ instance = A3CAgent(args)
 instance.train()
 # Load the model back in
 model_two = get_or_create_policy_model(
-    args=args, env_actions=PolySimplify().action_size, is_main=True
+    args=args, predictions=PolySimplify().action_size, is_main=True
 )
 # Comment this out to keep your model
 shutil.rmtree(model_folder)
