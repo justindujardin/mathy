@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 from shutil import copyfile
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
-from memory_profiler import profile
 
 import numpy as np
 import srsly
@@ -275,7 +274,7 @@ def get_or_create_policy_model(
         # If we're doing transfer, reset optimizer steps
         if is_main and args.init_model_from is not None:
             msg.info("reset optimizer steps to 0 for transfer model")
-            model.optimizer.iterations.assign(0)
+            model.unwrapped.optimizer.iterations.assign(0)
     elif required:
         print_error(
             ValueError("Model Not Found"),
