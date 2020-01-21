@@ -1,4 +1,3 @@
-import gc
 import math
 import os
 import queue
@@ -29,8 +28,6 @@ from ..policy_value_model import ThincPolicyValueModel, get_or_create_policy_mod
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import A3CConfig
 from .util import record, truncate
-
-gc.set_debug(gc.DEBUG_UNCOLLECTABLE | gc.DEBUG_SAVEALL)
 
 
 class A3CWorker(threading.Thread):
@@ -466,11 +463,11 @@ class A3CWorker(threading.Thread):
 
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
-        # TODO: This fails with a thread local error @honnibal
-        # self.local_model.from_bytes(self.global_model.to_bytes())
-        self.local_model.unwrapped.set_weights(
-            self.global_model.unwrapped.get_weights()
-        )
+        self.local_model.from_bytes(self.global_model.to_bytes())
+        # self.local_model.unwrapped.set_weights(
+        #     self.global_model.unwrapped.get_weights()
+        # )
+
         episode_memory.clear()
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
