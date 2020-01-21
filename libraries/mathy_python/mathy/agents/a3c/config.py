@@ -2,14 +2,11 @@ from ...agents.base_config import BaseConfig
 
 
 class A3CConfig(BaseConfig):
-    # Update frequencey for the Worker to sync with the Main model. This has different
-    # meaning for different agents:
+    # Update frequencey for the Worker to sync with the Main model.
     #
-    # - for A3C agents this value indicates the maximum number of steps to take in an
-    #   episode before syncing the replay buffer and gradients.
-    # - for R2D2 agents this value indicates the number of episodes to run between
-    #   syncing the latest model from the learner process.
-    update_gradients_every: int = 64
+    # Indicates the maximum number of steps to take in an episode before
+    # syncing the replay buffer and gradients.
+    update_gradients_every: int = 12
 
     normalization_style: str = "layer"
 
@@ -34,14 +31,9 @@ class A3CConfig(BaseConfig):
     # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 200
 
-    # Whether to use the grouping change aux task
-    use_grouping_control = True
-    # Clip signal at 0.0 so it does not optimize into the negatives
-    clip_grouping_control = False
-
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.1
+    e_greedy_max = 0.3
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
