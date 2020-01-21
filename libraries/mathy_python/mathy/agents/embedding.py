@@ -72,21 +72,13 @@ class MathyEmbedding(tf.keras.Model):
             NormalizeClass = tf.keras.layers.BatchNormalization
         self.out_dense_norm = NormalizeClass(name="out_dense_norm")
         if self.config.use_lstm:
-            self.time_lstm_norm = NormalizeClass(name="lstm_time_norm")
             self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
-            self.time_lstm = tf.keras.layers.LSTM(
+            self.lstm = tf.keras.layers.LSTM(
                 self.config.lstm_units,
-                name="timestep_lstm",
-                return_sequences=True,
-                time_major=True,
-                return_state=True,
-            )
-            self.nodes_lstm = tf.keras.layers.LSTM(
-                self.config.lstm_units,
-                name="nodes_lstm",
+                name="lstm",
                 return_sequences=True,
                 time_major=False,
-                return_state=False,
+                return_state=True,
             )
         else:
             self.densenet = DenseNetStack(
@@ -143,8 +135,6 @@ class MathyEmbedding(tf.keras.Model):
         nodes_shape = tf.shape(features[ObservationFeatureIndices.nodes])
         batch_size = nodes_shape[0]  # noqa
         sequence_length = nodes_shape[1]
-        # batch_size = features[ObservationFeatureIndices.nodes].shape[0]  # noqa
-        # sequence_length = features[ObservationFeatureIndices.nodes].shape[1]  # noqa
 
         in_rnn_state_h = features[ObservationFeatureIndices.rnn_state_h]
         in_rnn_state_c = features[ObservationFeatureIndices.rnn_state_c]
@@ -178,27 +168,11 @@ class MathyEmbedding(tf.keras.Model):
         query = self.in_dense(query)
 
         if self.config.use_lstm:
-            with tf.name_scope("prepare_initial_states"):
-                in_time_h = in_rnn_state_h[-1:, :]
-                in_time_c = in_rnn_state_c[-1:, :]
-                time_initial_h = tf.tile(
-                    in_time_h, [sequence_length, 1], name="time_hidden",
-                )
-                time_initial_c = tf.tile(
-                    in_time_c, [sequence_length, 1], name="time_cell",
-                )
-
             with tf.name_scope("rnn"):
-                query = self.nodes_lstm(query)
-                query = self.nodes_lstm_norm(query)
-                query, state_h, state_c = self.time_lstm(
-                    query, initial_state=[time_initial_h, time_initial_c]
+                query, state_h, state_c = self.lstm(
+                    query, initial_state=[in_rnn_state_h, in_rnn_state_c]
                 )
-                query = self.time_lstm_norm(query)
-                # historical_state_h = tf.squeeze(
-                #     tf.concat(in_rnn_history_h[0], axis=0, name="average_history_hidden"),
-                #     axis=1,
-                # )
+                query = self.nodes_lstm_norm(query)
 
             self.state_h.assign(state_h[-1:])
             self.state_c.assign(state_c[-1:])

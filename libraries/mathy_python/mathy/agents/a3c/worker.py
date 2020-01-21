@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import gym
 import numpy as np
 import tensorflow as tf
-from memory_profiler import profile
 from wasabi import msg
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
@@ -82,7 +81,10 @@ class A3CWorker(threading.Thread):
             self.reset_episode_loss()
             self.last_model_write = -1
             self.last_histogram_write = -1
-        msg.good(f"Worker {worker_idx} started.")
+        display_e = self.greedy_epsilon
+        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
+            display_e = 0.0
+        msg.good(f"Worker {worker_idx} started. (e={display_e:.3f})")
 
     @property
     def tb_prefix(self) -> str:
@@ -526,7 +528,7 @@ class A3CWorker(threading.Thread):
         else:
             # Predict the reward using the local network
             _, values, _ = self.local_model.predict(
-                observations_to_window([observation]).to_inputs()
+                [observations_to_window([observation]).to_inputs()]
             )
             # Select the last timestep
             values = values[-1]
