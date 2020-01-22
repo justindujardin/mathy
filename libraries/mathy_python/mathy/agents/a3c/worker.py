@@ -273,7 +273,9 @@ class A3CWorker(threading.Thread):
             # before_rnn_state_h = selector.model.unwrapped.embedding.state_h.numpy()
             # before_rnn_state_c = selector.model.unwrapped.embedding.state_c.numpy()
 
-            window = episode_memory.to_window_observation(last_observation)
+            window = episode_memory.to_window_observation(
+                last_observation, window_size=self.args.prediction_window_size
+            )
             try:
                 action, value = selector.select(
                     last_state=env.state,

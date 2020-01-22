@@ -20,6 +20,9 @@ class BaseConfig(BaseModel):
 
     # One of "batch" or "layer"
     normalization_style = "layer"
+    # The number of previous timesteps to pass in with the current one
+    # when making predictions.
+    prediction_window_size: int = 7
 
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True
@@ -62,7 +65,7 @@ class BaseConfig(BaseModel):
     clip_grouping_control = True
 
     # Include the time/type environment features in the embeddings
-    use_env_features = False
+    use_env_features = True
 
     # Include the node values floating point features in the embeddings
     use_node_values = True
