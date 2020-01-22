@@ -111,19 +111,12 @@ class MathyEmbedding(tf.keras.Model):
             trainable=False,
             name="embedding/rnn/agent_state_h",
         )
-        # Historical state is twice the size of the RNN state because it's a
-        # concatenation of the current state_h and the historical average state_h
-        self.state_h_with_history = tf.Variable(
-            tf.zeros([1, self.config.lstm_units * 2]),
-            trainable=False,
-            name="embedding/rnn/agent_state_h_with_history",
-        )
 
     def reset_rnn_state(self, force: bool = False):
         """Zero out the RNN state for a new episode"""
         if self.episode_reset_state_h or force is True:
             self.state_h.assign(tf.zeros([1, self.config.lstm_units]))
-            self.state_h_with_history.assign(tf.zeros([1, self.config.lstm_units * 2]))
+
         if self.episode_reset_state_c or force is True:
             self.state_c.assign(tf.zeros([1, self.config.lstm_units]))
 
@@ -183,7 +176,6 @@ class MathyEmbedding(tf.keras.Model):
                 rnn_state_with_history = tf.concat(
                     [state_h[-1:], in_rnn_history_h[-1:]], axis=-1,
                 )
-                self.state_h_with_history.assign(rnn_state_with_history)
                 lstm_context = tf.tile(
                     tf.expand_dims(rnn_state_with_history, axis=0),
                     [batch_size, sequence_length, 1],
