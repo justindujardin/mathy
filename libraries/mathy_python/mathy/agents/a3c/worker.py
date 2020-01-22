@@ -368,7 +368,7 @@ class A3CWorker(threading.Thread):
                 # The greedy worker sleeps for a shorter period of time
                 sleep = self.args.worker_wait
                 if self.worker_idx == 0:
-                    sleep = max(sleep // 100, 0.05)
+                    sleep = max(sleep // 100, 0.005)
                 # Workers wait between each step so that it's possible
                 # to run more workers than there are CPUs available.
                 time.sleep(sleep)
