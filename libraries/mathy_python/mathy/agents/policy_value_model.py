@@ -63,7 +63,12 @@ class TFPVModel(tf.keras.Model):
         self.args = args
         self.predictions = predictions
         self.embedding = MathyEmbedding(self.args)
-        # self.embedding.compile(optimizer=self.optimizer, run_eagerly=True)
+        self.value_head = tf.keras.layers.Dense(
+            self.args.units,
+            name="value_head",
+            kernel_initializer="he_normal",
+            activation="relu",
+        )
         self.value_logits = tf.keras.layers.Dense(
             1, name="value_logits", kernel_initializer="he_normal", activation=None,
         )
@@ -114,7 +119,9 @@ class TFPVModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = self.normalize_v(self.value_logits(self.embedding.state_h))
+        values = self.value_head(tf.reduce_mean(sequence_inputs, axis=1))
+        values = self.normalize_v(values)
+        values = self.value_logits(values)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
         if call_print is True:
