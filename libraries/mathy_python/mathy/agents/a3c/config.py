@@ -6,7 +6,7 @@ class A3CConfig(BaseConfig):
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
-    update_gradients_every: int = 12
+    update_gradients_every: int = 6
 
     normalization_style: str = "layer"
 
