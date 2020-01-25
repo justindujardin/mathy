@@ -36,7 +36,7 @@ class BaseConfig(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
-    lr: float = 3e-4
+    lr: float = 1e-3
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
