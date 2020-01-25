@@ -42,13 +42,12 @@ class A3CAgent:
             args=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
-            tf_model: tf.keras.Model = self.global_model.unwrapped
             tf.summary.trace_on(graph=True)
             inputs = init_window.to_inputs()
 
             @tf.function
             def trace_fn():
-                return tf_model.call(inputs)
+                return self.global_model.call(inputs)
 
             trace_fn()
             tf.summary.trace_export(
@@ -56,7 +55,7 @@ class A3CAgent:
             )
             tf.summary.trace_off()
             if self.args.verbose:
-                print(tf_model.summary())
+                print(self.global_model.summary())
 
     def train(self):
         res_queue = Queue()
@@ -74,7 +73,7 @@ class A3CAgent:
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,
-                optimizer=self.global_model.unwrapped.optimizer,
+                optimizer=self.global_model.optimizer,
                 result_queue=res_queue,
                 writer=self.writer,
             )

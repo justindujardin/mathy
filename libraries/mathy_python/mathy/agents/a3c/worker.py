@@ -24,7 +24,7 @@ from ...util import calculate_grouping_control_signal, discount, print_error
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
-from ..policy_value_model import ThincPolicyValueModel, get_or_create_policy_model
+from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import A3CConfig
 from .util import record, truncate
@@ -48,7 +48,7 @@ class A3CWorker(threading.Thread):
         self,
         args: A3CConfig,
         action_size: int,
-        global_model: ThincPolicyValueModel,
+        global_model: PolicyValueModel,
         optimizer,
         greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,
@@ -133,7 +133,7 @@ class A3CWorker(threading.Thread):
                 if win_pct is not None:
                     with self.writer.as_default():
                         student = self.teacher.students[self.worker_idx]
-                        step = self.global_model.unwrapped.optimizer.iterations
+                        step = self.global_model.optimizer.iterations
                         if self.worker_idx == 0:
                             tf.summary.scalar(
                                 f"win_rate/{student.topic}", data=win_pct, step=step
@@ -234,16 +234,16 @@ class A3CWorker(threading.Thread):
         selector = self.build_episode_selector(env)
 
         # Set RNN to 0 state for start of episode
-        selector.model.unwrapped.embedding.reset_rnn_state()
+        selector.model.embedding.reset_rnn_state()
 
         # Start with the "init" sequence [n] times
         for i in range(self.args.num_thinking_steps_begin):
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
             try:
                 window = observations_to_window([seq_start, last_observation])
-                selector.model([window.to_inputs()], is_train=False)
+                selector.model.call(window.to_inputs())
             except BaseException as err:
                 print_error(
                     err, f"Episode begin thinking steps prediction failed.",
@@ -254,8 +254,8 @@ class A3CWorker(threading.Thread):
             if self.args.print_training and self.worker_idx == 0:
                 env.render(self.args.print_mode, None)
             # store rnn state for replay training
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             rnn_history_h = episode_memory.rnn_weighted_history(self.args.lstm_units)[0]
             last_rnn_state = [rnn_state_h, rnn_state_c]
 
@@ -270,8 +270,8 @@ class A3CWorker(threading.Thread):
                 rnn_state_c=tf.squeeze(rnn_state_c),
                 rnn_history_h=rnn_history_h,
             )
-            # before_rnn_state_h = selector.model.unwrapped.embedding.state_h.numpy()
-            # before_rnn_state_c = selector.model.unwrapped.embedding.state_c.numpy()
+            # before_rnn_state_h = selector.model.embedding.state_h.numpy()
+            # before_rnn_state_c = selector.model.embedding.state_c.numpy()
 
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
@@ -290,8 +290,8 @@ class A3CWorker(threading.Thread):
 
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
 
             # TODO: make this a unit test, check that EpisodeMemory states are not equal
             #       across time steps.
@@ -382,7 +382,7 @@ class A3CWorker(threading.Thread):
         assert self.worker_idx == 0, "only write summaries for greedy worker"
         # Track metrics for all workers
         name = self.teacher.get_env(self.worker_idx, self.iteration)
-        step = self.global_model.unwrapped.optimizer.iterations
+        step = self.global_model.optimizer.iterations
         with self.writer.as_default():
             agent_state = last_state.agent
             steps = int(last_state.max_moves - agent_state.moves_remaining)
@@ -402,27 +402,25 @@ class A3CWorker(threading.Thread):
     def maybe_write_histograms(self) -> None:
         if self.worker_idx != 0:
             return
-        step = self.global_model.unwrapped.optimizer.iterations.numpy()
+        step = self.global_model.optimizer.iterations.numpy()
         next_write = self.last_histogram_write + self.args.summary_interval
         if step >= next_write or self.last_histogram_write == -1:
             with self.writer.as_default():
                 self.last_histogram_write = step
-                for var in self.local_model.unwrapped.trainable_variables:
+                for var in self.local_model.trainable_variables:
                     tf.summary.histogram(
-                        var.name,
-                        var,
-                        step=self.global_model.unwrapped.optimizer.iterations,
+                        var.name, var, step=self.global_model.optimizer.iterations,
                     )
                 # Write out current LSTM hidden/cell states
                 tf.summary.histogram(
                     "memory/lstm_c",
-                    self.local_model.unwrapped.embedding.state_c,
-                    step=self.global_model.unwrapped.optimizer.iterations,
+                    self.local_model.embedding.state_c,
+                    step=self.global_model.optimizer.iterations,
                 )
                 tf.summary.histogram(
                     "memory/lstm_h",
-                    self.local_model.unwrapped.embedding.state_h,
-                    step=self.global_model.unwrapped.optimizer.iterations,
+                    self.local_model.embedding.state_h,
+                    step=self.global_model.optimizer.iterations,
                 )
 
     def update_global_network(
@@ -447,10 +445,10 @@ class A3CWorker(threading.Thread):
                 self.ep_aux_loss[k] = 0.0
             self.ep_aux_loss[k] += aux_losses[k].numpy()
         # Calculate local gradients
-        grads = tape.gradient(total_loss, self.local_model.unwrapped.trainable_weights)
+        grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
 
-        zipped_gradients = zip(grads, self.global_model.unwrapped.trainable_weights)
+        zipped_gradients = zip(grads, self.global_model.trainable_weights)
         # Assert that we always have some gradient flow in each trainable var
 
         # TODO: Make this a unit test. It degrades performance at train time
@@ -465,10 +463,7 @@ class A3CWorker(threading.Thread):
 
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
-        self.local_model.from_bytes(self.global_model.to_bytes())
-        # self.local_model.unwrapped.set_weights(
-        #     self.global_model.unwrapped.get_weights()
-        # )
+        self.local_model.set_weights(self.global_model.get_weights())
 
         episode_memory.clear()
 
@@ -496,7 +491,7 @@ class A3CWorker(threading.Thread):
                 episode_reward, episode_steps, last_state
             )
 
-            step = self.global_model.unwrapped.optimizer.iterations.numpy()
+            step = self.global_model.optimizer.iterations.numpy()
             next_write = self.last_model_write + A3CWorker.save_every_n_episodes
             if step >= next_write or self.last_model_write == -1:
                 self.last_model_write = step
@@ -521,13 +516,13 @@ class A3CWorker(threading.Thread):
         episode_memory: EpisodeMemory,
         gamma=0.99,
     ):
-        step = self.global_model.unwrapped.optimizer.iterations
+        step = self.global_model.optimizer.iterations
         if done:
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model.predict(
-                [observations_to_window([observation]).to_inputs()]
+            _, values, _ = self.local_model.call(
+                observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
             values = values[-1]
@@ -545,8 +540,7 @@ class A3CWorker(threading.Thread):
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
-        logits, values, trimmed_logits = self.local_model.unwrapped(inputs)
-        # TODO: don't call unwrapped here
+        logits, values, trimmed_logits = self.local_model.call(inputs)
 
         logits = tf.reshape(logits, [batch_size, -1])
 
@@ -624,7 +618,7 @@ class A3CWorker(threading.Thread):
         gamma=0.99,
     ):
         with self.writer.as_default():
-            step = self.global_model.unwrapped.optimizer.iterations
+            step = self.global_model.optimizer.iterations
             loss_tuple = self.compute_policy_value_loss(
                 done, observation, episode_memory
             )

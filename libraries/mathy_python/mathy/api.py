@@ -2,30 +2,28 @@ from typing import Optional
 
 from .agents.base_config import BaseConfig
 from .agents.episode_memory import EpisodeMemory
-from .agents.policy_value_model import ThincPolicyValueModel, load_policy_value_model
+from .agents.policy_value_model import PolicyValueModel, load_policy_value_model
 
 
 class Mathy:
     """The standard interface for working with Mathy models and agents."""
 
     config: BaseConfig
-    model: ThincPolicyValueModel
+    model: PolicyValueModel
 
     def __init__(
         self,
         *,
         model_path: str = None,
-        model: ThincPolicyValueModel = None,
+        model: PolicyValueModel = None,
         config: BaseConfig = None,
         silent: bool = False,
     ):
         if model_path is not None:
             self.model, self.config = load_policy_value_model(model_path, silent=silent)
         elif model is not None and config is not None:
-            if not isinstance(model, ThincPolicyValueModel):
-                raise ValueError(
-                    "model must derive ThincPolicyValueModel for compatibility"
-                )
+            if not isinstance(model, PolicyValueModel):
+                raise ValueError("model must derive PolicyValueModel for compatibility")
             self.model = model
             self.config = config
         else:
@@ -82,12 +80,12 @@ class Mathy:
         )
 
         # Set RNN to 0 state for start of episode
-        selector.model.unwrapped.embedding.reset_rnn_state()
+        selector.model.embedding.reset_rnn_state()
 
         # Start with the "init" sequence [n] times
         for i in range(self.config.num_thinking_steps_begin + 1):
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
             selector.model(
                 [observations_to_window([seq_start]).to_inputs()], is_train=False
@@ -97,8 +95,8 @@ class Mathy:
         while not done:
             env.render(self.config.print_mode, None)
             # store rnn state for replay training
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             last_rnn_state = [rnn_state_h, rnn_state_c]
 
             # named tuples are read-only, so add rnn state to a new copy
@@ -132,8 +130,8 @@ class Mathy:
                 continue
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            rnn_state_h = tf.squeeze(selector.model.unwrapped.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.unwrapped.embedding.state_c.numpy())
+            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
+            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             observation = MathyObservation(
                 nodes=observation.nodes,
                 mask=observation.mask,

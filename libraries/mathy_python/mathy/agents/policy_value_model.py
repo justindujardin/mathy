@@ -8,16 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 import numpy as np
 import srsly
 import tensorflow as tf
-import thinc
 from tensorflow.keras import backend as K
-from thinc.api import TensorFlowWrapper, keras_subclass, tensorflow2xp, xp2tensorflow
-from thinc.backends import Ops, get_current_ops
-from thinc.layers import Linear
-from thinc.model import Model
-from thinc.optimizers import Adam
-from thinc.shims.tensorflow import TensorFlowShim
-from thinc.types import Array, Array1d, Array2d, ArrayNd
-from thinc.util import has_tensorflow, to_categorical
 from wasabi import msg
 
 from mathy.agents.example import example
@@ -35,17 +26,8 @@ from ..util import print_error
 from .base_config import BaseConfig
 from .embedding import MathyEmbedding
 
-eg = example()
 
-
-@keras_subclass(
-    "TFPVModel.v0",
-    X=eg.to_inputs(as_tf_tensor=False),
-    Y=eg.mask,
-    input_shape=eg.to_input_shapes(),
-    compile_args={"loss": "binary_crossentropy", "metrics": ["accuracy"]},
-)
-class TFPVModel(tf.keras.Model):
+class PolicyValueModel(tf.keras.Model):
     args: BaseConfig
     optimizer: tf.optimizers.Optimizer
 
@@ -56,7 +38,7 @@ class TFPVModel(tf.keras.Model):
         initial_state: Any = None,
         **kwargs,
     ):
-        super(TFPVModel, self).__init__(**kwargs)
+        super(PolicyValueModel, self).__init__(**kwargs)
         if args is None:
             args = BaseConfig()
         self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
@@ -152,22 +134,12 @@ class TFPVModel(tf.keras.Model):
         )
         return negative_mask_logits
 
-
-class ThincPolicyValueModel(
-    thinc.model.Model[ArrayNd, Tuple[Array2d, Array1d, Array2d]]
-):
-    @property
-    def unwrapped(self) -> TFPVModel:
-        tf_shim = cast(TensorFlowShim, self.shims[0])
-        assert isinstance(tf_shim, TensorFlowShim), "only tensorflow shim is supported"
-        return tf_shim._model
-
     def predict_next(
         self, inputs: MathyInputsType, is_train: bool = False
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
-        logits, values, masked = self.unwrapped.call(inputs)
+        logits, values, masked = self.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
@@ -175,38 +147,25 @@ class ThincPolicyValueModel(
         return probs, tf.squeeze(values[-1])
 
     def save(self) -> None:
-        if not os.path.exists(self.unwrapped.args.model_dir):
-            os.makedirs(self.unwrapped.args.model_dir)
-        model_path = os.path.join(
-            self.unwrapped.args.model_dir, self.unwrapped.args.model_name
-        )
-        save_model_file = f"{model_path}.bytes"
-        self.to_disk(save_model_file)
+        if not os.path.exists(self.args.model_dir):
+            os.makedirs(self.args.model_dir)
+        model_path = os.path.join(self.args.model_dir, self.args.model_name)
         with open(f"{model_path}.optimizer", "wb") as f:
-            pickle.dump(self.unwrapped.optimizer.get_weights(), f)
-        step = self.unwrapped.optimizer.iterations.numpy()
-        print(f"[save] step({step}) model({save_model_file})")
-
-
-def PolicyValueModel(
-    args: BaseConfig = None, predictions=2, **kwargs,
-):
-    tf_model = TFPVModel(args, predictions, **kwargs)
-    return TensorFlowWrapper(
-        tf_model,
-        model_class=ThincPolicyValueModel,
-        model_name="agent",
-        optimizer=tf_model.optimizer,
-    )
+            pickle.dump(self.optimizer.get_weights(), f)
+        model_path += ".h5"
+        self.save_weights(model_path, save_format="keras")
+        step = self.optimizer.iterations.numpy()
+        print(f"[save] step({step}) model({model_path})")
 
 
 def _load_model(
-    model: ThincPolicyValueModel, model_file: str, optimizer_file: str,
-) -> ThincPolicyValueModel:
-    model.from_disk(model_file)
+    model: PolicyValueModel, model_file: str, optimizer_file: str,
+) -> PolicyValueModel:
+    model.load_weights(model_file)
+    model._make_train_function()
     with open(optimizer_file, "rb") as f:
         weight_values = pickle.load(f)
-    model.unwrapped.optimizer.set_weights(weight_values)
+    model.optimizer.set_weights(weight_values)
     return model
 
 
@@ -216,7 +175,7 @@ def get_or_create_policy_model(
     is_main=False,
     required=False,
     env: MathyEnv = None,
-) -> ThincPolicyValueModel:
+) -> PolicyValueModel:
     if env is None:
         env = PolySimplify()
     observation: MathyObservation = env.state_to_observation(
@@ -231,8 +190,8 @@ def get_or_create_policy_model(
     if is_main and args.init_model_from is not None:
         init_model_path = os.path.join(args.init_model_from, args.model_name)
         opt = f"{init_model_path}.optimizer"
-        mod = f"{init_model_path}.bytes"
-        if os.path.exists(f"{model_path}.bytes"):
+        mod = f"{init_model_path}.h5"
+        if os.path.exists(f"{model_path}.h5"):
             print_error(
                 ValueError("Model Exists"),
                 f"Cannot initialize on top of model: {model_path}",
@@ -241,7 +200,7 @@ def get_or_create_policy_model(
         if os.path.exists(opt) and os.path.exists(mod):
             print(f"initialize model from: {init_model_path}")
             copyfile(opt, f"{model_path}.optimizer")
-            copyfile(mod, f"{model_path}.bytes")
+            copyfile(mod, f"{model_path}.h5")
         else:
             print_error(
                 ValueError("Model Exists"),
@@ -251,9 +210,15 @@ def get_or_create_policy_model(
 
     model = PolicyValueModel(args=args, predictions=predictions, name="agent")
     init_inputs = initial_state.to_inputs()
+    model.compile(
+        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
+    )
+    model.build(initial_state.to_input_shapes())
+    model.predict(init_inputs)
+    model.predict_next(init_inputs)
 
     opt = f"{model_path}.optimizer"
-    mod = f"{model_path}.bytes"
+    mod = f"{model_path}.h5"
     if os.path.exists(mod):
         if is_main and args.verbose:
             with msg.loading(f"Loading model: {mod}..."):
@@ -265,7 +230,7 @@ def get_or_create_policy_model(
         # If we're doing transfer, reset optimizer steps
         if is_main and args.init_model_from is not None:
             msg.info("reset optimizer steps to 0 for transfer model")
-            model.unwrapped.optimizer.iterations.assign(0)
+            model.optimizer.iterations.assign(0)
     elif required:
         print_error(
             ValueError("Model Not Found"),
@@ -283,12 +248,12 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> Tuple[thinc.model.Model, BaseConfig]:
+) -> PolicyValueModel:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
     args = BaseConfig(**srsly.read_json(str(meta_file)))
-    model_file = Path(model_data_folder) / "model.bytes"
+    model_file = Path(model_data_folder) / "model.h5"
     optimizer_file = Path(model_data_folder) / "model.optimizer"
     if not model_file.exists():
         raise ValueError(f"model not found: {model_file}")
@@ -301,6 +266,13 @@ def load_policy_value_model(
     initial_state: MathyWindowObservation = observations_to_window([observation])
     model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
     init_inputs = initial_state.to_inputs()
+    model.compile(
+        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
+    )
+    model.build(initial_state.to_input_shapes())
+    model.predict(init_inputs)
+    model.predict_next(init_inputs)
+
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
             _load_model(model, str(model_file), str(optimizer_file))

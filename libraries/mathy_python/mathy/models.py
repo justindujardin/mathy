@@ -49,7 +49,7 @@ _data_path = Path(__file__).parent / "data"
 
 
 REQUIRED_META_KEYS = ["units", "embedding_units", "lstm_units", "version"]
-REQUIRED_MODEL_FILES = ["model.bytes", "model.optimizer", "model.config.json"]
+REQUIRED_MODEL_FILES = ["model.h5", "model.optimizer", "model.config.json"]
 
 
 def load_model(name: str, **overrides) -> Mathy:
