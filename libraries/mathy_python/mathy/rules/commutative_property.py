@@ -79,9 +79,17 @@ class CommutativeSwapRule(BaseRule):
         a = node.left
         b = node.right
 
-        node.set_right(a)
-        node.set_left(b)
-        node.set_changed()
+        # The left node is not another sibling add
+        if not isinstance(a, AddExpression):
+            node.set_right(a)
+            node.set_left(b)
+        else:
+            # If it's another add, just swap their
+            # children directly to avoid inner-nesting.
+            c = a.right
+            node.set_right(a.right)
+            a.set_right(b)
 
+        node.set_changed()
         change.done(node)
         return change
