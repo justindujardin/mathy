@@ -1,3 +1,15 @@
+## [0.6.2](https://github.com/justindujardin/mathy/compare/v0.6.1...v0.6.2) (2020-01-25)
+
+
+### Bug Fixes
+
+* **types:** don't shadow mathy with a py file ([a7c558c](https://github.com/justindujardin/mathy/commit/a7c558c3caf3b92db5e184d66aea0004d1ab49b0))
+
+
+### Features
+
+* add py.typed file to manifest ([3f955b1](https://github.com/justindujardin/mathy/commit/3f955b121da2f7fbe5e9b45458f5c13d0a591ee5))
+
 ## [0.6.1](https://github.com/justindujardin/mathy/compare/v0.6.0...v0.6.1) (2020-01-13)
 
 
