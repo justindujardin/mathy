@@ -5,7 +5,7 @@ from ..mathy import envs
 from ..mathy.agents.base_config import BaseConfig
 from ..mathy.agents.policy_value_model import PolicyValueModel
 from ..mathy.env import MathyEnv
-from ..mathy.mathy import Mathy
+from ..mathy.api import Mathy
 from ..mathy.state import MathyObservation, observations_to_window
 
 

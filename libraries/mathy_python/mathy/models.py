@@ -43,7 +43,7 @@ import srsly
 from wasabi import get_raw_input, msg
 
 from . import about
-from .mathy import Mathy
+from .api import Mathy
 
 _data_path = Path(__file__).parent / "data"
 

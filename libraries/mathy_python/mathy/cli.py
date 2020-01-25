@@ -53,7 +53,7 @@ def cli_simplify(
     setup_tf_env()
 
     from .models import load_model
-    from .mathy import Mathy
+    from .api import Mathy
 
     mt: Mathy = load_model(model)
     mt.simplify(problem=problem, max_steps=max_steps, thinking_steps=thinking_steps)
