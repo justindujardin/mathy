@@ -566,7 +566,7 @@ def get_term_ex(node: Optional[MathExpression]) -> Optional[TermEx]:
     return None
 
 
-def factor_add_terms_ex(left_term: TermEx, right_term: TermEx):
+def factor_add_terms_ex(left_term: TermEx, right_term: TermEx) -> FactorResult:
     if not left_term or not right_term:
         raise ValueError("invalid terms for factoring")
 
@@ -631,8 +631,17 @@ def factor_add_terms_ex(left_term: TermEx, right_term: TermEx):
     return result
 
 
-def get_terms(expression: MathExpression):
-    results = []
+def get_terms(expression: MathExpression) -> List[MathExpression]:
+    """Walk the given expression tree and return a list of nodes
+    representing the distinct terms it contains.
+    
+    # Arguments
+    expression (MathExpression): the expression to find term nodes in
+
+    # Returns
+    (List[MathExpression]): a list of term nodes
+    """
+    results: List[MathExpression] = []
     root = expression.get_root()
     if isinstance(root, MultiplyExpression):
         results.append(root)
@@ -650,7 +659,10 @@ def get_terms(expression: MathExpression):
     return [expression] if len(results) == 0 else results
 
 
-def terms_are_like(one, two):
+def terms_are_like(
+    one: Union[TermResult, MathExpression, Literal[False]],
+    two: Union[TermResult, MathExpression, Literal[False]],
+) -> bool:
     """Determine if two math expression nodes are **like terms**.
 
     # Arguments
@@ -660,16 +672,18 @@ def terms_are_like(one, two):
     # Returns
     (bool): Whether the terms are like or not.
     """
-    # Both must be valid terms
-    if one is False or two is False:
-        return False
-
     # Extract terms from MathExpressions if need be
     if isinstance(one, MathExpression):
         one = get_term(one)
 
     if isinstance(two, MathExpression):
         two = get_term(two)
+
+    if one is False or two is False:
+        return False
+
+    # Coerce the type away from math expression
+    assert isinstance(one, TermResult) and isinstance(two, TermResult)
 
     # if neither have variables, then they are a match!
     if len(one.variables) == 0 and len(two.variables) == 0:
