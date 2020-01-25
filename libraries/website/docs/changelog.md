@@ -5,7 +5,7 @@
 
 * **config:** add print_model_call_times option ([47ad597](https://github.com/justindujardin/mathy/commit/47ad597b062d79381428cfaa4d719c57d3581cc5))
 
-# [0.6.0](https://github.com/justindujardin/mathy/compare/v0.5.3...v0.6.0) (2020-01-05)
+## [0.6.0](https://github.com/justindujardin/mathy/compare/v0.5.3...v0.6.0) (2020-01-05)
 
 
 ### Bug Fixes
