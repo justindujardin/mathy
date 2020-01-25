@@ -189,16 +189,18 @@ def get_or_create_policy_model(
         init_model_path = os.path.join(args.init_model_from, args.model_name)
         opt = f"{init_model_path}.optimizer"
         mod = f"{init_model_path}.h5"
-        if os.path.exists(f"{model_path}.h5"):
+        cfg = f"{init_model_path}.config.json"
+        if os.path.exists(f"{model_path}.bytes"):
             print_error(
                 ValueError("Model Exists"),
                 f"Cannot initialize on top of model: {model_path}",
                 print_error=False,
             )
-        if os.path.exists(opt) and os.path.exists(mod):
+        if os.path.exists(opt) and os.path.exists(mod) and os.path.exists(cfg):
             print(f"initialize model from: {init_model_path}")
             copyfile(opt, f"{model_path}.optimizer")
             copyfile(mod, f"{model_path}.h5")
+            copyfile(cfg, f"{model_path}.config.json")
         else:
             print_error(
                 ValueError("Model Exists"),
