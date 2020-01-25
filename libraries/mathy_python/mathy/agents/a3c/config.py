@@ -58,7 +58,7 @@ class A3CConfig(BaseConfig):
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 50
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 20
+    teacher_evaluation_steps = 5
     # If the agent wins >= this value, promote to the next difficulty class
     # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
