@@ -134,9 +134,7 @@ class PolicyValueModel(tf.keras.Model):
         )
         return negative_mask_logits
 
-    def predict_next(
-        self, inputs: MathyInputsType, is_train: bool = False
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
         logits, values, masked = self.call(inputs)
