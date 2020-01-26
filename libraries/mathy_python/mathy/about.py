@@ -1,5 +1,5 @@
 __title__ = "mathy"
-__version__ = "0.6.3"
+__version__ = "0.6.4"
 __summary__ = "Mathy - RL environments for solving math problems step-by-step"
 __uri__ = "https://mathy.ai"
 __author__ = "Justin DuJardin"

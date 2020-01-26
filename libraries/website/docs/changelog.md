@@ -1,3 +1,10 @@
+## [0.6.4](https://github.com/justindujardin/mathy/compare/v0.6.3...v0.6.4) (2020-01-26)
+
+
+### Bug Fixes
+
+* **package:** require typing_extensions ([55b0bc9](https://github.com/justindujardin/mathy/commit/55b0bc97e831727459cd01c06ce3be21d9f6a011))
+
 ## [0.6.3](https://github.com/justindujardin/mathy/compare/v0.6.2...v0.6.3) (2020-01-26)
 
 
