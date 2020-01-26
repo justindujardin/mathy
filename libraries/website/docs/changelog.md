@@ -1,3 +1,29 @@
+## [0.6.3](https://github.com/justindujardin/mathy/compare/v0.6.2...v0.6.3) (2020-01-26)
+
+
+### Bug Fixes
+
+* **commutative_swap:** don't transform commute chains in ways that cause inner-nesting ([ed662e3](https://github.com/justindujardin/mathy/commit/ed662e3a05ac3f69206789b3909d320f33948932))
+* **model:** remove second LSTM from recurent model ([0241070](https://github.com/justindujardin/mathy/commit/02410702add5b8800751860f897440e9a333d654))
+* **model:** when trasnferring weights from another model, copy the config file too ([401da56](https://github.com/justindujardin/mathy/commit/401da569883a0b1fe0a171f6a682944675073731))
+* **policy_value_model:** value head was not learning from hidden state ([ee77ae5](https://github.com/justindujardin/mathy/commit/ee77ae505192fda9124bd02189106b0ccdae407c))
+* **sleep:** use smaller worker_wait defaults ([460f80c](https://github.com/justindujardin/mathy/commit/460f80cdb0c0767622f80c70a34c013233f58abd))
+* **training:** use n-step windows during a3c training ([02b11ee](https://github.com/justindujardin/mathy/commit/02b11eebfb3043ad5d46212a1d7b578a28e66de7))
+
+
+### Features
+
+* **a3c:** replace set_weights/get_weights with thinc from_bytes/to_bytes ([b04fbce](https://github.com/justindujardin/mathy/commit/b04fbce88a822610195335d8dc65a0983f43d384))
+* **a3c:** set update frequency so multiple updates happen per episode ([1a28a9d](https://github.com/justindujardin/mathy/commit/1a28a9d9c54c39189eced3f8c10ac1751a0c932e))
+* **build:** add tools/clean.sh ([e3c2308](https://github.com/justindujardin/mathy/commit/e3c230848c5642310e97deab86436f46d27cdcfb))
+* **cli:** add `--lr` for setting adam learning rate ([427352f](https://github.com/justindujardin/mathy/commit/427352fce3c942650ed38374f0391749b4197426))
+* **config:** add prediction_window_size ([d4095c5](https://github.com/justindujardin/mathy/commit/d4095c54fe962b40c7c2b981f83044ceeba0bbad))
+* **envs:** rebalance poly/complex difficulties ([88a9b30](https://github.com/justindujardin/mathy/commit/88a9b30f0dcaf45c0d1dd2e5a3c36b087580aadf))
+* **mathy_alpha_sm:** add pretrained model with simplified architecture ([5365a26](https://github.com/justindujardin/mathy/commit/5365a269c4dfa26059c84441f088683412ef09c7))
+* add mathy.example helper for generating inputs ([92695d6](https://github.com/justindujardin/mathy/commit/92695d6724b1324aae39d9c589baaf512665a068))
+* **MathyWindowObservation:** add option to return inputs using numpy instead of tf.Tensor ([0c76609](https://github.com/justindujardin/mathy/commit/0c766096bbe7eaaefb26b108f148c682c6e3447c))
+* **tensorflow:** update to 2.1.0 ([95e764e](https://github.com/justindujardin/mathy/commit/95e764ef96ecd131c6012e1f822bd5d665479488))
+
 ## [0.6.2](https://github.com/justindujardin/mathy/compare/v0.6.1...v0.6.2) (2020-01-25)
 
 
