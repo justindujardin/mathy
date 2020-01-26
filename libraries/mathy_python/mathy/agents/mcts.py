@@ -4,6 +4,7 @@ from typing import Any, List, Tuple
 import numpy
 
 from ..env import MathyEnv
+from .policy_value_model import PolicyValueModel
 from ..state import MathyEnvState, observations_to_window
 from ..util import is_terminal_transition
 
@@ -28,7 +29,7 @@ class MCTS:
     def __init__(
         self,
         env: MathyEnv,
-        model: Any,
+        model: PolicyValueModel,
         cpuct: float = 1.0,
         num_mcts_sims: int = 15,
         epsilon: float = 0.25,
@@ -128,7 +129,7 @@ class MCTS:
                 rnn_history_h=rnn_state[0],
             )
             observations = observations_to_window([obs]).to_inputs()
-            out_policy, state_v = self.model.predict_next(observations, use_graph=False)
+            out_policy, state_v = self.model.predict_next(observations)
             out_rnn_state = [
                 tf.squeeze(self.model.embedding.state_h).numpy(),
                 tf.squeeze(self.model.embedding.state_c).numpy(),

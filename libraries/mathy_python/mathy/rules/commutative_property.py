@@ -78,10 +78,26 @@ class CommutativeSwapRule(BaseRule):
         change = super().apply_to(node)
         a = node.left
         b = node.right
+        assert a is not None
 
-        node.set_right(a)
-        node.set_left(b)
+        add_chain = isinstance(a, AddExpression) and isinstance(node, AddExpression)
+        mul_chain = isinstance(a, MultiplyExpression) and isinstance(
+            node, MultiplyExpression
+        )
+        # The left node is not another sibling add
+        if not add_chain and not mul_chain:
+            node.set_right(a)
+            node.set_left(b)
+        else:
+            # If it's another add, just swap their
+            # children directly to avoid inner-nesting.
+            one = a.left
+            two = a.right
+            three = node.right
+            a.set_left(three)
+            a.set_right(one)
+            node.set_right(two)
+
         node.set_changed()
-
         change.done(node)
         return change

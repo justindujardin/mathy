@@ -39,12 +39,17 @@ class A3CAgent:
         self.writer = tf.summary.create_file_writer(self.log_dir)
         init_window = env.initial_window(self.args.lstm_units)
         self.global_model = get_or_create_policy_model(
-            args=args, env_actions=self.action_size, is_main=True, env=env.mathy
+            args=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
             tf.summary.trace_on(graph=True)
             inputs = init_window.to_inputs()
-            self.global_model.call_graph(inputs)
+
+            @tf.function
+            def trace_fn():
+                return self.global_model.call(inputs)
+
+            trace_fn()
             tf.summary.trace_export(
                 name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
             )
@@ -93,3 +98,4 @@ class A3CAgent:
         # Do a final save after joining to get the very latest model
         self.global_model.save()
         print("Done. Bye!")
+

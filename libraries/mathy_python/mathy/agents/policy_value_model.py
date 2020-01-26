@@ -1,14 +1,17 @@
 import os
 import pickle
 import time
-from shutil import copyfile
-from typing import Any, Dict, Optional, Tuple, List
 from pathlib import Path
+from shutil import copyfile
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+
 import numpy as np
 import srsly
 import tensorflow as tf
-from tensorflow.python.keras import backend as K
+from tensorflow.keras import backend as K
 from wasabi import msg
+
+from mathy.agents.example import example
 
 from ..env import MathyEnv
 from ..envs import PolySimplify
@@ -42,7 +45,12 @@ class PolicyValueModel(tf.keras.Model):
         self.args = args
         self.predictions = predictions
         self.embedding = MathyEmbedding(self.args)
-        # self.embedding.compile(optimizer=self.optimizer, run_eagerly=True)
+        self.value_head = tf.keras.layers.Dense(
+            self.args.units,
+            name="value_head",
+            kernel_initializer="he_normal",
+            activation="relu",
+        )
         self.value_logits = tf.keras.layers.Dense(
             1, name="value_logits", kernel_initializer="he_normal", activation=None,
         )
@@ -74,7 +82,13 @@ class PolicyValueModel(tf.keras.Model):
         )
 
     def call(
-        self, features_window: MathyInputsType, apply_mask=True
+        self, features_window: MathyInputsType
+    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        return self._call(features_window)
+
+    # @profile
+    def _call(
+        self, features_window: MathyInputsType
     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         call_print = self.args.print_model_call_times
         nodes = features_window[ObservationFeatureIndices.nodes]
@@ -87,13 +101,18 @@ class PolicyValueModel(tf.keras.Model):
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
         sequence_inputs = self.embedding(inputs)
-        values = self.normalize_v(self.value_logits(self.embedding.state_h))
+        values = self.value_head(tf.reduce_mean(sequence_inputs, axis=1))
+        values = self.normalize_v(values)
+        values = self.value_logits(values)
         logits = self.normalize_pi(self.policy_logits(sequence_inputs))
         mask_logits = self.apply_pi_mask(logits, features_window)
-        mask_result = logits if not apply_mask else mask_logits
         if call_print is True:
-            print("call took : {0:03f}".format(time.time() - start))
-        return logits, values, mask_result
+            print(
+                "call took : {0:03f} for batch {1}".format(
+                    time.time() - start, batch_size
+                )
+            )
+        return logits, values, mask_logits
 
     def apply_pi_mask(
         self, logits: tf.Tensor, features_window: MathyInputsType,
@@ -115,22 +134,10 @@ class PolicyValueModel(tf.keras.Model):
         )
         return negative_mask_logits
 
-    @tf.function
-    def call_graph(
-        self, inputs: MathyInputsType
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        """Autograph optimized function"""
-        return self.call(inputs)
-
-    def predict_next(
-        self, inputs: MathyInputsType, use_graph: bool = False
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
-        if use_graph:
-            logits, values, masked = self.call_graph(inputs)
-        else:
-            logits, values, masked = self.call(inputs)
+        logits, values, masked = self.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
@@ -150,7 +157,7 @@ class PolicyValueModel(tf.keras.Model):
 
 
 def _load_model(
-    model: PolicyValueModel, model_file: str, optimizer_file: str
+    model: PolicyValueModel, model_file: str, optimizer_file: str,
 ) -> PolicyValueModel:
     model.load_weights(model_file)
     model._make_train_function()
@@ -162,7 +169,7 @@ def _load_model(
 
 def get_or_create_policy_model(
     args: BaseConfig,
-    env_actions: int,
+    predictions: int,
     is_main=False,
     required=False,
     env: MathyEnv = None,
@@ -182,16 +189,18 @@ def get_or_create_policy_model(
         init_model_path = os.path.join(args.init_model_from, args.model_name)
         opt = f"{init_model_path}.optimizer"
         mod = f"{init_model_path}.h5"
-        if os.path.exists(f"{model_path}.h5"):
+        cfg = f"{init_model_path}.config.json"
+        if os.path.exists(f"{model_path}.bytes"):
             print_error(
                 ValueError("Model Exists"),
                 f"Cannot initialize on top of model: {model_path}",
                 print_error=False,
             )
-        if os.path.exists(opt) and os.path.exists(mod):
+        if os.path.exists(opt) and os.path.exists(mod) and os.path.exists(cfg):
             print(f"initialize model from: {init_model_path}")
             copyfile(opt, f"{model_path}.optimizer")
             copyfile(mod, f"{model_path}.h5")
+            copyfile(cfg, f"{model_path}.config.json")
         else:
             print_error(
                 ValueError("Model Exists"),
@@ -199,7 +208,7 @@ def get_or_create_policy_model(
                 print_error=False,
             )
 
-    model = PolicyValueModel(args=args, predictions=env_actions, name="agent")
+    model = PolicyValueModel(args=args, predictions=predictions, name="agent")
     init_inputs = initial_state.to_inputs()
     model.compile(
         optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
@@ -239,7 +248,7 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> Tuple[PolicyValueModel, BaseConfig]:
+) -> PolicyValueModel:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
@@ -250,7 +259,6 @@ def load_policy_value_model(
         raise ValueError(f"model not found: {model_file}")
     if not optimizer_file.exists():
         raise ValueError(f"optimizer not found: {optimizer_file}")
-
     env: MathyEnv = PolySimplify()
     observation: MathyObservation = env.state_to_observation(
         env.get_initial_state()[0], rnn_size=args.lstm_units
@@ -264,6 +272,7 @@ def load_policy_value_model(
     model.build(initial_state.to_input_shapes())
     model.predict(init_inputs)
     model.predict_next(init_inputs)
+
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
             _load_model(model, str(model_file), str(optimizer_file))

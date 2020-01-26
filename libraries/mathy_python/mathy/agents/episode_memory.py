@@ -58,9 +58,9 @@ class EpisodeMemory(object):
         self.grouping_changes = []
 
     def to_window_observation(
-        self, observation: MathyObservation, window_size: int = 1
+        self, observation: MathyObservation, window_size: int = 3
     ) -> MathyWindowObservation:
-        previous = -(window_size - 1)
+        previous = -(max(window_size - 1, 1))
         window_observations = self.observations[previous:] + [observation]
         return observations_to_window(window_observations)
 

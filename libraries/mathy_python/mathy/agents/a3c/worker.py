@@ -11,8 +11,6 @@ import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
-from ...util import print_error
-
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
     MathyEnvState,
@@ -22,7 +20,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import calculate_grouping_control_signal, discount
+from ...util import calculate_grouping_control_signal, discount, print_error
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
@@ -80,7 +78,10 @@ class A3CWorker(threading.Thread):
             self.reset_episode_loss()
             self.last_model_write = -1
             self.last_histogram_write = -1
-        msg.good(f"Worker {worker_idx} started.")
+        display_e = self.greedy_epsilon
+        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
+            display_e = 0.0
+        msg.good(f"Worker {worker_idx} started. (e={display_e:.3f})")
 
     @property
     def tb_prefix(self) -> str:
@@ -216,7 +217,7 @@ class A3CWorker(threading.Thread):
             )
         return selector
 
-    def run_episode(self, episode_memory: EpisodeMemory):
+    def run_episode(self, episode_memory: EpisodeMemory) -> float:
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         env = gym.make(env_name, **self.env_extra)
         episode_memory.clear()
@@ -272,7 +273,9 @@ class A3CWorker(threading.Thread):
             # before_rnn_state_h = selector.model.embedding.state_h.numpy()
             # before_rnn_state_c = selector.model.embedding.state_c.numpy()
 
-            window = episode_memory.to_window_observation(last_observation)
+            window = episode_memory.to_window_observation(
+                last_observation, window_size=self.args.prediction_window_size
+            )
             try:
                 action, value = selector.select(
                     last_state=env.state,
@@ -367,7 +370,7 @@ class A3CWorker(threading.Thread):
                 # The greedy worker sleeps for a shorter period of time
                 sleep = self.args.worker_wait
                 if self.worker_idx == 0:
-                    sleep = max(sleep // 100, 0.05)
+                    sleep = max(sleep // 100, 0.005)
                 # Workers wait between each step so that it's possible
                 # to run more workers than there are CPUs available.
                 time.sleep(sleep)
@@ -396,7 +399,7 @@ class A3CWorker(threading.Thread):
                 step=step,
             )
 
-    def maybe_write_histograms(self):
+    def maybe_write_histograms(self) -> None:
         if self.worker_idx != 0:
             return
         step = self.global_model.optimizer.iterations.numpy()
@@ -406,7 +409,7 @@ class A3CWorker(threading.Thread):
                 self.last_histogram_write = step
                 for var in self.local_model.trainable_variables:
                     tf.summary.histogram(
-                        var.name, var, step=self.global_model.optimizer.iterations
+                        var.name, var, step=self.global_model.optimizer.iterations,
                     )
                 # Write out current LSTM hidden/cell states
                 tf.summary.histogram(
@@ -461,6 +464,7 @@ class A3CWorker(threading.Thread):
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
+
         episode_memory.clear()
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
@@ -536,10 +540,9 @@ class A3CWorker(threading.Thread):
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
-        logits, values, trimmed_logits = self.local_model(inputs, apply_mask=False)
+        logits, values, trimmed_logits = self.local_model.call(inputs)
 
         logits = tf.reshape(logits, [batch_size, -1])
-        policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
         h_loss = discrete_policy_entropy_loss(
@@ -567,7 +570,7 @@ class A3CWorker(threading.Thread):
 
         # Policy Loss
         policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=episode_memory.actions, logits=policy_logits
+            labels=episode_memory.actions, logits=logits
         )
 
         policy_loss *= advantage

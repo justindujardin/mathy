@@ -1,5 +1,5 @@
 numpy
-tensorflow>=2.0.0
+tensorflow>=2.1.0
 colr
 srsly
 pydantic>=1.0.0

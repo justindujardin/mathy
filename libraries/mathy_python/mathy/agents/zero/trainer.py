@@ -141,13 +141,11 @@ class SelfPlayTrainer:
 
         batch_size = len(inputs.nodes)
         step = self.model.optimizer.iterations
-        logits, values, trimmed_logits = self.model(
-            inputs.to_inputs(), apply_mask=False
-        )
+        logits, values, _ = self.model(inputs.to_inputs())
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
-        policy_logits = tf.reshape(trimmed_logits, [batch_size, -1])
+        policy_logits = tf.reshape(logits, [batch_size, -1])
         policy_logits = policy_logits[:, : target_pi.shape[1]]
         policy_loss = tf.nn.softmax_cross_entropy_with_logits(
             labels=target_pi, logits=policy_logits

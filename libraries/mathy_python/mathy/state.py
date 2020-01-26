@@ -77,18 +77,23 @@ class MathyWindowObservation(NamedTuple):
     rnn_state_c: WindowRNNStateFloatList
     rnn_history_h: WindowRNNStateFloatList
 
-    def to_inputs(self) -> MathyInputsType:
+    def to_inputs(self, as_tf_tensor: bool = True) -> MathyInputsType:
         import tensorflow as tf
 
+        def to_res(in_value):
+            if as_tf_tensor is True:
+                return tf.convert_to_tensor(in_value, dtype=tf.float32)
+            return np.asarray(in_value, dtype="float32")
+
         result = [
-            tf.convert_to_tensor(self.nodes),
-            tf.convert_to_tensor(self.mask),
-            tf.convert_to_tensor(self.values),
-            tf.convert_to_tensor(self.type),
-            tf.convert_to_tensor(self.time),
-            tf.convert_to_tensor(self.rnn_state_h),
-            tf.convert_to_tensor(self.rnn_state_c),
-            tf.convert_to_tensor(self.rnn_history_h),
+            to_res(self.nodes),
+            to_res(self.mask),
+            to_res(self.values),
+            to_res(self.type),
+            to_res(self.time),
+            to_res(self.rnn_state_h),
+            to_res(self.rnn_state_c),
+            to_res(self.rnn_history_h),
         ]
         for r in result:
             for s in r.shape:

@@ -44,7 +44,7 @@ class PracticeRunner:
     def get_env(self):
         raise NotImplementedError("game implementation must be provided by subclass")
 
-    def get_model(self, game):
+    def get_model(self, game) -> PolicyValueModel:
         raise NotImplementedError(
             "predictor implementation must be provided by subclass"
         )
@@ -190,7 +190,7 @@ class PracticeRunner:
 
     def execute_episode(
         self,
-        episode,
+        episode: int,
         game: MathyGymEnv,
         predictor: PolicyValueModel,
         model_dir: str,
@@ -261,7 +261,9 @@ class PracticeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_env()
         new_net = self.get_model(game)
-        trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
+        trainer = SelfPlayTrainer(
+            self.config, new_net, action_size=new_net.predictions
+        )
         if trainer.train(train_examples, new_net):
             new_net.save()
 

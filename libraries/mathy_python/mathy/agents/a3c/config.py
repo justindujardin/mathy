@@ -2,14 +2,11 @@ from ...agents.base_config import BaseConfig
 
 
 class A3CConfig(BaseConfig):
-    # Update frequencey for the Worker to sync with the Main model. This has different
-    # meaning for different agents:
+    # Update frequencey for the Worker to sync with the Main model.
     #
-    # - for A3C agents this value indicates the maximum number of steps to take in an
-    #   episode before syncing the replay buffer and gradients.
-    # - for R2D2 agents this value indicates the number of episodes to run between
-    #   syncing the latest model from the learner process.
-    update_gradients_every: int = 64
+    # Indicates the maximum number of steps to take in an episode before
+    # syncing the replay buffer and gradients.
+    update_gradients_every: int = 6
 
     normalization_style: str = "layer"
 
@@ -34,19 +31,14 @@ class A3CConfig(BaseConfig):
     # MCTS provides higher quality observations at extra computational cost.
     mcts_sims: int = 200
 
-    # Whether to use the grouping change aux task
-    use_grouping_control = True
-    # Clip signal at 0.0 so it does not optimize into the negatives
-    clip_grouping_control = False
-
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.1
+    e_greedy_max = 0.3
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.1
+    worker_wait: float = 0.01
 
     # The number of worker agents to create.
     num_workers: int = 3
@@ -66,7 +58,7 @@ class A3CConfig(BaseConfig):
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 50
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 20
+    teacher_evaluation_steps = 5
     # If the agent wins >= this value, promote to the next difficulty class
     # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time

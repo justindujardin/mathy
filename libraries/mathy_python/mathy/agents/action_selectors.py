@@ -10,6 +10,10 @@ from .mcts import MCTS
 class ActionSelector:
     """An episode-specific selector of actions"""
 
+    model: PolicyValueModel
+    worker_id: int
+    episode: int
+
     def __init__(self, *, model: PolicyValueModel, episode: int, worker_id: int):
         self.model = model
         self.worker_id = worker_id

@@ -11,4 +11,3 @@ fi
 . .env/bin/activate
 echo "Installing/updating requirements..."
 pip install -r requirements.txt
-

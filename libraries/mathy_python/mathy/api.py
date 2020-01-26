@@ -87,7 +87,7 @@ class Mathy:
             rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
             rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
             seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
-            selector.model.call(observations_to_window([seq_start]).to_inputs())
+            selector.model(observations_to_window([seq_start]).to_inputs())
 
         done = False
         while not done:
