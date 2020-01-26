@@ -1,7 +1,7 @@
 from mathy import CommutativeSwapRule, ExpressionParser
 
 input = "x + y + x"
-output = "x + (x + y)"
+output = "x + x + y"
 parser = ExpressionParser()
 
 input_exp = parser.parse(input)
