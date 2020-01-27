@@ -1,3 +1,10 @@
+## [0.6.5](https://github.com/justindujardin/mathy/compare/v0.6.4...v0.6.5) (2020-01-27)
+
+
+### Bug Fixes
+
+* **build:** really fix typing extensions ([7f15bca](https://github.com/justindujardin/mathy/commit/7f15bca3e5ae8f3fa56b45f1f908c1eed3c1fd7a))
+
 ## [0.6.4](https://github.com/justindujardin/mathy/compare/v0.6.3...v0.6.4) (2020-01-26)
 
 
