@@ -1,15 +1,3 @@
-# About
-
-The idea for Mathy came out of a tutoring session I had in college. I asked the tutor a question, one they seemed to think I should have known the answer to from high school algebra. They choked down a look of disgust as they explained the answer to me.
-
-Universities claim to provide a "safe place to learn"; however, it doesn’t always feel safe for students. I felt ashamed and embarrassed because I was struggling with basic concepts for the math I needed to do. It felt even worse that I couldn't get the help I needed without being subjected to ridicule.
-
-I knew there had to be a better way to make foundational knowledge about math available to anyone that wanted it. I thought to myself, I know how to write software; I can build it! Ten years later, here we are, but I can’t build the whole thing myself. So now it's time to ask for help.
-
-I believe that we can use AI to tutor anyone on how to solve math problem while showing their work, but I need help from experts. My goal is that opening up this project will lead to a free solution that can scale to support all people.
-
-[Will you help?](/contributing)
-
 ## Research
 
 A lot of research has informed the design of Mathy's machine learning model and agents.
