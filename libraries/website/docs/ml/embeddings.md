@@ -29,15 +29,3 @@ The embeddings model is stateful and you can access the current recurrent networ
 !!! note "Hidden and Cell states"
 
     While the cell state is important to maintain while processing seqeuences, the hidden state is most often used for making predictions. This is because it is considered to contain the most useful representation of the RNN's memory.
-
-## Env Features Model
-
-Mathy has a conditionally enabled extended architecture that processes the `time` and `type` inputs when producing embeddings. In theory these features should be useful for multitask training, but in practice the model performs worse.
-
-!!! warning "Note about performance"
-
-    It's entirely possible that the extended architecture could be a viable improvement to the agents, and that I screwed something up that made it appear to perform worse. It's probably worth more investigation.
-
-    If you have experience enough to spot why the env_features model performs poorly, or you are able to tinker it into a good state, please [open a PR]() so everyone can benefit from your fixes.
-
-`model:mathy.agents.embedding:mathy_embedding_with_env_features`
