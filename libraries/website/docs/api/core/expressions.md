@@ -157,10 +157,7 @@ Returns: The found `MathExpression` or `None`
 
 ### find_type
 ```python
-MathExpression.find_type(
-    self,
-    instanceType: Type[_ForwardRef('MathExpression')],
-) -> List[_ForwardRef('MathExpression')]
+MathExpression.find_type(self, instanceType:Type[~NodeType]) -> List[~NodeType]
 ```
 Find an expression in this tree by type.
 

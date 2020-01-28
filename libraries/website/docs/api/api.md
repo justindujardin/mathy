@@ -1,4 +1,4 @@
-# mathy.mathy
+# mathy.api
 
 ## Mathy
 ```python

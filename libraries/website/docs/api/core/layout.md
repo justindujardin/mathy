@@ -20,8 +20,8 @@ Calculate a visual layout for input trees.
 TreeLayout.layout(
     self,
     node: mathy.core.tree.BinaryTreeNode,
-    unit_x_multiplier = 1,
-    unit_y_multiplier = 1,
+    unit_x_multiplier: float = 1.0,
+    unit_y_multiplier: float = 1.0,
 ) -> 'TreeMeasurement'
 ```
 Assign x/y values to all nodes in the tree, and return an object containing
@@ -32,7 +32,7 @@ Returns a TreeMeasurement object that describes the bounds of the tree
 ```python
 TreeLayout.transform(
     self,
-    node: mathy.core.tree.BinaryTreeNode,
+    node: mathy.core.tree.BinaryTreeNode = None,
     x = 0,
     unit_x_multiplier = 1,
     unit_y_multiplier = 1,

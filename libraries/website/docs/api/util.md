@@ -67,6 +67,23 @@ __Example__
 TermEx(coefficient=4, variable="x", exponent=7)
 ```
 
+## get_terms
+```python
+get_terms(
+    expression: mathy.core.expressions.MathExpression,
+) -> List[mathy.core.expressions.MathExpression]
+```
+Walk the given expression tree and return a list of nodes
+representing the distinct terms it contains.
+
+__Arguments__
+
+- __expression (MathExpression)__: the expression to find term nodes in
+
+__Returns__
+
+`(List[MathExpression])`: a list of term nodes
+
 ## has_like_terms
 ```python
 has_like_terms(expression:mathy.core.expressions.MathExpression) -> bool
@@ -145,7 +162,10 @@ An optional integer or float exponent
 An optional variable
 ## terms_are_like
 ```python
-terms_are_like(one, two)
+terms_are_like(
+    one: Union[mathy.util.TermResult, mathy.core.expressions.MathExpression, typing_extensions.Literal[False]],
+    two: Union[mathy.util.TermResult, mathy.core.expressions.MathExpression, typing_extensions.Literal[False]],
+) -> bool
 ```
 Determine if two math expression nodes are **like terms**.
 

@@ -30,6 +30,7 @@ exclude_files = [
     "README.md",
     "types.py",
     "cli.py",
+    "py.typed",
     "about.py",
 ]
 include_folders = ["", "core"]

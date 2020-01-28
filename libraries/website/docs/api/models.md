@@ -65,7 +65,7 @@ __Returns__
 
 ## load_model
 ```python
-load_model(name:str, **overrides) -> mathy.mathy.Mathy
+load_model(name:str, **overrides) -> mathy.api.Mathy
 ```
 Load a model from a shortcut link, package or data path.
 
@@ -113,7 +113,7 @@ load_model_from_path(
     model_path: pathlib.Path,
     meta: dict = None,
     overrides,
-) -> mathy.mathy.Mathy
+) -> mathy.api.Mathy
 ```
 Load a model from a data directory path.
 
