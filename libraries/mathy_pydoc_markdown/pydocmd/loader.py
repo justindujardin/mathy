@@ -29,6 +29,7 @@ from .imp import import_object_with_scope
 import inspect
 import types
 from typing import Callable, Optional, List, Any
+import re
 
 function_types = (
     types.FunctionType,
@@ -39,6 +40,11 @@ function_types = (
 )
 if hasattr(types, "UnboundMethodType"):
     function_types += (types.UnboundMethodType,)
+
+# Used to replace verbose type reported, e.g. "Union[str, NoneType]" with the simpler
+# form that is usually used in code "Optional[str]"
+optional_match = r"(.*)Union\[(.*),\sNoneType\](.*)"
+optional_replace = r"\1Optional[\2]\3"
 
 
 def trim(docstring):
@@ -169,6 +175,10 @@ def get_callable_placeholder(
             annotation = inspect.formatannotation(p.annotation)
         if p.default is not inspect._empty:  # type: ignore
             default_value = str(p.default)
+
+        # The type annotations expand Optional[T] to Union[T, NoneType]
+        while re.search(optional_match, annotation) is not None:
+            annotation = re.sub(optional_match, optional_replace, annotation)
         params.append(CallableArg(p.name, annotation, default_value))
 
     return_annotation = None
