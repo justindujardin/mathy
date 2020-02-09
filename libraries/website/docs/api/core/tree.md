@@ -26,7 +26,7 @@ BinaryTreeNode(
     left: 'BinaryTreeNode' = None,
     right: 'BinaryTreeNode' = None,
     parent: 'BinaryTreeNode' = None,
-    id: Union[str, NoneType] = None,
+    id: Optional[str] = None,
 )
 ```
 

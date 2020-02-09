@@ -21,19 +21,31 @@
 import setuptools
 import io
 
+from pathlib import Path
+
+package_name = "mathy_pydoc"
+root = Path(__file__).parent.resolve()
+
+# Read in package meta from about.py
+about_path = root / package_name / "about.py"
+with about_path.open("r", encoding="utf8") as f:
+    about = {}
+    exec(f.read(), about)
+
+
 with io.open("README.md", encoding="utf8") as fp:
     readme = fp.read()
 
 setuptools.setup(
-    name="pydoc-markdown",
-    version="0.0.0",
-    description="Create Python API documentation in Markdown format",
+    name=package_name,
+    description=about["__summary__"],
+    author=about["__author__"],
+    author_email=about["__email__"],
+    url=about["__uri__"],
+    version=about["__version__"],
+    license=about["__license__"],
     long_description=readme,
     long_description_content_type="text/markdown",
-    url="https://github.com/NiklasRosenstein/pydoc-markdown",
-    author="Niklas Rosenstein",
-    author_email="rosensteinniklas@gmail.com",
-    license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -47,12 +59,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
     ],
     keywords="markdown pydoc generator docs documentation",
-    packages=["pydocmd"],
-    install_requires=[
-        "MkDocs>=0.16.0",
-        "Markdown>=2.6.11",
-        "PyYAML>=3.12",
-        "six>=0.11.0",
-    ],
-    entry_points=dict(console_scripts=["pydocmd=pydocmd.__main__:main"]),
+    packages=["mathy_pydoc"],
+    install_requires=["Markdown>=2.6.11", "PyYAML>=3.12", "six>=0.11.0",],
+    entry_points=dict(console_scripts=["mathy_pydoc=mathy_pydoc.__main__:main"]),
 )

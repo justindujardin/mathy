@@ -18,5 +18,5 @@ gym
 
 # The snippets/tests need mathy. Install as a development package (-e)
 -e ../mathy_python/
--e ../mathy_pydoc_markdown/
+-e ../mathy_pydoc/
 -e ../mathy_mkdocs/

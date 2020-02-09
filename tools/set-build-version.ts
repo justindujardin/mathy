@@ -45,25 +45,28 @@ getBuildVersion()
       fs.writeFileSync(modelPath, JSON.stringify(json, null, 2), "utf8")
     })
 
-    const filePath = path.join(
-      __dirname,
-      "../libraries/mathy_python/mathy/about.py"
-    )
-    if (!fs.existsSync(filePath)) {
-      console.error("about.py for mathy_python is missing!")
-      process.exit(1)
-    }
-    const contents = fs.readFileSync(filePath, "utf8")
-    const regexp = new RegExp(
-      /(\_\_version\_\_\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/
-    )
-    const match = contents.match(regexp)
-    if (!match || match.length !== 3) {
-      console.error('__version__="x.x.x" string in about.py was not found.')
-    }
-    const replaceVersion = `${match[1]}${version}${match[2]}`
-    const newContents = contents.replace(regexp, replaceVersion)
-    fs.writeFileSync(filePath, newContents, "utf8")
+    const aboutFiles = [
+      "../libraries/mathy_python/mathy/about.py",
+      "../libraries/mathy_pydoc/mathy_pydoc/about.py"
+    ]
+    aboutFiles.forEach((fileName: string) => {
+      const filePath = path.join(__dirname, fileName)
+      if (!fs.existsSync(filePath)) {
+        console.error("about.py for mathy_python is missing!")
+        process.exit(1)
+      }
+      const contents = fs.readFileSync(filePath, "utf8")
+      const regexp = new RegExp(
+        /(\_\_version\_\_\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/
+      )
+      const match = contents.match(regexp)
+      if (!match || match.length !== 3) {
+        console.error('__version__="x.x.x" string in about.py was not found.')
+      }
+      const replaceVersion = `${match[1]}${version}${match[2]}`
+      const newContents = contents.replace(regexp, replaceVersion)
+      fs.writeFileSync(filePath, newContents, "utf8")
+    })
   })
   .catch((e: any) => {
     console.log(e)

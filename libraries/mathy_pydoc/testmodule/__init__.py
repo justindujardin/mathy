@@ -2,8 +2,12 @@ from typing import List, Optional, Tuple, Dict, Any
 
 
 def a_function_with_types(
-    inputs: List[Dict[str, Any]], auxiliary: Tuple[Optional[str]], final: int = 3
-) -> List[str]:
+    optional: Optional[str],
+    nested_optional: Optional[Tuple[Optional[str], Optional[int]]],
+    inputs: List[Dict[str, Any]],
+    auxiliary: Tuple[Optional[str]],
+    final: int = 3,
+) -> List[Optional[str]]:
     """Sweet typed function"""
     pass
 

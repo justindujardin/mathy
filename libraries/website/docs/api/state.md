@@ -18,7 +18,7 @@ The state related to an agent for a given environment state
 ```python
 MathyEnvState(
     self,
-    state: Union[_ForwardRef('MathyEnvState'), NoneType] = None,
+    state: Optional[MathyEnvState] = None,
     problem: str = None,
     max_moves: int = 10,
     num_rules: int = 0,
