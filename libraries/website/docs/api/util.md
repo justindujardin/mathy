@@ -16,7 +16,7 @@ whenever a like term is separated by another term.
 compare_expression_string_values(
     from_expression: str,
     to_expression: str,
-    history: Union[List[Any], NoneType] = None,
+    history: Optional[List[Any]] = None,
 )
 ```
 Compare and evaluate two expressions strings to verify they have the
@@ -26,7 +26,7 @@ same value
 compare_expression_values(
     from_expression: mathy.core.expressions.MathExpression,
     to_expression: mathy.core.expressions.MathExpression,
-    history: Union[List[Any], NoneType] = None,
+    history: Optional[List[Any]] = None,
 )
 ```
 Compare and evaluate two expressions to verify they have the same value
@@ -48,7 +48,7 @@ __Returns__
 ## get_term_ex
 ```python
 get_term_ex(
-    node: Union[mathy.core.expressions.MathExpression, NoneType],
+    node: Optional[mathy.core.expressions.MathExpression],
 ) -> Union[mathy.util.TermEx, NoneType]
 ```
 Extract the 3 components of a naturally ordered term.
@@ -181,7 +181,7 @@ __Returns__
 ## unlink
 ```python
 unlink(
-    node: Union[mathy.core.expressions.MathExpression, NoneType] = None,
+    node: Optional[mathy.core.expressions.MathExpression] = None,
 ) -> Union[mathy.core.expressions.MathExpression, NoneType]
 ```
 Unlink an expression from it's parent.

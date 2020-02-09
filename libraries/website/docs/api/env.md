@@ -54,7 +54,7 @@ environment. e.g. mycompany.envs.differentiate
 ```python
 MathyEnv.get_initial_state(
     self,
-    params: Union[mathy.types.MathyEnvProblemArgs, NoneType] = None,
+    params: Optional[mathy.types.MathyEnvProblemArgs] = None,
     print_problem: bool = True,
 ) -> Tuple[mathy.state.MathyEnvState, mathy.types.MathyEnvProblem]
 ```
@@ -222,10 +222,10 @@ Render the given state to a string suitable for printing to a log
 MathyEnv.state_to_observation(
     self,
     state: mathy.state.MathyEnvState,
-    rnn_size: Union[int, NoneType] = None,
-    rnn_state_h: Union[List[float], NoneType] = None,
-    rnn_state_c: Union[List[float], NoneType] = None,
-    rnn_history_h: Union[List[float], NoneType] = None,
+    rnn_size: Optional[int] = None,
+    rnn_state_h: Optional[List[float]] = None,
+    rnn_state_c: Optional[List[float]] = None,
+    rnn_history_h: Optional[List[float]] = None,
 ) -> mathy.state.MathyObservation
 ```
 Convert an environment state into an observation that can be used

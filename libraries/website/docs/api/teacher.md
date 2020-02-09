@@ -6,7 +6,7 @@ Teacher(
     self,
     topic_names: List[str],
     num_students: int = 1,
-    difficulty: Union[str, NoneType] = None,
+    difficulty: Optional[str] = None,
     eval_window: int = 50,
     win_threshold: float = 0.95,
     lose_threshold: float = 0.34,
