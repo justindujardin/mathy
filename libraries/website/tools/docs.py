@@ -51,7 +51,6 @@ def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
 
     args = [
         "mathy_pydoc",
-        "simple",
         namespace,
     ]
     # print(args)

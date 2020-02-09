@@ -41,10 +41,13 @@ function_types = (
 if hasattr(types, "UnboundMethodType"):
     function_types += (types.UnboundMethodType,)
 
-# Used to replace verbose type reported, e.g. "Union[str, NoneType]" with the simpler
-# form that is usually used in code "Optional[str]"
+# Union[MathyEnvState, NoneType] -> Optional[MathyEnvState]
 optional_match = r"(.*)Union\[(.*),\sNoneType\](.*)"
 optional_replace = r"\1Optional[\2]\3"
+
+# _ForwardRef('MathyEnvState') -> MathyEnvState
+fwd_ref_match = r"\_ForwardRef\(\'(.*)\'\)"
+fwd_ref_replace = r"\1"
 
 
 def trim(docstring):
@@ -180,6 +183,8 @@ def get_callable_placeholder(
             # Optional[T] gets expanded to Union[T, NoneType], so change it back
             while re.search(optional_match, annotation) is not None:
                 annotation = re.sub(optional_match, optional_replace, annotation)
+
+            annotation = re.sub(fwd_ref_match, fwd_ref_replace, annotation)
         params.append(CallableArg(p.name, annotation, default_value))
 
     return_annotation = None
