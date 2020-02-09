@@ -46,8 +46,20 @@ optional_match = r"(.*)Union\[(.*),\sNoneType\](.*)"
 optional_replace = r"\1Optional[\2]\3"
 
 # _ForwardRef('MathyEnvState') -> MathyEnvState
-fwd_ref_match = r"\_ForwardRef\(\'(.*)\'\)"
-fwd_ref_replace = r"\1"
+fwd_ref_match = r"(.*)\_ForwardRef\(\'(.*)\'\)(.*)"
+fwd_ref_replace = r"\1\2\3"
+
+
+def cleanup_type(type_string: str) -> str:
+    # Optional[T] gets expanded to Union[T, NoneType], so change it back
+    while re.search(optional_match, type_string) is not None:
+        type_string = re.sub(optional_match, optional_replace, type_string)
+
+    # _ForwardRef('MathyEnvState') -> MathyEnvState
+    while re.search(fwd_ref_match, type_string) is not None:
+        type_string = re.sub(fwd_ref_match, fwd_ref_replace, type_string)
+
+    return type_string
 
 
 def trim(docstring):
@@ -180,11 +192,7 @@ def get_callable_placeholder(
             default_value = str(p.default)
 
         if annotation is not None:
-            # Optional[T] gets expanded to Union[T, NoneType], so change it back
-            while re.search(optional_match, annotation) is not None:
-                annotation = re.sub(optional_match, optional_replace, annotation)
-
-            annotation = re.sub(fwd_ref_match, fwd_ref_replace, annotation)
+            annotation = cleanup_type(annotation)
         params.append(CallableArg(p.name, annotation, default_value))
 
     return_annotation = None
@@ -192,6 +200,8 @@ def get_callable_placeholder(
         return_annotation = inspect.formatannotation(
             sig.return_annotation, base_module="mathy"
         )
+    if return_annotation is not None:
+        return_annotation = cleanup_type(return_annotation)
     return CallablePlaceholder(
         simple=str(sig), name=name, args=params, return_type=return_annotation
     )

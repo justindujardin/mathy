@@ -21,13 +21,23 @@
 import setuptools
 import io
 
-from mathy_pydoc import about
+from pathlib import Path
+
+package_name = "mathy_pydoc"
+root = Path(__file__).parent.resolve()
+
+# Read in package meta from about.py
+about_path = root / package_name / "about.py"
+with about_path.open("r", encoding="utf8") as f:
+    about = {}
+    exec(f.read(), about)
+
 
 with io.open("README.md", encoding="utf8") as fp:
     readme = fp.read()
 
 setuptools.setup(
-    name="mathy_pydoc",
+    name=package_name,
     description=about["__summary__"],
     author=about["__author__"],
     author_email=about["__email__"],
@@ -50,11 +60,6 @@ setuptools.setup(
     ],
     keywords="markdown pydoc generator docs documentation",
     packages=["mathy_pydoc"],
-    install_requires=[
-        "MkDocs>=0.16.0",
-        "Markdown>=2.6.11",
-        "PyYAML>=3.12",
-        "six>=0.11.0",
-    ],
+    install_requires=["Markdown>=2.6.11", "PyYAML>=3.12", "six>=0.11.0",],
     entry_points=dict(console_scripts=["mathy_pydoc=mathy_pydoc.__main__:main"]),
 )
