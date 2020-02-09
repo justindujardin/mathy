@@ -47,7 +47,7 @@ getBuildVersion()
 
     const aboutFiles = [
       "../libraries/mathy_python/mathy/about.py",
-      "../libraries/mathy_python/mathy_pydoc_markdown/about.py"
+      "../libraries/mathy_pydoc/mathy_pydoc/about.py"
     ]
     aboutFiles.forEach((fileName: string) => {
       const filePath = path.join(__dirname, fileName)
