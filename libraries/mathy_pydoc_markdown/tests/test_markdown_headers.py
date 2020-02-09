@@ -1,7 +1,7 @@
 import pytest
 import io
 
-from pydocmd.document import Section
+from mathy_pydoc.document import Section
 
 
 @pytest.fixture

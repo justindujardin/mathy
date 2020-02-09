@@ -1,92 +1,21 @@
-## pydocmd
+## mathy_pydoc
 
-&ndash; *insipired by the [Keras] Documentation*
+**IMPORTANT** This is a fork of the pydoc_markdown repo to use the legacy version for Mathy's simple API doc needs. See the official repo for the latest stable updates: https://github.com/NiklasRosenstein/pydoc-markdown
 
-Pydocmd uses [MkDocs] and extended [Markdown] syntax to generate beautiful
-Python API documentation.
-
-  [MkDocs]: http://www.mkdocs.org/
-  [Markdown]: https://python-markdown.github.io/
-  [Keras]: https://keras.io/
-
-__Todo__
-
-- [x] Support `+` suffix to include documented members of a module/class
-- [ ] Expand and link cross-references (eg. `#SomeClass`)
-- [ ] Parse, format and link types listed in parameter/member/raise/return type
-      docstrings (eg. `someattr (int): This is...`)
+&ndash; _insipired by the [Keras] Documentation_
 
 ## Installation
 
-    pip install pydoc-markdown
-    pip install git+https://github.com/NiklasRosenstein/pydoc-markdown.git  # latest development version
+    pip install mathy_pydoc
 
 ## Usage
 
-Pydocmd can generate plain Markdown files from Python modules using the
-`pydocmd simple` command. Specify one or more module names on the command-line.
+mathy_pydoc generates plain Markdown files from Python modules using the
+`mathy_pydoc` command. Specify one or more module names on the command-line.
 Supports the `+` syntax to include members of the module (or `++` to include
 members of the members, etc.)
 
-    pydocmd simple mypackage+ mypackage.mymodule+ > docs.md
-
-Alternatively, pydocmd wraps the MkDocs command-line interface and generates
-the markdown pages beforehand. Simply use `pydocmd build` to build the
-documentation, or `pydocmd serve` to serve the documentation on a local HTTP
-server. The `pydocmd gh-deploy` from MkDocs is also supported.
-
-A configuration file `pydocmd.yml` is required to use pydocmd in this mode.
-Below is an example configuration. To get started, create `docs/` directory
-and a file `pydocmd.yml` inside of it. Copy the configuration below and
-adjust it to your needs, then run `pydocmd build` from the `docs/` directory.
-
-```yaml
-site_name: "My Documentation"
-
-# This tells pydocmd which pages to generate from which Python modules,
-# functions and classes. At the first level is the page name, below that
-# is a tree of Python member names (modules, classes, etc.) that should be
-# documented. Higher indentation leads to smaller header size.
-generate:
-- baz/cool-stuff.md:
-  - foobar.baz:
-    - foobar.baz.CoolClass+     # (+ to include members)
-    - foobar.baz.some_function
-- baz/more-stuff.md:
-  - foobar.more++               # (++ to include members, and their members)
-
-# MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
-# that allows you to use an external Markdown file (eg. your project's README)
-# in the documentation. The path must be relative to current working directory.
-pages:
-- Home: index.md << ../README.md
-- foobar.baz:
-  - Cool Stuff: baz/cool-stuff.md
-
-# These options all show off their default values. You don't have to add
-# them to your configuration if you're fine with the default.
-docs_dir: sources
-gens_dir: _build/pydocmd     # This will end up as the MkDocs 'docs_dir'
-site_dir: _build/site
-theme:    readthedocs
-loader:   pydocmd.loader.PythonLoader
-preprocessor: pydocmd.preprocessor.Preprocessor
-
-# Whether to output headers as markdown or HTML.  Used to workaround
-# https://github.com/NiklasRosenstein/pydoc-markdown/issues/11.  The default is
-# to generate HTML with unique and meaningful id tags, which can't be done with
-# markdown.
-#
-# Note: if using the simple generator mode, this will default to 'markdown'
-# instead of 'html'.
-headers: html
-
-# Additional search path for your Python module. If you use Pydocmd from a
-# subdirectory of your project (eg. docs/), you may want to add the parent
-# directory here.
-additional_search_paths:
-- ..
-```
+    mathy_pydoc mypackage+ mypackage.mymodule+ > docs.md
 
 ## Syntax
 
@@ -146,50 +75,3 @@ GitHub-style Markdown code-blocks with language annotations can be used.
     ```
 
 ---
-
-## Changes
-
-### v2.0.5 (2018-11-15)
-
-- Now copies all files from the docs_dir (to include images etc.) (see #56)
-- Fix error with delayed imports changing dictionary size during iteration (see #57)
-- Add `headers` option which can be of value `'html'` or `'markdown'` (see #55)
-- Default `headers` option to `'markdown'` in `simple` mode (see #59)
-
-### v2.0.4 (2018-07-24)
-
-- Add `-c key=value` argument for `generate` and `simple` command
-- Add `filter=["docstring"]` option (#43)
-- Fix regex for detecting cross-references (#44)
-- Handle classes that don't define `__init__()` (PR#51)
-- Add support for reStructuredText Markup (eg. ``:class:`MyClass` ``) (PR#46, #1)
-- Handle `@property` functions (PR#50)
-
-### v2.0.3
-
-- Fix #41, #36, #31
-- Merged #39
-
-### v2.0.2 
-
-- Fix #25 -- Text is incorrectly rendered as code
-- Fix #26 -- Broken links for URLs with fragment identifiers
-- No longer transforms titles in a docstring that are indented (eg. to
-  avoid an indented code block with a `#` comment to be corrupted)
-
-### v2.0.1
-
-- Support `additional_search_path` key in configuration
-- Render headers as HTML `<hX>` tags rather than Markdown tags, so we
-  assign a proper ID to them
-- Fix #21 -- AttributeError: 'module' object has no attribute 'signature'
-- Now requires the `six` module
-- FIx #22 -- No blank space after header does not render codeblocks
-
-### v2.0.0
-
-- Complete overhaul of **pydoc-markdown** employing MkDocs and the Markdown module.
-
----
-
-<p align="center">Copyright &copy; 2017-2018  Niklas Rosenstein</p>

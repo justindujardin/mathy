@@ -39,7 +39,7 @@ include_folders = ["", "core"]
 def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
     src_rel_ns = src_rel_path.replace("/", ".")
     src_base = src_file.replace(".py", "")
-    # pydocmd simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
+    # mathy_pydoc simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
     file_dir = os.path.dirname(__file__)
     # Set CWD to the root
     os.chdir(os.path.join(file_dir, "../"))
@@ -50,7 +50,7 @@ def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
         namespace = f"mathy.{src_rel_ns}.{src_base}{modifier}"
 
     args = [
-        "pydocmd",
+        "mathy_pydoc",
         "simple",
         namespace,
     ]
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 nav_item[nav_key] = found
                 nav_entries.insert(0, nav_item)
 
-    # pydocmd simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
+    # mathy_pydoc simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
     YAMLSection = List[Dict[str, List[Dict[str, str]]]]
 
     nav_entries.sort(key=lambda x: list(x)[0], reverse=False)

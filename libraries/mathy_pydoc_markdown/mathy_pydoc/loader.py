@@ -176,9 +176,10 @@ def get_callable_placeholder(
         if p.default is not inspect._empty:  # type: ignore
             default_value = str(p.default)
 
-        # The type annotations expand Optional[T] to Union[T, NoneType]
-        while re.search(optional_match, annotation) is not None:
-            annotation = re.sub(optional_match, optional_replace, annotation)
+        if annotation is not None:
+            # Optional[T] gets expanded to Union[T, NoneType], so change it back
+            while re.search(optional_match, annotation) is not None:
+                annotation = re.sub(optional_match, optional_replace, annotation)
         params.append(CallableArg(p.name, annotation, default_value))
 
     return_annotation = None
