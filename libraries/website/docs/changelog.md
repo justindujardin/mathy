@@ -1,3 +1,13 @@
+## [0.6.6](https://github.com/justindujardin/mathy/compare/v0.6.5...v0.6.6) (2020-02-10)
+
+
+### Features
+
+* **build:** deploy mathy_pydoc package to pypi ([e2d5775](https://github.com/justindujardin/mathy/commit/e2d57757e546d7321987898eb32c6b12c6c3987a))
+* **mathy_pydoc:** cleanup return type annotations ([186be77](https://github.com/justindujardin/mathy/commit/186be770bb11280cdf27880d95f10a4319075e1d))
+* **mathy_pydoc:** preserve Optional types in docs ([830c949](https://github.com/justindujardin/mathy/commit/830c949747e7408e352cb51260f98c8c0e1a1c65))
+* **mathy_pydoc:** unwrap ForwardRef types ([4e172c4](https://github.com/justindujardin/mathy/commit/4e172c4791e0ec790a0f1c70b9d35e6c45f67a61))
+
 ## [0.6.5](https://github.com/justindujardin/mathy/compare/v0.6.4...v0.6.5) (2020-01-27)
 
 
