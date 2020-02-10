@@ -1,3 +1,10 @@
+## [0.6.7](https://github.com/justindujardin/mathy/compare/v0.6.6...v0.6.7) (2020-02-10)
+
+
+### Features
+
+* **mathy_pydoc:** fix formatting of str defaults ([b4f6fde](https://github.com/justindujardin/mathy/commit/b4f6fde5185b0d2ad5309144a7ad10fe0cfc26aa))
+
 ## [0.6.6](https://github.com/justindujardin/mathy/compare/v0.6.5...v0.6.6) (2020-02-10)
 
 
