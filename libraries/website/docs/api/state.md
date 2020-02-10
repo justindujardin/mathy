@@ -22,7 +22,7 @@ MathyEnvState(
     problem: str = None,
     max_moves: int = 10,
     num_rules: int = 0,
-    problem_type: str = mathy.unknown,
+    problem_type: str = 'mathy.unknown',
 )
 ```
 Class for holding environment state and extracting features

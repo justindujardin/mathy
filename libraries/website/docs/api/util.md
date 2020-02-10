@@ -49,7 +49,7 @@ __Returns__
 ```python
 get_term_ex(
     node: Optional[mathy.core.expressions.MathExpression],
-) -> Union[mathy.util.TermEx, NoneType]
+) -> Optional[mathy.util.TermEx]
 ```
 Extract the 3 components of a naturally ordered term.
 
@@ -182,7 +182,7 @@ __Returns__
 ```python
 unlink(
     node: Optional[mathy.core.expressions.MathExpression] = None,
-) -> Union[mathy.core.expressions.MathExpression, NoneType]
+) -> Optional[mathy.core.expressions.MathExpression]
 ```
 Unlink an expression from it's parent.
 

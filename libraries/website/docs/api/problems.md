@@ -7,7 +7,7 @@ Utility functions for helping generate input problems.
 ## gen_binomial_times_binomial
 ```python
 gen_binomial_times_binomial(
-    op = +,
+    op = '+',
     min_vars = 1,
     max_vars = 2,
     simple_variables = True,
@@ -29,7 +29,7 @@ __Example__
 ## gen_binomial_times_monomial
 ```python
 gen_binomial_times_monomial(
-    op = +,
+    op = '+',
     min_vars = 1,
     max_vars = 2,
     simple_variables = True,
@@ -150,7 +150,7 @@ __Example__
 gen_simplify_multiple_terms(
     num_terms: int,
     optional_var: bool = False,
-    op: Union[List[str], str] = +,
+    op: Union[List[str], str] = '+',
     common_variables: bool = True,
     inner_terms_scaling: float = 0.3,
     powers_probability: float = 0.33,

@@ -10,7 +10,7 @@ A binary search tree by key
 BinarySearchTree.find(
     self,
     key,
-) -> Union[mathy.core.tree.BinaryTreeNode, NoneType]
+) -> Optional[mathy.core.tree.BinaryTreeNode]
 ```
 Find a node in the tree by its key and return it.  Return None if the key
 is not found in the tree.
@@ -55,7 +55,7 @@ Return the root element of this tree
 ```python
 BinaryTreeNode.get_sibling(
     self,
-) -> Union[_ForwardRef('BinaryTreeNode'), NoneType]
+) -> Optional[BinaryTreeNode]
 ```
 Get the sibling node of this node.  If there is no parent, or the node
 has no sibling, the return value will be None.

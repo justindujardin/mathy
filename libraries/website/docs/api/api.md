@@ -15,7 +15,7 @@ The standard interface for working with Mathy models and agents.
 ```python
 Mathy.simplify(
     self,
-    model: str = mathy_alpha_sm,
+    model: str = 'mathy_alpha_sm',
     problem: str,
     max_steps: int = 20,
     thinking_steps: int = 3,

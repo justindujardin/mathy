@@ -132,7 +132,7 @@ MathyEnv.get_token_at_index(
     self,
     expression: mathy.core.expressions.MathExpression,
     focus_index: int,
-) -> Union[mathy.core.expressions.MathExpression, NoneType]
+) -> Optional[mathy.core.expressions.MathExpression]
 ```
 Get the token that is `focus_index` from the left of the expression
 ### get_valid_moves
@@ -242,6 +242,6 @@ MathyEnv.transition_fn(
     env_state: mathy.state.MathyEnvState,
     expression: mathy.core.expressions.MathExpression,
     features: mathy.state.MathyObservation,
-) -> Union[mathy.time_step.TimeStep, NoneType]
+) -> Optional[mathy.time_step.TimeStep]
 ```
 Provide environment-specific transitions per timestep.

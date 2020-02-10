@@ -149,7 +149,7 @@ Evaluate the expression, resolving all variables to constant values
 MathExpression.find_id(
     self,
     id: str,
-) -> Union[_ForwardRef('MathExpression'), NoneType]
+) -> Optional[MathExpression]
 ```
 Find an expression by its unique ID.
 
@@ -208,8 +208,8 @@ a transformation.
 ```python
 MathExpression.to_list(
     self,
-    visit: str = preorder,
-) -> List[_ForwardRef('MathExpression')]
+    visit: str = 'preorder',
+) -> List[MathExpression]
 ```
 Convert this node hierarchy into a list.
 ### to_math_ml
