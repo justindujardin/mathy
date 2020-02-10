@@ -189,8 +189,10 @@ def get_callable_placeholder(
         if p.annotation is not inspect._empty:  # type: ignore
             annotation = inspect.formatannotation(p.annotation)
         if p.default is not inspect._empty:  # type: ignore
-            default_value = str(p.default)
-
+            if isinstance(p.default, str):
+                default_value = repr(p.default)
+            else:
+                default_value = str(p.default)
         if annotation is not None:
             annotation = cleanup_type(annotation)
         params.append(CallableArg(p.name, annotation, default_value))

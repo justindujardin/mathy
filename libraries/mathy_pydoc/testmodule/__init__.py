@@ -6,6 +6,7 @@ def a_function_with_types(
     nested_optional: Optional[Tuple[Optional[str], Optional[int]]],
     inputs: List[Dict[str, Any]],
     auxiliary: Tuple[Optional[str]],
+    another: str = "\t",
     final: int = 3,
 ) -> List[Optional[str]]:
     """Sweet typed function"""
