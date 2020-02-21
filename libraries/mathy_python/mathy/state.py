@@ -77,8 +77,9 @@ class MathyWindowObservation(NamedTuple):
     rnn_state_c: WindowRNNStateFloatList
     rnn_history_h: WindowRNNStateFloatList
 
-    def to_inputs(self, as_tf_tensor: bool = True) -> MathyInputsType:
-        import tensorflow as tf
+    def to_inputs(self, as_tf_tensor: bool = False) -> MathyInputsType:
+        if as_tf_tensor:
+            import tensorflow as tf
 
         def to_res(in_value):
             if as_tf_tensor is True:
@@ -160,7 +161,7 @@ def rnn_placeholder_state(rnn_size: int) -> RNNStateFloatList:
 
 
 def observations_to_window(
-    observations: List[MathyObservation],
+    observations: List[MathyObservation], total_length:int = None
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(
@@ -181,6 +182,8 @@ def observations_to_window(
         sequence_lengths.append(len(obs.values))
         max_mask_length = max(max_mask_length, len(obs.mask))
     max_length: int = max(sequence_lengths)
+    if total_length is not None:
+        max_length = total_length
 
     for obs in observations:
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
