@@ -8,10 +8,10 @@ from ..mathy.agents.zero.config import SelfPlayConfig
 from ..mathy.env import MathyEnv
 from ..mathy.state import MathyObservation, observations_to_window
 from ..mathy.agents.zero import SelfPlayConfig
+from ..mathy.agents.muzero.config import MuZeroConfig
 from ..mathy.agents.muzero.muzero import (
     ActionHistory,
     run_mcts,
-    MuZeroConfig,
     play_game,
     Node,
     Network,
@@ -22,7 +22,8 @@ from ..mathy.agents.muzero.muzero import (
 def test_mathy_muzero_basic():
     config = SelfPlayConfig()
     env: MathyEnv = envs.PolySimplify()
-    action_space_size = env.action_size
+    max_sequence_length = 256
+    action_space_size = env.action_size * max_sequence_length
     max_moves = env.max_moves
     dirichlet_alpha = 0.03
     lr_init = 0.1
@@ -47,5 +48,5 @@ def test_mathy_muzero_basic():
         lr_decay_steps=400e3,
         visit_softmax_temperature_fn=visit_softmax_temperature,
     )
-    network = Network(config, action_space_size=env.action_size)
+    network = Network(config, actions_per_node=env.action_size)
     play_game(cfg, network, env)

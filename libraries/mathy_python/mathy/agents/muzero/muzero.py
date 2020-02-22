@@ -21,10 +21,9 @@ from .types import (
     Action,
     Node,
     Player,
-    MuZeroConfig,
     MinMaxStats,
 )
-
+from .config import MuZeroConfig
 from .game import Game
 
 
@@ -107,10 +106,16 @@ def select_action(config: MuZeroConfig, num_moves: int, node: Node, network: Net
 
 # Select the child with the highest UCB score.
 def select_child(config: MuZeroConfig, node: Node, min_max_stats: MinMaxStats):
-    _, action, child = max(
-        (ucb_score(config, node, child, min_max_stats), action, child)
-        for action, child in node.children.items()
-    )
+    child_tuples: List[Tuple[float, Action, Node]] = []
+    for action, child in node.children.items():
+        child_tuples.append(
+            (ucb_score(config, node, child, min_max_stats), action, child)
+        )
+    _, action, child = max(child_tuples)
+    # _, action, child = max(
+    #     (ucb_score(config, node, child, min_max_stats), action, child)
+    #     for action, child in node.children.items()
+    # )
     return action, child
 
 
@@ -157,7 +162,6 @@ def backpropagate(
         node.value_sum += value if node.to_play == to_play else -value
         node.visit_count += 1
         min_max_stats.update(node.value())
-
         value = node.reward + discount * value
 
 

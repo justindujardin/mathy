@@ -3,16 +3,13 @@ from typing import Any, Dict, List, Optional, Tuple, Union, NamedTuple
 import torch
 import torch.nn.functional as F
 
-from mathy.agents.zero.config import SelfPlayConfig
-from mathy.agents.densenet import DenseNetStack
-from mathy.core.expressions import MathTypeKeysMax
-from mathy.state import (
+from .config import MuZeroConfig
+from ...core.expressions import MathTypeKeysMax
+from ...state import (
     MathyInputsType,
     MathyWindowObservation,
     ObservationFeatureIndices,
 )
-
-
 from .types import Action
 
 
@@ -26,18 +23,19 @@ class NetworkOutput(NamedTuple):
     hidden_state: List[float]
 
 
-class Network(object):
-    def __init__(self, config: SelfPlayConfig, action_space_size: int):
+class Network(torch.nn.Module):
+    def __init__(self, config: MuZeroConfig, actions_per_node: int):
+        super(Network, self).__init__()
         self.config = config
-        self.action_space_size = action_space_size
+        self.actions_per_node = actions_per_node
+        self.hidden_size = 32
+        self.units = 128
         self.representation_net = RepresentationModel(config=config)
-        self.dynamics_net = DynamicsModel(
-            config=config, hidden_size=self.config.embedding_units
-        )
+        self.dynamics_net = DynamicsModel(config=config, hidden_size=self.hidden_size)
         self.prediction_net = PredictionModel(
             config=config,
-            hidden_size=self.config.embedding_units,
-            action_space_size=action_space_size,
+            hidden_size=self.hidden_size,
+            actions_per_node=actions_per_node,
         )
 
     def initial_inference(self, input_features: MathyInputsType) -> NetworkOutput:
@@ -58,11 +56,18 @@ class Network(object):
 
     def to_policy_dict(self, policy: torch.Tensor) -> PolicyLogitsDict:
         """Convert Logits tensor into a dictionary of { action: probability }"""
-        return policy
+        p_list = policy.squeeze_().tolist()
+        out_dict: PolicyLogitsDict = dict()
+        for i, p in enumerate(p_list):
+            out_dict[Action(i)] = p
+        return out_dict
 
     def get_weights(self):
         # Returns the weights of this network.
-        return []
+        return {k: v.cpu() for k, v in self.state_dict().items()}
+
+    def set_weights(self, weights):
+        self.load_state_dict(weights)
 
     def training_steps(self) -> int:
         # How many steps / batches the network has been trained for.
@@ -72,7 +77,7 @@ class Network(object):
 class RepresentationModel(torch.nn.Module):
     """Build a hidden state from an environment observation"""
 
-    def __init__(self, config: SelfPlayConfig, **kwargs):
+    def __init__(self, config: MuZeroConfig, **kwargs):
         super(RepresentationModel, self).__init__(**kwargs)
         self.config = config
         self.width = config.max_sequence_length
@@ -114,7 +119,7 @@ class RepresentationModel(torch.nn.Module):
 class DynamicsModel(torch.nn.Module):
     """Predict the next hidden state from the current"""
 
-    def __init__(self, *, hidden_size: int, config: SelfPlayConfig):
+    def __init__(self, *, hidden_size: int, config: MuZeroConfig):
         super(DynamicsModel, self).__init__()
         self.config = config
         self.hidden_size = hidden_size
@@ -135,16 +140,17 @@ class PredictionModel(torch.nn.Module):
     """Prediction value, reward, policy from a hidden state"""
 
     def __init__(
-        self, *, hidden_size: int, action_space_size: int, config: SelfPlayConfig
+        self, *, hidden_size: int, actions_per_node: int, config: MuZeroConfig
     ):
         super(PredictionModel, self).__init__()
         self.config = config
         self.hidden_size = hidden_size
-        self.action_space_size = action_space_size
+        self.actions_per_node = actions_per_node
+        self.policy_size = self.actions_per_node * self.config.max_sequence_length
         # TODO: add reasonable heads for each prediction
         self.policy_net = torch.nn.Sequential(
-            torch.nn.Linear(self.hidden_size, self.action_space_size),
-            torch.nn.LayerNorm(self.action_space_size),
+            torch.nn.Linear(self.hidden_size, self.policy_size),
+            torch.nn.LayerNorm(self.policy_size),
         )
         self.value_net = torch.nn.Linear(self.hidden_size, 1)
         self.reward_net = torch.nn.Linear(self.hidden_size, 1)
@@ -152,8 +158,9 @@ class PredictionModel(torch.nn.Module):
     def forward(
         self, hidden_state: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        value = self.value_net(hidden_state)
-        reward = self.reward_net(hidden_state)
-        policy = self.policy_net(hidden_state)
+        flat_hidden = torch.mean(hidden_state, -1)
+        value = self.value_net(flat_hidden)
+        reward = self.reward_net(flat_hidden)
+        policy = self.policy_net(flat_hidden)
         return value, reward, policy
 

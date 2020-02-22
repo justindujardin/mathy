@@ -20,9 +20,9 @@ from .types import (
     Action,
     Node,
     Player,
-    MuZeroConfig,
     MinMaxStats,
 )
+from .config import MuZeroConfig
 
 
 class Game(object):
