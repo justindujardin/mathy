@@ -70,55 +70,19 @@ class MathyEmbedding(tf.keras.Model):
         )
         self.lstm_attention = tf.keras.layers.Attention()
 
-    def compute_output_shape(self, input_shapes: List[tf.TensorShape]) -> Any:
-        nodes_shape: tf.TensorShape = input_shapes[0]
-        return tf.TensorShape(
-            (
-                nodes_shape.dims[0].value,
-                nodes_shape.dims[1].value,
-                self.config.embedding_units,
-            )
-        )
-
     def call(self, features: MathyInputsType, train: tf.Tensor = None) -> tf.Tensor:
-        nodes = features[ObservationFeatureIndices.nodes]
-        values = features[ObservationFeatureIndices.values]
-        type = features[ObservationFeatureIndices.type]
-        time = features[ObservationFeatureIndices.time]
-        nodes_shape = tf.shape(features[ObservationFeatureIndices.nodes])
-        batch_size = nodes_shape[0]  # noqa
-        sequence_length = nodes_shape[1]
-
-        with tf.name_scope("prepare_inputs"):
-            values = tf.expand_dims(values, axis=-1, name="values_input")
-            query = self.token_embedding(nodes)
-            # If not using env features, only concatenate the tokens and values
-            if not self.config.use_env_features and self.config.use_node_values:
-                query = tf.concat([query, values], axis=-1, name="tokens_and_values")
-                query.set_shape(
-                    (None, None, self.config.embedding_units + self.concat_size)
-                )
-            elif self.config.use_env_features:
-                env_inputs = [
-                    query,
-                    self.type_dense(type),
-                    self.time_dense(time),
-                ]
-                if self.config.use_node_values:
-                    env_inputs.insert(1, values)
-
-                query = tf.concat(env_inputs, axis=-1, name="tokens_and_values")
-
-        # Input dense transforms
-        query = self.in_dense(query)
-
-        if self.config.use_lstm:
-            output, state_h, state_c = self.lstm_nodes(query)
-            output = self.lstm_attention([output, state_h])
-            output = self.nodes_lstm_norm(output)
-        else:
-            # Non-recurrent model
-            output = self.densenet(query)
-            output = self.dense_attention([output, output])
-
-        return self.out_dense_norm(output)
+        output = tf.concat(
+            [
+                self.token_embedding(features[ObservationFeatureIndices.nodes]),
+                tf.expand_dims(features[ObservationFeatureIndices.values], axis=-1),
+                self.type_dense(features[ObservationFeatureIndices.type]),
+                self.time_dense(features[ObservationFeatureIndices.time]),
+            ],
+            axis=-1,
+            name="input_vectors",
+        )
+        output = self.in_dense(output)
+        output, state_h, state_c = self.lstm_nodes(output)
+        output = self.lstm_attention([output, state_h])
+        output = self.nodes_lstm_norm(output)
+        return self.out_dense_norm(self.output_dense(output))
