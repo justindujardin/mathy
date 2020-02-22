@@ -8,7 +8,7 @@ from ..mathy.agents.zero.config import SelfPlayConfig
 from ..mathy.env import MathyEnv
 from ..mathy.state import MathyObservation, observations_to_window
 from ..mathy.agents.zero import SelfPlayConfig
-from ..mathy.agents.muzero.mcts import (
+from ..mathy.agents.muzero.muzero import (
     ActionHistory,
     run_mcts,
     MuZeroConfig,
@@ -47,5 +47,5 @@ def test_mathy_muzero_basic():
         lr_decay_steps=400e3,
         visit_softmax_temperature_fn=visit_softmax_temperature,
     )
-    network = Network(config, predictions=env.action_size)
+    network = Network(config, action_space_size=env.action_size)
     play_game(cfg, network, env)
