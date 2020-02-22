@@ -135,7 +135,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "units",
     "--units",
-    default=512,
+    default=128,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
@@ -149,22 +149,9 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "embeddings",
     "--embeddings",
-    default=512,
+    default=256,
     type=int,
     help="Number of dimensions to use for token embeddings",
-)
-@click.option(
-    "use_lstm",
-    "--use-lstm",
-    type=bool,
-    help="Whether to use the recurrent architecture or not",
-)
-@click.option(
-    "rnn",
-    "--rnn",
-    default=128,
-    type=int,
-    help="Number of dimensions to use for RNN state",
 )
 @click.option(
     "episodes",
@@ -223,7 +210,6 @@ def cli_train(
     workers: int,
     units: int,
     embeddings: int,
-    rnn: int,
     profile: bool,
     episodes: int,
     mcts_sims: int,
@@ -232,7 +218,6 @@ def cli_train(
     verbose: bool,
     training_iterations: int,
     self_play_problems: int,
-    use_lstm: bool,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -258,7 +243,6 @@ def cli_train(
             difficulty=difficulty,
             action_strategy=strategy,
             topics=topics_list,
-            lstm_units=rnn,
             units=units,
             embedding_units=embeddings,
             lr=lr,
@@ -271,8 +255,6 @@ def cli_train(
         )
         if episodes is not None:
             args.max_eps = episodes
-        if use_lstm is not None:
-            args.use_lstm = use_lstm
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
@@ -284,7 +266,6 @@ def cli_train(
             difficulty=difficulty,
             topics=topics_list,
             lr=lr,
-            lstm_units=rnn,
             units=units,
             embedding_units=embeddings,
             mcts_sims=mcts_sims,
@@ -296,8 +277,6 @@ def cli_train(
             print_training=show,
             profile=profile,
         )
-        if use_lstm is not None:
-            self_play_cfg.use_lstm = use_lstm
         if episodes is not None:
             self_play_cfg.max_eps = episodes
 

@@ -14,7 +14,6 @@ NodeValuesFloatList = List[float]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
 ProblemTimeFloatList = List[float]
-RNNStateFloatList = List[float]
 
 
 WindowNodeIntList = List[NodeIntList]
@@ -22,8 +21,6 @@ WindowNodeMaskIntList = List[NodeMaskIntList]
 WindowNodeValuesFloatList = List[NodeValuesFloatList]
 WindowProblemTypeIntList = List[ProblemTypeIntList]
 WindowProblemTimeFloatList = List[ProblemTimeFloatList]
-WindowRNNStateFloatList = List[RNNStateFloatList]
-
 
 # Input type for mathy models
 MathyInputsType = List[Any]
@@ -35,9 +32,6 @@ class ObservationFeatureIndices(IntEnum):
     values = 2
     type = 3
     time = 4
-    rnn_state_h = 5
-    rnn_state_c = 6
-    rnn_history_h = 7
 
 
 class MathyObservation(NamedTuple):
@@ -48,9 +42,6 @@ class MathyObservation(NamedTuple):
     values: NodeValuesFloatList
     type: ProblemTypeIntList
     time: ProblemTimeFloatList
-    rnn_state_h: RNNStateFloatList
-    rnn_state_c: RNNStateFloatList
-    rnn_history_h: RNNStateFloatList
 
 
 # fmt: off
@@ -59,9 +50,6 @@ MathyObservation.mask.__doc__ = "0/1 mask where 0 indicates an invalid action sh
 MathyObservation.values.__doc__ = "tree node value sequences, with non number indices set to 0.0 shape=[n,]" # noqa
 MathyObservation.type.__doc__ = "two column hash of problem environment type shape=[2,]" # noqa
 MathyObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed shape=[1,]" # noqa
-MathyObservation.rnn_state_h.__doc__ = "rnn state_h shape=[dimensions]" # noqa
-MathyObservation.rnn_state_c.__doc__ = "rnn state_c shape=[dimensions]" # noqa
-MathyObservation.rnn_history_h.__doc__ = "rnn historical state_h shape=[dimensions]" # noqa
 # fmt: on
 
 
@@ -73,9 +61,6 @@ class MathyWindowObservation(NamedTuple):
     values: WindowNodeValuesFloatList
     type: WindowProblemTypeIntList
     time: WindowProblemTimeFloatList
-    rnn_state_h: WindowRNNStateFloatList
-    rnn_state_c: WindowRNNStateFloatList
-    rnn_history_h: WindowRNNStateFloatList
 
     def to_inputs(self, as_tf_tensor: bool = False) -> MathyInputsType:
         if as_tf_tensor:
@@ -92,9 +77,6 @@ class MathyWindowObservation(NamedTuple):
             to_res(self.values),
             to_res(self.type),
             to_res(self.time),
-            to_res(self.rnn_state_h),
-            to_res(self.rnn_state_c),
-            to_res(self.rnn_history_h),
         ]
         for r in result:
             for s in r.shape:
@@ -110,9 +92,6 @@ class MathyWindowObservation(NamedTuple):
             np.asarray(self.values).shape,
             np.asarray(self.type).shape,
             np.asarray(self.time).shape,
-            np.asarray(self.rnn_state_h).shape,
-            np.asarray(self.rnn_state_c).shape,
-            np.asarray(self.rnn_history_h).shape,
         ]
         return result
 
@@ -123,9 +102,6 @@ MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks `shape
 MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`" # noqa
 MathyWindowObservation.type.__doc__ = "n-step problem type hash `shape=[n, 2]`" # noqa
 MathyWindowObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`" # noqa
-MathyWindowObservation.rnn_state_h.__doc__ = "n-step rnn state `shape=[n, dimensions]`" # noqa
-MathyWindowObservation.rnn_state_c.__doc__ = "n-step rnn state `shape=[n, dimensions]`" # noqa
-MathyWindowObservation.rnn_history_h.__doc__ = "n-step rnn historical state `shape=[n, dimensions]`" # noqa
 # fmt: on
 
 
@@ -145,35 +121,14 @@ MathyEnvStateStep.action.__doc__ = "the action taken" # noqa
 # fmt: on
 
 
-_cached_placeholder: Optional[RNNStateFloatList] = None
 _problem_hash_cache: Optional[Dict[str, List[int]]] = None
 
 
-def rnn_placeholder_state(rnn_size: int) -> RNNStateFloatList:
-    """Create a placeholder state for the RNN hidden states in an observation. This
-    is useful because we don't always know the RNN state when we initialize an
-    observation. """
-    global _cached_placeholder
-    # Not in cache, or rnn_size differs
-    if _cached_placeholder is None or len(_cached_placeholder) != rnn_size:
-        _cached_placeholder = [0.0] * rnn_size
-    return _cached_placeholder
-
-
 def observations_to_window(
-    observations: List[MathyObservation], total_length:int = None
+    observations: List[MathyObservation], total_length: int = None
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
-    output = MathyWindowObservation(
-        nodes=[],
-        mask=[],
-        values=[],
-        type=[],
-        time=[],
-        rnn_state_h=[],
-        rnn_state_c=[],
-        rnn_history_h=[],
-    )
+    output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[], time=[])
     sequence_lengths: List[int] = []
     max_mask_length: int = 0
     for i in range(len(observations)):
@@ -191,9 +146,6 @@ def observations_to_window(
         output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(pad_array([], max_length, obs.type))
         output.time.append(pad_array([], max_length, obs.time))
-        output.rnn_state_h.append(obs.rnn_state_h)
-        output.rnn_state_c.append(obs.rnn_state_c)
-        output.rnn_history_h.append(obs.rnn_history_h)
     return output
 
 
@@ -285,9 +237,7 @@ class MathyEnvState(object):
             ]
         return _problem_hash_cache[self.agent.problem_type]
 
-    def to_start_observation(
-        self, rnn_state_h: RNNStateFloatList, rnn_state_c: RNNStateFloatList
-    ) -> MathyObservation:
+    def to_start_observation(self) -> MathyObservation:
         """Generate an episode start MathyObservation"""
         num_actions = 1 * self.num_rules
         hash = self.get_problem_hash()
@@ -303,25 +253,13 @@ class MathyEnvState(object):
             values=values,
             type=hash,
             time=[-1.0],
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=rnn_state_h,
         )
 
     def to_observation(
         self,
         move_mask: Optional[NodeMaskIntList] = None,
-        rnn_state_h: Optional[RNNStateFloatList] = None,
-        rnn_state_c: Optional[RNNStateFloatList] = None,
-        rnn_history_h: Optional[RNNStateFloatList] = None,
         hash_type: Optional[ProblemTypeIntList] = None,
     ) -> MathyObservation:
-        if rnn_state_h is None:
-            rnn_state_h = rnn_placeholder_state(128)
-        if rnn_state_c is None:
-            rnn_state_c = rnn_placeholder_state(128)
-        if rnn_history_h is None:
-            rnn_history_h = rnn_placeholder_state(128)
         if hash_type is None:
             hash_type = self.get_problem_hash()
         expression = self.parser.parse(self.agent.problem)
@@ -344,14 +282,7 @@ class MathyEnvState(object):
         time = step / self.max_moves
 
         return MathyObservation(
-            nodes=vectors,
-            mask=move_mask,
-            values=values,
-            type=hash_type,
-            time=[time],
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=rnn_history_h,
+            nodes=vectors, mask=move_mask, values=values, type=hash_type, time=[time]
         )
 
 

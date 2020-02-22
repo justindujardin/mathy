@@ -224,9 +224,7 @@ def get_or_create_policy_model(
 ) -> PolicyValueModel:
     if env is None:
         env = PolySimplify()
-    observation: MathyObservation = env.state_to_observation(
-        env.get_initial_state()[0], rnn_size=args.lstm_units
-    )
+    observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window([observation])
 
     if not os.path.exists(args.model_dir):
@@ -308,9 +306,7 @@ def load_policy_value_model(
     if not optimizer_file.exists():
         raise ValueError(f"optimizer not found: {optimizer_file}")
     env: MathyEnv = PolySimplify()
-    observation: MathyObservation = env.state_to_observation(
-        env.get_initial_state()[0], rnn_size=args.lstm_units
-    )
+    observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window([observation])
     model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
     init_inputs = initial_state.to_inputs()

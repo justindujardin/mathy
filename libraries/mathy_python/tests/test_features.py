@@ -3,7 +3,7 @@ from typing import List, Tuple
 import pytest
 
 from ..mathy.envs.poly_simplify import PolySimplify
-from ..mathy.state import MathyEnvState, rnn_placeholder_state
+from ..mathy.state import MathyEnvState
 
 
 def test_mathy_features_from_state():
@@ -24,13 +24,12 @@ def test_mathy_features_hierarchy():
         ("5s + 60 + 12s + s^2", "5s + 60 + (12s + s^2)"),
     ]
     env = PolySimplify()
-    rnn_state = rnn_placeholder_state(128)
 
     for one, two in diff_pairs:
         state_one = MathyEnvState(problem=one)
-        obs_one = state_one.to_observation(env.get_valid_moves(state_one), rnn_state)
+        obs_one = state_one.to_observation(env.get_valid_moves(state_one))
 
         state_two = MathyEnvState(problem=two)
-        obs_two = state_two.to_observation(env.get_valid_moves(state_two), rnn_state)
+        obs_two = state_two.to_observation(env.get_valid_moves(state_two))
 
         assert obs_one.nodes != obs_two.nodes

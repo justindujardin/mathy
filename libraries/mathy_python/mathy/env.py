@@ -19,8 +19,6 @@ from .state import (
     MathyEnvState,
     MathyEnvStateStep,
     MathyObservation,
-    RNNStateFloatList,
-    rnn_placeholder_state,
 )
 from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
 from .util import compare_expression_string_values, is_terminal_transition
@@ -142,34 +140,12 @@ class MathyEnv:
         generate its own dataset with no required configuration."""
         raise NotImplementedError("This must be implemented in a subclass")
 
-    def state_to_observation(
-        self,
-        state: MathyEnvState,
-        rnn_size: Optional[int] = None,
-        rnn_state_h: Optional[RNNStateFloatList] = None,
-        rnn_state_c: Optional[RNNStateFloatList] = None,
-        rnn_history_h: Optional[RNNStateFloatList] = None,
-    ) -> MathyObservation:
+    def state_to_observation(self, state: MathyEnvState,) -> MathyObservation:
         """Convert an environment state into an observation that can be used
         by a training agent."""
 
-        if rnn_size is None and (rnn_state_h is None or rnn_state_c is None):
-            raise ValueError(
-                "one of rnn_state_h/rnn_state_c or rnn_size must be specified"
-            )
-        if rnn_size is not None and rnn_state_h is None:
-            rnn_state_h = rnn_placeholder_state(rnn_size)
-        if rnn_size is not None and rnn_state_c is None:
-            rnn_state_c = rnn_placeholder_state(rnn_size)
-        if rnn_size is not None and rnn_history_h is None:
-            rnn_history_h = rnn_placeholder_state(rnn_size)
         action_mask = self.get_valid_moves(state)
-        observation = state.to_observation(
-            move_mask=action_mask,
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=rnn_history_h,
-        )
+        observation = state.to_observation(move_mask=action_mask,)
         return observation
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:

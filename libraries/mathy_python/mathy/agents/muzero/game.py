@@ -82,7 +82,7 @@ class Game(object):
         return observation, transition.reward, done, info
 
     def make_image(self, state_index: int) -> MathyInputsType:
-        obs = self.environment.state_to_observation(self.state, rnn_size=1)
+        obs = self.environment.state_to_observation(self.state)
         return observations_to_window([obs], self.model_width).to_inputs()
 
     def make_target(

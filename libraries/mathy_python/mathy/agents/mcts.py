@@ -46,13 +46,12 @@ class MCTS:
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times env_state s was visited
         self.Ps = {}  # stores initial policy (returned by neural net)
-        self.Rs = {}  # stores observed rnn states at Ps
 
         self.Es = {}  # stores env.get_state_transition ended for env_state s
         self.Vs = {}  # stores env.get_valid_moves for env_state s
 
     def estimate_policy(
-        self, env_state: MathyEnvState, rnn_state: List[Any], temp: float = 1.0
+        self, env_state: MathyEnvState, temp: float = 1.0
     ) -> Tuple[List[float], float]:
         """
         This function performs num_mcts_sims simulations of MCTS starting from
@@ -66,7 +65,7 @@ class MCTS:
         probs: List[float]
         values: List[float] = []
         for _ in range(self.num_mcts_sims):
-            values.append(self.search(env_state, rnn_state, True))
+            values.append(self.search(env_state, True))
         value = numpy.asarray(values).mean()
 
         s = self.env.to_hash_key(env_state)
@@ -92,7 +91,7 @@ class MCTS:
         probs = [x / float(count_sum) for x in counts]
         return probs, value
 
-    def search(self, env_state: MathyEnvState, rnn_state: List[Any], isRootNode=False):
+    def search(self, env_state: MathyEnvState, isRootNode=False):
         """
         This function performs one iteration of MCTS. It is recursively called
         until a leaf node is found. The action chosen at each node is one that
@@ -119,29 +118,16 @@ class MCTS:
             return self.Es[s].reward
 
         # This state does not have a predicted policy of value vector
-        if s not in self.Ps or s not in self.Rs:
+        if s not in self.Ps:
             # leaf node
             valids = self.env.get_valid_moves(env_state)
-            obs = env_state.to_observation(
-                valids,
-                rnn_state_h=rnn_state[0],
-                rnn_state_c=rnn_state[1],
-                rnn_history_h=rnn_state[0],
-            )
+            obs = env_state.to_observation(valids)
             observations = observations_to_window([obs]).to_inputs()
             out_policy, state_v = self.model.predict_next(observations)
-            out_rnn_state = [
-                tf.squeeze(self.model.embedding.state_h).numpy(),
-                tf.squeeze(self.model.embedding.state_c).numpy(),
-            ]
-            self.Rs[s] = out_rnn_state
             self.Ps[s] = out_policy
             self.Vs[s] = valids
             self.Ns[s] = 0
             return state_v
-        else:
-            # Use the observed RNN state when this was cached
-            out_rnn_state = self.Rs[s]
 
         valids = self.Vs[s]
         cur_best = -float("inf")
@@ -180,7 +166,7 @@ class MCTS:
 
         a = numpy.random.choice(all_best)
         next_s, _, _ = self.env.get_next_state(env_state, a, searching=True)
-        state_v = self.search(next_s, out_rnn_state)
+        state_v = self.search(next_s)
 
         # state key for next state
         state_key = (s, a)

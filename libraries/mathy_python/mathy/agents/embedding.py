@@ -13,18 +13,9 @@ from mathy.agents.densenet import DenseNetStack
 
 
 class MathyEmbedding(tf.keras.Model):
-    def __init__(
-        self,
-        config: BaseConfig,
-        episode_reset_state_h: Optional[bool] = True,
-        episode_reset_state_c: Optional[bool] = True,
-        **kwargs,
-    ):
+    def __init__(self, config: BaseConfig, **kwargs):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.config = config
-        self.episode_reset_state_h = episode_reset_state_h
-        self.episode_reset_state_c = episode_reset_state_c
-        self.init_rnn_state()
         self.token_embedding = tf.keras.layers.Embedding(
             input_dim=MathTypeKeysMax,
             output_dim=self.config.embedding_units,
@@ -69,24 +60,15 @@ class MathyEmbedding(tf.keras.Model):
         if self.config.normalization_style == "batch":
             NormalizeClass = tf.keras.layers.BatchNormalization
         self.out_dense_norm = NormalizeClass(name="out_dense_norm")
-        if self.config.use_lstm:
-            self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
-            self.lstm_nodes = tf.keras.layers.LSTM(
-                self.config.lstm_units,
-                name="nodes_lstm",
-                time_major=False,
-                return_sequences=True,
-                return_state=True,
-            )
-            self.lstm_attention = tf.keras.layers.Attention()
-        else:
-            self.densenet = DenseNetStack(
-                units=self.config.units,
-                num_layers=6,
-                output_transform=self.output_dense,
-                normalization_style=self.config.normalization_style,
-            )
-            self.dense_attention = tf.keras.layers.Attention()
+        self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
+        self.lstm_nodes = tf.keras.layers.LSTM(
+            self.config.lstm_units,
+            name="nodes_lstm",
+            time_major=False,
+            return_sequences=True,
+            return_state=True,
+        )
+        self.lstm_attention = tf.keras.layers.Attention()
 
     def compute_output_shape(self, input_shapes: List[tf.TensorShape]) -> Any:
         nodes_shape: tf.TensorShape = input_shapes[0]
@@ -98,27 +80,6 @@ class MathyEmbedding(tf.keras.Model):
             )
         )
 
-    def init_rnn_state(self):
-        """Track RNN states with variables in the graph"""
-        self.state_c = tf.Variable(
-            tf.zeros([1, self.config.lstm_units]),
-            trainable=False,
-            name="embedding/rnn/agent_state_c",
-        )
-        self.state_h = tf.Variable(
-            tf.zeros([1, self.config.lstm_units]),
-            trainable=False,
-            name="embedding/rnn/agent_state_h",
-        )
-
-    def reset_rnn_state(self, force: bool = False):
-        """Zero out the RNN state for a new episode"""
-        if self.episode_reset_state_h or force is True:
-            self.state_h.assign(tf.zeros([1, self.config.lstm_units]))
-
-        if self.episode_reset_state_c or force is True:
-            self.state_c.assign(tf.zeros([1, self.config.lstm_units]))
-
     def call(self, features: MathyInputsType, train: tf.Tensor = None) -> tf.Tensor:
         nodes = features[ObservationFeatureIndices.nodes]
         values = features[ObservationFeatureIndices.values]
@@ -127,10 +88,6 @@ class MathyEmbedding(tf.keras.Model):
         nodes_shape = tf.shape(features[ObservationFeatureIndices.nodes])
         batch_size = nodes_shape[0]  # noqa
         sequence_length = nodes_shape[1]
-
-        in_rnn_state_h = features[ObservationFeatureIndices.rnn_state_h]
-        in_rnn_state_c = features[ObservationFeatureIndices.rnn_state_c]
-        in_rnn_history_h = features[ObservationFeatureIndices.rnn_history_h]
 
         with tf.name_scope("prepare_inputs"):
             values = tf.expand_dims(values, axis=-1, name="values_input")
@@ -159,8 +116,6 @@ class MathyEmbedding(tf.keras.Model):
             output, state_h, state_c = self.lstm_nodes(query)
             output = self.lstm_attention([output, state_h])
             output = self.nodes_lstm_norm(output)
-            self.state_h.assign(state_h[-1:])
-            self.state_c.assign(state_c[-1:])
         else:
             # Non-recurrent model
             output = self.densenet(query)

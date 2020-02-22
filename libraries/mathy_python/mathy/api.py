@@ -68,7 +68,7 @@ class Mathy:
         episode_memory = EpisodeMemory()
         env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
         last_observation: MathyObservation = env.reset_with_input(
-            problem_text=problem, rnn_size=self.config.lstm_units, max_moves=max_steps
+            problem_text=problem, max_moves=max_steps
         )
         assert env.state is not None
         last_text = env.state.agent.problem
@@ -78,38 +78,9 @@ class Mathy:
         selector = A3CEpsilonGreedyActionSelector(
             model=self.model, episode=0, worker_id=0, epsilon=0
         )
-
-        # Set RNN to 0 state for start of episode
-        selector.model.embedding.reset_rnn_state()
-
-        # Start with the "init" sequence [n] times
-        for i in range(self.config.num_thinking_steps_begin + 1):
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-            seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
-            selector.model(observations_to_window([seq_start]).to_inputs())
-
         done = False
         while not done:
             env.render(self.config.print_mode, None)
-            # store rnn state for replay training
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-            last_rnn_state = [rnn_state_h, rnn_state_c]
-
-            # named tuples are read-only, so add rnn state to a new copy
-            last_observation = MathyObservation(
-                nodes=last_observation.nodes,
-                mask=last_observation.mask,
-                values=last_observation.values,
-                type=last_observation.type,
-                time=last_observation.time,
-                rnn_state_h=rnn_state_h,
-                rnn_state_c=rnn_state_c,
-                rnn_history_h=episode_memory.rnn_weighted_history(
-                    self.config.lstm_units
-                )[0],
-            )
             window = episode_memory.to_window_observation(last_observation)
             try:
                 action, value = selector.select(
@@ -117,7 +88,6 @@ class Mathy:
                     last_window=window,
                     last_action=last_action,
                     last_reward=last_reward,
-                    last_rnn_state=last_rnn_state,
                 )
             except KeyboardInterrupt:
                 print("Done!")
@@ -128,31 +98,9 @@ class Mathy:
                 continue
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-            observation = MathyObservation(
-                nodes=observation.nodes,
-                mask=observation.mask,
-                values=observation.values,
-                type=observation.type,
-                time=observation.time,
-                rnn_state_h=rnn_state_h,
-                rnn_state_c=rnn_state_c,
-                rnn_history_h=episode_memory.rnn_weighted_history(
-                    self.config.lstm_units
-                )[0],
-            )
-
             new_text = env.state.agent.problem
-            grouping_change = calculate_grouping_control_signal(
-                last_text, new_text, clip_at_zero=self.config.clip_grouping_control
-            )
             episode_memory.store(
-                observation=last_observation,
-                action=action,
-                reward=reward,
-                grouping_change=grouping_change,
-                value=value,
+                observation=last_observation, action=action, reward=reward, value=value,
             )
             if done:
                 # Last timestep reward

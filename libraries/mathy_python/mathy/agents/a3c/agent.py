@@ -37,7 +37,7 @@ class A3CAgent:
         self.action_size = env.action_space.n
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        init_window = env.initial_window(self.args.lstm_units)
+        init_window = env.initial_window()
         self.global_model = get_or_create_policy_model(
             args=args, predictions=self.action_size, is_main=True, env=env.mathy
         )

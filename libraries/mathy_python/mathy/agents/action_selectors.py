@@ -26,7 +26,6 @@ class ActionSelector:
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-        last_rnn_state: List[float],
     ) -> Tuple[int, float]:
         raise NotImplementedError(self.select)
 
@@ -46,7 +45,6 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-        last_rnn_state: List[float],
     ) -> Tuple[int, float]:
 
         probs, value = self.model.predict_next(last_window.to_inputs())
@@ -85,7 +83,6 @@ class MCTSActionSelector(ActionSelector):
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-        last_rnn_state: List[float],
     ) -> Tuple[int, float]:
-        probs, value = self.mcts.estimate_policy(last_state, last_rnn_state)
+        probs, value = self.mcts.estimate_policy(last_state)
         return np.argmax(probs), value

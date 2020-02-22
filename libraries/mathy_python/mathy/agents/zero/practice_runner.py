@@ -10,7 +10,6 @@ import numpy as np
 from pydantic import BaseModel
 from wasabi import msg
 
-from ...agents.episode_memory import rnn_weighted_history
 from ...agents.mcts import MCTS
 from ...envs.gym.mathy_gym_env import MathyGymEnv
 from ...state import (
@@ -63,32 +62,14 @@ class PracticeRunner:
 
         # Hold on to the episode example data for training the neural net
         valids = game.mathy.get_valid_moves(env_state)
-        rnn_state_h = tf.squeeze(model.embedding.state_h).numpy().tolist()
-        rnn_state_c = tf.squeeze(model.embedding.state_c).numpy().tolist()
-        rnn_history_h = (
-            tf.squeeze(
-                rnn_weighted_history(
-                    [o.observation for o in history], len(rnn_state_h)
-                )[0]
-            )
-            .numpy()
-            .tolist()
-        )
-        last_observation: MathyObservation = env_state.to_observation(
-            valids,
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=rnn_history_h,
-        )
+        last_observation: MathyObservation = env_state.to_observation(valids)
 
         # If the move_count is less than threshold, set temp = 1 else 0
         temp = int(
             move_count < self.config.temperature_threshold * game.mathy.max_moves
         )
         mcts_state_copy = env_state.clone()
-        predicted_policy, value = mcts.estimate_policy(
-            mcts_state_copy, [rnn_state_h, rnn_state_c], temp=temp
-        )
+        predicted_policy, value = mcts.estimate_policy(mcts_state_copy, temp=temp)
         action = np.random.choice(len(predicted_policy), p=predicted_policy)
         observation, reward, done, meta = game.step(action)
         next_state = game.state
@@ -261,9 +242,7 @@ class PracticeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_env()
         new_net = self.get_model(game)
-        trainer = SelfPlayTrainer(
-            self.config, new_net, action_size=new_net.predictions
-        )
+        trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
         if trainer.train(train_examples, new_net):
             new_net.save()
 

@@ -20,16 +20,6 @@ The work done by **Mnih et al.** in "Asynchronous Methods for Deep Reinforcement
 
 The work done by **[Silver et al.](https://arxiv.org/pdf/1712.01815.pdf){target=\_blank}** demonstrated the power of taking a principled approach to solving previously intractable problems. It inspired Mathy to use Neural Networks and reinforcement learning to pick combinations of rules to transform the tree with. This work lead directly to the removal of a layer of "composite" rules in Mathy for combining like terms and simplifying expressions.
 
-### [Persistence Pays Off](https://arxiv.org/pdf/1810.04437.pdf){target=\_blank}
-
-The work done by **Salton and Kelleher** in "Persistence pays off: Paying Attention to What the LSTM Gating Mechanism Persists" observes that LSTMs create a problem when they remove information from their states while processing a sequence. Specifically, removing information from their states means the information is no longer available to future steps in the sequence. They suggest this makes it hard to identify long-term dependencies, and to address it they store and average the RNN states in recent history, then combine it with others input to your model.
-
-Mathy tracks the RNN state and RNN history for all observations, and incorporates them in the [embeddings layer](/ml/embeddings).
-
-### [R2D2](https://openreview.net/pdf?id=r1lyTjAqYX){target=\_blank}
-
-The work done by **Kapturowski et al.** in "Recurrent Experience Replay in Distributed Reinforcement Learning" shows that storing and properly initializing experience replay data can be crucial to identifying long-term dependencies in disitributed reinforcement learning. Mathy uses stored RNN states when training all sequences and optionally performs burn-in steps.
-
 ### [Tidier Trees](https://reingold.co/tidier-drawings.pdf){target=\_blank}
 
 The work done by **Reingold and Tilford** provides a relatively simple way to approach a difficult problem: how do you render arbitrarily large trees in a beautiful way? They provide an algorithm that does just that, enforcing a number of aesthetic rules on the trees it outputs. Mathy uses an implementation of this work to measure its trees for rendering.

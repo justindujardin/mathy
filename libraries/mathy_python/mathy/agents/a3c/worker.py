@@ -221,53 +221,16 @@ class A3CWorker(threading.Thread):
         ep_steps = 1
         time_count = 0
         done = False
-        last_observation: MathyObservation = env.reset(rnn_size=self.args.lstm_units)
+        last_observation: MathyObservation = env.reset()
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
 
         selector = self.build_episode_selector(env)
 
-        # Set RNN to 0 state for start of episode
-        selector.model.embedding.reset_rnn_state()
-
-        # Start with the "init" sequence [n] times
-        for i in range(self.args.num_thinking_steps_begin):
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-            seq_start = env.state.to_start_observation(rnn_state_h, rnn_state_c)
-            try:
-                window = observations_to_window([seq_start, last_observation])
-                selector.model.call(window.to_inputs())
-            except BaseException as err:
-                print_error(
-                    err, f"Episode begin thinking steps prediction failed.",
-                )
-                continue
-
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
                 env.render(self.args.print_mode, None)
-            # store rnn state for replay training
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-            rnn_history_h = episode_memory.rnn_weighted_history(self.args.lstm_units)[0]
-            last_rnn_state = [rnn_state_h, rnn_state_c]
-
-            # named tuples are read-only, so add rnn state to a new copy
-            last_observation = MathyObservation(
-                nodes=last_observation.nodes,
-                mask=last_observation.mask,
-                values=last_observation.values,
-                type=last_observation.type,
-                time=last_observation.time,
-                rnn_state_h=tf.squeeze(rnn_state_h),
-                rnn_state_c=tf.squeeze(rnn_state_c),
-                rnn_history_h=rnn_history_h,
-            )
-            # before_rnn_state_h = selector.model.embedding.state_h.numpy()
-            # before_rnn_state_c = selector.model.embedding.state_c.numpy()
-
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
             )
@@ -277,7 +240,6 @@ class A3CWorker(threading.Thread):
                     last_window=window,
                     last_action=last_action,
                     last_reward=last_reward,
-                    last_rnn_state=last_rnn_state,
                 )
             except BaseException as err:
                 print_error(err, "failed to select an action during an episode step")
@@ -285,15 +247,6 @@ class A3CWorker(threading.Thread):
 
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            rnn_state_h = tf.squeeze(selector.model.embedding.state_h.numpy())
-            rnn_state_c = tf.squeeze(selector.model.embedding.state_c.numpy())
-
-            # TODO: make this a unit test, check that EpisodeMemory states are not equal
-            #       across time steps.
-            # compare_states_h = tf.math.equal(before_rnn_state_h,rnn_state_h)
-            # compare_states_c = tf.math.equal(before_rnn_state_h,rnn_state_h)
-            # assert before_rnn_state_h != rnn_state_h
-            # assert before_rnn_state_c != rnn_state_c
 
             observation = MathyObservation(
                 nodes=observation.nodes,
@@ -301,9 +254,6 @@ class A3CWorker(threading.Thread):
                 values=observation.values,
                 type=observation.type,
                 time=observation.time,
-                rnn_state_h=rnn_state_h,
-                rnn_state_c=rnn_state_c,
-                rnn_history_h=rnn_history_h,
             )
 
             new_text = env.state.agent.problem
@@ -315,37 +265,11 @@ class A3CWorker(threading.Thread):
                 observation=last_observation,
                 action=action,
                 reward=reward,
-                grouping_change=grouping_change,
                 value=value,
             )
             if time_count == self.args.update_gradients_every or done:
                 if done and self.args.print_training and self.worker_idx == 0:
                     env.render(self.args.print_mode, None)
-
-                # TODO: Make this a unit test?
-                # Check that the LSTM h/c states changed over time in the episode.
-                #
-                # NOTE: in practice it seems every once in a while the state doesn't
-                # change, and I suppose this makes sense if the LSTM thought the
-                # existing state was... fine?
-                #
-                # check_rnn = None
-                # for obs in episode_memory.observations:
-                #     if check_rnn is not None:
-                #         h_equal_indices = (
-                #             tf.squeeze(tf.math.equal(obs.rnn_state_h, check_rnn[0]))
-                #             .numpy()
-                #             .tolist()
-                #         )
-                #         c_equal_indices = (
-                #             tf.squeeze(tf.math.equal(obs.rnn_state_c, check_rnn[1]))
-                #             .numpy()
-                #             .tolist()
-                #         )
-                #         assert False in h_equal_indices
-                #         assert False in c_equal_indices
-
-                #     check_rnn = [obs.rnn_state_h, obs.rnn_state_c]
 
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()
@@ -406,17 +330,6 @@ class A3CWorker(threading.Thread):
                     tf.summary.histogram(
                         var.name, var, step=self.global_model.optimizer.iterations,
                     )
-                # Write out current LSTM hidden/cell states
-                tf.summary.histogram(
-                    "memory/lstm_c",
-                    self.local_model.embedding.state_c,
-                    step=self.global_model.optimizer.iterations,
-                )
-                tf.summary.histogram(
-                    "memory/lstm_h",
-                    self.local_model.embedding.state_h,
-                    step=self.global_model.optimizer.iterations,
-                )
 
     def update_global_network(
         self, done: bool, observation: MathyObservation, episode_memory: EpisodeMemory,

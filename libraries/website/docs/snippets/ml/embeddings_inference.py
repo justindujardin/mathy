@@ -7,9 +7,7 @@ from mathy.state import MathyObservation, observations_to_window
 
 args = BaseConfig()
 env: MathyEnv = envs.PolySimplify()
-observation: MathyObservation = env.state_to_observation(
-    env.get_initial_state()[0], rnn_size=args.lstm_units
-)
+observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
 model = MathyEmbedding(args)
 # output shape is: [num_observations, max_nodes_len, embedding_dimensions]
 inputs = observations_to_window([observation, observation]).to_inputs()

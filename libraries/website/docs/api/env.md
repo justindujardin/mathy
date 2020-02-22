@@ -222,10 +222,6 @@ Render the given state to a string suitable for printing to a log
 MathyEnv.state_to_observation(
     self,
     state: mathy.state.MathyEnvState,
-    rnn_size: Optional[int] = None,
-    rnn_state_h: Optional[List[float]] = None,
-    rnn_state_c: Optional[List[float]] = None,
-    rnn_history_h: Optional[List[float]] = None,
 ) -> mathy.state.MathyObservation
 ```
 Convert an environment state into an observation that can be used
