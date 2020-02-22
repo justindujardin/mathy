@@ -20,9 +20,9 @@ class BaseConfig(BaseModel):
 
     # One of "batch" or "layer"
     normalization_style = "layer"
-    # The number of previous timesteps to pass in with the current one
-    # when making predictions.
-    prediction_window_size: int = 7
+    # The number of timesteps use when making predictions. This includes the current timestep and
+    # (n - 1) previous timesteps
+    prediction_window_size: int = 3
 
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True

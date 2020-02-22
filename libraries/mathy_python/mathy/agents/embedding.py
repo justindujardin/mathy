@@ -42,8 +42,6 @@ class MathyEmbedding(tf.keras.Model):
             if self.config.use_node_values
             else 0
         )
-        # if self.config.use_node_values:
-        #     self.values_dense = tf.keras.layers.Dense(self.config.units, name="values_input")
         if self.config.use_env_features:
             self.time_dense = tf.keras.layers.Dense(
                 self.config.units, name="time_input"
@@ -73,13 +71,14 @@ class MathyEmbedding(tf.keras.Model):
         self.out_dense_norm = NormalizeClass(name="out_dense_norm")
         if self.config.use_lstm:
             self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
-            self.lstm = tf.keras.layers.LSTM(
+            self.lstm_nodes = tf.keras.layers.LSTM(
                 self.config.lstm_units,
-                name="lstm",
-                return_sequences=True,
+                name="nodes_lstm",
                 time_major=False,
+                return_sequences=True,
                 return_state=True,
             )
+            self.lstm_attention = tf.keras.layers.Attention()
         else:
             self.densenet = DenseNetStack(
                 units=self.config.units,
@@ -136,10 +135,6 @@ class MathyEmbedding(tf.keras.Model):
         with tf.name_scope("prepare_inputs"):
             values = tf.expand_dims(values, axis=-1, name="values_input")
             query = self.token_embedding(nodes)
-
-            # if self.config.use_node_values:
-            #     values = self.values_dense(values)
-
             # If not using env features, only concatenate the tokens and values
             if not self.config.use_env_features and self.config.use_node_values:
                 query = tf.concat([query, values], axis=-1, name="tokens_and_values")
@@ -155,37 +150,17 @@ class MathyEmbedding(tf.keras.Model):
                 if self.config.use_node_values:
                     env_inputs.insert(1, values)
 
-                query = tf.concat(env_inputs, axis=-1, name="tokens_and_values",)
+                query = tf.concat(env_inputs, axis=-1, name="tokens_and_values")
 
         # Input dense transforms
         query = self.in_dense(query)
 
         if self.config.use_lstm:
-            with tf.name_scope("rnn"):
-                query, state_h, state_c = self.lstm(
-                    query, initial_state=[in_rnn_state_h, in_rnn_state_c]
-                )
-                query = self.nodes_lstm_norm(query)
-
+            output, state_h, state_c = self.lstm_nodes(query)
+            output = self.lstm_attention([output, state_h])
+            output = self.nodes_lstm_norm(output)
             self.state_h.assign(state_h[-1:])
             self.state_c.assign(state_c[-1:])
-
-            # Concatenate the RNN output state with our historical RNN state
-            # See: https://arxiv.org/pdf/1810.04437.pdf
-            with tf.name_scope("combine_outputs"):
-                rnn_state_with_history = tf.concat(
-                    [state_h[-1:], in_rnn_history_h[-1:]], axis=-1,
-                )
-                lstm_context = tf.tile(
-                    tf.expand_dims(rnn_state_with_history, axis=0),
-                    [batch_size, sequence_length, 1],
-                )
-                # Combine the output LSTM states with the historical average LSTM states
-                # and concatenate it with the query
-                output = tf.concat(
-                    [query, lstm_context], axis=-1, name="combined_outputs"
-                )
-                output = self.output_dense(output)
         else:
             # Non-recurrent model
             output = self.densenet(query)

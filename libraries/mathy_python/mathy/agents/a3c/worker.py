@@ -27,7 +27,7 @@ from ..mcts import MCTS
 from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import A3CConfig
-from .util import record, truncate
+from .util import record, truncate, EpisodeLosses
 
 
 class A3CWorker(threading.Thread):
@@ -43,6 +43,8 @@ class A3CWorker(threading.Thread):
     # </GLOBAL_VARS>
 
     envs: Dict[str, Any]
+
+    losses: EpisodeLosses
 
     def __init__(
         self,
@@ -68,6 +70,7 @@ class A3CWorker(threading.Thread):
         self.optimizer = optimizer
         self.worker_idx = worker_idx
         self.teacher = teacher
+        self.losses = EpisodeLosses()
 
         with msg.loading(f"Worker {worker_idx} starting..."):
             first_env = self.teacher.get_env(self.worker_idx, self.iteration)
@@ -75,7 +78,6 @@ class A3CWorker(threading.Thread):
             self.local_model = get_or_create_policy_model(
                 args, self.action_size, env=gym.make(first_env, **self.env_extra).mathy
             )
-            self.reset_episode_loss()
             self.last_model_write = -1
             self.last_histogram_write = -1
         display_e = self.greedy_epsilon
@@ -104,13 +106,6 @@ class A3CWorker(threading.Thread):
             raise ValueError("greedy_epsilon must either be a float or list of floats")
         e = truncate(e)
         return e
-
-    def reset_episode_loss(self):
-        self.ep_loss = 0.0
-        self.ep_pi_loss = 0.0
-        self.ep_value_loss = 0.0
-        self.ep_aux_loss: Dict[str, float] = {}
-        self.ep_entropy_loss = 0.0
 
     def run(self):
         if self.args.profile:
@@ -435,15 +430,23 @@ class A3CWorker(threading.Thread):
                 episode_memory=episode_memory,
                 gamma=self.args.gamma,
             )
-            pi_loss, value_loss, entropy_loss, aux_losses, total_loss = loss_tuple
-        self.ep_loss += total_loss
-        self.ep_pi_loss += pi_loss
-        self.ep_value_loss += value_loss
-        self.ep_entropy_loss += entropy_loss
+            (
+                pi_loss,
+                value_loss,
+                rp_loss,
+                entropy_loss,
+                aux_losses,
+                total_loss,
+            ) = loss_tuple
+
+        self.losses.increment("loss", total_loss)
+        self.losses.increment("pi", pi_loss)
+        self.losses.increment("r", rp_loss)
+        self.losses.increment("v", value_loss)
+        self.losses.increment("h", entropy_loss)
         for k in aux_losses.keys():
-            if k not in self.ep_aux_loss:
-                self.ep_aux_loss[k] = 0.0
-            self.ep_aux_loss[k] += aux_losses[k].numpy()
+            self.losses.increment(k, aux_losses[k].numpy())
+
         # Calculate local gradients
         grads = tape.gradient(total_loss, self.local_model.trainable_weights)
         # Push local gradients to global model
@@ -465,7 +468,8 @@ class A3CWorker(threading.Thread):
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
 
-        episode_memory.clear()
+        if done:
+            episode_memory.clear()
 
     def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
@@ -479,11 +483,7 @@ class A3CWorker(threading.Thread):
                 self.worker_idx,
                 A3CWorker.global_moving_average_reward,
                 self.result_queue,
-                self.ep_pi_loss,
-                self.ep_value_loss,
-                self.ep_entropy_loss,
-                self.ep_aux_loss,
-                self.ep_loss,
+                self.losses,
                 episode_steps,
                 env_name,
             )
@@ -498,7 +498,7 @@ class A3CWorker(threading.Thread):
                 self.write_global_model()
 
         A3CWorker.global_episode += 1
-        self.reset_episode_loss()
+        self.losses.reset()
 
     def write_global_model(self, increment_episode=True):
         with A3CWorker.save_lock:
@@ -521,7 +521,7 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model.call(
+            _, values, _, _, _ = self.local_model.call(
                 observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
@@ -540,7 +540,8 @@ class A3CWorker(threading.Thread):
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
-        logits, values, trimmed_logits = self.local_model.call(inputs)
+        model_results = self.local_model.call(inputs)
+        logits, values, trimmed_logits, reward_logits, grouping = model_results
 
         logits = tf.reshape(logits, [batch_size, -1])
 
@@ -554,6 +555,7 @@ class A3CWorker(threading.Thread):
 
         rewards_tensor = tf.convert_to_tensor(episode_memory.rewards, dtype=tf.float32)
         rewards_tensor = tf.expand_dims(rewards_tensor, 1)
+        rp_loss = tf.reduce_mean(tf.keras.losses.MSE(rewards_tensor, reward_logits))
         pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
         bootstrap_value = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
 
@@ -581,11 +583,12 @@ class A3CWorker(threading.Thread):
         policy_loss /= sequence_length
         # value_loss /= sequence_length
 
-        total_loss = value_loss + policy_loss + entropy_loss
+        total_loss = value_loss + policy_loss + entropy_loss + rp_loss
         prefix = self.tb_prefix
         tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)
         tf.summary.scalar(f"{prefix}/value_loss", data=value_loss, step=step)
         tf.summary.scalar(f"{prefix}/entropy_loss", data=entropy_loss, step=step)
+        tf.summary.scalar(f"{prefix}/rp_loss", data=rp_loss, step=step)
         tf.summary.scalar(
             f"{prefix}/advantage", data=tf.reduce_mean(advantage), step=step
         )
@@ -593,21 +596,31 @@ class A3CWorker(threading.Thread):
             f"{prefix}/entropy", data=tf.reduce_mean(h_loss.extra.entropy), step=step
         )
 
-        return (policy_loss, value_loss, entropy_loss, total_loss, discounted_rewards)
+        return (
+            (
+                policy_loss,
+                value_loss,
+                rp_loss,
+                entropy_loss,
+                total_loss,
+                discounted_rewards,
+            ),
+            model_results,
+        )
 
     def compute_grouping_change_loss(
         self,
-        done,
+        model_results,
         observation: MathyObservation,
         episode_memory: EpisodeMemory,
         clip: bool = True,
     ):
         change_signals = [signal for signal in episode_memory.grouping_changes]
         signals_tensor = tf.convert_to_tensor(change_signals)
-        loss = tf.reduce_mean(signals_tensor)
+        loss = tf.keras.losses.MSE(model_results[4], signals_tensor)
         if clip is True:
             loss = tf.clip_by_value(loss, -1.0, 1.0)
-        return loss
+        return tf.reduce_mean(loss)
 
     def compute_loss(
         self,
@@ -619,16 +632,23 @@ class A3CWorker(threading.Thread):
     ):
         with self.writer.as_default():
             step = self.global_model.optimizer.iterations
-            loss_tuple = self.compute_policy_value_loss(
+            loss_tuple, model_results = self.compute_policy_value_loss(
                 done, observation, episode_memory
             )
-            pi_loss, v_loss, h_loss, total_loss, discounted_rewards = loss_tuple
+            (
+                pi_loss,
+                v_loss,
+                rp_loss,
+                h_loss,
+                total_loss,
+                discounted_rewards,
+            ) = loss_tuple
             aux_losses = {}
             aux_weight = self.args.aux_tasks_weight_scale
 
             if self.args.use_grouping_control:
                 gc_loss = self.compute_grouping_change_loss(
-                    done,
+                    model_results,
                     observation,
                     episode_memory,
                     clip=self.args.clip_grouping_control,
@@ -645,4 +665,4 @@ class A3CWorker(threading.Thread):
                 f"{self.tb_prefix}/total_loss", data=total_loss, step=step
             )
 
-        return pi_loss, v_loss, h_loss, aux_losses, total_loss
+        return pi_loss, v_loss, rp_loss, h_loss, aux_losses, total_loss

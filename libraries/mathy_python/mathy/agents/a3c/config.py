@@ -33,7 +33,7 @@ class A3CConfig(BaseConfig):
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.3
+    e_greedy_max = 0.1
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -65,7 +65,7 @@ class A3CConfig(BaseConfig):
     # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
     teacher_promote_wins = 0.95
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.60
+    teacher_demote_wins = 0.50
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.
