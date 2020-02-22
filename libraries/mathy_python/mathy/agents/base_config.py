@@ -22,7 +22,7 @@ class BaseConfig(BaseModel):
     normalization_style = "layer"
     # The number of timesteps use when making predictions. This includes the current timestep and
     # (n - 1) previous timesteps
-    prediction_window_size: int = 3
+    prediction_window_size: int = 12
 
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True
@@ -36,7 +36,7 @@ class BaseConfig(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
-    lr: float = 1e-3
+    lr: float = 2e-4
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100

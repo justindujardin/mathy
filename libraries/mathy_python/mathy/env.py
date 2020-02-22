@@ -161,7 +161,8 @@ class MathyEnv:
         # the number of allowed steps, double the bonus signal
         if total_moves > 10 and current_move < total_moves / 2:
             bonus *= 2
-        return EnvRewards.WIN + bonus
+        # Don't let a win go negative
+        return max(EnvRewards.WIN + bonus, 0.1)
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for failing to complete the episode. This is done
