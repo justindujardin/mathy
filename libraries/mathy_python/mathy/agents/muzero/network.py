@@ -87,12 +87,10 @@ class RepresentationModel(torch.nn.Module):
         # +1 for the time
         # +2 for the problem type hashes
         self.concat_size = 4 if self.config.use_env_features else 1
-        if self.config.use_env_features:
-            self.time_dense = torch.nn.Linear(1, self.config.units)
-            self.type_dense = torch.nn.Linear(2, self.config.units)
-        self.in_dense = torch.nn.Linear(self.in_dense_units, self.width)
+        self.time_dense = torch.nn.Linear(1, self.config.units)
+        self.type_dense = torch.nn.Linear(2, self.config.units)
         self.output_net = torch.nn.Sequential(
-            torch.nn.Linear(self.width, self.config.embedding_units),
+            torch.nn.Linear(self.in_dense_units, self.config.embedding_units),
             torch.nn.ReLU(),
             torch.nn.LayerNorm((self.width, self.config.embedding_units)),
         )
@@ -108,17 +106,7 @@ class RepresentationModel(torch.nn.Module):
         query = self.token_embedding(nodes)
         type_tensor = self.type_dense(type)
         time_tensor = self.time_dense(time)
-        env_inputs = [
-            query,
-            type_tensor,
-            time_tensor,
-        ]
-        if self.config.use_node_values:
-            env_inputs.insert(1, values)
-        query = torch.cat(env_inputs, -1)
-
-        # Input dense transforms
-        query = self.in_dense(query)
+        query = torch.cat([query, values, type_tensor, time_tensor], -1)
         output = self.output_net(query)
         return output
 
@@ -130,7 +118,7 @@ class DynamicsModel(torch.nn.Module):
         super(DynamicsModel, self).__init__()
         self.config = config
         self.hidden_size = hidden_size
-        self.dynamics = torch.nn.Sequential(
+        self.dynamics_net = torch.nn.Sequential(
             torch.nn.Linear(self.hidden_size, self.config.units),
             torch.nn.ReLU(),
             torch.nn.Linear(self.config.units, self.hidden_size),
@@ -139,7 +127,7 @@ class DynamicsModel(torch.nn.Module):
         )
 
     def forward(self, hidden_state: torch.Tensor) -> torch.Tensor:
-        new_hidden_state = self.dynamics(hidden_state)
+        new_hidden_state = self.dynamics_net(hidden_state)
         return new_hidden_state
 
 
@@ -147,14 +135,9 @@ class PredictionModel(torch.nn.Module):
     """Prediction value, reward, policy from a hidden state"""
 
     def __init__(
-        self,
-        *,
-        hidden_size: int,
-        action_space_size: int,
-        config: SelfPlayConfig,
-        **kwargs
+        self, *, hidden_size: int, action_space_size: int, config: SelfPlayConfig
     ):
-        super(PredictionModel, self).__init__(**kwargs)
+        super(PredictionModel, self).__init__()
         self.config = config
         self.hidden_size = hidden_size
         self.action_space_size = action_space_size
