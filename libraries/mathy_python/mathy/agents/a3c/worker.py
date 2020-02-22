@@ -491,11 +491,6 @@ class A3CWorker(threading.Thread):
         policy_loss *= advantage
         policy_loss = tf.reduce_mean(policy_loss)
 
-        # Scale the policy/value losses down by the sequence length to normalize
-        # for combination with aux losses.
-        policy_loss /= sequence_length
-        # value_loss /= sequence_length
-
         total_loss = value_loss + policy_loss + entropy_loss + rp_loss
         prefix = self.tb_prefix
         tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)
