@@ -66,8 +66,10 @@ class MathyGymEnv(gym.Env):
     def step(self, action):
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         observation = self._observe(self.state)
-        info = {"transition": transition}
         done = is_terminal_transition(transition)
+        info = {"transition": transition, "done": done}
+        if done:
+            info["win"] = transition.reward > 0.0
         self.last_action = action
         self.last_change = change
         self.last_reward = round(float(transition.reward), 4)

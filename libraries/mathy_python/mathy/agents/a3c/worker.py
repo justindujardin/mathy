@@ -246,7 +246,7 @@ class A3CWorker(threading.Thread):
                 continue
 
             # Take an env step
-            observation, reward, done, _ = env.step(action)
+            observation, reward, done, last_obs_info = env.step(action)
 
             observation = MathyObservation(
                 nodes=observation.nodes,
@@ -262,10 +262,7 @@ class A3CWorker(threading.Thread):
             )
             ep_reward += reward
             episode_memory.store(
-                observation=last_observation,
-                action=action,
-                reward=reward,
-                value=value,
+                observation=last_observation, action=action, reward=reward, value=value,
             )
             if time_count == self.args.update_gradients_every or done:
                 if done and self.args.print_training and self.worker_idx == 0:
@@ -275,7 +272,9 @@ class A3CWorker(threading.Thread):
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
-                    self.finish_episode(ep_reward, ep_steps, env.state)
+                    self.finish_episode(
+                        last_obs_info.get("win", False), ep_reward, ep_steps, env.state
+                    )
 
             ep_steps += 1
             time_count += 1
@@ -383,8 +382,16 @@ class A3CWorker(threading.Thread):
 
         if done:
             episode_memory.clear()
+        else:
+            episode_memory.clear_except_window(self.args.prediction_window_size)
 
-    def finish_episode(self, episode_reward, episode_steps, last_state: MathyEnvState):
+    def finish_episode(
+        self,
+        is_win: bool,
+        episode_reward: float,
+        episode_steps: int,
+        last_state: MathyEnvState,
+    ):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
 
         # Only observe/track the most-greedy worker (high epsilon exploration
@@ -392,6 +399,7 @@ class A3CWorker(threading.Thread):
         if self.worker_idx == 0:
             A3CWorker.global_moving_average_reward = record(
                 A3CWorker.global_episode,
+                is_win,
                 episode_reward,
                 self.worker_idx,
                 A3CWorker.global_moving_average_reward,
@@ -490,7 +498,9 @@ class A3CWorker(threading.Thread):
 
         policy_loss *= advantage
         policy_loss = tf.reduce_mean(policy_loss)
-
+        if self.args.normalize_pi_loss:
+            policy_loss /= sequence_length
+        # Scale the policy loss down by the seq_len to make invariant to length
         total_loss = value_loss + policy_loss + entropy_loss + rp_loss
         prefix = self.tb_prefix
         tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)

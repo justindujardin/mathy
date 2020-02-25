@@ -1,9 +1,9 @@
-from typing import Dict
-from colr import color
 import datetime
-
-
+import multiprocessing
 from dataclasses import dataclass, field
+from typing import Dict
+
+from colr import color
 
 
 @dataclass
@@ -35,14 +35,15 @@ def truncate(value):
 
 
 def record(
-    episode,
-    episode_reward,
-    worker_idx,
-    global_ep_reward,
-    result_queue,
+    episode: int,
+    is_win: bool,
+    episode_reward: float,
+    worker_idx: int,
+    global_ep_reward: float,
+    result_queue: multiprocessing.Queue,
     losses: EpisodeLosses,
-    num_steps,
-    env_name,
+    num_steps: int,
+    env_name: str,
 ):
     """Helper function to store score and print statistics.
   Arguments:
@@ -56,10 +57,12 @@ def record(
   """
 
     now = datetime.datetime.now().strftime("%H:%M:%S")
+    # Clamp to range -2, 2
+    episode_reward = min(2.0, max(-2.0, episode_reward))
 
     global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
 
-    fore = "green" if episode_reward > 0.0 else "red"
+    fore = "green" if is_win else "red"
     heading = "{:<8} {:<3} {:<8} {:<10}".format(
         now, f"w{worker_idx}", f"ep: {episode}", f"steps: {num_steps}"
     )
