@@ -432,12 +432,17 @@ class MathyEnv:
         token_index = int((action - action_index) / rule_count)
         return action_index, token_index
 
-    def get_rule_from_timestep(self, time_step: MathyEnvStateStep):
+    def get_rule_from_timestep(self, time_step: MathyEnvStateStep) -> BaseRule:
         return self.rules[time_step.action]
 
     def get_actions_for_node(
         self, expression: MathExpression, rule_list: List[Type[BaseRule]] = None,
     ) -> List[int]:
+        """Return a valid actions mask for the given expression and rule list. 
+
+        Action masks are 1d lists of length (nodes * num_rules) where a 0 indicates
+        the action is not valid in the current state, and a 1 indicates that it is
+        a valid action to take."""
         key = str(expression)
         if rule_list is None and key in self.valid_actions_mask_cache:
             return self.valid_actions_mask_cache[key][:]

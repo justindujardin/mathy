@@ -30,9 +30,8 @@ from .core.parser import ExpressionParser
 from .core.tree import LEFT
 
 
-def is_debug_mode():
-    """Debug mode enables extra logging and assertions, but is slower because of
-    the increased sanity check measurements."""
+def is_debug_mode() -> bool:
+    """Debug mode enables extra logging and assertions, but is slower."""
     return False
 
 

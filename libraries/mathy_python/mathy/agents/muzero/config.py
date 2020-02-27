@@ -78,7 +78,7 @@ class MuZeroConfig(object):
         self.lr_decay_steps = lr_decay_steps
         self.model_width = model_width
 
-    def new_game(self, env: Environment = None):
+    def new_game(self, env: Environment):
         from .game import Game
 
         return Game(self.action_space_size, self.discount, env, self.model_width)
