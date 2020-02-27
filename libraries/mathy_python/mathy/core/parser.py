@@ -103,9 +103,6 @@ _IS_MULT: TokenSet = TokenSet(TokenMultiply | TokenDivide)
 _IS_EXP: TokenSet = TokenSet(TokenExponent)
 _IS_EQUAL: TokenSet = TokenSet(TokenEqual)
 
-_parse_cache: Dict[str, MathExpression] = {}
-_tokens_cache: Dict[str, List[Token]] = {}
-
 
 # NOTE: This cannot be shared between threads because it stores state in self.current_token and self.tokens
 class ExpressionParser:
@@ -146,15 +143,22 @@ class ExpressionParser:
     ```
     """
 
+    _parse_cache: Dict[str, MathExpression]
+    _tokens_cache: Dict[str, List[Token]]
+
     # Initialize the tokenizer.
     def __init__(self):
         self.tokenizer = Tokenizer()
+        self.clear_cache()
+
+    def clear_cache(self):
+        self._tokens_cache = {}
+        self._parse_cache = {}
 
     def tokenize(self, input_text: str):
-        global _tokens_cache
-        if input_text not in _tokens_cache:
-            _tokens_cache[input_text] = self.tokenizer.tokenize(input_text)
-        return _tokens_cache[input_text][:]
+        if input_text not in self._tokens_cache:
+            self._tokens_cache[input_text] = self.tokenizer.tokenize(input_text)
+        return self._tokens_cache[input_text][:]
 
     def parse(self, input_text: str) -> MathExpression:
         """Parse a string representation of an expression into a tree
@@ -162,11 +166,10 @@ class ExpressionParser:
 
         Returns : The evaluatable expression tree.
         """
-        global _parse_cache
-        if input_text in _parse_cache:
-            return _parse_cache[input_text]
-        _parse_cache[input_text] = self._parse(self.tokenize(input_text))
-        return _parse_cache[input_text]
+        if input_text in self._parse_cache:
+            return self._parse_cache[input_text]
+        self._parse_cache[input_text] = self._parse(self.tokenize(input_text))
+        return self._parse_cache[input_text]
 
     def _parse(self, tokens: List[Token]) -> MathExpression:
         """Parse a given list of tokens into an expression tree"""

@@ -360,6 +360,7 @@ class MathyEnv:
         prob: MathyEnvProblem = self.problem_fn(config)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
+        self.parser.clear_cache()
         self.max_moves = self.max_moves_fn(prob, config)
 
         # Build and return the initial state
