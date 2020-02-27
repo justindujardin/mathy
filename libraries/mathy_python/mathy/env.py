@@ -205,13 +205,8 @@ class MathyEnv:
             if list_count <= 1 or key != expression.raw:
                 continue
 
-            # NOTE: the reward is scaled by how many times this state has been visited
-            #       up to (n) times
-            multiplier = min(list_count, 3)
             return time_step.transition(
-                features,
-                reward=EnvRewards.PREVIOUS_LOCATION * multiplier,
-                discount=self.discount,
+                features, reward=EnvRewards.PREVIOUS_LOCATION, discount=self.discount,
             )
 
         if len(agent.history) > 0:
