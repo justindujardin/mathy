@@ -31,17 +31,7 @@ class PolySimplify(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        if config.difficulty == MathyEnvDifficulty.easy:
-            multiplier = 4
-        elif problem.complexity < 5:
-            multiplier = 2
-        elif problem.complexity < 7:
-            multiplier = 3
-        elif problem.complexity < 12:
-            multiplier = 4
-        else:
-            multiplier = 3
-        return problem.complexity * multiplier
+        return problem.complexity * 6
 
     def transition_fn(
         self,

@@ -29,6 +29,13 @@ class EpisodeMemory(object):
         self.rewards = []
         self.values = []
 
+    def clear_except_window(self, window_size: int):
+        """Clear all data except for a window's worth of elements"""
+        self.observations = self.observations[-window_size:]
+        self.actions = self.actions[-window_size:]
+        self.rewards = self.rewards[-window_size:]
+        self.values = self.values[-window_size:]
+
     def to_window_observation(
         self, observation: MathyObservation, window_size: int = 3
     ) -> MathyWindowObservation:

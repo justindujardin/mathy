@@ -19,27 +19,16 @@ class MathyEmbedding(tf.keras.Model):
         self.token_embedding = tf.keras.layers.Embedding(
             input_dim=MathTypeKeysMax,
             output_dim=self.config.embedding_units,
-            name="nodes_embedding",
+            name="nodes_input",
             mask_zero=True,
         )
-
         # +1 for the value
         # +1 for the time
         # +2 for the problem type hashes
-        self.concat_size = (
-            4
-            if self.config.use_env_features
-            else 1
-            if self.config.use_node_values
-            else 0
-        )
-        if self.config.use_env_features:
-            self.time_dense = tf.keras.layers.Dense(
-                self.config.units, name="time_input"
-            )
-            self.type_dense = tf.keras.layers.Dense(
-                self.config.units, name="type_input"
-            )
+        self.concat_size = 4
+        self.values_dense = tf.keras.layers.Dense(self.config.units, name="values_input")
+        self.time_dense = tf.keras.layers.Dense(self.config.units, name="time_input")
+        self.type_dense = tf.keras.layers.Dense(self.config.units, name="type_input")
         self.in_dense = tf.keras.layers.Dense(
             self.config.units,
             # In transform gets the embeddings concatenated with the
@@ -61,6 +50,7 @@ class MathyEmbedding(tf.keras.Model):
             NormalizeClass = tf.keras.layers.BatchNormalization
         self.out_dense_norm = NormalizeClass(name="out_dense_norm")
         self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
+        self.time_lstm_norm = NormalizeClass(name="time_lstm_norm")
         self.lstm_nodes = tf.keras.layers.LSTM(
             self.config.lstm_units,
             name="nodes_lstm",
@@ -68,13 +58,21 @@ class MathyEmbedding(tf.keras.Model):
             return_sequences=True,
             return_state=True,
         )
+        self.lstm_time = tf.keras.layers.LSTM(
+            self.config.lstm_units,
+            name="time_lstm",
+            time_major=True,
+            return_sequences=True,
+        )
         self.lstm_attention = tf.keras.layers.Attention()
 
     def call(self, features: MathyInputsType, train: tf.Tensor = None) -> tf.Tensor:
         output = tf.concat(
             [
                 self.token_embedding(features[ObservationFeatureIndices.nodes]),
-                tf.expand_dims(features[ObservationFeatureIndices.values], axis=-1),
+                self.values_dense(
+                    tf.expand_dims(features[ObservationFeatureIndices.values], axis=-1)
+                ),
                 self.type_dense(features[ObservationFeatureIndices.type]),
                 self.time_dense(features[ObservationFeatureIndices.time]),
             ],
@@ -82,7 +80,9 @@ class MathyEmbedding(tf.keras.Model):
             name="input_vectors",
         )
         output = self.in_dense(output)
+        output = self.lstm_time(output)
+        output = self.time_lstm_norm(output)
         output, state_h, state_c = self.lstm_nodes(output)
-        output = self.lstm_attention([output, state_h])
         output = self.nodes_lstm_norm(output)
+        output = self.lstm_attention([output, state_h])
         return self.out_dense_norm(self.output_dense(output))
