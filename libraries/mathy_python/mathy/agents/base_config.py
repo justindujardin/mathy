@@ -22,7 +22,7 @@ class BaseConfig(BaseModel):
     normalization_style = "layer"
     # The number of timesteps use when making predictions. This includes the current timestep and
     # (n - 1) previous timesteps
-    prediction_window_size: int = 12
+    prediction_window_size: int = 16
 
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True
@@ -54,18 +54,7 @@ class BaseConfig(BaseModel):
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
-
-    # How naturally ordered are the terms in the expression?
-    use_term_order = False
-    # How much internal branching complexity is in the tree?
-    use_tree_complexity = False
     # Whether to use the grouping change aux task
     use_grouping_control = False
     # Clip signal at 0.0 so it does not optimize into the negatives
     clip_grouping_control = True
-
-    # Include the time/type environment features in the embeddings
-    use_env_features = True
-
-    # Include the node values floating point features in the embeddings
-    use_node_values = True

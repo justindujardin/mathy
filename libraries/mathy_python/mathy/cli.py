@@ -135,7 +135,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "units",
     "--units",
-    default=128,
+    default=256,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
