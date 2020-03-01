@@ -99,25 +99,6 @@ class PolicyValueModel(tf.keras.Model):
             ],
             name="reward_head",
         )
-        if self.args.use_grouping_control:
-            self.gc_net = tf.keras.Sequential(
-                [
-                    tf.keras.layers.Dense(
-                        self.args.units,
-                        name="gc_hidden",
-                        kernel_initializer="he_normal",
-                        activation="relu",
-                    ),
-                    tf.keras.layers.LayerNormalization(name="gc_layer_norm"),
-                    tf.keras.layers.Dense(
-                        1,
-                        name="gc_logits",
-                        kernel_initializer="he_normal",
-                        activation=None,
-                    ),
-                ],
-                "grouping_control_head",
-            )
         self.loss = tf.Variable(
             0.0, trainable=False, name="loss_placeholder", dtype=tf.float32
         )
@@ -152,10 +133,6 @@ class PolicyValueModel(tf.keras.Model):
         values = self.value_net(sequence_mean)
         reward_logits = self.reward_net(sequence_mean)
         logits = self.policy_net(sequence_inputs)
-        if self.args.use_grouping_control:
-            grouping = self.gc_net(sequence_inputs)
-        else:
-            grouping = tf.zeros(shape=(1,))
         mask_logits = self.apply_pi_mask(logits, features_window)
         if call_print is True:
             print(
