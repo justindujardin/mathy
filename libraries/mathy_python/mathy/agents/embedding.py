@@ -23,11 +23,11 @@ class MathyEmbedding(tf.keras.Model):
             mask_zero=True,
         )
         # +1 for the value
-        # +1 for the time
+        # +1 for the time - removed for ablation
         # +2 for the problem type hashes
-        self.concat_size = 4
+        self.concat_size = 3
         self.values_dense = tf.keras.layers.Dense(self.config.units, name="values_input")
-        self.time_dense = tf.keras.layers.Dense(self.config.units, name="time_input")
+        # self.time_dense = tf.keras.layers.Dense(self.config.units, name="time_input")
         self.type_dense = tf.keras.layers.Dense(self.config.units, name="type_input")
         self.in_dense = tf.keras.layers.Dense(
             self.config.units,
@@ -74,7 +74,7 @@ class MathyEmbedding(tf.keras.Model):
                     tf.expand_dims(features[ObservationFeatureIndices.values], axis=-1)
                 ),
                 self.type_dense(features[ObservationFeatureIndices.type]),
-                self.time_dense(features[ObservationFeatureIndices.time]),
+                # self.time_dense(features[ObservationFeatureIndices.time]),
             ],
             axis=-1,
             name="input_vectors",
