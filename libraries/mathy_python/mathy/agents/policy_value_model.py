@@ -41,7 +41,10 @@ class PolicyValueModel(tf.keras.Model):
         super(PolicyValueModel, self).__init__(**kwargs)
         if args is None:
             args = BaseConfig()
-        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            args.lr, decay_steps=100000, decay_rate=0.96, staircase=True
+        )
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.args = args
         self.predictions = predictions
         self.embedding = MathyEmbedding(self.args)
