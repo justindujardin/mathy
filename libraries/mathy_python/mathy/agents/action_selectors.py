@@ -30,6 +30,20 @@ class ActionSelector:
         raise NotImplementedError(self.select)
 
 
+class GreedyActionSelector(ActionSelector):
+    def select(
+        self,
+        *,
+        last_state: MathyEnvState,
+        last_window: MathyWindowObservation,
+        last_action: int,
+        last_reward: float,
+    ) -> Tuple[int, float]:
+        probs, value = self.model.predict_next(last_window.to_inputs())
+        action = np.argmax(probs)
+        return action, float(value)
+
+
 class A3CEpsilonGreedyActionSelector(ActionSelector):
     def __init__(self, *, epsilon: float, **kwargs):
         super(A3CEpsilonGreedyActionSelector, self).__init__(**kwargs)
