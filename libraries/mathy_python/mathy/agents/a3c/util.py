@@ -62,7 +62,11 @@ def record(
 
     global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
 
-    fore = "green" if is_win else "red"
+    fore = "green"
+    if not is_win:
+        fore = "red"
+    elif episode_reward < 1.0:
+        fore = "yellow"
     heading = "{:<8} {:<3} {:<8} {:<10}".format(
         now, f"w{worker_idx}", f"ep: {episode}", f"steps: {num_steps}"
     )
