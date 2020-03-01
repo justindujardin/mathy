@@ -147,7 +147,7 @@ class PolicyValueModel(tf.keras.Model):
         start = time.time()
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
-        sequence_inputs = self.embedding(inputs)
+        sequence_inputs, attention_weights = self.embedding(inputs)
         sequence_mean = tf.reduce_mean(sequence_inputs, axis=1)
         values = self.value_net(sequence_mean)
         reward_logits = self.reward_net(sequence_mean)
@@ -163,7 +163,7 @@ class PolicyValueModel(tf.keras.Model):
                     time.time() - start, batch_size
                 )
             )
-        return logits, values, mask_logits, reward_logits, grouping
+        return logits, values, mask_logits, reward_logits, attention_weights
 
     def apply_pi_mask(
         self, logits: tf.Tensor, features_window: MathyInputsType,

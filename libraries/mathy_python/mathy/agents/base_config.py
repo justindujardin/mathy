@@ -36,7 +36,8 @@ class BaseConfig(BaseModel):
     init_model_from: Optional[str] = None
     train: bool = False
     verbose: bool = False
-    lr: float = 2e-4
+    # Initial learning rate that decays over time.
+    lr: float = 0.01
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
