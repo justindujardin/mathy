@@ -71,6 +71,5 @@ class A3CConfig(BaseConfig):
     # to find problems.
     print_training: bool = False
 
-    # Print mode for output. "terminal" is the default, also supports "attention"
-    # NOTE: attention is gone (like... the layer)
+    # Print mode for output. "terminal" is the default
     print_mode: str = "terminal"

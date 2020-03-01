@@ -247,19 +247,6 @@ class A3CWorker(threading.Thread):
 
             # Take an env step
             observation, reward, done, last_obs_info = env.step(action)
-
-            observation = MathyObservation(
-                nodes=observation.nodes,
-                mask=observation.mask,
-                values=observation.values,
-                type=observation.type,
-                time=observation.time,
-            )
-
-            new_text = env.state.agent.problem
-            grouping_change = calculate_grouping_control_signal(
-                last_text, new_text, clip_at_zero=self.args.clip_grouping_control
-            )
             ep_reward += reward
             episode_memory.store(
                 observation=last_observation, action=action, reward=reward, value=value,
