@@ -34,21 +34,13 @@ def cli_contribute():
 )
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
 @click.option(
-    "thinking_steps",
-    "--think",
-    default=3,
-    help="The number of steps to think about the problem before starting an episode",
-)
-@click.option(
     "max_steps",
     "--max-steps",
     default=20,
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(
-    agent: str, problem: str, model: str, thinking_steps: int, max_steps: int
-):
+def cli_simplify(agent: str, problem: str, model: str, max_steps: int):
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
@@ -56,7 +48,7 @@ def cli_simplify(
     from .api import Mathy
 
     mt: Mathy = load_model(model)
-    mt.simplify(problem=problem, max_steps=max_steps, thinking_steps=thinking_steps)
+    mt.simplify(problem=problem, max_steps=max_steps)
 
 
 @cli.command("problems")

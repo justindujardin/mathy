@@ -32,12 +32,7 @@ class Mathy:
             )
 
     def simplify(
-        self,
-        *,
-        model: str = "mathy_alpha_sm",
-        problem: str,
-        max_steps: int = 20,
-        thinking_steps: int = 3,
+        self, *, model: str = "mathy_alpha_sm", problem: str, max_steps: int = 128,
     ) -> EpisodeMemory:
         """Simplify an input problem using the PolySimplify environment.
         
@@ -46,8 +41,6 @@ class Mathy:
         problem (str): The ascii math problem text, e.g. `-(4 + 2x) * 8 / 7y^(3 - 2)`
         max_steps (int): The maximum number of episode steps to allow the agent to take
             while solving the problem. Taking more than this is considered a failure.
-        thinking_steps (int): The number of timesteps to look at the problem before attempting
-            to solve it. These steps **do not** count toward the `max_steps` argument total.
 
         # Returns
         (EpisodeMemory): The stored episode memory containing the intermediate steps to get
@@ -58,7 +51,7 @@ class Mathy:
         import tensorflow as tf
         from colr import color
         from .envs.gym import MathyGymEnv
-        from .agents.action_selectors import A3CEpsilonGreedyActionSelector
+        from .agents.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
         from .agents.policy_value_model import PolicyValueModel
         from .util import calculate_grouping_control_signal
@@ -74,10 +67,7 @@ class Mathy:
         last_text = env.state.agent.problem
         last_action = -1
         last_reward = -1
-
-        selector = A3CEpsilonGreedyActionSelector(
-            model=self.model, episode=0, worker_id=0, epsilon=0
-        )
+        selector = GreedyActionSelector(model=self.model, episode=0, worker_id=0)
         done = False
         while not done:
             env.render(self.config.print_mode, None)
