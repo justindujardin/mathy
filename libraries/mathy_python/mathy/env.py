@@ -115,7 +115,7 @@ class MathyEnv:
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of penalizing action types. When these actions
         are selected, the agent gets a negative reward."""
-        return []
+        return [AssociativeSwapRule]
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
@@ -204,8 +204,11 @@ class MathyEnv:
             if list_count <= 1 or key != expression.raw:
                 continue
 
+            # NOTE: the reward is scaled by how many times this state has been visited
             return time_step.transition(
-                features, reward=EnvRewards.PREVIOUS_LOCATION, discount=self.discount,
+                features,
+                reward=EnvRewards.PREVIOUS_LOCATION * list_count,
+                discount=self.discount,
             )
 
         if len(agent.history) > 0:
