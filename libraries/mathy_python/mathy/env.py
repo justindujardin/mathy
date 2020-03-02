@@ -15,13 +15,14 @@ from .rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from .state import (
-    MathyEnvState,
-    MathyEnvStateStep,
-    MathyObservation,
-)
+from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
 from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
-from .util import compare_expression_string_values, is_terminal_transition
+from .util import (
+    compare_expression_string_values,
+    is_terminal_transition,
+    print_error,
+    raise_with_history,
+)
 
 
 class MathyEnv:
@@ -145,7 +146,7 @@ class MathyEnv:
         by a training agent."""
 
         action_mask = self.get_valid_moves(state)
-        observation = state.to_observation(move_mask=action_mask,)
+        observation = state.to_observation(move_mask=action_mask, parser=self.parser)
         return observation
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:
@@ -182,7 +183,9 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        features = env_state.to_observation(self.get_valid_moves(env_state))
+        features = env_state.to_observation(
+            self.get_valid_moves(env_state), parser=self.parser
+        )
         root = expression.get_root()
 
         # Subclass specific win conditions happen here. Custom win-conditions
@@ -261,13 +264,15 @@ class MathyEnv:
         token = self.get_token_at_index(expression, token_index)
         operation = self.rules[action_index]
 
-        if (
-            token is None
-            or not isinstance(operation, BaseRule)
-            or operation.can_apply_to(token) is False
-        ):
-            msg = "Invalid action({}) '{}' for expression '{}'."
-            raise Exception(msg.format(action, type(operation), expression))
+        op_not_rule = not isinstance(operation, BaseRule)
+        op_cannot_apply = token is None or operation.can_apply_to(token) is False
+        if token is None or op_not_rule or op_cannot_apply:
+            steps = int(env_state.max_moves - agent.moves_remaining)
+            msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
+                steps, action, type(operation), expression
+            )
+            raise_with_history("Invalid Action", msg, agent.history)
+            raise ValueError(f"Invalid Action: {msg}")
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()

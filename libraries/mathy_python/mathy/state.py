@@ -162,7 +162,6 @@ class MathyEnvState(object):
     """
 
     agent: "MathyAgentState"
-    parser: ExpressionParser
     max_moves: int
     num_rules: int
 
@@ -174,7 +173,6 @@ class MathyEnvState(object):
         num_rules: int = 0,
         problem_type: str = "mathy.unknown",
     ):
-        self.parser = ExpressionParser()
         self.max_moves = max_moves
         self.num_rules = num_rules
         if problem is not None:
@@ -242,10 +240,6 @@ class MathyEnvState(object):
         num_actions = 1 * self.num_rules
         hash = self.get_problem_hash()
         mask = [0] * num_actions
-        # HACKS: if you swap this line with below and train an agent on "poly,complex,binomial"
-        #        it will crash after a few episodes, allowing you to test the error printing with
-        #        call stack print outs.
-        # values = [0.0] * num_actions
         values = [0.0]
         return MathyObservation(
             nodes=[MathTypeKeys["empty"]],
@@ -259,10 +253,13 @@ class MathyEnvState(object):
         self,
         move_mask: Optional[NodeMaskIntList] = None,
         hash_type: Optional[ProblemTypeIntList] = None,
+        parser: Optional[ExpressionParser] = None,
     ) -> MathyObservation:
+        if parser is None:
+            parser = ExpressionParser()
         if hash_type is None:
             hash_type = self.get_problem_hash()
-        expression = self.parser.parse(self.agent.problem)
+        expression = parser.parse(self.agent.problem)
         nodes: List[MathExpression] = expression.to_list()
         vectors: NodeIntList = []
         values: NodeValuesFloatList = []
