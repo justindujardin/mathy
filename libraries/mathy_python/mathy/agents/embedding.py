@@ -89,12 +89,14 @@ class MathyEmbedding(tf.keras.Model):
         self.out_dense_norm = NormalizeClass(name="out_dense_norm")
         self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
         self.time_lstm_norm = NormalizeClass(name="time_lstm_norm")
-        self.lstm_nodes = tf.keras.layers.LSTM(
-            self.config.lstm_units,
-            name="nodes_lstm",
-            time_major=False,
-            return_sequences=True,
-            return_state=True,
+        self.lstm_nodes = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(
+                self.config.lstm_units,
+                name="nodes_lstm",
+                time_major=False,
+                return_sequences=True,
+            ),
+            merge_mode="sum",
         )
         self.lstm_time = tf.keras.layers.LSTM(
             self.config.lstm_units,
@@ -120,7 +122,7 @@ class MathyEmbedding(tf.keras.Model):
         output = self.in_dense(output)
         output = self.lstm_time(output)
         output = self.time_lstm_norm(output)
-        output, state_h, state_c = self.lstm_nodes(output)
+        output = self.lstm_nodes(output)
         output = self.nodes_lstm_norm(output)
         output, attention = self.lstm_attention(output, output)
         return self.out_dense_norm(self.output_dense(output)), attention
