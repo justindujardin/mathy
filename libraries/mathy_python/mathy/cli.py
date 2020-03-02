@@ -134,7 +134,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "lr",
     "--lr",
-    default=3e-4,
+    default=0.01,
     type=float,
     help="The learning rate to use with adam optimizer",
 )
