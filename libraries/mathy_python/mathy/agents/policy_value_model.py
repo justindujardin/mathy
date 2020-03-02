@@ -42,7 +42,10 @@ class PolicyValueModel(tf.keras.Model):
         if args is None:
             args = BaseConfig()
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-            args.lr, decay_steps=100000, decay_rate=0.96, staircase=True
+            args.lr_initial,
+            decay_steps=args.lr_decay_steps,
+            decay_rate=args.lr_decay_rate,
+            staircase=args.lr_decay_staircase,
         )
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.args = args

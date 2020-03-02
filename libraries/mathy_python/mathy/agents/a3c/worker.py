@@ -490,17 +490,13 @@ class A3CWorker(threading.Thread):
         # Scale the policy loss down by the seq_len to make invariant to length
         total_loss = value_loss + policy_loss + entropy_loss + rp_loss
         prefix = self.tb_prefix
-        tf.summary.scalar(f"{prefix}/policy_loss", data=policy_loss, step=step)
-        tf.summary.scalar(f"{prefix}/value_loss", data=value_loss, step=step)
-        tf.summary.scalar(f"{prefix}/entropy_loss", data=entropy_loss, step=step)
-        tf.summary.scalar(f"{prefix}/rp_loss", data=rp_loss, step=step)
+        tf.summary.scalar(f"losses/{prefix}/policy_loss", data=policy_loss, step=step)
+        tf.summary.scalar(f"losses/{prefix}/value_loss", data=value_loss, step=step)
+        tf.summary.scalar(f"losses/{prefix}/entropy_loss", data=entropy_loss, step=step)
+        tf.summary.scalar(f"losses/{prefix}/rp_loss", data=rp_loss, step=step)
         tf.summary.scalar(
-            f"{prefix}/advantage", data=tf.reduce_mean(advantage), step=step
+            f"settings/learning_rate", data=self.optimizer.lr(step), step=step
         )
-        tf.summary.scalar(
-            f"{prefix}/entropy", data=tf.reduce_mean(h_loss.extra.entropy), step=step
-        )
-
         return (
             (
                 policy_loss,

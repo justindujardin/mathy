@@ -132,13 +132,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Number of dimensions to use for math vectors and model dimensions",
 )
 @click.option(
-    "lr",
-    "--lr",
-    default=0.01,
-    type=float,
-    help="The learning rate to use with adam optimizer",
-)
-@click.option(
     "embeddings",
     "--embeddings",
     default=256,
@@ -205,7 +198,6 @@ def cli_train(
     profile: bool,
     episodes: int,
     mcts_sims: int,
-    lr: float,
     show: bool,
     verbose: bool,
     training_iterations: int,
@@ -237,7 +229,6 @@ def cli_train(
             topics=topics_list,
             units=units,
             embedding_units=embeddings,
-            lr=lr,
             mcts_sims=mcts_sims,
             model_dir=folder,
             init_model_from=transfer,
@@ -257,7 +248,6 @@ def cli_train(
             verbose=verbose,
             difficulty=difficulty,
             topics=topics_list,
-            lr=lr,
             units=units,
             embedding_units=embeddings,
             mcts_sims=mcts_sims,
