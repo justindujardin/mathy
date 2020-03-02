@@ -71,7 +71,9 @@ class Mathy:
         done = False
         while not done:
             env.render(self.config.print_mode, None)
-            window = episode_memory.to_window_observation(last_observation)
+            window = episode_memory.to_window_observation(
+                last_observation, window_size=self.config.prediction_window_size
+            )
             try:
                 action, value = selector.select(
                     last_state=env.state,
