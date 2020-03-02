@@ -89,13 +89,11 @@ class CommutativeSwapRule(BaseRule):
             node.set_right(a)
             node.set_left(b)
         else:
-            # If it's another add, just swap their
+            # If it's another add, swap their
             # children directly to avoid inner-nesting.
-            one = a.left
             two = a.right
             three = node.right
-            a.set_left(three)
-            a.set_right(one)
+            a.set_right(three)
             node.set_right(two)
 
         node.set_changed()

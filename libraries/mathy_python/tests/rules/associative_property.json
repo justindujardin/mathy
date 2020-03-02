@@ -1,12 +1,17 @@
 {
   "valid": [
     {
+      "input": "4x^3 + g + 5y + 7p^4 + x^3 + 12p^4",
+      "output": "4x^3 + g + 5y + 7p^4 + (x^3 + 12p^4)",
+      "target": "4x^3 + g + 5y + 7p^4 + x^3"
+    },
+    {
       "input": "1f + 98i + 3f + 14t",
       "output": "1f + (98i + 3f) + 14t",
       "target": "1f + 98i"
     },
     {
-      "input": "8x^2 * (9b) * 7",
+      "input": "8x^2 * (9b * 7)",
       "output": "(8x^2 * 9b) * 7",
       "target": "9b * 7"
     },

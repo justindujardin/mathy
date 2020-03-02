@@ -74,11 +74,12 @@ def run_rule_tests(name, rule_class, callback=None):
         before = expression.clone()
         print(ex)
         if "target" in ex:
+            target = ex["target"]
             nodes = rule.find_nodes(expression)
             targets = [n.raw for n in nodes]
-            node = [n for n in nodes if n.raw == ex["target"]]
+            node = [n for n in nodes if n.raw == target]
             targets = "\n".join(targets)
-            assert len(node) > 0, f"could not find target node. targets are:\n{targets}"
+            assert len(node) > 0, f"could not find target: {target}. targets are:\n{targets}"
             node = node[0]
         else:
             node = rule.find_node(expression)

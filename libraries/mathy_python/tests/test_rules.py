@@ -22,49 +22,49 @@ from ..mathy.rules import (
 from ..mathy.testing import init_rule_for_test, run_rule_tests
 
 
-def test_associative_property():
+def test_rules_associative_property():
     def debug(ex):
         pass
 
     run_rule_tests("associative_property", AssociativeSwapRule, debug)
 
 
-def test_commutative_property():
+def test_rules_commutative_property():
     def debug(ex):
         pass
 
     run_rule_tests("commutative_property", CommutativeSwapRule, debug)
 
 
-def test_constants_simplify():
+def test_rules_constants_simplify():
     def debug(ex):
         pass
 
     run_rule_tests("constants_simplify", ConstantsSimplifyRule, debug)
 
 
-def test_distributive_factor_out():
+def test_rules_distributive_factor_out():
     def debug(ex):
         pass
 
     run_rule_tests("distributive_factor_out", DistributiveFactorOutRule, debug)
 
 
-def test_distributive_multiply_across():
+def test_rules_distributive_multiply_across():
     def debug(ex):
         pass
 
     run_rule_tests("distributive_multiply_across", DistributiveMultiplyRule, debug)
 
 
-def test_variable_multiply():
+def test_rules_variable_multiply():
     def debug(ex):
         pass
 
     run_rule_tests("variable_multiply", VariableMultiplyRule, debug)
 
 
-def test_rule_can_apply_to():
+def test_rules_rule_can_apply_to():
     parser = ExpressionParser()
     expression = parser.parse("7 + 4x - 2")
 
@@ -78,7 +78,7 @@ def test_rule_can_apply_to():
         assert type(action.can_apply_to(expression)) == bool
 
 
-def test_like_terms_compare():
+def test_rules_like_terms_compare():
     parser = ExpressionParser()
     expr = parser.parse("10 + (7x + 6x)")
     terms = get_terms(expr)
