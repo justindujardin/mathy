@@ -1,19 +1,15 @@
-import os
-import numpy as np
-from . import time_step
-from pydantic import BaseModel
 import json
 import math
-from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Union, Any
+import os
 import re
-from typing import Dict, List, Tuple
-from wasabi import TracebackPrinter
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, cast
 
 import numpy as np
+from pydantic import BaseModel
+from wasabi import TracebackPrinter
 
-from .types import EnvRewards, Literal
-
+from . import time_step
 from .core.expressions import (
     AddExpression,
     BinaryExpression,
@@ -28,6 +24,7 @@ from .core.expressions import (
 )
 from .core.parser import ExpressionParser
 from .core.tree import LEFT
+from .types import EnvRewards, Literal
 
 
 def is_debug_mode() -> bool:
@@ -523,6 +520,18 @@ def get_term_ex(node: Optional[MathExpression]) -> Optional[TermEx]:
     TermEx(coefficient=4, variable="x", exponent=7)
     ```
     """
+    if isinstance(node, NegateExpression):
+        child = cast(NegateExpression, node).get_child()
+
+        # "-x"
+        if isinstance(child, VariableExpression):
+            return TermEx(-1, child.identifier, None)
+        # "-x^2"
+        if isinstance(child, PowerExpression):
+            if isinstance(child.left, VariableExpression) and isinstance(
+                child.right, ConstantExpression
+            ):
+                return TermEx(-1, child.left.identifier, child.right.value)
 
     # "4"
     if isinstance(node, ConstantExpression):
@@ -818,4 +827,3 @@ def print_error(error, text, print_error=True):
         print(caught_at + caught_error)
     else:
         raise ValueError(caught_at + caught_error)
-
