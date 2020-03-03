@@ -24,6 +24,9 @@ class BaseConfig(BaseModel):
     # (n - 1) previous timesteps
     prediction_window_size: int = 16
 
+    # Dropout to apply to LSTMs
+    dropout: float = 0.2
+
     # Whether to use the LSTM or non-reccurrent architecture
     use_lstm: bool = True
     units: int = 64
@@ -38,7 +41,7 @@ class BaseConfig(BaseModel):
     verbose: bool = False
     # Initial learning rate that decays over time.
     lr_initial: float = 0.01
-    lr_decay_steps: int = 1000
+    lr_decay_steps: int = 100
     lr_decay_rate: float = 0.96
     lr_decay_staircase: bool = True
     max_eps: int = 15000
