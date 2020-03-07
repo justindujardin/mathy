@@ -141,7 +141,7 @@ class SelfPlayTrainer:
 
         batch_size = len(inputs.nodes)
         step = self.model.optimizer.iterations
-        logits, values, _ = self.model(inputs.to_inputs())
+        logits, values, _, _, _ = self.model(inputs.to_inputs())
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
