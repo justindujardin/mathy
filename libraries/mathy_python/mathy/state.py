@@ -13,14 +13,13 @@ NodeIntList = List[int]
 NodeValuesFloatList = List[float]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
-ProblemTimeFloatList = List[float]
 
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
 WindowNodeValuesFloatList = List[NodeValuesFloatList]
 WindowProblemTypeIntList = List[ProblemTypeIntList]
-WindowProblemTimeFloatList = List[ProblemTimeFloatList]
+
 
 # Input type for mathy models
 MathyInputsType = List[Any]
@@ -31,7 +30,6 @@ class ObservationFeatureIndices(IntEnum):
     mask = 1
     values = 2
     type = 3
-    time = 4
 
 
 class MathyObservation(NamedTuple):
@@ -41,7 +39,6 @@ class MathyObservation(NamedTuple):
     mask: NodeMaskIntList
     values: NodeValuesFloatList
     type: ProblemTypeIntList
-    time: ProblemTimeFloatList
 
 
 # fmt: off
@@ -49,7 +46,6 @@ MathyObservation.nodes.__doc__ = "tree node types in the current environment sta
 MathyObservation.mask.__doc__ = "0/1 mask where 0 indicates an invalid action shape=[n,]" # noqa
 MathyObservation.values.__doc__ = "tree node value sequences, with non number indices set to 0.0 shape=[n,]" # noqa
 MathyObservation.type.__doc__ = "two column hash of problem environment type shape=[2,]" # noqa
-MathyObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed shape=[1,]" # noqa
 # fmt: on
 
 
@@ -60,7 +56,6 @@ class MathyWindowObservation(NamedTuple):
     mask: WindowNodeMaskIntList
     values: WindowNodeValuesFloatList
     type: WindowProblemTypeIntList
-    time: WindowProblemTimeFloatList
 
     def to_inputs(self, as_tf_tensor: bool = False) -> MathyInputsType:
         if as_tf_tensor:
@@ -76,7 +71,6 @@ class MathyWindowObservation(NamedTuple):
             to_res(self.mask),
             to_res(self.values),
             to_res(self.type),
-            to_res(self.time),
         ]
         for r in result:
             for s in r.shape:
@@ -91,7 +85,6 @@ class MathyWindowObservation(NamedTuple):
             np.asarray(self.mask).shape,
             np.asarray(self.values).shape,
             np.asarray(self.type).shape,
-            np.asarray(self.time).shape,
         ]
         return result
 
@@ -101,7 +94,6 @@ MathyWindowObservation.nodes.__doc__ = "n-step list of node sequences `shape=[n,
 MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks `shape=[n, max(len(s))]`" # noqa
 MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`" # noqa
 MathyWindowObservation.type.__doc__ = "n-step problem type hash `shape=[n, 2]`" # noqa
-MathyWindowObservation.time.__doc__ = "float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`" # noqa
 # fmt: on
 
 
@@ -128,7 +120,7 @@ def observations_to_window(
     observations: List[MathyObservation], total_length: int = None
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
-    output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[], time=[])
+    output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[])
     sequence_lengths: List[int] = []
     max_mask_length: int = 0
     for i in range(len(observations)):
@@ -145,7 +137,6 @@ def observations_to_window(
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
         output.values.append(pad_array(obs.values, max_length, 0.0))
         output.type.append(pad_array([], max_length, obs.type))
-        output.time.append(pad_array([], max_length, obs.time))
     return output
 
 
@@ -242,11 +233,7 @@ class MathyEnvState(object):
         mask = [0] * num_actions
         values = [0.0]
         return MathyObservation(
-            nodes=[MathTypeKeys["empty"]],
-            mask=mask,
-            values=values,
-            type=hash,
-            time=[-1.0],
+            nodes=[MathTypeKeys["empty"]], mask=mask, values=values, type=hash,
         )
 
     def to_observation(
@@ -272,14 +259,8 @@ class MathyEnvState(object):
             else:
                 values.append(0.0)
 
-        # Pass a 0-1 value indicating the relative episode time where 0.0 is
-        # the episode start, and 1.0 is the episode end as indicated by the
-        # maximum allowed number of actions.
-        step = int(self.max_moves - self.agent.moves_remaining)
-        time = step / self.max_moves
-
         return MathyObservation(
-            nodes=vectors, mask=move_mask, values=values, type=hash_type, time=[time]
+            nodes=vectors, mask=move_mask, values=values, type=hash_type
         )
 
 

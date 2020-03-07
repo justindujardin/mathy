@@ -26,9 +26,6 @@ class BaseConfig(BaseModel):
 
     # Dropout to apply to LSTMs
     dropout: float = 0.2
-
-    # Whether to use the LSTM or non-reccurrent architecture
-    use_lstm: bool = True
     units: int = 64
     embedding_units: int = 128
     lstm_units: int = 128
@@ -37,7 +34,6 @@ class BaseConfig(BaseModel):
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
     init_model_from: Optional[str] = None
-    train: bool = False
     verbose: bool = False
     # Initial learning rate that decays over time.
     lr_initial: float = 0.01
