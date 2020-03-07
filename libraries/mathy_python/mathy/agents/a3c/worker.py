@@ -20,7 +20,7 @@ from ...state import (
     observations_to_window,
 )
 from ...teacher import Teacher
-from ...util import calculate_grouping_control_signal, discount, print_error
+from ...util import discount, print_error
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
 from ..mcts import MCTS
@@ -449,7 +449,7 @@ class A3CWorker(threading.Thread):
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
         model_results = self.local_model.call(inputs)
-        logits, values, trimmed_logits, reward_logits, grouping = model_results
+        logits, values, trimmed_logits, reward_logits, attentions = model_results
 
         logits = tf.reshape(logits, [batch_size, -1])
 
@@ -509,20 +509,6 @@ class A3CWorker(threading.Thread):
             model_results,
         )
 
-    def compute_grouping_change_loss(
-        self,
-        model_results,
-        observation: MathyObservation,
-        episode_memory: EpisodeMemory,
-        clip: bool = True,
-    ):
-        change_signals = [signal for signal in episode_memory.grouping_changes]
-        signals_tensor = tf.convert_to_tensor(change_signals)
-        loss = tf.keras.losses.MSE(model_results[4], signals_tensor)
-        if clip is True:
-            loss = tf.clip_by_value(loss, -1.0, 1.0)
-        return tf.reduce_mean(loss)
-
     def compute_loss(
         self,
         *,
@@ -546,17 +532,6 @@ class A3CWorker(threading.Thread):
             ) = loss_tuple
             aux_losses = {}
             aux_weight = self.args.aux_tasks_weight_scale
-
-            if self.args.use_grouping_control:
-                gc_loss = self.compute_grouping_change_loss(
-                    model_results,
-                    observation,
-                    episode_memory,
-                    clip=self.args.clip_grouping_control,
-                )
-                gc_loss *= aux_weight
-                total_loss += gc_loss
-                aux_losses["gc"] = gc_loss
             for key in aux_losses.keys():
                 tf.summary.scalar(
                     f"{self.tb_prefix}/{key}_loss", data=aux_losses[key], step=step

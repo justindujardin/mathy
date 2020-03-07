@@ -54,7 +54,6 @@ class Mathy:
         from .agents.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
         from .agents.policy_value_model import PolicyValueModel
-        from .util import calculate_grouping_control_signal
 
         environment = "poly"
         difficulty = "easy"

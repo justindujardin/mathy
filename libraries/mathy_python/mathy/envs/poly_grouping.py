@@ -25,7 +25,7 @@ class PolyGroupLikeTerms(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 2
+        return problem.complexity * 4
 
     def transition_fn(
         self,
@@ -43,7 +43,7 @@ class PolyGroupLikeTerms(MathyEnv):
         for term in term_nodes:
             ex: Optional[TermEx] = get_term_ex(term)
             if ex is None:
-                raise ValueError("should this happen?")
+                continue
             key = f"{ex.variable}{ex.exponent}"
             # If the key is in the "already seen and moved on" list then we've failed
             # to meet the completion criteria. e.g. the final x in "4x + 2y + x"

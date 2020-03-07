@@ -38,8 +38,6 @@
   "print_model_call_times":false,
   "print_mode":"terminal",
   "normalization_style":"layer",
-  "use_grouping_control":false,
-  "clip_grouping_control":true,
   "update_gradients_every":8,
   "mcts_sims":10,
   "worker_wait":0.01,

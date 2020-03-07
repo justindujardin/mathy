@@ -13,7 +13,7 @@ from ..mathy.state import MathyObservation, observations_to_window
 
 
 def test_mathy_zero_trainer_constructor():
-    config = SelfPlayConfig(use_grouping_control=True)
+    config = SelfPlayConfig()
     env: MathyEnv = envs.PolySimplify()
     model = PolicyValueModel(config, predictions=env.action_size)
     with pytest.raises(NotImplementedError):

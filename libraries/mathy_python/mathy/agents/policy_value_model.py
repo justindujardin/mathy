@@ -168,7 +168,7 @@ class PolicyValueModel(tf.keras.Model):
     def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
-        logits, values, masked, rewards, grouping = self.call(inputs)
+        logits, values, masked, rewards, attention = self.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])

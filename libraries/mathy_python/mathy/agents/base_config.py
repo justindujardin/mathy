@@ -57,7 +57,3 @@ class BaseConfig(BaseModel):
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
-    # Whether to use the grouping change aux task
-    use_grouping_control = False
-    # Clip signal at 0.0 so it does not optimize into the negatives
-    clip_grouping_control = True

@@ -36,6 +36,19 @@ Get the normalized action/node_index values from a
 given absolute action value.
 
 Returns a tuple of (rule_index, node_index)
+### get_actions_for_node
+```python
+MathyEnv.get_actions_for_node(
+    self,
+    expression: mathy.core.expressions.MathExpression,
+    rule_list: List[Type[mathy.core.rule.BaseRule]] = None,
+) -> List[int]
+```
+Return a valid actions mask for the given expression and rule list.
+
+Action masks are 1d lists of length (nodes * num_rules) where a 0 indicates
+the action is not valid in the current state, and a 1 indicates that it is
+a valid action to take.
 ### get_agent_actions_count
 ```python
 MathyEnv.get_agent_actions_count(

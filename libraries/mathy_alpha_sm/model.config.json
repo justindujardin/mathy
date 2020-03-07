@@ -29,8 +29,6 @@
   "print_mode": "terminal",
   "use_term_order": false,
   "use_tree_complexity": false,
-  "use_grouping_control": true,
-  "clip_grouping_control": false,
   "use_env_features": false,
   "use_node_values": true,
   "update_gradients_every": 64,
