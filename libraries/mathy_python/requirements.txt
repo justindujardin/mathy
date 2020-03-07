@@ -9,5 +9,4 @@ wasabi
 gym<=0.12.5
 tensorflow_probability
 typing-extensions>=3.7.4.1
-
 keras-self-attention

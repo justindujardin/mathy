@@ -132,6 +132,13 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Number of dimensions to use for math vectors and model dimensions",
 )
 @click.option(
+    "rnn",
+    "--rnn",
+    default=None,
+    type=int,
+    help="Number of dimensions to use for token embeddings",
+)
+@click.option(
     "embeddings",
     "--embeddings",
     default=256,
@@ -194,6 +201,7 @@ def cli_train(
     strategy: str,
     workers: int,
     units: int,
+    rnn: int,
     embeddings: int,
     profile: bool,
     episodes: int,
@@ -238,6 +246,8 @@ def cli_train(
         )
         if episodes is not None:
             args.max_eps = episodes
+        if rnn is not None:
+            args.lstm_units = rnn
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
