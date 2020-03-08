@@ -16,8 +16,7 @@ def test_mathy_zero_trainer_constructor():
     config = SelfPlayConfig()
     env: MathyEnv = envs.PolySimplify()
     model = PolicyValueModel(config, predictions=env.action_size)
-    with pytest.raises(NotImplementedError):
-        SelfPlayTrainer(config, model, env.action_size)
+    assert SelfPlayTrainer(config, model, env.action_size) is not None
 
 
 def test_mathy_zero_practice_runner():
