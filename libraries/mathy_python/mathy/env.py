@@ -43,11 +43,13 @@ class MathyEnv:
         rules: List[BaseRule] = None,
         max_moves: int = 20,
         verbose: bool = False,
+        error_invalid: bool = False,
         reward_discount: float = 0.99,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
+        self.error_invalid = error_invalid
         self.parser = ExpressionParser()
         if rules is None:
             self.rules = MathyEnv.core_rules()
@@ -267,12 +269,30 @@ class MathyEnv:
         op_not_rule = not isinstance(operation, BaseRule)
         op_cannot_apply = token is None or operation.can_apply_to(token) is False
         if token is None or op_not_rule or op_cannot_apply:
-            steps = int(env_state.max_moves - agent.moves_remaining)
-            msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
-                steps, action, type(operation), expression
-            )
-            raise_with_history("Invalid Action", msg, agent.history)
-            raise ValueError(f"Invalid Action: {msg}")
+            if self.error_invalid:
+                steps = int(env_state.max_moves - agent.moves_remaining)
+                msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
+                    steps, action, type(operation), expression
+                )
+                raise_with_history("Invalid Action", msg, agent.history)
+                raise ValueError(f"Invalid Action: {msg}")
+            else:
+                # Non-masked searches need a negative reward for invalid actions
+                out_env = env_state.get_out_state(
+                    problem=env_state.agent.problem,
+                    focus=token_index,
+                    action=action_index,
+                    moves_remaining=agent.moves_remaining - 1,
+                )
+                obs = out_env.to_observation(
+                    self.get_valid_moves(out_env), parser=self.parser
+                )
+                transition = time_step.transition(obs, EnvRewards.UNHELPFUL_MOVE,)
+                if env_state.agent.moves_remaining <= 0:
+                    transition = time_step.termination(
+                        obs, self.get_lose_signal(env_state)
+                    )
+                return out_env, transition, ExpressionChangeRule(BaseRule())
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()
@@ -280,7 +300,7 @@ class MathyEnv:
         out_problem = str(root)
         out_env = env_state.get_out_state(
             problem=out_problem,
-            focus_index=token_index,
+            focus=token_index,
             action=action_index,
             moves_remaining=agent.moves_remaining - 1,
         )
@@ -316,7 +336,7 @@ class MathyEnv:
     ):
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
-        if change is not None:
+        if change is not None and change.result is not None:
             changed_problem = change.result.get_root().terminal_text
         output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
@@ -382,16 +402,16 @@ class MathyEnv:
         return self.action_size * node_count
 
     def get_token_at_index(
-        self, expression: MathExpression, focus_index: int
+        self, expression: MathExpression, index: int
     ) -> Optional[MathExpression]:
-        """Get the token that is `focus_index` from the left of the expression"""
+        """Get the token that is `index` from the left of the expression"""
         count = 0
         result = None
 
         def visit_fn(node, depth, data):
             nonlocal result, count
             result = node
-            if count == focus_index:
+            if count == index:
                 return STOP
             count = count + 1
 

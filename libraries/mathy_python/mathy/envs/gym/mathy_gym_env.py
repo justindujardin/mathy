@@ -73,7 +73,7 @@ class MathyGymEnv(gym.Env):
         self.last_action = action
         self.last_change = change
         self.last_reward = round(float(transition.reward), 4)
-        return observation, transition.reward, done, info
+        return self.state.to_np(), transition.reward, done, info
 
     def reset_with_input(self, problem_text: str, max_moves=16):
         self.last_action = -1
@@ -85,7 +85,8 @@ class MathyGymEnv(gym.Env):
             self.mathy.finalize_state(self.state)
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         self.state = MathyEnvState(problem=problem_text, max_moves=max_moves)
-        return self._observe(self.state)
+        self._observe(self.state)
+        return self.state
 
     def reset(self):
         self.last_action = -1
@@ -94,9 +95,16 @@ class MathyGymEnv(gym.Env):
         # If the episode is being reset because it ended, assert the validity
         # of the last problem outcome
         if self.state is not None:
+            problem_text = self.state.agent.history[0].raw
+            max_moves = self.state.max_moves
             self.mathy.finalize_state(self.state)
-        self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
-        return self._observe(self.state)
+            self.state = MathyEnvState(problem=problem_text, max_moves=max_moves)
+        else:
+            self.state, self.problem = self.mathy.get_initial_state(
+                self.env_problem_args
+            )
+        self._observe(self.state)
+        return self.state
 
     def initial_window(self):
         """return an n-step set of observations for initializing the env"""
