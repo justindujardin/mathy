@@ -277,6 +277,7 @@ class MathyEnv:
                 raise_with_history("Invalid Action", msg, agent.history)
                 raise ValueError(f"Invalid Action: {msg}")
             else:
+                valid_mask = self.get_valid_moves(env_state)
                 # Non-masked searches need a negative reward for invalid actions
                 out_env = env_state.get_out_state(
                     problem=env_state.agent.problem,
@@ -284,10 +285,30 @@ class MathyEnv:
                     action=action_index,
                     moves_remaining=agent.moves_remaining - 1,
                 )
+                # NOTE: There's probably a better way to calculate this, but I'm hack'n rn
+                found_dist: Optional[float] = None
+                if action < len(valid_mask):
+                    left_idx = action
+                    right_idx = action
+                    while found_dist is None and (
+                        left_idx >= 0 or right_idx < len(valid_mask)
+                    ):
+                        left_idx -= 1
+                        right_idx += 1
+                        if left_idx >= 0 and valid_mask[left_idx] == 1:
+                            found_dist = action - left_idx
+                        if right_idx < len(valid_mask) and valid_mask[right_idx] == 1:
+                            found_dist = right_idx - action
+                # TODO: I think this should never happen? There should always be atlest one valid action
+                if found_dist is None:
+                    found_dist = len(valid_mask)
+                found_scaled = found_dist / 10
+                error = EnvRewards.INVALID_MOVE + -found_scaled
+
                 obs = out_env.to_observation(
                     self.get_valid_moves(out_env), parser=self.parser
                 )
-                transition = time_step.transition(obs, EnvRewards.UNHELPFUL_MOVE,)
+                transition = time_step.transition(obs, error,)
                 if env_state.agent.moves_remaining <= 0:
                     transition = time_step.termination(
                         obs, self.get_lose_signal(env_state)

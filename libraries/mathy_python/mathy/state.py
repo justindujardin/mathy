@@ -272,7 +272,7 @@ class MathyEnvState(object):
         )
 
     @classmethod
-    def from_json(cls, input_string: str) -> "MathyEnvState":
+    def from_string(cls, input_string: str) -> "MathyEnvState":
         sep = "@"
         history_sep = ","
         inputs = input_string.split(sep)
@@ -294,12 +294,6 @@ class MathyEnvState(object):
             state.agent.history.append(MathyEnvStateStep(raw, int(focus), int(action)))
         return state
 
-    @classmethod
-    def from_np(cls, input_bytes: np.ndarray) -> "MathyEnvState":
-        input_string = "".join([chr(o) for o in input_bytes.tolist()])
-        state = cls.from_json(input_string)
-        return state
-
     def to_string(self) -> str:
         sep = "@"
         last_action = (
@@ -317,6 +311,12 @@ class MathyEnvState(object):
         for step in self.agent.history:
             out.append(",".join([str(step.raw), str(step.focus), str(step.action)]))
         return sep.join(out)
+
+    @classmethod
+    def from_np(cls, input_bytes: np.ndarray) -> "MathyEnvState":
+        input_string = "".join([chr(o) for o in input_bytes.tolist()])
+        state = cls.from_string(input_string)
+        return state
 
     def to_np(self) -> np.ndarray:
         return np.array([ord(c) for c in self.to_string()])

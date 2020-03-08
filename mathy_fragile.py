@@ -156,7 +156,7 @@ class FragileEnvironment(Environment):
         super(FragileEnvironment, self).__init__(
             name=name, n_repeat_action=n_repeat_action
         )
-        environment = "binomial"
+        environment = "poly"
         difficulty = "easy"
         self._env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
         if height is not None and width is not None:
@@ -286,7 +286,7 @@ def arc_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 dt = GaussianDt(min_dt=6, max_dt=1000, loc_dt=4, scale_dt=2)
 prune_tree = True
 n_walkers = 32  # A bigger number will increase the quality of the trajectories sampled.
-max_iters = 25000  # Increase to sample longer games.
+max_iters = 100  # Increase to sample longer games.
 reward_scale = 2  # Rewards are more important than diversity.
 distance_scale = 1
 minimize = False  # We want to get the maximum score possible.
