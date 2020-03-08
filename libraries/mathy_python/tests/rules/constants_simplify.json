@@ -93,7 +93,6 @@
       "output": "42x^3 + 30x * x * z + x * 48z^2",
       "why": "Because my rule implementation sucks and can't deal with this kind of nesting... should be: can skip siblings to combine constants"
     },
-
     {
       "input": "13f^4 * (5f^4 + 7)",
       "why": "can't simplify nested child because the nested group has a different priority"

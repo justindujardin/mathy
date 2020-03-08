@@ -35,7 +35,7 @@ self_play_cfg = SelfPlayConfig(
     num_workers=2,
     verbose=True,
     difficulty="easy",
-    topics=["poly-combine"],
+    topics=["poly"],
     model_dir=model_folder,
     print_training=True,
 )

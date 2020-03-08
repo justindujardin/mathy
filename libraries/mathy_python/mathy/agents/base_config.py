@@ -20,12 +20,12 @@ class BaseConfig(BaseModel):
 
     # One of "batch" or "layer"
     normalization_style = "layer"
-    # The number of previous timesteps to pass in with the current one
-    # when making predictions.
-    prediction_window_size: int = 7
+    # The number of timesteps use when making predictions. This includes the current timestep and
+    # (n - 1) previous timesteps
+    prediction_window_size: int = 16
 
-    # Whether to use the LSTM or non-reccurrent architecture
-    use_lstm: bool = True
+    # Dropout to apply to LSTMs
+    dropout: float = 0.2
     units: int = 64
     embedding_units: int = 128
     lstm_units: int = 128
@@ -34,9 +34,12 @@ class BaseConfig(BaseModel):
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
     init_model_from: Optional[str] = None
-    train: bool = False
     verbose: bool = False
-    lr: float = 1e-3
+    # Initial learning rate that decays over time.
+    lr_initial: float = 0.01
+    lr_decay_steps: int = 100
+    lr_decay_rate: float = 0.96
+    lr_decay_staircase: bool = True
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
@@ -54,18 +57,3 @@ class BaseConfig(BaseModel):
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
-
-    # How naturally ordered are the terms in the expression?
-    use_term_order = False
-    # How much internal branching complexity is in the tree?
-    use_tree_complexity = False
-    # Whether to use the grouping change aux task
-    use_grouping_control = False
-    # Clip signal at 0.0 so it does not optimize into the negatives
-    clip_grouping_control = True
-
-    # Include the time/type environment features in the embeddings
-    use_env_features = True
-
-    # Include the node values floating point features in the embeddings
-    use_node_values = True

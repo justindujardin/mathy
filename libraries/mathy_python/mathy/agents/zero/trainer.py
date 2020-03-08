@@ -10,7 +10,6 @@ import gym
 import numpy as np
 
 from ...envs.gym.mathy_gym_env import MathyGymEnv
-from ...util import calculate_grouping_control_signal
 from ...state import (
     MathyEnvState,
     MathyObservation,
@@ -44,12 +43,6 @@ class SelfPlayTrainer:
         self.action_size = action_size
         self.writer = None
         self.last_histogram_write = -1
-        if self.args.use_grouping_control:
-            raise NotImplementedError(
-                "Grouping Control signal is not implemented for the Zero agent."
-                " Support shouldn't be very difficult to add by looking at the"
-                " compute_policy_value_loss in the A3C agent."
-            )
 
     @property
     def tb_prefix(self) -> str:
@@ -141,7 +134,7 @@ class SelfPlayTrainer:
 
         batch_size = len(inputs.nodes)
         step = self.model.optimizer.iterations
-        logits, values, _ = self.model(inputs.to_inputs())
+        logits, values, _, _, _ = self.model(inputs.to_inputs())
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )

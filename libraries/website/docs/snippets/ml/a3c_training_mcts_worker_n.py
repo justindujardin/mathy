@@ -14,7 +14,6 @@ args = A3CConfig(
     topics=["poly-combine"],
     model_dir=model_folder,
     num_workers=2,
-    clip_grouping_control=False,
     print_training=True,
 )
 A3CAgent(args).train()

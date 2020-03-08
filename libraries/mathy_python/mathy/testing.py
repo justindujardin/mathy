@@ -74,10 +74,12 @@ def run_rule_tests(name, rule_class, callback=None):
         before = expression.clone()
         print(ex)
         if "target" in ex:
+            target = ex["target"]
             nodes = rule.find_nodes(expression)
             targets = [n.raw for n in nodes]
-            node = [n for n in nodes if n.raw == ex["target"]]
-            assert len(node) > 0, f"could not find target node. targets are: {targets}"
+            node = [n for n in nodes if n.raw == target]
+            targets = "\n".join(targets)
+            assert len(node) > 0, f"could not find target: {target}. targets are:\n{targets}"
             node = node[0]
         else:
             node = rule.find_node(expression)
@@ -90,7 +92,9 @@ def run_rule_tests(name, rule_class, callback=None):
         compare_expression_values(before, after)
         # Parse the output strings to new expressions, and compare the values
         compare_expression_string_values(str(before), str(after))
-        assert str(after).strip() == ex["output"]
+        actual = str(after).strip()
+        expected = ex["output"]
+        assert actual == expected, f"Expected '{actual}' to be '{expected}'"
 
     for ex in tests["invalid"]:
         # Trigger the debug callback so the user can step over into the useful stuff

@@ -62,11 +62,7 @@ __Example__
 
 ### to_start_observation
 ```python
-MathyEnvState.to_start_observation(
-    self,
-    rnn_state_h: List[float],
-    rnn_state_c: List[float],
-) -> mathy.state.MathyObservation
+MathyEnvState.to_start_observation(self) -> mathy.state.MathyObservation
 ```
 Generate an episode start MathyObservation
 ## MathyEnvStateStep
@@ -90,14 +86,6 @@ A featurized observation from an environment state.
 0/1 mask where 0 indicates an invalid action shape=[n,]
 ### nodes
 tree node types in the current environment state shape=[n,]
-### rnn_history_h
-rnn historical state_h shape=[dimensions]
-### rnn_state_c
-rnn state_c shape=[dimensions]
-### rnn_state_h
-rnn state_h shape=[dimensions]
-### time
-float value between 0.0-1.0 for how much time has passed shape=[1,]
 ### type
 two column hash of problem environment type shape=[2,]
 ### values
@@ -111,14 +99,6 @@ A featurized observation from an n-step sequence of environment states.
 n-step list of node sequence masks `shape=[n, max(len(s))]`
 ### nodes
 n-step list of node sequences `shape=[n, max(len(s))]`
-### rnn_history_h
-n-step rnn historical state `shape=[n, dimensions]`
-### rnn_state_c
-n-step rnn state `shape=[n, dimensions]`
-### rnn_state_h
-n-step rnn state `shape=[n, dimensions]`
-### time
-float value between 0.0-1.0 for how much time has passed `shape=[n, 1]`
 ### type
 n-step problem type hash `shape=[n, 2]`
 ### values
@@ -132,14 +112,6 @@ An enumeration.
 An enumeration.
 ### nodes
 An enumeration.
-### rnn_history_h
-An enumeration.
-### rnn_state_c
-An enumeration.
-### rnn_state_h
-An enumeration.
-### time
-An enumeration.
 ### type
 An enumeration.
 ### values
@@ -148,13 +120,7 @@ An enumeration.
 ```python
 observations_to_window(
     observations: List[mathy.state.MathyObservation],
+    total_length: int = None,
 ) -> mathy.state.MathyWindowObservation
 ```
 Combine a sequence of observations into an observation window
-## rnn_placeholder_state
-```python
-rnn_placeholder_state(rnn_size:int) -> List[float]
-```
-Create a placeholder state for the RNN hidden states in an observation. This
-is useful because we don't always know the RNN state when we initialize an
-observation.

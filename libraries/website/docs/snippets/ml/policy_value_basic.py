@@ -8,9 +8,7 @@ from mathy.state import MathyObservation, observations_to_window
 
 args = BaseConfig()
 env: MathyEnv = envs.PolySimplify()
-observation: MathyObservation = env.state_to_observation(
-    env.get_initial_state()[0], rnn_size=args.lstm_units
-)
+observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
 model = PolicyValueModel(args, predictions=env.action_size)
 inputs = observations_to_window([observation]).to_inputs()
 # predict_next only returns a policy for the last observation

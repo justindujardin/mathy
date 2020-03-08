@@ -34,37 +34,74 @@ class PolicyValueModel(tf.keras.Model):
     def __init__(
         self,
         args: BaseConfig = None,
-        predictions=2,
+        predictions: int = 2,
         initial_state: Any = None,
         **kwargs,
     ):
         super(PolicyValueModel, self).__init__(**kwargs)
         if args is None:
             args = BaseConfig()
-        self.optimizer = tf.keras.optimizers.Adam(lr=args.lr)
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            args.lr_initial,
+            decay_steps=args.lr_decay_steps,
+            decay_rate=args.lr_decay_rate,
+            staircase=args.lr_decay_staircase,
+        )
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.args = args
         self.predictions = predictions
         self.embedding = MathyEmbedding(self.args)
-        self.value_head = tf.keras.layers.Dense(
-            self.args.units,
+        self.policy_net = tf.keras.Sequential(
+            [
+                tf.keras.layers.TimeDistributed(
+                    tf.keras.layers.Dense(
+                        self.predictions,
+                        name="policy_ts_hidden",
+                        kernel_initializer="he_normal",
+                        activation=None,
+                    ),
+                    name="policy_logits",
+                ),
+                tf.keras.layers.LayerNormalization(name="policy_layer_norm"),
+            ],
+            name="policy_head",
+        )
+        self.value_net = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(
+                    self.args.units,
+                    name="value_hidden",
+                    kernel_initializer="he_normal",
+                    activation="relu",
+                ),
+                tf.keras.layers.LayerNormalization(name="value_layer_norm"),
+                tf.keras.layers.Dense(
+                    1,
+                    name="value_logits",
+                    kernel_initializer="he_normal",
+                    activation=None,
+                ),
+            ],
             name="value_head",
-            kernel_initializer="he_normal",
-            activation="relu",
         )
-        self.value_logits = tf.keras.layers.Dense(
-            1, name="value_logits", kernel_initializer="he_normal", activation=None,
+        self.reward_net = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(
+                    self.args.units,
+                    name="reward_hidden",
+                    kernel_initializer="he_normal",
+                    activation="relu",
+                ),
+                tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
+                tf.keras.layers.Dense(
+                    1,
+                    name="reward_logits",
+                    kernel_initializer="he_normal",
+                    activation=None,
+                ),
+            ],
+            name="reward_head",
         )
-        self.policy_td_dense = tf.keras.layers.Dense(
-            self.predictions,
-            name="timestep_dense",
-            kernel_initializer="he_normal",
-            activation=None,
-        )
-        self.policy_logits = tf.keras.layers.TimeDistributed(
-            self.policy_td_dense, name="policy_logits"
-        )
-        self.normalize_pi = tf.keras.layers.LayerNormalization(name="policy_layer_norm")
-        self.normalize_v = tf.keras.layers.LayerNormalization(name="value_layer_norm")
         self.loss = tf.Variable(
             0.0, trainable=False, name="loss_placeholder", dtype=tf.float32
         )
@@ -83,13 +120,7 @@ class PolicyValueModel(tf.keras.Model):
 
     def call(
         self, features_window: MathyInputsType
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        return self._call(features_window)
-
-    # @profile
-    def _call(
-        self, features_window: MathyInputsType
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
         call_print = self.args.print_model_call_times
         nodes = features_window[ObservationFeatureIndices.nodes]
         batch_size = (
@@ -100,11 +131,11 @@ class PolicyValueModel(tf.keras.Model):
         start = time.time()
         inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
-        sequence_inputs = self.embedding(inputs)
-        values = self.value_head(tf.reduce_mean(sequence_inputs, axis=1))
-        values = self.normalize_v(values)
-        values = self.value_logits(values)
-        logits = self.normalize_pi(self.policy_logits(sequence_inputs))
+        sequence_inputs, attention_weights = self.embedding(inputs)
+        sequence_mean = tf.reduce_mean(sequence_inputs, axis=1)
+        values = self.value_net(sequence_mean)
+        reward_logits = self.reward_net(sequence_mean)
+        logits = self.policy_net(sequence_inputs)
         mask_logits = self.apply_pi_mask(logits, features_window)
         if call_print is True:
             print(
@@ -112,7 +143,7 @@ class PolicyValueModel(tf.keras.Model):
                     time.time() - start, batch_size
                 )
             )
-        return logits, values, mask_logits
+        return logits, values, mask_logits, reward_logits, attention_weights
 
     def apply_pi_mask(
         self, logits: tf.Tensor, features_window: MathyInputsType,
@@ -137,7 +168,7 @@ class PolicyValueModel(tf.keras.Model):
     def predict_next(self, inputs: MathyInputsType) -> Tuple[tf.Tensor, tf.Tensor]:
         """Predict one probability distribution and value for the
         given sequence of inputs """
-        logits, values, masked = self.call(inputs)
+        logits, values, masked, rewards, attention = self.call(inputs)
         # take the last timestep
         masked = masked[-1][:]
         flat_logits = tf.reshape(tf.squeeze(masked), [-1])
@@ -176,9 +207,7 @@ def get_or_create_policy_model(
 ) -> PolicyValueModel:
     if env is None:
         env = PolySimplify()
-    observation: MathyObservation = env.state_to_observation(
-        env.get_initial_state()[0], rnn_size=args.lstm_units
-    )
+    observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window([observation])
 
     if not os.path.exists(args.model_dir):
@@ -248,7 +277,7 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> PolicyValueModel:
+) -> Tuple[PolicyValueModel, BaseConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
@@ -260,9 +289,7 @@ def load_policy_value_model(
     if not optimizer_file.exists():
         raise ValueError(f"optimizer not found: {optimizer_file}")
     env: MathyEnv = PolySimplify()
-    observation: MathyObservation = env.state_to_observation(
-        env.get_initial_state()[0], rnn_size=args.lstm_units
-    )
+    observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window([observation])
     model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
     init_inputs = initial_state.to_inputs()

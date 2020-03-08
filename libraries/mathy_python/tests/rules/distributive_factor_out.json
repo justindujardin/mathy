@@ -4,6 +4,11 @@
   },
   "valid": [
     {
+      "input": "g + -x^3 + 4x^3 + 19p^4 + -1y",
+      "output": "g + (-1 + 4) * x^3 + 19p^4 + -1y",
+      "why": "invariance to sibling grouping"
+    },
+    {
       "input": "5.8c + (3393c + 6o + -8614k)",
       "output": "(5.8 + 3393) * c + (6o + -8614k)",
       "why": "invariance to sibling grouping"

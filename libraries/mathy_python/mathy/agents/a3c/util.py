@@ -1,5 +1,33 @@
-from colr import color
 import datetime
+import multiprocessing
+from dataclasses import dataclass, field
+from typing import Dict
+
+from colr import color
+
+
+@dataclass
+class EpisodeLosses:
+    """Store a set of losses keyed by a string that is used when printing them"""
+
+    data: Dict[str, float] = field(default_factory=dict)
+
+    def reset(self):
+        self.data = dict()
+
+    def increment(self, key: str, value: float) -> None:
+        if not key in self.data:
+            self.data[key] = 0.0
+        self.data[key] += value
+
+    def format_loss(self, key: str, value: float):
+        return "{}: {:<8}".format(key, truncate(value))
+
+    def __str__(self):
+        out = ""
+        for key, value in self.data.items():
+            out += f"{self.format_loss(key, value)} "
+        return out
 
 
 def truncate(value):
@@ -7,18 +35,15 @@ def truncate(value):
 
 
 def record(
-    episode,
-    episode_reward,
-    worker_idx,
-    global_ep_reward,
-    result_queue,
-    pi_loss,
-    value_loss,
-    entropy_loss,
-    aux_losses,
-    total_loss,
-    num_steps,
-    env_name,
+    episode: int,
+    is_win: bool,
+    episode_reward: float,
+    worker_idx: int,
+    global_ep_reward: float,
+    result_queue: multiprocessing.Queue,
+    losses: EpisodeLosses,
+    num_steps: int,
+    env_name: str,
 ):
     """Helper function to store score and print statistics.
   Arguments:
@@ -32,30 +57,24 @@ def record(
   """
 
     now = datetime.datetime.now().strftime("%H:%M:%S")
+    # Clamp to range -2, 2
+    episode_reward = min(2.0, max(-2.0, episode_reward))
 
     global_ep_reward = global_ep_reward * 0.99 + episode_reward * 0.01
 
-    fore = "green" if episode_reward > 0.0 else "red"
-
-    losses = [
-        "total: {:<8}".format(truncate(total_loss)),
-        "pi: {:<8}".format(truncate(pi_loss)),
-        "v: {:<8}".format(truncate(value_loss)),
-        "h: {:<8}".format(truncate(entropy_loss)),
-    ]
-    if isinstance(aux_losses, dict):
-        for k in aux_losses.keys():
-            losses.append("{:<4}: {:<8}".format(k, truncate(aux_losses[k])))
-
+    fore = "green"
+    if not is_win:
+        fore = "red"
+    elif episode_reward < 1.0:
+        fore = "yellow"
     heading = "{:<8} {:<3} {:<8} {:<10}".format(
         now, f"w{worker_idx}", f"ep: {episode}", f"steps: {num_steps}"
     )
     rewards = "r_avg: {:<6} r_ep: {:<6}".format(
         truncate(global_ep_reward), truncate(episode_reward)
     )
-    loss_str = " ".join(losses)
     print(
-        color(f"{heading} {rewards} {loss_str} [{env_name}]", fore=fore, style="bright")
+        color(f"{heading} {rewards} {losses} [{env_name}]", fore=fore, style="bright")
     )
     result_queue.put(global_ep_reward)
     return global_ep_reward

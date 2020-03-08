@@ -26,7 +26,7 @@ class ComplexSimplify(PolySimplify):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 5
+        return problem.complexity * 8
 
     def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
         """Given a set of parameters to control term generation, produce

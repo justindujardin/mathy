@@ -34,21 +34,13 @@ def cli_contribute():
 )
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
 @click.option(
-    "thinking_steps",
-    "--think",
-    default=3,
-    help="The number of steps to think about the problem before starting an episode",
-)
-@click.option(
     "max_steps",
     "--max-steps",
     default=20,
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(
-    agent: str, problem: str, model: str, thinking_steps: int, max_steps: int
-):
+def cli_simplify(agent: str, problem: str, model: str, max_steps: int):
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
@@ -56,7 +48,7 @@ def cli_simplify(
     from .api import Mathy
 
     mt: Mathy = load_model(model)
-    mt.simplify(problem=problem, max_steps=max_steps, thinking_steps=thinking_steps)
+    mt.simplify(problem=problem, max_steps=max_steps)
 
 
 @cli.command("problems")
@@ -135,36 +127,23 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "units",
     "--units",
-    default=512,
+    default=256,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
 @click.option(
-    "lr",
-    "--lr",
-    default=3e-4,
-    type=float,
-    help="The learning rate to use with adam optimizer",
-)
-@click.option(
-    "embeddings",
-    "--embeddings",
-    default=512,
+    "rnn",
+    "--rnn",
+    default=None,
     type=int,
     help="Number of dimensions to use for token embeddings",
 )
 @click.option(
-    "use_lstm",
-    "--use-lstm",
-    type=bool,
-    help="Whether to use the recurrent architecture or not",
-)
-@click.option(
-    "rnn",
-    "--rnn",
-    default=128,
+    "embeddings",
+    "--embeddings",
+    default=256,
     type=int,
-    help="Number of dimensions to use for RNN state",
+    help="Number of dimensions to use for token embeddings",
 )
 @click.option(
     "episodes",
@@ -222,17 +201,15 @@ def cli_train(
     strategy: str,
     workers: int,
     units: int,
-    embeddings: int,
     rnn: int,
+    embeddings: int,
     profile: bool,
     episodes: int,
     mcts_sims: int,
-    lr: float,
     show: bool,
     verbose: bool,
     training_iterations: int,
     self_play_problems: int,
-    use_lstm: bool,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -258,10 +235,8 @@ def cli_train(
             difficulty=difficulty,
             action_strategy=strategy,
             topics=topics_list,
-            lstm_units=rnn,
             units=units,
             embedding_units=embeddings,
-            lr=lr,
             mcts_sims=mcts_sims,
             model_dir=folder,
             init_model_from=transfer,
@@ -271,8 +246,8 @@ def cli_train(
         )
         if episodes is not None:
             args.max_eps = episodes
-        if use_lstm is not None:
-            args.use_lstm = use_lstm
+        if rnn is not None:
+            args.lstm_units = rnn
         instance = A3CAgent(args)
         instance.train()
     elif agent == "zero":
@@ -283,8 +258,6 @@ def cli_train(
             verbose=verbose,
             difficulty=difficulty,
             topics=topics_list,
-            lr=lr,
-            lstm_units=rnn,
             units=units,
             embedding_units=embeddings,
             mcts_sims=mcts_sims,
@@ -296,8 +269,6 @@ def cli_train(
             print_training=show,
             profile=profile,
         )
-        if use_lstm is not None:
-            self_play_cfg.use_lstm = use_lstm
         if episodes is not None:
             self_play_cfg.max_eps = episodes
 

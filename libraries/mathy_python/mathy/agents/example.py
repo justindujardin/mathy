@@ -10,5 +10,5 @@ def example() -> MathyWindowObservation:
     passed forward through a Mathy model. """
     env = PolySimplify()
     state = env.get_initial_state()[0]
-    observation = env.state_to_observation(state, rnn_size=BaseConfig().lstm_units)
+    observation = env.state_to_observation(state)
     return observations_to_window([observation])

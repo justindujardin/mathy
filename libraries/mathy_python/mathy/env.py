@@ -15,15 +15,14 @@ from .rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from .state import (
-    MathyEnvState,
-    MathyEnvStateStep,
-    MathyObservation,
-    RNNStateFloatList,
-    rnn_placeholder_state,
-)
+from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
 from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
-from .util import compare_expression_string_values, is_terminal_transition
+from .util import (
+    compare_expression_string_values,
+    is_terminal_transition,
+    print_error,
+    raise_with_history,
+)
 
 
 class MathyEnv:
@@ -117,7 +116,7 @@ class MathyEnv:
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of penalizing action types. When these actions
         are selected, the agent gets a negative reward."""
-        return []
+        return [AssociativeSwapRule]
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
@@ -142,34 +141,12 @@ class MathyEnv:
         generate its own dataset with no required configuration."""
         raise NotImplementedError("This must be implemented in a subclass")
 
-    def state_to_observation(
-        self,
-        state: MathyEnvState,
-        rnn_size: Optional[int] = None,
-        rnn_state_h: Optional[RNNStateFloatList] = None,
-        rnn_state_c: Optional[RNNStateFloatList] = None,
-        rnn_history_h: Optional[RNNStateFloatList] = None,
-    ) -> MathyObservation:
+    def state_to_observation(self, state: MathyEnvState,) -> MathyObservation:
         """Convert an environment state into an observation that can be used
         by a training agent."""
 
-        if rnn_size is None and (rnn_state_h is None or rnn_state_c is None):
-            raise ValueError(
-                "one of rnn_state_h/rnn_state_c or rnn_size must be specified"
-            )
-        if rnn_size is not None and rnn_state_h is None:
-            rnn_state_h = rnn_placeholder_state(rnn_size)
-        if rnn_size is not None and rnn_state_c is None:
-            rnn_state_c = rnn_placeholder_state(rnn_size)
-        if rnn_size is not None and rnn_history_h is None:
-            rnn_history_h = rnn_placeholder_state(rnn_size)
         action_mask = self.get_valid_moves(state)
-        observation = state.to_observation(
-            move_mask=action_mask,
-            rnn_state_h=rnn_state_h,
-            rnn_state_c=rnn_state_c,
-            rnn_history_h=rnn_history_h,
-        )
+        observation = state.to_observation(move_mask=action_mask, parser=self.parser)
         return observation
 
     def get_win_signal(self, env_state: MathyEnvState) -> float:
@@ -185,7 +162,7 @@ class MathyEnv:
         # the number of allowed steps, double the bonus signal
         if total_moves > 10 and current_move < total_moves / 2:
             bonus *= 2
-        return EnvRewards.WIN + bonus
+        return min(2.0, EnvRewards.WIN + bonus)
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for failing to complete the episode. This is done
@@ -206,7 +183,9 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        features = env_state.to_observation(self.get_valid_moves(env_state))
+        features = env_state.to_observation(
+            self.get_valid_moves(env_state), parser=self.parser
+        )
         root = expression.get_root()
 
         # Subclass specific win conditions happen here. Custom win-conditions
@@ -229,11 +208,9 @@ class MathyEnv:
                 continue
 
             # NOTE: the reward is scaled by how many times this state has been visited
-            #       up to (n) times
-            multiplier = min(list_count, 3)
             return time_step.transition(
                 features,
-                reward=EnvRewards.PREVIOUS_LOCATION * multiplier,
+                reward=EnvRewards.PREVIOUS_LOCATION * list_count,
                 discount=self.discount,
             )
 
@@ -287,13 +264,15 @@ class MathyEnv:
         token = self.get_token_at_index(expression, token_index)
         operation = self.rules[action_index]
 
-        if (
-            token is None
-            or not isinstance(operation, BaseRule)
-            or operation.can_apply_to(token) is False
-        ):
-            msg = "Invalid action({}) '{}' for expression '{}'."
-            raise Exception(msg.format(action, type(operation), expression))
+        op_not_rule = not isinstance(operation, BaseRule)
+        op_cannot_apply = token is None or operation.can_apply_to(token) is False
+        if token is None or op_not_rule or op_cannot_apply:
+            steps = int(env_state.max_moves - agent.moves_remaining)
+            msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
+                steps, action, type(operation), expression
+            )
+            raise_with_history("Invalid Action", msg, agent.history)
+            raise ValueError(f"Invalid Action: {msg}")
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()
@@ -383,6 +362,7 @@ class MathyEnv:
         prob: MathyEnvProblem = self.problem_fn(config)
         self.valid_actions_mask_cache = dict()
         self.valid_rules_cache = dict()
+        self.parser.clear_cache()
         self.max_moves = self.max_moves_fn(prob, config)
 
         # Build and return the initial state
@@ -460,12 +440,17 @@ class MathyEnv:
         token_index = int((action - action_index) / rule_count)
         return action_index, token_index
 
-    def get_rule_from_timestep(self, time_step: MathyEnvStateStep):
+    def get_rule_from_timestep(self, time_step: MathyEnvStateStep) -> BaseRule:
         return self.rules[time_step.action]
 
     def get_actions_for_node(
         self, expression: MathExpression, rule_list: List[Type[BaseRule]] = None,
     ) -> List[int]:
+        """Return a valid actions mask for the given expression and rule list. 
+
+        Action masks are 1d lists of length (nodes * num_rules) where a 0 indicates
+        the action is not valid in the current state, and a 1 indicates that it is
+        a valid action to take."""
         key = str(expression)
         if rule_list is None and key in self.valid_actions_mask_cache:
             return self.valid_actions_mask_cache[key][:]

@@ -1,3 +1,4 @@
+from typing import Optional, List
 from ..core.expressions import MathExpression
 from ..core.tree import STOP
 from ..util import is_debug_mode
@@ -16,7 +17,7 @@ class BaseRule:
         """Short code for debug rendering. Should be two letters."""
         return "XX"
 
-    def find_node(self, expression: MathExpression):
+    def find_node(self, expression: MathExpression) -> Optional[MathExpression]:
         """Find the first node that can have this rule applied to it."""
         result = None
 
@@ -31,7 +32,7 @@ class BaseRule:
         expression.visit_inorder(visit_fn)
         return result
 
-    def find_nodes(self, expression: MathExpression):
+    def find_nodes(self, expression: MathExpression) -> List[MathExpression]:
         """Find all nodes in an expression that can have this rule applied to them.
         Each node is marked with it's token index in the expression, according to
         the visit strategy, and stored as `node.r_index` starting with index 0
@@ -53,7 +54,7 @@ class BaseRule:
         expression.visit_inorder(visit_fn)
         return nodes
 
-    def can_apply_to(self, node):
+    def can_apply_to(self, node: MathExpression) -> bool:
         """User-specified function that returns True/False if a rule can be
         applied to a given node.
 
@@ -81,27 +82,30 @@ class ExpressionChangeRule:
     """Object describing the change to an expression tree from a rule transformation"""
 
     rule: BaseRule
-    node: MathExpression
+    node: Optional[MathExpression]
     result: MathExpression
+    _save_parent: Optional[MathExpression]
 
-    def __init__(self, rule, node=None):
+    def __init__(self, rule, node: MathExpression = None):
         self.rule = rule
         self.node = node
         self._save_parent = None
 
-    def save_parent(self, parent=None, side=None):
+    def save_parent(
+        self, parent: MathExpression = None, side: Optional[str] = None
+    ) -> "ExpressionChangeRule":
         """Note the parent of the node being modified, and set it as the parent of the
         rule output automatically."""
         if self.node and parent is None:
             parent = self.node.parent
 
         self._save_parent = parent
-        if self._save_parent:
+        if parent:
             self._save_side = side or parent.get_side(self.node)
 
         return self
 
-    def done(self, node):
+    def done(self, node) -> "ExpressionChangeRule":
         """Set the result of a change to the given node. Restore the parent
         if `save_parent` was called."""
         if self._save_parent:

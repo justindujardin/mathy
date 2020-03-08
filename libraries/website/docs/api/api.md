@@ -17,8 +17,7 @@ Mathy.simplify(
     self,
     model: str = 'mathy_alpha_sm',
     problem: str,
-    max_steps: int = 20,
-    thinking_steps: int = 3,
+    max_steps: int = 128,
 ) -> mathy.agents.episode_memory.EpisodeMemory
 ```
 Simplify an input problem using the PolySimplify environment.
@@ -29,8 +28,6 @@ __Arguments__
 - __problem (str)__: The ascii math problem text, e.g. `-(4 + 2x) * 8 / 7y^(3 - 2)`
 - __max_steps (int)__: The maximum number of episode steps to allow the agent to take
     while solving the problem. Taking more than this is considered a failure.
-- __thinking_steps (int)__: The number of timesteps to look at the problem before attempting
-    to solve it. These steps **do not** count toward the `max_steps` argument total.
 
 __Returns__
 

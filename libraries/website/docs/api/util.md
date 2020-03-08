@@ -1,16 +1,5 @@
 # mathy.util
 
-## calculate_grouping_control_signal
-```python
-calculate_grouping_control_signal(
-    input: str,
-    output: str,
-    clip_at_zero: bool = False,
-) -> float
-```
-Calculate grouping_control signals as the sum of all distances between
-all like terms. Gather all the terms in an expression and add an error value
-whenever a like term is separated by another term.
 ## compare_expression_string_values
 ```python
 compare_expression_string_values(
@@ -100,10 +89,9 @@ __Examples__
 
 ## is_debug_mode
 ```python
-is_debug_mode()
+is_debug_mode() -> bool
 ```
-Debug mode enables extra logging and assertions, but is slower because of
-the increased sanity check measurements.
+Debug mode enables extra logging and assertions, but is slower.
 ## is_preferred_term_form
 ```python
 is_preferred_term_form(expression:mathy.core.expressions.MathExpression) -> bool

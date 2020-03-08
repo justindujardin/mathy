@@ -47,6 +47,9 @@ def test_get_sub_terms():
 
 def test_get_term_ex():
     examples = [
+        ("-y", TermEx(-1, "y", None)),
+        ("-x^3", TermEx(-1, "x", 3)),
+        ("-2x^3", TermEx(-2, "x", 3)),
         ("4x^2", TermEx(4, "x", 2)),
         ("4x", TermEx(4, "x", None)),
         ("x", TermEx(None, "x", None)),

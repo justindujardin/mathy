@@ -11,9 +11,7 @@ from ...env import MathyEnv
 from ...state import (
     MathyEnvState,
     MathyObservation,
-    RNNStateFloatList,
     observations_to_window,
-    rnn_placeholder_state,
 )
 from ...types import MathyEnvProblemArgs, MathyEnvProblem
 from ...util import is_terminal_transition
@@ -24,7 +22,6 @@ class MathyGymEnv(gym.Env):
     """A small wrapper around Mathy envs to allow them to work with OpenAI Gym. The
     agents currently use this env wrapper, but it could be dropped in the future."""
 
-    default_rnn_size = 128
     metadata = {"render.modes": ["terminal", "attention"]}
     mathy: MathyEnv
     state: Optional[MathyEnvState]
@@ -69,17 +66,16 @@ class MathyGymEnv(gym.Env):
     def step(self, action):
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         observation = self._observe(self.state)
-        info = {"transition": transition}
         done = is_terminal_transition(transition)
+        info = {"transition": transition, "done": done}
+        if done:
+            info["win"] = transition.reward > 0.0
         self.last_action = action
         self.last_change = change
         self.last_reward = round(float(transition.reward), 4)
         return observation, transition.reward, done, info
 
-    def reset_with_input(
-        self, problem_text: str, rnn_size=default_rnn_size, max_moves=16
-    ):
-        self.rnn_size = rnn_size
+    def reset_with_input(self, problem_text: str, max_moves=16):
         self.last_action = -1
         self.last_change = None
         self.last_reward = 0.0
@@ -91,8 +87,7 @@ class MathyGymEnv(gym.Env):
         self.state = MathyEnvState(problem=problem_text, max_moves=max_moves)
         return self._observe(self.state)
 
-    def reset(self, rnn_size=default_rnn_size):
-        self.rnn_size = rnn_size
+    def reset(self):
         self.last_action = -1
         self.last_change = None
         self.last_reward = 0.0
@@ -103,18 +98,16 @@ class MathyGymEnv(gym.Env):
         self.state, self.problem = self.mathy.get_initial_state(self.env_problem_args)
         return self._observe(self.state)
 
-    def initial_window(self, rnn_size: int):
+    def initial_window(self):
         """return an n-step set of observations for initializing the env"""
         state, _ = self.mathy.get_initial_state(self.env_problem_args)
-        return observations_to_window(
-            [self.mathy.state_to_observation(state, rnn_size=rnn_size)]
-        )
+        return observations_to_window([self.mathy.state_to_observation(state)])
 
     def _observe(self, state: MathyEnvState) -> MathyObservation:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state. """
         action_mask = self.mathy.get_valid_moves(state)
-        observation = self.mathy.state_to_observation(state, rnn_size=self.rnn_size)
+        observation = self.mathy.state_to_observation(state)
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
         return observation

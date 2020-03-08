@@ -6,15 +6,9 @@ class A3CConfig(BaseConfig):
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
-    update_gradients_every: int = 6
+    update_gradients_every: int = 8
 
     normalization_style: str = "layer"
-
-    # How many times to think about the initial state before acting.
-    # (intuition) is that the LSTM updates the state each time it processes
-    # the init sequence meaning that it gets more time to fine-tune the hidden
-    # and cell states for the particular problem.
-    num_thinking_steps_begin: int = 3
 
     # Strategy for introducing MCTS into the A3C agent training process
     #
@@ -33,7 +27,7 @@ class A3CConfig(BaseConfig):
 
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.3
+    e_greedy_max = 0.1
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -48,9 +42,11 @@ class A3CConfig(BaseConfig):
     entropy_loss_scaling = 0.05
     # Whether to scale entropy loss so it's 0-1
     normalize_entropy_loss = True
+    # Scale policy loss down by sequence length to make loss length invariant
+    normalize_pi_loss = True
 
     # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 0.1
+    aux_tasks_weight_scale = 1.0
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
     td_lambda: float = 0.2
@@ -58,14 +54,14 @@ class A3CConfig(BaseConfig):
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 50
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 5
+    teacher_evaluation_steps = 20
     # If the agent wins >= this value, promote to the next difficulty class
     # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
     # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
     teacher_promote_wins = 0.95
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.60
+    teacher_demote_wins = 0.50
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.
@@ -75,6 +71,5 @@ class A3CConfig(BaseConfig):
     # to find problems.
     print_training: bool = False
 
-    # Print mode for output. "terminal" is the default, also supports "attention"
-    # NOTE: attention is gone (like... the layer)
+    # Print mode for output. "terminal" is the default
     print_mode: str = "terminal"
