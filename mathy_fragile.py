@@ -201,6 +201,8 @@ class FragileEnvironment(Environment):
         if state is not None:
             self.set_state(state)
         obs, reward, _, info = self._env.step(action)
+        # if reward > 0.0:
+        #     print(f"r = {reward}")
         terminal = info.get("done", False)
         if state is not None:
             new_state = self.get_state()

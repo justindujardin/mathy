@@ -20,12 +20,11 @@ from .masked_discrete import MaskedDiscrete
 
 class MathyGymEnv(gym.Env):
     """A small wrapper around Mathy envs to allow them to work with OpenAI Gym. The
-    agents currently use this env wrapper, but it could be dropped in the future."""
+    agents currently use this env wrapper, but it could be dropped in the future. """
 
     mathy: MathyEnv
+    challenge: MathyEnvState
     state: Optional[MathyEnvState]
-    env_class: Type[MathyEnv]
-    env_problem_args: Optional[MathyEnvProblemArgs]
 
     def __init__(
         self,
@@ -35,11 +34,8 @@ class MathyGymEnv(gym.Env):
     ):
         self.state = None
         self.mathy = env_class(**env_kwargs)
-        self.env_class = env_class
-        self.env_problem_args = env_problem_args
-        self.action_space = MaskedDiscrete(
-            self.mathy.action_size, [1] * self.mathy.action_size
-        )
+        self.challenge, _ = self.mathy.get_initial_state(env_problem_args)
+        self.action_space = MaskedDiscrete(self.action_size, [1] * self.action_size)
 
     @property
     def action_size(self) -> int:
@@ -57,25 +53,25 @@ class MathyGymEnv(gym.Env):
         return self.state.to_np(), transition.reward, done, info
 
     def reset(self):
-        self.state, _ = self.mathy.get_initial_state(self.env_problem_args)
+        self.state = MathyEnvState.copy(self.challenge)
         return self.state
 
     def render(
         self,
-        state: MathyEnvState,
         last_action: int = -1,
         last_reward: float = 0.0,
         last_change: Optional[ExpressionChangeRule] = None,
     ):
+        assert self.state is not None, "call reset() before rendering the env"
         action_name = "initial"
         token_index = -1
         if last_action != -1 and last_change is not None:
             action_index, token_index = self.mathy.get_action_indices(last_action)
             action_name = self.mathy.rules[action_index].name
         else:
-            print(f"Problem: {state.agent.problem}")
+            print(f"Problem: {self.state.agent.problem}")
         self.mathy.print_state(
-            state,
+            self.state,
             action_name[:25].lower(),
             token_index,
             change=last_change,
