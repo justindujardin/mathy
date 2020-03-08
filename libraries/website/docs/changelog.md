@@ -1,3 +1,48 @@
+# [0.7.0](https://github.com/justindujardin/mathy/compare/v0.6.7...v0.7.0) (2020-03-08)
+
+
+### Bug Fixes
+
+* **a3c:** remove root noise from action selector ([16f86ff](https://github.com/justindujardin/mathy/commit/16f86ff67a0f24b6fa701d5462acd2e547aaa258))
+* **a3c:** use episode outcome for log coloring ([910bcd6](https://github.com/justindujardin/mathy/commit/910bcd6ad06ba1d89f901b661810161f3cfd2052))
+* **cli:** use greedy selector during inference ([15cc58a](https://github.com/justindujardin/mathy/commit/15cc58a42912b24f2fb1087e7249404b4d61cfb4))
+* **env:** clamp episode win signal to 2.0 max ([3d2d78b](https://github.com/justindujardin/mathy/commit/3d2d78b8dadc4f271cfaafb6dbfc89015e88884d))
+* **env:** remove reentrant state reward scaling ([0849e3c](https://github.com/justindujardin/mathy/commit/0849e3cc0e53acbf40a545bbdab4fcd44e8c7b4f))
+* **get_terms_ex:** support negated implicit coefficients ([f763e20](https://github.com/justindujardin/mathy/commit/f763e20672222c552dba5f0b5557d82b60f2569f))
+* **parser:** memory leak in cache ([6b7a847](https://github.com/justindujardin/mathy/commit/6b7a8473cbfefe6a8aa449fd923fbd8ac0fadb36))
+* **rewards:** restore reentrant state scaling ([1361d74](https://github.com/justindujardin/mathy/commit/1361d748bd5287f26b4bf52b81c8b144f2b3f03d))
+* **rules:** make commutative swap choose the closest sibling ([f32600e](https://github.com/justindujardin/mathy/commit/f32600ea7b068dbc56f4c4e1146b618289ec853b))
+
+
+### chore
+
+* drop time feature from embedding ([f5740ad](https://github.com/justindujardin/mathy/commit/f5740ada991d7515a7f1f6cea716332ba24e3ebd))
+
+
+### Code Refactoring
+
+* **model:** remove episode long RNN state tracking ([11095ab](https://github.com/justindujardin/mathy/commit/11095ab494b010681b77cb2d12576be3b87ca974))
+
+
+### Features
+
+* **a3c:** add bahdanau attention layer ([daba776](https://github.com/justindujardin/mathy/commit/daba77605776cc505836485ee23d1317c02d49a0))
+* **a3c:** add exponential decay to learning rate ([684191d](https://github.com/justindujardin/mathy/commit/684191d5ec8fbc001b4fe34c523e3e83c1d90f2f))
+* **a3c:** add self-attention over sequences ([b750bfc](https://github.com/justindujardin/mathy/commit/b750bfceaaaded584a4dce4880d08c9ca1c526bf))
+* **a3c:** use stepped learning rate decay ([e9cd8f5](https://github.com/justindujardin/mathy/commit/e9cd8f527ba245b7e00f66e8eb561b83ff3e460c))
+* **embedding:** use bilstm for node sequences ([ad23139](https://github.com/justindujardin/mathy/commit/ad231392fc63d0db58f3b3a99a20078797d75e93))
+* **embedding:** use LSTMs for batch and time axes ([a8f0d54](https://github.com/justindujardin/mathy/commit/a8f0d540743dd36a46150d7589ef14a5918a8946))
+* **mathy_alpha_sm:** more stable recurrent model ([02e63e2](https://github.com/justindujardin/mathy/commit/02e63e25649a0acc973b698c789c8b9a7b9e9e52))
+* **training:** add yellow output to weak wins ([fd9998a](https://github.com/justindujardin/mathy/commit/fd9998a40153a86153d1582078bcb2bee45071a9))
+
+
+### BREAKING CHANGES
+
+* this removes a model feature that makes previous pretrained models incompatible
+* **model:** this removes long-term RNN state tracking across episodes. Tracking the state was a significant amount of code and it wasn't clear that it made the model substantially better at any given task.
+
+The overhead associated with keeping lots of hidden states in memory and calculating state histories was not insignificant on CPU training setups as well.
+
 ## [0.6.7](https://github.com/justindujardin/mathy/compare/v0.6.6...v0.6.7) (2020-02-10)
 
 
