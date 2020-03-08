@@ -1,4 +1,4 @@
-# [0.7.0](https://github.com/justindujardin/mathy/compare/v0.6.7...v0.7.0) (2020-03-08)
+## [0.7.0](https://github.com/justindujardin/mathy/compare/v0.6.7...v0.7.0) (2020-03-08)
 
 
 ### Bug Fixes
