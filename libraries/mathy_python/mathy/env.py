@@ -302,13 +302,12 @@ class MathyEnv:
                 # TODO: I think this should never happen? There should always be atlest one valid action
                 if found_dist is None:
                     found_dist = len(valid_mask)
-                found_scaled = found_dist / 10
+                found_scaled = found_dist / 5
                 error = EnvRewards.INVALID_MOVE + -found_scaled
-
                 obs = out_env.to_observation(
                     self.get_valid_moves(out_env), parser=self.parser
                 )
-                transition = time_step.transition(obs, error,)
+                transition = time_step.transition(obs, error)
                 if env_state.agent.moves_remaining <= 0:
                     transition = time_step.termination(
                         obs, self.get_lose_signal(env_state)

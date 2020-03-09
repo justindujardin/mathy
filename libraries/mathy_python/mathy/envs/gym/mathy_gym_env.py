@@ -14,7 +14,7 @@ from ...state import (
     observations_to_window,
 )
 from ...types import MathyEnvProblemArgs, MathyEnvProblem
-from ...util import is_terminal_transition
+from ...util import is_terminal_transition, pad_array
 from .masked_discrete import MaskedDiscrete
 
 
@@ -50,11 +50,21 @@ class MathyGymEnv(gym.Env):
         info = {"transition": transition, "done": done}
         if done:
             info["win"] = transition.reward > 0.0
-        return self.state.to_np(), transition.reward, done, info
+        return self._observe(self.state), transition.reward, done, info
+
+    def _observe(self, state: MathyEnvState) -> MathyObservation:
+        """Observe the environment at the given state, updating the observation
+        space and action space for the given state. """
+        action_mask = self.mathy.get_valid_moves(state)
+        observation = self.mathy.state_to_observation(state)
+        self.action_space.n = self.mathy.get_agent_actions_count(state)
+        self.action_space.mask = action_mask
+        res = np.array(pad_array(observation.nodes, 256, 0))
+        return res
 
     def reset(self):
         self.state = MathyEnvState.copy(self.challenge)
-        return self.state
+        return self._observe(self.state)
 
     def render(
         self,
@@ -65,7 +75,7 @@ class MathyGymEnv(gym.Env):
         assert self.state is not None, "call reset() before rendering the env"
         action_name = "initial"
         token_index = -1
-        if last_action != -1 and last_change is not None:
+        if last_action != -1:
             action_index, token_index = self.mathy.get_action_indices(last_action)
             action_name = self.mathy.rules[action_index].name
         else:

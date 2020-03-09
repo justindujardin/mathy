@@ -55,11 +55,14 @@ class MathyWalker(Walkers):
 
         """
         end = super(MathyWalker, self).calculate_end_condition()
-        return bool(
+        stops = bool(
             self.env_states.game_ends.all()
             and end
             or self.states.cum_rewards.sum() > self.max_reward
         )
+        if stops is True:
+            print("STOPPING!")
+        return stops
 
 
 class FragileMathyEnv(DiscreteEnv):
@@ -249,12 +252,7 @@ class FragileEnvironment(Environment):
 
     def reset(self, return_state: bool = True):
         assert self._env is not None, "env required to reset"
-        obs = self._env.reset().to_np()
-        # obs = (
-        #     resize_frame(obs, self.height, self.width)
-        #     if self.width is not None and self.height is not None
-        #     else obs
-        # )
+        obs = self._env.reset()
         if not return_state:
             return obs
         else:
@@ -279,18 +277,15 @@ else:
 
 
 def arc_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    min_len = min([len(item[0]) for item in x] + [len(item[0]) for item in y])
-    x = np.array([item[0][:min_len] for item in x])
-    y = np.array([item[0][:min_len] for item in y])
     return np.linalg.norm(x - y, axis=1)
 
 
 dt = GaussianDt(min_dt=6, max_dt=1000, loc_dt=4, scale_dt=2)
 prune_tree = True
-n_walkers = 32  # A bigger number will increase the quality of the trajectories sampled.
+n_walkers = 256  # A bigger number will increase the quality of the trajectories sampled.
 max_iters = 100  # Increase to sample longer games.
-reward_scale = 2  # Rewards are more important than diversity.
-distance_scale = 1
+reward_scale = 5  # Rewards are more important than diversity.
+distance_scale = 5
 minimize = False  # We want to get the maximum score possible.
 swarm = Swarm(
     model=lambda env: DiscreteUniform(env=env, critic=dt),
@@ -305,15 +300,19 @@ swarm = Swarm(
     distance_function=arc_dist,
     minimize=minimize,
 )
-_ = swarm.run_swarm(print_every=50)
+_ = swarm.run_swarm(print_every=10)
 best_ix = swarm.walkers.states.cum_rewards.argmax()
 best_id = swarm.walkers.states.id_walkers[best_ix]
 path = swarm.tree.get_branch(best_id, from_hash=True)
 
 
+last_action = -1
+last_reward = 0.0
 for s, a in zip(path[0][1:], path[1]):
-    env.step(state=s, action=a)
-    env.render()
+    _, _, r, _, _ = env.step(state=s, action=a)
+    env.render(last_action=last_action, last_reward=last_reward)
+    last_action = a
+    last_reward = r
     time.sleep(0.05)
 
-print("Done!")
+print(f"Done! - Best reward: {swarm.walkers.states.best_reward}")
