@@ -47,7 +47,11 @@ class MathyGymEnv(gym.Env):
         assert self.state is not None, "call reset() before stepping the environment"
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         done = is_terminal_transition(transition)
-        info = {"transition": transition, "done": done}
+        info = {
+            "transition": transition,
+            "done": done,
+            "valid": change.result is not None,
+        }
         if done:
             info["win"] = transition.reward > 0.0
         return self._observe(self.state), transition.reward, done, info

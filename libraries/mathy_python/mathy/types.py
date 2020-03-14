@@ -48,10 +48,10 @@ class MathyEnvProblem(NamedTuple):
 
 class EnvRewards:
 
-    LOSE = -1.0
-    WIN = 1.0
-    INVALID_MOVE = -0.05
-    HELPFUL_MOVE = 0.05
-    UNHELPFUL_MOVE = 0.00
+    LOSE = 0.0
+    WIN = 10.0
+    INVALID_MOVE = 0.0
+    HELPFUL_MOVE = 0.5
+    UNHELPFUL_MOVE = 0.001
     TIMESTEP = 0.01
     PREVIOUS_LOCATION = 0.0

@@ -110,7 +110,6 @@ class MathyEnv:
         #       rewarding.
         return [
             ConstantsSimplifyRule,
-            DistributiveMultiplyRule,
             DistributiveFactorOutRule,
             VariableMultiplyRule,
         ]
@@ -118,7 +117,10 @@ class MathyEnv:
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of penalizing action types. When these actions
         are selected, the agent gets a negative reward."""
-        return [AssociativeSwapRule]
+        return [
+            AssociativeSwapRule,
+            DistributiveMultiplyRule,
+        ]
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
@@ -164,7 +166,7 @@ class MathyEnv:
         # the number of allowed steps, double the bonus signal
         if total_moves > 10 and current_move < total_moves / 2:
             bonus *= 2
-        return min(2.0, EnvRewards.WIN + bonus)
+        return EnvRewards.WIN + bonus
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for failing to complete the episode. This is done
@@ -212,7 +214,7 @@ class MathyEnv:
             # NOTE: the reward is scaled by how many times this state has been visited
             return time_step.transition(
                 features,
-                reward=EnvRewards.PREVIOUS_LOCATION * list_count,
+                reward=EnvRewards.PREVIOUS_LOCATION,  #  * list_count,
                 discount=self.discount,
             )
 
@@ -278,13 +280,9 @@ class MathyEnv:
                 raise ValueError(f"Invalid Action: {msg}")
             else:
                 valid_mask = self.get_valid_moves(env_state)
-                # Non-masked searches need a negative reward for invalid actions
-                out_env = env_state.get_out_state(
-                    problem=env_state.agent.problem,
-                    focus=token_index,
-                    action=action_index,
-                    moves_remaining=agent.moves_remaining - 1,
-                )
+                # Non-masked searches ignore invalid moves entirely
+                out_env = MathyEnvState.copy(env_state)
+                out_env.action = -1
                 # NOTE: There's probably a better way to calculate this, but I'm hack'n rn
                 found_dist: Optional[float] = None
                 if action < len(valid_mask):
@@ -303,21 +301,18 @@ class MathyEnv:
                 if found_dist is None:
                     found_dist = len(valid_mask)
                 found_scaled = found_dist / 5
-                error = EnvRewards.INVALID_MOVE + -found_scaled
+                error = EnvRewards.INVALID_MOVE
                 obs = out_env.to_observation(
                     self.get_valid_moves(out_env), parser=self.parser
                 )
                 transition = time_step.transition(obs, error)
-                if env_state.agent.moves_remaining <= 0:
-                    transition = time_step.termination(
-                        obs, self.get_lose_signal(env_state)
-                    )
                 return out_env, transition, ExpressionChangeRule(BaseRule())
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()
         change_name = operation.name
         out_problem = str(root)
+        # print(f"focus = {token_index}, action = {action_index}")
         out_env = env_state.get_out_state(
             problem=out_problem,
             focus=token_index,
@@ -325,10 +320,12 @@ class MathyEnv:
             moves_remaining=agent.moves_remaining - 1,
         )
 
+        transition = self.get_state_transition(out_env, searching)
         if not searching and self.verbose:
             token_idx = int("{}".format(token_index).zfill(3))
-            self.print_state(out_env, change_name[:25].lower(), token_idx, change)
-        transition = self.get_state_transition(out_env, searching)
+            self.print_state(
+                out_env, change_name[:25].lower(), token_idx, change, transition.reward
+            )
         return out_env, transition, change
 
     def print_state(
