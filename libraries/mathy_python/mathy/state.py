@@ -276,19 +276,17 @@ class MathyEnvState(object):
         sep = "@"
         history_sep = ","
         inputs = input_string.split(sep)
-
         state = MathyEnvState()
         state.max_moves = int(inputs[0])
         state.num_rules = int(inputs[1])
         state.agent = MathyAgentState(
-            moves_remaining=int(inputs[3]),
-            problem=str(inputs[4]),
-            problem_type=str(inputs[5]),
-            reward=float(inputs[6]),
-            history=None,
-            last_action=int(inputs[2]) if int(inputs[2]) != -1 else None,
+            moves_remaining=int(inputs[2]),
+            problem=str(inputs[3]),
+            problem_type=str(inputs[4]),
+            reward=float(inputs[5]),
+            history=[],
         )
-        history = inputs[7:]
+        history = inputs[6:]
         for step in history:
             raw, focus, action = step.split(history_sep)
             state.agent.history.append(MathyEnvStateStep(raw, int(focus), int(action)))
@@ -296,13 +294,9 @@ class MathyEnvState(object):
 
     def to_string(self) -> str:
         sep = "@"
-        last_action = (
-            self.agent.last_action if self.agent.last_action is not None else -1
-        )
         out = [
             str(self.max_moves),
             str(self.num_rules),
-            str(last_action),
             str(self.agent.moves_remaining),
             str(self.agent.problem),
             str(self.agent.problem_type),
@@ -330,20 +324,12 @@ class MathyAgentState:
     problem_type: str
     reward: float
     history: List[MathyEnvStateStep]
-    last_action: int
 
     def __init__(
-        self,
-        moves_remaining,
-        problem,
-        problem_type,
-        reward=0.0,
-        history=None,
-        last_action=None,
+        self, moves_remaining, problem, problem_type, reward=0.0, history=None,
     ):
         self.moves_remaining = moves_remaining
         self.problem = problem
-        self.last_action = last_action
         self.reward = reward
         self.problem_type = problem_type
         self.history = (
@@ -351,12 +337,11 @@ class MathyAgentState:
         )
 
     @classmethod
-    def copy(cls, from_state):
+    def copy(cls, from_state: "MathyAgentState"):
         return MathyAgentState(
             moves_remaining=from_state.moves_remaining,
             problem=from_state.problem,
             reward=from_state.reward,
             problem_type=from_state.problem_type,
             history=from_state.history,
-            last_action=from_state.last_action,
         )
