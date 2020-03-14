@@ -54,6 +54,9 @@ class MathyGymEnv(gym.Env):
         }
         if done:
             info["win"] = transition.reward > 0.0
+            assert change.result is not None
+
+            print(f'Answer="{change.result.get_root()}", Reward={transition.reward}')
         return self._observe(self.state), transition.reward, done, info
 
     def _observe(self, state: MathyEnvState) -> MathyObservation:

@@ -75,18 +75,6 @@ class MathyEnv:
         """Return the number of available actions"""
         return len(self.rules)
 
-    def step(
-        self, state: MathyEnvState, action: int, as_observation: bool = False
-    ) -> Tuple[Union[MathyEnvState, MathyObservation], float, bool, Any]:
-        new_state, transition, change = self.get_next_state(state, action)
-        observation = self.state_to_observation(state)
-        info = {"transition": transition}
-        done = is_terminal_transition(transition)
-        self.last_action = action
-        self.last_change = change
-        self.last_reward = round(float(transition.reward), 4)
-        return observation, transition.reward, done, info
-
     def finalize_state(self, state: MathyEnvState):
         """Perform final checks on a problem state, to ensure the episode yielded
         results that were uncorrupted by transformation errors."""
@@ -283,29 +271,10 @@ class MathyEnv:
                 # Non-masked searches ignore invalid moves entirely
                 out_env = MathyEnvState.copy(env_state)
                 out_env.action = -1
-                # NOTE: There's probably a better way to calculate this, but I'm hack'n rn
-                found_dist: Optional[float] = None
-                if action < len(valid_mask):
-                    left_idx = action
-                    right_idx = action
-                    while found_dist is None and (
-                        left_idx >= 0 or right_idx < len(valid_mask)
-                    ):
-                        left_idx -= 1
-                        right_idx += 1
-                        if left_idx >= 0 and valid_mask[left_idx] == 1:
-                            found_dist = action - left_idx
-                        if right_idx < len(valid_mask) and valid_mask[right_idx] == 1:
-                            found_dist = right_idx - action
-                # TODO: I think this should never happen? There should always be atlest one valid action
-                if found_dist is None:
-                    found_dist = len(valid_mask)
-                found_scaled = found_dist / 5
-                error = EnvRewards.INVALID_MOVE
                 obs = out_env.to_observation(
                     self.get_valid_moves(out_env), parser=self.parser
                 )
-                transition = time_step.transition(obs, error)
+                transition = time_step.transition(obs, EnvRewards.INVALID_MOVE)
                 return out_env, transition, ExpressionChangeRule(BaseRule())
 
         change = operation.apply_to(token.clone_from_root())
