@@ -83,12 +83,13 @@ class ExpressionChangeRule:
 
     rule: BaseRule
     node: Optional[MathExpression]
-    result: MathExpression
+    result: Optional[MathExpression]
     _save_parent: Optional[MathExpression]
 
     def __init__(self, rule, node: MathExpression = None):
         self.rule = rule
         self.node = node
+        self.result = None
         self._save_parent = None
 
     def save_parent(

@@ -54,19 +54,19 @@ def test_env_finalize_state():
     env = PolySimplify()
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="1337", action=1, focus_index=-1, moves_remaining=0
+        problem="1337", action=1, focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="4x + 2", action=1, focus_index=-1, moves_remaining=0
+        problem="4x + 2", action=1, focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="4x + 2y", action=1, focus_index=-1, moves_remaining=0
+        problem="4x + 2y", action=1, focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)

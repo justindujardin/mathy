@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import Any, Dict, List, NamedTuple, Optional
 
 import numpy as np
+import srsly
 
 from .core.expressions import ConstantExpression, MathExpression, MathTypeKeys
 from .core.parser import ExpressionParser
@@ -172,10 +173,6 @@ class MathyEnvState(object):
             self.num_rules = state.num_rules
             self.max_moves = state.max_moves
             self.agent = MathyAgentState.copy(state.agent)
-        else:
-            raise ValueError("either state or a problem must be provided")
-        # Ensure a string made it into the problem slot
-        assert isinstance(self.agent.problem, str)
 
     @classmethod
     def copy(cls, from_state):
@@ -185,17 +182,16 @@ class MathyEnvState(object):
         return MathyEnvState(state=self)
 
     def get_out_state(
-        self, problem: str, action: int, focus_index: int, moves_remaining: int
+        self, problem: str, focus: int, action: int, moves_remaining: int
     ) -> "MathyEnvState":
         """Get the next environment state based on the current one with updated
         history and agent information based on an action being taken."""
         out_state = MathyEnvState.copy(self)
         agent = out_state.agent
-        agent.history.append(MathyEnvStateStep(problem, focus_index, action))
+        agent.history.append(MathyEnvStateStep(problem, focus, action))
         agent.problem = problem
         agent.action = action
         agent.moves_remaining = moves_remaining
-        agent.focus_index = focus_index
         return out_state
 
     def get_problem_hash(self) -> ProblemTypeIntList:
@@ -242,6 +238,7 @@ class MathyEnvState(object):
         hash_type: Optional[ProblemTypeIntList] = None,
         parser: Optional[ExpressionParser] = None,
     ) -> MathyObservation:
+        """Convert a state into an observation"""
         if parser is None:
             parser = ExpressionParser()
         if hash_type is None:
@@ -263,6 +260,54 @@ class MathyEnvState(object):
             nodes=vectors, mask=move_mask, values=values, type=hash_type
         )
 
+    @classmethod
+    def from_string(cls, input_string: str) -> "MathyEnvState":
+        """Convert a string representation of state into a state object"""
+        sep = "@"
+        history_sep = ","
+        inputs = input_string.split(sep)
+        state = MathyEnvState()
+        state.max_moves = int(inputs[0])
+        state.num_rules = int(inputs[1])
+        state.agent = MathyAgentState(
+            moves_remaining=int(inputs[2]),
+            problem=str(inputs[3]),
+            problem_type=str(inputs[4]),
+            reward=float(inputs[5]),
+            history=[],
+        )
+        history = inputs[6:]
+        for step in history:
+            raw, focus, action = step.split(history_sep)
+            state.agent.history.append(MathyEnvStateStep(raw, int(focus), int(action)))
+        return state
+
+    def to_string(self) -> str:
+        """Convert a state object into a string representation"""
+        sep = "@"
+        out = [
+            str(self.max_moves),
+            str(self.num_rules),
+            str(self.agent.moves_remaining),
+            str(self.agent.problem),
+            str(self.agent.problem_type),
+            str(self.agent.reward),
+        ]
+        for step in self.agent.history:
+            out.append(",".join([str(step.raw), str(step.focus), str(step.action)]))
+        return sep.join(out)
+
+    @classmethod
+    def from_np(cls, input_bytes: np.ndarray) -> "MathyEnvState":
+        """Convert a numpy object into a state object"""
+        input_string = "".join([chr(o) for o in input_bytes.tolist()])
+        state = cls.from_string(input_string)
+        return state
+
+    def to_np(self) -> np.ndarray:
+        """Convert a state object into a numpy representation"""
+        return np.array([ord(c) for c in self.to_string()])
+
 
 class MathyAgentState:
     """The state related to an agent for a given environment state"""
@@ -272,23 +317,12 @@ class MathyAgentState:
     problem_type: str
     reward: float
     history: List[MathyEnvStateStep]
-    focus_index: int
-    last_action: int
 
     def __init__(
-        self,
-        moves_remaining,
-        problem,
-        problem_type,
-        reward=0.0,
-        history=None,
-        focus_index=0,
-        last_action=None,
+        self, moves_remaining, problem, problem_type, reward=0.0, history=None,
     ):
         self.moves_remaining = moves_remaining
-        self.focus_index = focus_index
         self.problem = problem
-        self.last_action = last_action
         self.reward = reward
         self.problem_type = problem_type
         self.history = (
@@ -296,13 +330,11 @@ class MathyAgentState:
         )
 
     @classmethod
-    def copy(cls, from_state):
+    def copy(cls, from_state: "MathyAgentState"):
         return MathyAgentState(
             moves_remaining=from_state.moves_remaining,
             problem=from_state.problem,
             reward=from_state.reward,
             problem_type=from_state.problem_type,
             history=from_state.history,
-            focus_index=from_state.focus_index,
-            last_action=from_state.last_action,
         )

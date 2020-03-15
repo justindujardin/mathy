@@ -224,13 +224,13 @@ class A3CWorker(threading.Thread):
         last_observation: MathyObservation = env.reset()
         last_text = env.state.agent.problem
         last_action = -1
-        last_reward = -1
+        last_reward = 0.0
 
         selector = self.build_episode_selector(env)
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
-                env.render(self.args.print_mode, None)
+                env.render(last_action=last_action, last_reward=last_reward)
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
             )
@@ -253,7 +253,7 @@ class A3CWorker(threading.Thread):
             )
             if time_count == self.args.update_gradients_every or done:
                 if done and self.args.print_training and self.worker_idx == 0:
-                    env.render(self.args.print_mode, None)
+                    env.render(last_action=last_action, last_reward=last_reward)
 
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()

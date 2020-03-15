@@ -7,8 +7,6 @@ from ..mathy.state import MathyEnvState
 
 
 def test_mathy_features_from_state():
-    with pytest.raises(ValueError):
-        state = MathyEnvState()
     state = MathyEnvState(problem="4x+2x")
     assert state.to_observation([]) is not None
 

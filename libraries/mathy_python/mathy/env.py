@@ -43,11 +43,13 @@ class MathyEnv:
         rules: List[BaseRule] = None,
         max_moves: int = 20,
         verbose: bool = False,
+        error_invalid: bool = False,
         reward_discount: float = 0.99,
     ):
         self.discount = reward_discount
         self.verbose = verbose
         self.max_moves = max_moves
+        self.error_invalid = error_invalid
         self.parser = ExpressionParser()
         if rules is None:
             self.rules = MathyEnv.core_rules()
@@ -73,18 +75,6 @@ class MathyEnv:
         """Return the number of available actions"""
         return len(self.rules)
 
-    def step(
-        self, state: MathyEnvState, action: int, as_observation: bool = False
-    ) -> Tuple[Union[MathyEnvState, MathyObservation], float, bool, Any]:
-        new_state, transition, change = self.get_next_state(state, action)
-        observation = self.state_to_observation(state)
-        info = {"transition": transition}
-        done = is_terminal_transition(transition)
-        self.last_action = action
-        self.last_change = change
-        self.last_reward = round(float(transition.reward), 4)
-        return observation, transition.reward, done, info
-
     def finalize_state(self, state: MathyEnvState):
         """Perform final checks on a problem state, to ensure the episode yielded
         results that were uncorrupted by transformation errors."""
@@ -108,7 +98,6 @@ class MathyEnv:
         #       rewarding.
         return [
             ConstantsSimplifyRule,
-            DistributiveMultiplyRule,
             DistributiveFactorOutRule,
             VariableMultiplyRule,
         ]
@@ -116,7 +105,10 @@ class MathyEnv:
     def get_penalizing_actions(self, state: MathyEnvState) -> List[Type[BaseRule]]:
         """Get the list of penalizing action types. When these actions
         are selected, the agent gets a negative reward."""
-        return [AssociativeSwapRule]
+        return [
+            AssociativeSwapRule,
+            DistributiveMultiplyRule,
+        ]
 
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
@@ -267,12 +259,23 @@ class MathyEnv:
         op_not_rule = not isinstance(operation, BaseRule)
         op_cannot_apply = token is None or operation.can_apply_to(token) is False
         if token is None or op_not_rule or op_cannot_apply:
-            steps = int(env_state.max_moves - agent.moves_remaining)
-            msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
-                steps, action, type(operation), expression
-            )
-            raise_with_history("Invalid Action", msg, agent.history)
-            raise ValueError(f"Invalid Action: {msg}")
+            if self.error_invalid:
+                steps = int(env_state.max_moves - agent.moves_remaining)
+                msg = "Step: {} - Invalid action({}) '{}' for expression '{}'.".format(
+                    steps, action, type(operation), expression
+                )
+                raise_with_history("Invalid Action", msg, agent.history)
+                raise ValueError(f"Invalid Action: {msg}")
+            else:
+                valid_mask = self.get_valid_moves(env_state)
+                # Non-masked searches ignore invalid moves entirely
+                out_env = MathyEnvState.copy(env_state)
+                out_env.action = -1
+                obs = out_env.to_observation(
+                    self.get_valid_moves(out_env), parser=self.parser
+                )
+                transition = time_step.transition(obs, EnvRewards.INVALID_MOVE)
+                return out_env, transition, ExpressionChangeRule(BaseRule())
 
         change = operation.apply_to(token.clone_from_root())
         root = change.result.get_root()
@@ -280,15 +283,17 @@ class MathyEnv:
         out_problem = str(root)
         out_env = env_state.get_out_state(
             problem=out_problem,
-            focus_index=token_index,
+            focus=token_index,
             action=action_index,
             moves_remaining=agent.moves_remaining - 1,
         )
 
+        transition = self.get_state_transition(out_env, searching)
         if not searching and self.verbose:
             token_idx = int("{}".format(token_index).zfill(3))
-            self.print_state(out_env, change_name[:25].lower(), token_idx, change)
-        transition = self.get_state_transition(out_env, searching)
+            self.print_state(
+                out_env, change_name[:25].lower(), token_idx, change, transition.reward
+            )
         return out_env, transition, change
 
     def print_state(
@@ -316,7 +321,7 @@ class MathyEnv:
     ):
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
-        if change is not None:
+        if change is not None and change.result is not None:
             changed_problem = change.result.get_root().terminal_text
         output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
@@ -382,16 +387,16 @@ class MathyEnv:
         return self.action_size * node_count
 
     def get_token_at_index(
-        self, expression: MathExpression, focus_index: int
+        self, expression: MathExpression, index: int
     ) -> Optional[MathExpression]:
-        """Get the token that is `focus_index` from the left of the expression"""
+        """Get the token that is `index` from the left of the expression"""
         count = 0
         result = None
 
         def visit_fn(node, depth, data):
             nonlocal result, count
             result = node
-            if count == focus_index:
+            if count == index:
                 return STOP
             count = count + 1
 

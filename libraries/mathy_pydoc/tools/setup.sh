@@ -10,6 +10,6 @@ fi
 
 . .env/bin/activate
 echo "Installing/updating requirements..."
-pip install pytest pytest-cov
-pip install -e .[dev]
+pip install -e .
+pip install -r requirements-dev.txt
 
