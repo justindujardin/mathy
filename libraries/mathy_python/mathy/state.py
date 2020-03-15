@@ -173,18 +173,6 @@ class MathyEnvState(object):
             self.num_rules = state.num_rules
             self.max_moves = state.max_moves
             self.agent = MathyAgentState.copy(state.agent)
-        # else:
-        #     raise ValueError("either state or a problem must be provided")
-        # Ensure a string made it into the problem slot
-        # assert isinstance(self.agent.problem, str)
-
-    @classmethod
-    def from_dict(cls, obj: dict):
-        state = MathyEnvState()
-        state.max_moves = obj["max_moves"]
-        state.num_rules = obj["num_rules"]
-        state.agent = MathyAgentState.from_dict(obj["agent"])
-        return state
 
     @classmethod
     def copy(cls, from_state):
@@ -250,6 +238,7 @@ class MathyEnvState(object):
         hash_type: Optional[ProblemTypeIntList] = None,
         parser: Optional[ExpressionParser] = None,
     ) -> MathyObservation:
+        """Convert a state into an observation"""
         if parser is None:
             parser = ExpressionParser()
         if hash_type is None:
@@ -273,6 +262,7 @@ class MathyEnvState(object):
 
     @classmethod
     def from_string(cls, input_string: str) -> "MathyEnvState":
+        """Convert a string representation of state into a state object"""
         sep = "@"
         history_sep = ","
         inputs = input_string.split(sep)
@@ -293,6 +283,7 @@ class MathyEnvState(object):
         return state
 
     def to_string(self) -> str:
+        """Convert a state object into a string representation"""
         sep = "@"
         out = [
             str(self.max_moves),
@@ -308,11 +299,13 @@ class MathyEnvState(object):
 
     @classmethod
     def from_np(cls, input_bytes: np.ndarray) -> "MathyEnvState":
+        """Convert a numpy object into a state object"""
         input_string = "".join([chr(o) for o in input_bytes.tolist()])
         state = cls.from_string(input_string)
         return state
 
     def to_np(self) -> np.ndarray:
+        """Convert a state object into a numpy representation"""
         return np.array([ord(c) for c in self.to_string()])
 
 
