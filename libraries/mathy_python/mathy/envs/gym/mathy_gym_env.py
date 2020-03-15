@@ -66,13 +66,10 @@ class MathyGymEnv(gym.Env):
         observation = self.mathy.state_to_observation(state)
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
-        res = np.vstack(
-            (
-                np.array(pad_array(observation.nodes, 512, 0)),
-                np.array(pad_array(observation.mask, 512, 0)),
-            )
-        )
-        return res
+        # convert mask to probabilities
+        mask = np.array(pad_array(observation.mask, 512, 0))
+        mask = mask / np.sum(mask)
+        return mask
 
     def reset(self):
         self.state = MathyEnvState.copy(self.challenge)

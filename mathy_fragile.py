@@ -29,7 +29,7 @@ import os
 
 # Print explored mathy states when True
 verbose = False
-use_mp = False
+use_mp = True
 dt = GaussianDt(min_dt=1, max_dt=1, loc_dt=4, scale_dt=2)
 prune_tree = True
 max_iters = 100
@@ -42,7 +42,7 @@ difficulty = "hard"
 # the hard difficulty problems tend to have >= 100 nodes and need more workers to find
 # solutions in such a large space since the workers can't go back in time.
 print_every = 5 if difficulty == "hard" else 10
-n_walkers = 768 if difficulty == "hard" else 128
+n_walkers = 256 if difficulty == "hard" else 128
 
 
 class DiscreteMasked(DiscreteModel):
@@ -54,13 +54,14 @@ class DiscreteMasked(DiscreteModel):
         walkers_states: StatesWalkers = None,
         **kwargs,
     ) -> StatesModel:
+        # from: https://stackoverflow.com/a/47722393/287335
+        def random_choice_prob_index(a, axis=1):
+            """Select random actions with probabilities across a batch"""
+            r = np.expand_dims(self.random_state.rand(a.shape[1 - axis]), axis=axis)
+            return (a.cumsum(axis=axis) > r).argmax(axis=axis)
+
         if env_states is not None:
-            actions: List[int] = []
-            # TODO: is there a faster/vectorized way to do this?
-            for obs in env_states.observs:
-                mask = obs[1]
-                probability = mask / np.sum(mask)
-                actions.append(self.random_state.choice(mask.shape[0], p=probability))
+            actions: List[int] = random_choice_prob_index(env_states.observs)
         else:
             actions = self.random_state.randint(0, self.n_actions, size=batch_size)
         return self.update_states_with_critic(
@@ -272,5 +273,5 @@ for s, a in zip(path[0][1:], path[1]):
     time.sleep(0.05)
 print(f"{solved} problem!")
 print(f"Best reward: {swarm.walkers.states.best_reward}")
-print("Agent History:")
-print("\n".join([h.raw for h in env_state.agent.history]))
+# print("Agent History:")
+# print("\n".join([h.raw for h in env_state.agent.history]))
