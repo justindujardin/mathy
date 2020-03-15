@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/justindujardin/mathy/compare/v0.7.0...v0.7.1) (2020-03-15)
+
+
+### Features
+
+* Add support for integrating with Fragile library ([be3ab58](https://github.com/justindujardin/mathy/commit/be3ab5825626489a7fb7bde424decf3022aa9672))
+
 ## [0.7.0](https://github.com/justindujardin/mathy/compare/v0.6.7...v0.7.0) (2020-03-08)
 
 
