@@ -154,7 +154,7 @@ class MathyEnv:
         # the number of allowed steps, double the bonus signal
         if total_moves > 10 and current_move < total_moves / 2:
             bonus *= 2
-        return EnvRewards.WIN + bonus
+        return min(2.0, EnvRewards.WIN + bonus)
 
     def get_lose_signal(self, env_state: MathyEnvState) -> float:
         """Calculate the reward value for failing to complete the episode. This is done
@@ -202,7 +202,7 @@ class MathyEnv:
             # NOTE: the reward is scaled by how many times this state has been visited
             return time_step.transition(
                 features,
-                reward=EnvRewards.PREVIOUS_LOCATION,  #  * list_count,
+                reward=EnvRewards.PREVIOUS_LOCATION * list_count,
                 discount=self.discount,
             )
 
@@ -281,7 +281,6 @@ class MathyEnv:
         root = change.result.get_root()
         change_name = operation.name
         out_problem = str(root)
-        # print(f"focus = {token_index}, action = {action_index}")
         out_env = env_state.get_out_state(
             problem=out_problem,
             focus=token_index,

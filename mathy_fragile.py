@@ -20,7 +20,7 @@ from fragile.core.tree import HistoryTree
 from fragile.core.utils import StateDict
 from fragile.core.walkers import Walkers
 from fragile.dataviz import AtariViz, LandscapeViz, Summary, SwarmViz, SwarmViz1D
-from mathy import MathTypeKeysMax, MathyEnvState, is_terminal_transition
+from mathy import MathTypeKeysMax, MathyEnvState, is_terminal_transition, EnvRewards
 from mathy.envs.gym import MathyGymEnv
 from plangym import ParallelEnvironment
 from plangym.env import Environment
@@ -30,8 +30,7 @@ import os
 # Print explored mathy states when True
 verbose = False
 use_mp = True
-dt = GaussianDt(min_dt=1, max_dt=1, loc_dt=4, scale_dt=2)
-prune_tree = True
+prune_tree = False
 max_iters = 100
 reward_scale = 5
 distance_scale = 10
@@ -61,12 +60,20 @@ class DiscreteMasked(DiscreteModel):
             return (a.cumsum(axis=axis) > r).argmax(axis=axis)
 
         if env_states is not None:
-            actions: List[int] = random_choice_prob_index(env_states.observs)
+            actions = random_choice_prob_index(env_states.observs)
         else:
             actions = self.random_state.randint(0, self.n_actions, size=batch_size)
         return self.update_states_with_critic(
             actions=actions, model_states=model_states, batch_size=batch_size, **kwargs
         )
+
+
+class MathySwarm(Swarm):
+    def calculate_end_condition(self) -> bool:
+        """Implement the logic for deciding if the algorithm has finished. \
+        The algorithm will stop if it returns True. """
+        max_reward = self.walkers.env_states.rewards.max()
+        return max_reward > EnvRewards.WIN or self.walkers.calculate_end_condition()
 
 
 class FragileMathyEnv(DiscreteEnv):
@@ -84,10 +91,10 @@ class FragileMathyEnv(DiscreteEnv):
     def step(self, model_states: StatesModel, env_states: StatesEnv) -> StatesEnv:
         actions = model_states.actions.astype(np.int32)
         n_repeat_actions = model_states.dt if hasattr(model_states, "dt") else 1
-        new_states, observs, rewards, ends, infos = self._env.step_batch(
+        new_states, observs, rewards, game_ends, infos = self._env.step_batch(
             actions=actions, states=env_states.states, n_repeat_action=n_repeat_actions
         )
-        game_ends = [inf["done"] for inf in infos]
+        ends = [not inf.get("valid", False) for inf in infos]
         new_state = self.states_from_data(
             states=new_states,
             observs=observs,
@@ -127,7 +134,7 @@ class FragileEnvironment(Environment):
             name=name, n_repeat_action=n_repeat_action
         )
         self._env: MathyGymEnv = gym.make(
-            f"mathy-{environment}-{difficulty}-v0", verbose=verbose
+            f"mathy-{environment}-{difficulty}-v0", verbose=verbose, np_observation=True
         )
         self.observation_space = spaces.Box(
             low=0, high=MathTypeKeysMax, shape=(256, 256, 1), dtype=np.uint8,
@@ -231,8 +238,8 @@ def arc_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return np.linalg.norm(x - y, axis=1)
 
 
-swarm = Swarm(
-    model=lambda env: DiscreteMasked(env=env, critic=dt),
+swarm = MathySwarm(
+    model=lambda env: DiscreteMasked(env=env),
     env=lambda: FragileMathyEnv(env=env),
     tree=HistoryTree,
     n_walkers=n_walkers,
@@ -260,18 +267,10 @@ best_id = swarm.walkers.states.id_walkers[best_ix]
 path = swarm.tree.get_branch(best_id, from_hash=True)
 
 env.render(last_action=-1, last_reward=0.0)
-last_state = path[0][-1]
-env_state = MathyEnvState.from_np(last_state)
-
-# TODO: Terminal rewards and states are not included in the final path! :(
-last_transition = env.mathy.get_state_transition(env_state)
-solved = "SOLVED" if is_terminal_transition(last_transition) else "FAILED"
-# TODO: I'm not sure this way of skipping invalid moves is correct...
 for s, a in zip(path[0][1:], path[1]):
     _, _, r, _, info = env.step(state=s, action=a)
     env.render(last_action=a, last_reward=r)
     time.sleep(0.05)
-print(f"{solved} problem!")
 print(f"Best reward: {swarm.walkers.states.best_reward}")
 # print("Agent History:")
 # print("\n".join([h.raw for h in env_state.agent.history]))

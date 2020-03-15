@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Union
 
 import gym
 import numpy as np
@@ -8,13 +8,9 @@ from gym.envs.registration import register
 from ...core.expressions import MathExpression
 from ...core.rule import ExpressionChangeRule
 from ...env import MathyEnv
-from ...state import (
-    MathyEnvState,
-    MathyObservation,
-    observations_to_window,
-)
-from ...types import MathyEnvProblemArgs, MathyEnvProblem
-from ...util import is_terminal_transition, pad_array, discount
+from ...state import MathyEnvState, MathyObservation, observations_to_window
+from ...types import MathyEnvProblem, MathyEnvProblemArgs
+from ...util import discount, is_terminal_transition, pad_array
 from .masked_discrete import MaskedDiscrete
 
 
@@ -23,18 +19,26 @@ class MathyGymEnv(gym.Env):
     agents currently use this env wrapper, but it could be dropped in the future. """
 
     mathy: MathyEnv
-    challenge: MathyEnvState
     state: Optional[MathyEnvState]
+    _challenge: Optional[MathyEnvState]
+    _env_class: Type[MathyEnv]
+    _env_problem_args: Optional[MathyEnvProblemArgs]
 
     def __init__(
         self,
         env_class: Type[MathyEnv] = MathyEnv,
         env_problem_args: Optional[MathyEnvProblemArgs] = None,
+        np_observation: bool = False,
+        repeat_problem: bool = False,
         **env_kwargs,
     ):
         self.state = None
+        self.repeat_problem = repeat_problem
+        self.np_observation = np_observation
         self.mathy = env_class(**env_kwargs)
-        self.challenge, _ = self.mathy.get_initial_state(env_problem_args)
+        self._env_class = env_class
+        self._env_problem_args = env_problem_args
+        self._challenge, _ = self.mathy.get_initial_state(env_problem_args)
         self.action_space = MaskedDiscrete(self.action_size, [1] * self.action_size)
 
     @property
@@ -54,25 +58,29 @@ class MathyGymEnv(gym.Env):
         }
         if done:
             info["win"] = transition.reward > 0.0
-            assert change.result is not None
-
-            print(f'Answer="{change.result.get_root()}", Reward={transition.reward}')
         return self._observe(self.state), transition.reward, done, info
 
-    def _observe(self, state: MathyEnvState) -> MathyObservation:
+    def _observe(self, state: MathyEnvState) -> Union[MathyObservation, np.ndarray]:
         """Observe the environment at the given state, updating the observation
         space and action space for the given state. """
         action_mask = self.mathy.get_valid_moves(state)
         observation = self.mathy.state_to_observation(state)
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
-        # convert mask to probabilities
-        mask = np.array(pad_array(observation.mask, 512, 0))
-        mask = mask / np.sum(mask)
-        return mask
+        if self.np_observation:
+            # convert mask to probabilities
+            mask = np.array(pad_array(observation.mask, 512, 0))
+            mask = mask / np.sum(mask)
+            return mask
+        return observation
 
     def reset(self):
-        self.state = MathyEnvState.copy(self.challenge)
+        if self.state is not None:
+            self.mathy.finalize_state(self.state)
+        if self.repeat_problem:
+            self.state = MathyEnvState.copy(self._challenge)
+        else:
+            self.state, _ = self.mathy.get_initial_state(self._env_problem_args)
         return self._observe(self.state)
 
     def render(
