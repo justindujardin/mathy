@@ -14,7 +14,7 @@ from ...state import (
     observations_to_window,
 )
 from ...types import MathyEnvProblemArgs, MathyEnvProblem
-from ...util import is_terminal_transition, pad_array
+from ...util import is_terminal_transition, pad_array, discount
 from .masked_discrete import MaskedDiscrete
 
 
@@ -66,7 +66,12 @@ class MathyGymEnv(gym.Env):
         observation = self.mathy.state_to_observation(state)
         self.action_space.n = self.mathy.get_agent_actions_count(state)
         self.action_space.mask = action_mask
-        res = np.array(pad_array(observation.nodes, 256, 0))
+        res = np.vstack(
+            (
+                np.array(pad_array(observation.nodes, 512, 0)),
+                np.array(pad_array(observation.mask, 512, 0)),
+            )
+        )
         return res
 
     def reset(self):

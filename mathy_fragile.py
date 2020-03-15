@@ -1,3 +1,4 @@
+from typing import List
 import copy
 import sys
 import time
@@ -12,8 +13,8 @@ from gym import spaces
 from bokeh.plotting import show
 from fragile.core.dt_sampler import GaussianDt
 from fragile.core.env import DiscreteEnv
-from fragile.core.models import DiscreteUniform, Bounds
-from fragile.core.states import StatesEnv, StatesModel
+from fragile.core.models import Bounds, DiscreteModel
+from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from fragile.core.swarm import Swarm
 from fragile.core.tree import HistoryTree
 from fragile.core.utils import StateDict
@@ -28,20 +29,43 @@ import os
 
 # Print explored mathy states when True
 verbose = False
-use_mp = True
+use_mp = False
 dt = GaussianDt(min_dt=1, max_dt=1, loc_dt=4, scale_dt=2)
 prune_tree = True
 max_iters = 100
 reward_scale = 5
 distance_scale = 10
 minimize = False
-print_every = 10
 use_vis = False
 environment = "poly"
-difficulty = "easy"
+difficulty = "hard"
 # the hard difficulty problems tend to have >= 100 nodes and need more workers to find
 # solutions in such a large space since the workers can't go back in time.
-n_walkers = 768 if difficulty == "hard" else 256
+print_every = 5 if difficulty == "hard" else 10
+n_walkers = 768 if difficulty == "hard" else 128
+
+
+class DiscreteMasked(DiscreteModel):
+    def sample(
+        self,
+        batch_size: int,
+        model_states: StatesModel = None,
+        env_states: StatesEnv = None,
+        walkers_states: StatesWalkers = None,
+        **kwargs,
+    ) -> StatesModel:
+        if env_states is not None:
+            actions: List[int] = []
+            # TODO: is there a faster/vectorized way to do this?
+            for obs in env_states.observs:
+                mask = obs[1]
+                probability = mask / np.sum(mask)
+                actions.append(self.random_state.choice(mask.shape[0], p=probability))
+        else:
+            actions = self.random_state.randint(0, self.n_actions, size=batch_size)
+        return self.update_states_with_critic(
+            actions=actions, model_states=model_states, batch_size=batch_size, **kwargs
+        )
 
 
 class FragileMathyEnv(DiscreteEnv):
@@ -207,7 +231,7 @@ def arc_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 swarm = Swarm(
-    model=lambda env: DiscreteUniform(env=env, critic=dt),
+    model=lambda env: DiscreteMasked(env=env, critic=dt),
     env=lambda: FragileMathyEnv(env=env),
     tree=HistoryTree,
     n_walkers=n_walkers,
@@ -244,8 +268,7 @@ solved = "SOLVED" if is_terminal_transition(last_transition) else "FAILED"
 # TODO: I'm not sure this way of skipping invalid moves is correct...
 for s, a in zip(path[0][1:], path[1]):
     _, _, r, _, info = env.step(state=s, action=a)
-    if info.get("valid", False) is True:
-        env.render(last_action=a, last_reward=r)
+    env.render(last_action=a, last_reward=r)
     time.sleep(0.05)
 print(f"{solved} problem!")
 print(f"Best reward: {swarm.walkers.states.best_reward}")
