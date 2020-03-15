@@ -17,7 +17,7 @@ def test_env_state_encode_player():
     assert agent.action == 0
 
 
-def test_env_state_accumulates_history():
+def test_env_state_serialize_string():
     env_state = MathyEnvState(problem="4x+2")
     for i in range(10):
         env_state = env_state.get_out_state(
@@ -26,6 +26,23 @@ def test_env_state_accumulates_history():
 
     state_str = env_state.to_string()
     compare = MathyEnvState.from_string(state_str)
+    assert env_state.agent.problem == compare.agent.problem
+    assert env_state.agent.moves_remaining == compare.agent.moves_remaining
+    for one, two in zip(env_state.agent.history, compare.agent.history):
+        assert one.raw == two.raw
+        assert one.focus == two.focus
+        assert one.action == two.action
+
+
+def test_env_state_serialize_numpy():
+    env_state = MathyEnvState(problem="4x+2")
+    for i in range(10):
+        env_state = env_state.get_out_state(
+            problem="2+4x", focus=i, moves_remaining=10 - i, action=i
+        )
+
+    state_np = env_state.to_np()
+    compare = MathyEnvState.from_np(state_np)
     assert env_state.agent.problem == compare.agent.problem
     assert env_state.agent.moves_remaining == compare.agent.moves_remaining
     for one, two in zip(env_state.agent.history, compare.agent.history):

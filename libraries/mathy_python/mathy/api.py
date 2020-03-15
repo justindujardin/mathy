@@ -65,11 +65,11 @@ class Mathy:
         assert env.state is not None
         last_text = env.state.agent.problem
         last_action = -1
-        last_reward = -1
+        last_reward = 0.0
         selector = GreedyActionSelector(model=self.model, episode=0, worker_id=0)
         done = False
         while not done:
-            env.render(self.config.print_mode, None)
+            env.render(last_action=last_action, last_reward=last_reward)
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.config.prediction_window_size
             )
@@ -96,7 +96,7 @@ class Mathy:
             if done:
                 # Last timestep reward
                 win = reward > 0.0
-                env.render(self.config.print_mode, None)
+                env.render(last_action=last_action, last_reward=last_reward)
                 print(
                     color(
                         text="SOLVE" if win else "FAIL", fore="green" if win else "red",

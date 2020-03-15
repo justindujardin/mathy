@@ -10,6 +10,8 @@ from ...teacher import Teacher
 from ..policy_value_model import get_or_create_policy_model, PolicyValueModel
 from .config import A3CConfig
 from .worker import A3CWorker
+from ...envs.gym import MathyGymEnv
+from ...state import observations_to_window
 
 
 class A3CAgent:
@@ -33,17 +35,17 @@ class A3CAgent:
             win_threshold=self.args.teacher_promote_wins,
             lose_threshold=self.args.teacher_demote_wins,
         )
-        env = gym.make(self.teacher.get_env(0, 0), **self.env_extra)
+        env: MathyGymEnv = gym.make(self.teacher.get_env(0, 0), **self.env_extra)
         self.action_size = env.action_space.n
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        init_window = env.initial_window()
+        initial_window = observations_to_window([env.reset()])
         self.global_model = get_or_create_policy_model(
             args=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
         with self.writer.as_default():
             tf.summary.trace_on(graph=True)
-            inputs = init_window.to_inputs()
+            inputs = initial_window.to_inputs()
 
             @tf.function
             def trace_fn():

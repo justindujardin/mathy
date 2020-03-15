@@ -21,8 +21,8 @@ class MathyGymEnv(gym.Env):
     mathy: MathyEnv
     state: Optional[MathyEnvState]
     _challenge: Optional[MathyEnvState]
-    _env_class: Type[MathyEnv]
-    _env_problem_args: Optional[MathyEnvProblemArgs]
+    env_class: Type[MathyEnv]
+    env_problem_args: Optional[MathyEnvProblemArgs]
 
     def __init__(
         self,
@@ -36,8 +36,8 @@ class MathyGymEnv(gym.Env):
         self.repeat_problem = repeat_problem
         self.np_observation = np_observation
         self.mathy = env_class(**env_kwargs)
-        self._env_class = env_class
-        self._env_problem_args = env_problem_args
+        self.env_class = env_class
+        self.env_problem_args = env_problem_args
         self._challenge, _ = self.mathy.get_initial_state(env_problem_args)
         self.action_space = MaskedDiscrete(self.action_size, [1] * self.action_size)
 
@@ -80,7 +80,18 @@ class MathyGymEnv(gym.Env):
         if self.repeat_problem:
             self.state = MathyEnvState.copy(self._challenge)
         else:
-            self.state, _ = self.mathy.get_initial_state(self._env_problem_args)
+            self.state, self.problem = self.mathy.get_initial_state(
+                self.env_problem_args
+            )
+        return self._observe(self.state)
+
+    def reset_with_input(self, problem_text: str, max_moves=16):
+        # If the episode is being reset because it ended, assert the validity
+        # of the last problem outcome
+        if self.state is not None:
+            self.mathy.finalize_state(self.state)
+        self.reset()
+        self.state = MathyEnvState(problem=problem_text, max_moves=max_moves)
         return self._observe(self.state)
 
     def render(
