@@ -1,3 +1,10 @@
+## [0.7.2](https://github.com/justindujardin/mathy/compare/v0.7.1...v0.7.2) (2020-03-16)
+
+
+### Bug Fixes
+
+* **gym:** return node ids and action mask for np observations ([d04366e](https://github.com/justindujardin/mathy/commit/d04366ea8dcad5d0b1da5105a97c249163f6411f))
+
 ## [0.7.1](https://github.com/justindujardin/mathy/compare/v0.7.0...v0.7.1) (2020-03-15)
 
 
