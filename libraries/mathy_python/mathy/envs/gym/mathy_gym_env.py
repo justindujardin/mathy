@@ -69,9 +69,10 @@ class MathyGymEnv(gym.Env):
         self.action_space.mask = action_mask
         if self.np_observation:
             # convert mask to probabilities
+            nodes = np.array(pad_array(observation.nodes, 512, 0))
             mask = np.array(pad_array(observation.mask, 512, 0))
             mask = mask / np.sum(mask)
-            return mask
+            return np.vstack((nodes, mask))
         return observation
 
     def reset(self):
