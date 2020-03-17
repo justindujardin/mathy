@@ -47,7 +47,18 @@ def test_env_terminal_conditions():
     for text, is_win in expectations + out_of_scope_valid:
         env_state = MathyEnvState(problem=text)
         reward = env.get_state_transition(env_state)
+        assert text == text and env.is_terminal_state(env_state) == bool(is_win)
         assert text == text and is_terminal_transition(reward) == bool(is_win)
+
+
+def test_print_history():
+    env = PolySimplify()
+    env_state = MathyEnvState(problem="4x+2")
+    for i in range(10):
+        env_state = env_state.get_out_state(
+            problem="2+4x", focus=i, moves_remaining=10 - i, action=i
+        )
+    assert env.print_history(env_state) is None
 
 
 def test_env_finalize_state():

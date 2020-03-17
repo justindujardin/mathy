@@ -9,8 +9,6 @@ MathyAgentState(
     problem_type,
     reward = 0.0,
     history = None,
-    focus_index = 0,
-    last_action = None,
 )
 ```
 The state related to an agent for a given environment state
@@ -35,13 +33,23 @@ This allocation strategy requires more memory but removes a class
 of potential issues around unintentional sharing of data and mutation
 by two different sources.
 
+### from_np
+```python
+MathyEnvState.from_np(input_bytes:numpy.ndarray) -> 'MathyEnvState'
+```
+Convert a numpy object into a state object
+### from_string
+```python
+MathyEnvState.from_string(input_string:str) -> 'MathyEnvState'
+```
+Convert a string representation of state into a state object
 ### get_out_state
 ```python
 MathyEnvState.get_out_state(
     self,
     problem: str,
+    focus: int,
     action: int,
-    focus_index: int,
     moves_remaining: int,
 ) -> 'MathyEnvState'
 ```
@@ -60,11 +68,31 @@ __Example__
 - `mycorp.envs.solve_impossible_problems` -> `[12375561, -2838517]`
 
 
+### to_np
+```python
+MathyEnvState.to_np(self) -> numpy.ndarray
+```
+Convert a state object into a numpy representation
+### to_observation
+```python
+MathyEnvState.to_observation(
+    self,
+    move_mask: Optional[List[int]] = None,
+    hash_type: Optional[List[int]] = None,
+    parser: Optional[mathy.core.parser.ExpressionParser] = None,
+) -> mathy.state.MathyObservation
+```
+Convert a state into an observation
 ### to_start_observation
 ```python
 MathyEnvState.to_start_observation(self) -> mathy.state.MathyObservation
 ```
 Generate an episode start MathyObservation
+### to_string
+```python
+MathyEnvState.to_string(self) -> str
+```
+Convert a state object into a string representation
 ## MathyEnvStateStep
 ```python
 MathyEnvStateStep(self, /, *args, **kwargs)

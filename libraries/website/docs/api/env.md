@@ -7,6 +7,7 @@ MathyEnv(
     rules: List[mathy.core.rule.BaseRule] = None,
     max_moves: int = 20,
     verbose: bool = False,
+    error_invalid: bool = False,
     reward_discount: float = 0.99,
 )
 ```
@@ -144,10 +145,10 @@ __Returns__
 MathyEnv.get_token_at_index(
     self,
     expression: mathy.core.expressions.MathExpression,
-    focus_index: int,
+    index: int,
 ) -> Optional[mathy.core.expressions.MathExpression]
 ```
-Get the token that is `focus_index` from the left of the expression
+Get the token that is `index` from the left of the expression
 ### get_valid_moves
 ```python
 MathyEnv.get_valid_moves(self, env_state:mathy.state.MathyEnvState) -> List[int]
@@ -176,6 +177,20 @@ MathyEnv.get_win_signal(self, env_state:mathy.state.MathyEnvState) -> float
 Calculate the reward value for completing the episode. This is done
 so that the reward signal can be scaled based on the time it took to
 complete the episode.
+### is_terminal_state
+```python
+MathyEnv.is_terminal_state(self, env_state:mathy.state.MathyEnvState) -> bool
+```
+Determine if a given state is terminal or not.
+
+__Arguments__
+
+- __env_state (MathyEnvState)__: The state to inspect
+
+__Returns__
+
+`(bool)`: A boolean indicating if the state is terminal or not.
+
 ### max_moves_fn
 ```python
 MathyEnv.max_moves_fn(
@@ -185,6 +200,16 @@ MathyEnv.max_moves_fn(
 ) -> int
 ```
 Return the environment specific maximum move count for a given prolem.
+### print_history
+```python
+MathyEnv.print_history(self, env_state:mathy.state.MathyEnvState) -> None
+```
+Render the history of an episode from a given state.
+
+__Arguments__
+
+- __env_state (MathyEnvState)__: The state to render the history of.
+
 ### print_state
 ```python
 MathyEnv.print_state(
@@ -227,7 +252,7 @@ MathyEnv.render_state(
     token_index: int = -1,
     change: mathy.core.rule.ExpressionChangeRule = None,
     change_reward: float = 0.0,
-)
+) -> str
 ```
 Render the given state to a string suitable for printing to a log
 ### state_to_observation

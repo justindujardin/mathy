@@ -311,6 +311,44 @@ class MathyEnv:
             )
         )
 
+    def is_terminal_state(self, env_state: MathyEnvState) -> bool:
+        """Determine if a given state is terminal or not.
+
+        # Arguments
+        env_state (MathyEnvState): The state to inspect
+
+        # Returns
+        (bool): A boolean indicating if the state is terminal or not.
+        """
+        return is_terminal_transition(self.get_state_transition(env_state))
+
+    def print_history(self, env_state: MathyEnvState) -> None:
+        """Render the history of an episode from a given state.
+
+        # Arguments
+        env_state (MathyEnvState): The state to render the history of.
+        """
+        history: List[MathyEnvStateStep] = env_state.agent.history[:]
+        initial_step: MathyEnvStateStep = history.pop(0)
+        curr_state: MathyEnvState = MathyEnvState(
+            problem=initial_step.raw, max_moves=env_state.max_moves,
+        )
+        self.print_state(curr_state, "initial-state")
+        while not self.is_terminal_state(curr_state):
+            step: MathyEnvStateStep = history.pop(0)
+            curr_state, transition, change = self.get_next_state(
+                curr_state, step.action + (step.focus * len(self.rules))
+            )
+            rule_idx, token_idx = self.get_action_indices(step.action)
+            rule: BaseRule = self.rules[rule_idx]
+            self.print_state(
+                env_state=curr_state,
+                action_name=rule.name[:25].lower(),
+                token_index=int(f"{step.focus}".zfill(3)),
+                change=change,
+                change_reward=transition.reward,
+            )
+
     def render_state(
         self,
         env_state: MathyEnvState,
@@ -318,7 +356,7 @@ class MathyEnv:
         token_index: int = -1,
         change: ExpressionChangeRule = None,
         change_reward: float = 0.0,
-    ):
+    ) -> str:
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
         if change is not None and change.result is not None:
