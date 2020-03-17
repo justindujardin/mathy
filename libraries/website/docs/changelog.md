@@ -1,3 +1,10 @@
+## [0.7.3](https://github.com/justindujardin/mathy/compare/v0.7.2...v0.7.3) (2020-03-17)
+
+
+### Features
+
+* **env:** add print_history helper ([41b3a0f](https://github.com/justindujardin/mathy/commit/41b3a0f65407a24e0730999c0224bc84527e4d99))
+
 ## [0.7.2](https://github.com/justindujardin/mathy/compare/v0.7.1...v0.7.2) (2020-03-16)
 
 
