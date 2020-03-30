@@ -1,3 +1,10 @@
+## [0.7.4](https://github.com/justindujardin/mathy/compare/v0.7.3...v0.7.4) (2020-03-30)
+
+
+### Features
+
+* **ci:** publish github releases with changelog ([be502a1](https://github.com/justindujardin/mathy/commit/be502a16aaccb40351a6829a57cc26819d901d4d))
+
 ## [0.7.3](https://github.com/justindujardin/mathy/compare/v0.7.2...v0.7.3) (2020-03-17)
 
 
