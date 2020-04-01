@@ -30,6 +30,13 @@ def cli_contribute():
 
 @cli.command("simplify")
 @click.option(
+    "swarm",
+    "--swarm",
+    default=False,
+    is_flag=True,
+    help="Use swarm solver from fragile library without a trained model",
+)
+@click.option(
     "model", "--model", default="mathy_alpha_sm", help="The path to a mathy model",
 )
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
@@ -40,14 +47,23 @@ def cli_contribute():
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(agent: str, problem: str, model: str, max_steps: int):
+def cli_simplify(agent: str, problem: str, model: str, max_steps: int, swarm: bool):
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
     from .models import load_model
     from .api import Mathy
+    from .agents.fragile import SwarmConfig
 
-    mt: Mathy = load_model(model)
+    mt: Mathy
+    if swarm is True:
+        mt = Mathy(config=SwarmConfig())
+    else:
+        try:
+            mt = load_model(model)
+        except ValueError:
+            mt = Mathy(config=SwarmConfig())
+
     mt.simplify(problem=problem, max_steps=max_steps)
 
 

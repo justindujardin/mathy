@@ -1,39 +1,34 @@
-from typing import List
+"""Use Fractal Monte Carlo search in order to solve mathy problems without a
+trained neural network."""
+
 import copy
-import sys
 import time
-import traceback
 
 import gym
-import holoviews
 import numpy as np
-import srsly
 from gym import spaces
+from plangym import ParallelEnvironment
+from plangym.env import Environment
 
 from fragile.core.env import DiscreteEnv
-from fragile.core.models import Bounds, DiscreteModel
+from fragile.core.models import DiscreteModel
 from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from fragile.core.swarm import Swarm
 from fragile.core.tree import HistoryTree
 from fragile.core.utils import StateDict
-from fragile.core.walkers import Walkers
-from fragile.dataviz import AtariViz, LandscapeViz, Summary, SwarmViz, SwarmViz1D
-from mathy import MathTypeKeysMax, MathyEnvState, is_terminal_transition, EnvRewards
+from mathy import EnvRewards, MathTypeKeysMax, MathyEnvState, is_terminal_transition
 from mathy.envs.gym import MathyGymEnv
-from plangym import ParallelEnvironment
-from plangym.env import Environment
-import os
+from typing import List, Optional
+
+from pydantic import BaseModel
+from .. import about
 
 
-# Print explored mathy states when True
-verbose = False
-use_mp = True
-prune_tree = True
-max_iters = 100
-reward_scale = 5
-distance_scale = 10
-minimize = False
-use_vis = False
+class SwarmConfig(BaseModel):
+    verbose: bool = False
+    use_mp: bool = True
+    n_walkers: int = 512
+    max_iters: int = 100
 
 
 class DiscreteMasked(DiscreteModel):
@@ -80,23 +75,23 @@ class FragileMathyEnv(DiscreteEnv):
 
     def get_params_dict(self) -> StateDict:
         super_params = super(FragileMathyEnv, self).get_params_dict()
-        params = {"game_ends": {"dtype": np.bool_}}
+        params = {"terminals": {"dtype": np.bool_}}
         params.update(super_params)
         return params
 
     def step(self, model_states: StatesModel, env_states: StatesEnv) -> StatesEnv:
         actions = model_states.actions.astype(np.int32)
-        new_states, observs, rewards, game_ends, infos = self._env.step_batch(
+        new_states, observs, rewards, terminals, infos = self._env.step_batch(
             actions=actions, states=env_states.states
         )
-        ends = [not inf.get("valid", False) for inf in infos]
+        oobs = [not inf.get("valid", False) for inf in infos]
         new_state = self.states_from_data(
             states=new_states,
             observs=observs,
             rewards=rewards,
-            ends=ends,
+            oobs=oobs,
             batch_size=len(actions),
-            game_ends=game_ends,
+            terminals=terminals,
         )
         return new_state
 
@@ -105,15 +100,15 @@ class FragileMathyEnv(DiscreteEnv):
         states = np.array([copy.deepcopy(state) for _ in range(batch_size)])
         observs = np.array([copy.deepcopy(obs) for _ in range(batch_size)])
         rewards = np.zeros(batch_size, dtype=np.float32)
-        ends = np.zeros(batch_size, dtype=np.bool_)
-        game_ends = np.zeros(batch_size, dtype=np.bool_)
+        oobs = np.zeros(batch_size, dtype=np.bool_)
+        terminals = np.zeros(batch_size, dtype=np.bool_)
         new_states = self.states_from_data(
             states=states,
             observs=observs,
             rewards=rewards,
-            ends=ends,
+            oobs=oobs,
             batch_size=batch_size,
-            game_ends=game_ends,
+            terminals=terminals,
         )
         return new_states
 
@@ -121,24 +116,31 @@ class FragileMathyEnv(DiscreteEnv):
 class FragileEnvironment(Environment):
     """Fragile Environment for solving Mathy problems."""
 
+    problem: Optional[str]
+
     def __init__(
         self,
         name: str,
         environment: str = "poly",
         difficulty: str = "normal",
+        problem: str = None,
+        max_steps: int = 64,
         wrappers=None,
         **kwargs,
     ):
         super(FragileEnvironment, self).__init__(name=name)
         self._env: MathyGymEnv = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
-            verbose=verbose,
             np_observation=True,
+            error_invalid=False,
+            env_problem=problem,
             **kwargs,
         )
         self.observation_space = spaces.Box(
             low=0, high=MathTypeKeysMax, shape=(256, 256, 1), dtype=np.uint8,
         )
+        self.problem = problem
+        self.max_steps = max_steps
         self.wrappers = wrappers
         self.init_env()
 
@@ -159,7 +161,7 @@ class FragileEnvironment(Environment):
         return getattr(self._env, item)
 
     def get_state(self) -> np.ndarray:
-        assert self._env is not None, "env required to get_state"
+        assert self._env.state is not None, "env required to get_state"
         return self._env.state.to_np()
 
     def set_state(self, state: np.ndarray):
@@ -238,6 +240,7 @@ def solve_problem(problem_env: str, problem_difficulty: str = "easy"):
     # print_every = 5 if problem_difficulty == "hard" else 10
     print_every = 1e6
     n_walkers = 768 if problem_difficulty == "hard" else 256
+    max_iters = 100
 
     swarm = MathySwarm(
         model=lambda env: DiscreteMasked(env=env),
@@ -245,31 +248,61 @@ def solve_problem(problem_env: str, problem_difficulty: str = "easy"):
         tree=HistoryTree,
         n_walkers=n_walkers,
         max_iters=max_iters,
-        prune_tree=prune_tree,
-        reward_scale=reward_scale,
-        distance_scale=distance_scale,
+        prune_tree=True,
+        reward_scale=5,
+        distance_scale=10,
         distance_function=mathy_dist,
-        minimize=minimize,
+        minimize=False,
     )
 
-    if not use_vis:
-        _ = swarm.run(print_every=print_every)
-    else:
-        holoviews.extension("bokeh")
-        viz = SwarmViz1D(swarm, stream_interval=print_every)
-        viz.plot()
-        viz.run(print_every=print_every)
-
+    _ = swarm.run(print_every=print_every)
     best_ix = swarm.walkers.states.cum_rewards.argmax()
     best_id = swarm.walkers.states.id_walkers[best_ix]
     path = swarm.tree.get_branch(best_id, from_hash=True)
-    env.render(last_action=-1, last_reward=0.0)
-    for s, a in zip(path[0][1:], path[1]):
-        _, _, r, _, info = env.step(state=s, action=a)
-        env.render(last_action=a, last_reward=r)
-        time.sleep(0.01)
+    last_state = MathyEnvState.from_np(path[0][-1])
+    env._env.mathy.print_history(last_state)
 
 
-for e_type in ["complex", "binomial", "poly", "poly-blockers"]:
-    for e_difficulty in ["easy", "normal", "hard"]:
-        solve_problem(e_type, e_difficulty)
+def swarm_solve(problem: str, config: SwarmConfig):
+    if config.use_mp:
+        env = ParallelEnvironment(
+            env_class=FragileEnvironment,
+            name="mathy_v0",
+            problem=problem,
+            repeat_problem=True,
+        )
+    else:
+        env = FragileEnvironment(name="mathy_v0", problem=problem, repeat_problem=True)
+
+    print_every = 1e6
+
+    swarm = MathySwarm(
+        model=lambda env: DiscreteMasked(env=env),
+        env=lambda: FragileMathyEnv(env=env),
+        tree=HistoryTree,
+        n_walkers=config.n_walkers,
+        max_iters=config.max_iters,
+        prune_tree=True,
+        reward_scale=5,
+        distance_scale=10,
+        distance_function=mathy_dist,
+        minimize=False,
+    )
+
+    _ = swarm.run(print_every=print_every)
+    best_ix = swarm.walkers.states.cum_rewards.argmax()
+    best_id = swarm.walkers.states.id_walkers[best_ix]
+    path = swarm.tree.get_branch(best_id, from_hash=True)
+    last_state = MathyEnvState.from_np(path[0][-1])
+    env._env.mathy.print_history(last_state)
+
+
+if __name__ == "__main__":
+    # Solve one problem of each type and difficulty
+    for e_type in ["complex", "binomial", "poly", "poly-blockers"]:
+        for e_difficulty in ["easy", "normal"]:
+            solve_problem(e_type, e_difficulty)
+
+    # # Solve a bunch of problems of the same type
+    # for i in range(10):
+    #     solve_problem("poly", "easy")
