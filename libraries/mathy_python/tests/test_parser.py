@@ -1,13 +1,18 @@
+import pytest
+
+from mathy.core.expressions import ConstantExpression, VariableExpression
+from mathy.core.parser import (
+    ExpressionParser,
+    InvalidExpression,
+    InvalidSyntax,
+    TrailingTokens,
+    UnexpectedBehavior,
+)
 from mathy.core.tokenizer import Token
 from mathy.core.tree import BinaryTreeNode
-from mathy.core.expressions import (
-    ConstantExpression,
-    VariableExpression,
-)
-from mathy.core.parser import ExpressionParser
 
 
-def test_parser_to_string():
+def test_parser_to_string() -> None:
     parser = ExpressionParser()
     expects = [
         {
@@ -31,7 +36,7 @@ def test_parser_to_string():
         assert out_str == expect["output"]
 
 
-def test_parser_mult_exp_precedence():
+def test_parser_mult_exp_precedence() -> None:
     """should respect order of operations with factor parsing"""
     parser = ExpressionParser()
     expression = parser.parse("4x^2")
@@ -43,7 +48,7 @@ def test_parser_mult_exp_precedence():
     assert expression is not None
 
 
-def test_parser_exceptions():
+def test_parser_exceptions() -> None:
     parser = ExpressionParser()
     expectations = [
         ("", InvalidExpression),
