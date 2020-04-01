@@ -1,5 +1,5 @@
-from ..mathy.core.tree import BinaryTreeNode, BinarySearchTree, STOP
-from ..mathy.core.layout import TreeLayout, TreeMeasurement
+from mathy.core.tree import BinaryTreeNode, BinarySearchTree, STOP
+from mathy.core.layout import TreeLayout, TreeMeasurement
 import numpy as np
 import pytest
 

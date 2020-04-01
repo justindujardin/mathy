@@ -1,11 +1,11 @@
-from ..mathy.core.tokenizer import Token
-from ..mathy.core.tree import BinaryTreeNode
-from ..mathy.core.expressions import (
+from mathy.core.tokenizer import Token
+from mathy.core.tree import BinaryTreeNode
+from mathy.core.expressions import (
     ConstantExpression,
     VariableExpression,
     AddExpression,
 )
-from ..mathy.core.parser import ExpressionParser
+from mathy.core.parser import ExpressionParser
 
 
 def test_parser_to_string():

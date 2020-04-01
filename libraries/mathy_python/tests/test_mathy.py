@@ -1,12 +1,12 @@
 import pytest
 import tensorflow as tf
 
-from ..mathy import envs
-from ..mathy.agents.base_config import BaseConfig
-from ..mathy.agents.policy_value_model import PolicyValueModel
-from ..mathy.env import MathyEnv
-from ..mathy.api import Mathy
-from ..mathy.state import MathyObservation, observations_to_window
+from mathy import envs
+from mathy.agents.base_config import BaseConfig
+from mathy.agents.policy_value_model import PolicyValueModel
+from mathy.env import MathyEnv
+from mathy.api import Mathy
+from mathy.state import MathyObservation, observations_to_window
 
 
 def test_mathy_requires_model_and_config_or_path():

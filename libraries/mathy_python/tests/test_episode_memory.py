@@ -1,6 +1,6 @@
 from typing import Tuple
-from ..mathy.agents.episode_memory import EpisodeMemory
-from ..mathy.envs.poly_simplify import PolySimplify
+from mathy.agents.episode_memory import EpisodeMemory
+from mathy.envs.poly_simplify import PolySimplify
 from numpy.testing import assert_array_almost_equal
 
 

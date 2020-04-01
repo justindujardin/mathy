@@ -1,6 +1,6 @@
 import pytest
 
-from ..mathy import (
+from mathy import (
     AbsExpression,
     AddExpression,
     BinaryExpression,

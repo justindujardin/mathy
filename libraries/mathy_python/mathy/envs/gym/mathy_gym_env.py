@@ -78,7 +78,9 @@ class MathyGymEnv(gym.Env):
             # convert mask to probabilities
             nodes = np.array(pad_array(observation.nodes, 512, 0))
             mask = np.array(pad_array(observation.mask, 512, 0))
-            mask = mask / np.sum(mask)
+            mask_sum = np.sum(mask)
+            if mask_sum > 0.0:
+                mask = mask / mask_sum
             return np.vstack((nodes, mask))
         return observation
 

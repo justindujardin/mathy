@@ -1,7 +1,7 @@
-from ..mathy.state import MathyEnvState
-from ..mathy.env import MathyEnv
-from ..mathy.envs.poly_simplify import PolySimplify
-from ..mathy.util import is_terminal_transition
+from mathy.state import MathyEnvState
+from mathy.env import MathyEnv
+from mathy.envs.poly_simplify import PolySimplify
+from mathy.util import is_terminal_transition
 import random
 import pytest
 

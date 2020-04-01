@@ -125,7 +125,6 @@ class FragileEnvironment(Environment):
         difficulty: str = "normal",
         problem: str = None,
         max_steps: int = 64,
-        wrappers=None,
         **kwargs,
     ):
         super(FragileEnvironment, self).__init__(name=name)
@@ -141,15 +140,11 @@ class FragileEnvironment(Environment):
         )
         self.problem = problem
         self.max_steps = max_steps
-        self.wrappers = wrappers
         self.init_env()
 
     def init_env(self):
         env = self._env
         env.reset()
-        if self.wrappers is not None:
-            for wrap in self.wrappers:
-                env = wrap(env)
         self.action_space = spaces.Discrete(self._env.action_size)
         self.observation_space = (
             self._env.observation_space
@@ -173,14 +168,12 @@ class FragileEnvironment(Environment):
         self, action: np.ndarray, state: np.ndarray = None, n_repeat_action: int = None
     ) -> tuple:
         assert self._env is not None, "env required to step"
-        if state is not None:
-            self.set_state(state)
+        assert state is not None, "only works with state stepping"
+        self.set_state(state)
         obs, reward, _, info = self._env.step(action)
         terminal = info.get("done", False)
-        if state is not None:
-            new_state = self.get_state()
-            return new_state, obs, reward, terminal, info
-        return obs, reward, terminal, info
+        new_state = self.get_state()
+        return new_state, obs, reward, terminal, info
 
     def step_batch(
         self, actions, states=None, n_repeat_action: [int, np.ndarray] = None
@@ -188,79 +181,22 @@ class FragileEnvironment(Environment):
         data = [self.step(action, state) for action, state in zip(actions, states)]
         new_states, observs, rewards, terminals, infos = [], [], [], [], []
         for d in data:
-            if states is None:
-                obs, _reward, end, info = d
-            else:
-                new_state, obs, _reward, end, info = d
-                new_states.append(new_state)
+            new_state, obs, _reward, end, info = d
+            new_states.append(new_state)
             observs.append(obs)
             rewards.append(_reward)
             terminals.append(end)
             infos.append(info)
-        if states is None:
-            return observs, rewards, terminals, infos
-        else:
-            return new_states, observs, rewards, terminals, infos
+        return new_states, observs, rewards, terminals, infos
 
-    def reset(self, return_state: bool = True):
+    def reset(self):
         assert self._env is not None, "env required to reset"
         obs = self._env.reset()
-        if not return_state:
-            return obs
-        else:
-            return self.get_state(), obs
+        return self.get_state(), obs
 
 
 def mathy_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return np.linalg.norm(x - y, axis=1)
-
-
-def solve_problem(problem_env: str, problem_difficulty: str = "easy"):
-    if use_mp:
-        env = ParallelEnvironment(
-            env_class=FragileEnvironment,
-            name="mathy_v0",
-            environment=problem_env,
-            difficulty=problem_difficulty,
-            repeat_problem=True,
-        )
-    else:
-        env = FragileEnvironment(
-            name="mathy_v0",
-            environment=problem_env,
-            difficulty=problem_difficulty,
-            repeat_problem=True,
-        )
-
-    print(f"\n\nProblem: {env._env.state.agent.problem}")
-    print(f"Type: {problem_env}\tDifficulty: {problem_difficulty}\n\n")
-
-    # the hard difficulty problems tend to have >= 100 nodes and need more workers to find
-    # solutions in such a large space since the workers can't go back in time.
-    # print_every = 5 if problem_difficulty == "hard" else 10
-    print_every = 1e6
-    n_walkers = 768 if problem_difficulty == "hard" else 256
-    max_iters = 100
-
-    swarm = MathySwarm(
-        model=lambda env: DiscreteMasked(env=env),
-        env=lambda: FragileMathyEnv(env=env),
-        tree=HistoryTree,
-        n_walkers=n_walkers,
-        max_iters=max_iters,
-        prune_tree=True,
-        reward_scale=5,
-        distance_scale=10,
-        distance_function=mathy_dist,
-        minimize=False,
-    )
-
-    _ = swarm.run(print_every=print_every)
-    best_ix = swarm.walkers.states.cum_rewards.argmax()
-    best_id = swarm.walkers.states.id_walkers[best_ix]
-    path = swarm.tree.get_branch(best_id, from_hash=True)
-    last_state = MathyEnvState.from_np(path[0][-1])
-    env._env.mathy.print_history(last_state)
 
 
 def swarm_solve(problem: str, config: SwarmConfig):
@@ -295,14 +231,3 @@ def swarm_solve(problem: str, config: SwarmConfig):
     path = swarm.tree.get_branch(best_id, from_hash=True)
     last_state = MathyEnvState.from_np(path[0][-1])
     env._env.mathy.print_history(last_state)
-
-
-if __name__ == "__main__":
-    # Solve one problem of each type and difficulty
-    for e_type in ["complex", "binomial", "poly", "poly-blockers"]:
-        for e_difficulty in ["easy", "normal"]:
-            solve_problem(e_type, e_difficulty)
-
-    # # Solve a bunch of problems of the same type
-    # for i in range(10):
-    #     solve_problem("poly", "easy")

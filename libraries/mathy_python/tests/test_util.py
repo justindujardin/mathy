@@ -1,4 +1,4 @@
-from ..mathy.core.expressions import (
+from mathy.core.expressions import (
     AddExpression,
     ConstantExpression,
     DivideExpression,
@@ -6,15 +6,15 @@ from ..mathy.core.expressions import (
     PowerExpression,
     VariableExpression,
 )
-from ..mathy.core.parser import ExpressionParser
-from ..mathy.rules import (
+from mathy.core.parser import ExpressionParser
+from mathy.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveFactorOutRule,
     DistributiveMultiplyRule,
 )
-from ..mathy.util import (
+from mathy.util import (
     TermEx,
     get_sub_terms,
     get_term_ex,

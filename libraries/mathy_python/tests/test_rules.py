@@ -2,15 +2,15 @@ from typing import Dict
 import numpy as np
 import json
 from pathlib import Path
-from ..mathy.core.expressions import MathExpression, VariableExpression
-from ..mathy.core.parser import ExpressionParser
-from ..mathy.util import (
+from mathy.core.expressions import MathExpression, VariableExpression
+from mathy.core.parser import ExpressionParser
+from mathy.util import (
     get_terms,
     terms_are_like,
     compare_expression_values,
     compare_expression_string_values,
 )
-from ..mathy.rules import (
+from mathy.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     DistributiveFactorOutRule,
@@ -19,7 +19,7 @@ from ..mathy.rules import (
     VariableMultiplyRule,
 )
 
-from ..mathy.testing import init_rule_for_test, run_rule_tests
+from mathy.testing import init_rule_for_test, run_rule_tests
 
 
 def test_rules_associative_property():
