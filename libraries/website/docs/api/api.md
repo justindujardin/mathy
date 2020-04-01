@@ -6,18 +6,18 @@ Mathy(
     self,
     model_path: str = None,
     model: mathy.agents.policy_value_model.PolicyValueModel = None,
-    config: mathy.agents.base_config.BaseConfig = None,
+    config: Union[mathy.agents.base_config.BaseConfig, mathy.agents.fragile.SwarmConfig] = None,
     silent: bool = False,
 )
 ```
 The standard interface for working with Mathy models and agents.
-### simplify
+### simplify_model
 ```python
-Mathy.simplify(
+Mathy.simplify_model(
     self,
     model: str = 'mathy_alpha_sm',
     problem: str,
-    max_steps: int = 128,
+    max_steps: int,
 ) -> mathy.agents.episode_memory.EpisodeMemory
 ```
 Simplify an input problem using the PolySimplify environment.
@@ -35,3 +35,17 @@ __Returns__
     to the solution for the input problem.
 
 
+## MathyAPIModelState
+```python
+MathyAPIModelState(
+    self,
+    config: mathy.agents.base_config.BaseConfig,
+    model: mathy.agents.policy_value_model.PolicyValueModel,
+) -> None
+```
+MathyAPIModelState(config:mathy.agents.base_config.BaseConfig, model:mathy.agents.policy_value_model.PolicyValueModel)
+## MathyAPISwarmState
+```python
+MathyAPISwarmState(self, config:mathy.agents.fragile.SwarmConfig) -> None
+```
+MathyAPISwarmState(config:mathy.agents.fragile.SwarmConfig)

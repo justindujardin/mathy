@@ -130,21 +130,6 @@ __Example__
 ```
 
 `mathy:7a + 4x + (2f + j) + x + 3d`
-## gen_move_around_interleaved_like_terms
-```python
-gen_move_around_interleaved_like_terms(number_terms, number_pairs)
-```
-Interleaved multiple like variables.
-
-__Example__
-
-
-```
-4x + 2y + 6x + 3y
-```
-
-`mathy:4x + 2y + 6x + 3y`
-
 ## gen_simplify_multiple_terms
 ```python
 gen_simplify_multiple_terms(
@@ -171,21 +156,6 @@ __Example__
 ```
 
 `mathy:2a + 3j - 7b + 17.2a + j`
-
-## gen_solve_for_variable
-```python
-gen_solve_for_variable(terms=4) -> Tuple[str, int]
-```
-Generate a solve for x type problem.
-
-__Example__
-
-
-```
-4x + 2 = 8x
-```
-
-`mathy:4x + 2 = 8x`
 
 ## get_blocker
 ```python
