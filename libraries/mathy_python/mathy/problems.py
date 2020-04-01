@@ -352,29 +352,6 @@ def gen_simplify_multiple_terms(
     return result, complexity
 
 
-def gen_solve_for_variable(terms=4) -> Tuple[str, int]:
-    """Generate a solve for x type problem.
-
-    # Example
-
-    ```
-    4x + 2 = 8x
-    ```
-
-    `mathy:4x + 2 = 8x`
-    """
-    variable = rand_var()
-    # Guarantee at least one set of like terms
-    result = "{}{} = {}".format(rand_number(), variable, rand_number())
-    suffix = " + {}{}".format(rand_number(), variable)
-    for _ in range(terms - 3):
-        num = rand_number()
-        op = rand_op()
-        var = maybe_var()
-        result = result + " {} {}{}".format(op, num, var)
-    return result + suffix, terms
-
-
 def split_in_two_random(value: int):
     """Split a given number into two smaller numbers that sum to it.
     Returns: a tuple of (lower, higher) numbers that sum to the input
@@ -563,22 +540,3 @@ def gen_move_around_blockers_two(number_blockers: int, powers_probability: float
     )
     return problem, complexity
 
-
-def gen_move_around_interleaved_like_terms(number_terms, number_pairs):
-    """Interleaved multiple like variables.
-
-    # Example
-
-    ```
-    4x + 2y + 6x + 3y
-    ```
-
-    `mathy:4x + 2y + 6x + 3y`
-    """
-    complexity = number_terms * number_pairs
-    terms = []
-    rand_vars = get_rand_vars(number_terms)
-    for i in range(number_pairs):
-        for j in range(number_terms):
-            terms.append("{}{}".format(maybe_number(), rand_vars[j]))
-    return " + ".join(terms), complexity

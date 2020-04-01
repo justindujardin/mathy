@@ -68,19 +68,13 @@ class TokenSet:
 
     tokens: int
 
-    def __init__(self, source: Union["TokenSet", int]):
-        if isinstance(source, TokenSet):
-            self.tokens = source.tokens
-        elif type(source) is int:
-            self.tokens = source
+    def __init__(self, source: int):
+        self.tokens = source
 
-    def add(self, addTokens):
+    def add(self, addTokens: int) -> "TokenSet":
         """Add tokens to self set and return a TokenSet representing
         their combination of flags.  Value can be an integer or an instance
         of `TokenSet`"""
-        if isinstance(addTokens, TokenSet):
-            addTokens = addTokens.tokens
-
         return TokenSet(self.tokens | addTokens)
 
     def contains(self, type: int) -> bool:

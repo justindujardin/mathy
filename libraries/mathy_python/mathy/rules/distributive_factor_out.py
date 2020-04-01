@@ -168,8 +168,6 @@ class DistributiveFactorOutRule(BaseRule):
         return None
 
     def can_apply_to(self, node):
-        if not isinstance(node, AddExpression):
-            return False
         type_tuple = self.get_type(node)
         if type_tuple is None:
             return False
@@ -190,23 +188,6 @@ class DistributiveFactorOutRule(BaseRule):
             return False
 
         return True
-
-    def get_left_leaf_term(
-        self, node: MathExpression
-    ) -> Tuple[Optional[TermEx], List[str]]:
-        """Given a math expression node, find its left leaf term that is
-        validly connected by the commutative or associative properties. """
-        path = ["left"]
-        term = get_term_ex(node.left)
-        if term is not None:
-            return term, path
-
-        curr = node
-        while curr is not None and curr.right is not None:
-            term = get_term_ex(curr.right)
-            path.append("right")
-            curr = curr.right
-        return None, []
 
     def apply_to(self, node):
         change = super().apply_to(node).save_parent()

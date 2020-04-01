@@ -17,13 +17,11 @@ class BaseConfig(BaseModel):
     email: str = about.__email__
     url: str = about.__uri__
     mathy_version: str = f">={about.__version__},<1.0.0"
-
     # One of "batch" or "layer"
     normalization_style = "layer"
     # The number of timesteps use when making predictions. This includes the current timestep and
     # (n - 1) previous timesteps
     prediction_window_size: int = 16
-
     # Dropout to apply to LSTMs
     dropout: float = 0.2
     units: int = 64

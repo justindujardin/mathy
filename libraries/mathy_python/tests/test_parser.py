@@ -3,7 +3,6 @@ from mathy.core.tree import BinaryTreeNode
 from mathy.core.expressions import (
     ConstantExpression,
     VariableExpression,
-    AddExpression,
 )
 from mathy.core.parser import ExpressionParser
 
@@ -32,7 +31,7 @@ def test_parser_to_string():
         assert out_str == expect["output"]
 
 
-def test_mult_exp_precedence():
+def test_parser_mult_exp_precedence():
     """should respect order of operations with factor parsing"""
     parser = ExpressionParser()
     expression = parser.parse("4x^2")
@@ -42,3 +41,17 @@ def test_mult_exp_precedence():
 
     expression = parser.parse("7 * 10 * 6x * 3x + 5x")
     assert expression is not None
+
+
+def test_parser_exceptions():
+    parser = ExpressionParser()
+    expectations = [
+        ("", InvalidExpression),
+        ("4+", UnexpectedBehavior),
+        ("4=+", UnexpectedBehavior),
+        ("4^+", InvalidSyntax),
+        ("4+3+3     3", TrailingTokens),
+    ]
+    for in_str, out_err in expectations:
+        with pytest.raises(out_err):
+            parser.parse(in_str)

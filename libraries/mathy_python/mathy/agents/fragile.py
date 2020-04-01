@@ -189,7 +189,7 @@ class FragileEnvironment(Environment):
             infos.append(info)
         return new_states, observs, rewards, terminals, infos
 
-    def reset(self):
+    def reset(self, return_state: bool = False):
         assert self._env is not None, "env required to reset"
         obs = self._env.reset()
         return self.get_state(), obs

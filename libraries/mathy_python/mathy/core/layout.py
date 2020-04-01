@@ -221,18 +221,3 @@ class TreeMeasurement:
         self.centerX = 0
         self.centerY = 0
 
-    def __repr__(self):
-        return """tree measurement:
-        bounds({}, {})
-        min({}, {})
-        max({}, {})
-        center({}, {})""".format(
-            self.width,
-            self.height,
-            self.minX,
-            self.minY,
-            self.maxX,
-            self.maxY,
-            self.centerX,
-            self.centerY,
-        )
