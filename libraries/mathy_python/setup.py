@@ -19,9 +19,6 @@ def setup_package():
     with open(root / "requirements.txt") as file:
         REQUIRED_MODULES = [line.strip() for line in file]
 
-    with open(root / "requirements-dev.txt") as file:
-        DEVELOPMENT_MODULES = [line.strip() for line in file if "-e" not in line]
-
     setup(
         name=package_name,
         description=about["__summary__"],
@@ -35,7 +32,6 @@ def setup_package():
         keywords="math",
         install_requires=REQUIRED_MODULES,
         packages=find_packages(),
-        extras_require={"dev": DEVELOPMENT_MODULES},
         package_data={"mathy": ["tests/api/*.json", "tests/rules/*.json"]},
         entry_points="""
             [console_scripts]
