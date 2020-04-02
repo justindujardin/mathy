@@ -11,5 +11,5 @@ fi
 . .env/bin/activate
 echo "Installing/updating requirements..."
 pip install -e ../mathy_python
-pip install -e .[dev]
+pip install -e .
 
