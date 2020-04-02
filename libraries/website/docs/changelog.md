@@ -1,3 +1,10 @@
+## [0.7.5](https://github.com/justindujardin/mathy/compare/v0.7.4...v0.7.5) (2020-04-02)
+
+
+### Features
+
+* **fragile:** add swarm agent as untrained solver ([8515273](https://github.com/justindujardin/mathy/commit/85152731b5813f706a6c5dc239ab9272b20aaafd))
+
 ## [0.7.4](https://github.com/justindujardin/mathy/compare/v0.7.3...v0.7.4) (2020-03-30)
 
 
