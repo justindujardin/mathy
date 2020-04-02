@@ -11,8 +11,6 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from wasabi import msg
 
-from mathy.agents.example import example
-
 from ..env import MathyEnv
 from ..envs import PolySimplify
 from ..state import (

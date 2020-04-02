@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from ..mathy.agents.densenet import DenseNetBlock, DenseNetStack
+from mathy.agents.densenet import DenseNetBlock, DenseNetStack
 import tensorflow as tf
 
 

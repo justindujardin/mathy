@@ -65,7 +65,7 @@ __Returns__
 
 ## load_model
 ```python
-load_model(name:str, **overrides) -> mathy.api.Mathy
+load_model(name:Union[pathlib.Path, str], **overrides) -> mathy.api.Mathy
 ```
 Load a model from a shortcut link, package or data path.
 

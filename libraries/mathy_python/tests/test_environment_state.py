@@ -1,4 +1,4 @@
-from ..mathy import MathyEnvState
+from mathy import MathyEnvState
 
 
 def test_env_state():

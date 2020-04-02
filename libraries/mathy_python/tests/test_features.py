@@ -2,8 +2,8 @@ from typing import List, Tuple
 
 import pytest
 
-from ..mathy.envs.poly_simplify import PolySimplify
-from ..mathy.state import MathyEnvState
+from mathy.envs.poly_simplify import PolySimplify
+from mathy.state import MathyEnvState
 
 
 def test_mathy_features_from_state():

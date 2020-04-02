@@ -3,13 +3,13 @@ from typing import Any, List, Tuple
 import pytest
 from pydantic import BaseModel
 
-from ..mathy import envs
-from ..mathy.agents.policy_value_model import PolicyValueModel
-from ..mathy.agents.zero.config import SelfPlayConfig
-from ..mathy.agents.zero.practice_runner import PracticeRunner
-from ..mathy.agents.zero.trainer import SelfPlayTrainer
-from ..mathy.env import MathyEnv
-from ..mathy.state import MathyObservation, observations_to_window
+from mathy import envs
+from mathy.agents.policy_value_model import PolicyValueModel
+from mathy.agents.zero.config import SelfPlayConfig
+from mathy.agents.zero.practice_runner import PracticeRunner
+from mathy.agents.zero.trainer import SelfPlayTrainer
+from mathy.env import MathyEnv
+from mathy.state import MathyObservation, observations_to_window
 
 
 def test_mathy_zero_trainer_constructor():

@@ -1,4 +1,4 @@
-from ..mathy.core.tree import BinaryTreeNode, BinarySearchTree, STOP
+from mathy.core.tree import BinaryTreeNode, BinarySearchTree, STOP
 import numpy as np
 import pytest
 

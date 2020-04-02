@@ -103,6 +103,7 @@ class PracticeSession:
                 fail += 1
                 complexity_stats[complexity]["fail"] += 1
 
+        summary = None
         for summary in episodes_rewards:
             value = summary.reward
             complexity = str(summary.complexity)

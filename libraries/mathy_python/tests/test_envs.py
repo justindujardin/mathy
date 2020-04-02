@@ -1,7 +1,7 @@
-from ..mathy.state import MathyEnvState
-from ..mathy.env import MathyEnv
-from ..mathy.envs.poly_simplify import PolySimplify
-from ..mathy.util import is_terminal_transition
+from mathy.state import MathyEnvState
+from mathy.env import MathyEnv
+from mathy.envs.poly_simplify import PolySimplify
+from mathy.util import is_terminal_transition, EnvRewards
 import random
 import pytest
 
@@ -16,7 +16,27 @@ def test_mathy_env_init():
         env.get_env_namespace()
 
 
-def test_env_terminal_conditions():
+def test_mathy_env_invalid_action_behaviors():
+
+    problem = "4x + 2x"
+    env = MathyEnv(error_invalid=True)
+    env_state = MathyEnvState(problem=problem, max_moves=35)
+    invalid_actions = [
+        i for i, value in enumerate(env.get_valid_moves(env_state)) if value == 0
+    ]
+    random.shuffle(invalid_actions)
+    action = invalid_actions[0]
+    # error_invalid throws if an invalid action is selected
+    with pytest.raises(ValueError):
+        env.get_next_state(env_state, action)
+
+    env = MathyEnv(error_invalid=False)
+    env_state, transition, changed = env.get_next_state(env_state, action)
+    # a transition is returned with error_invalid=False
+    assert transition.reward == EnvRewards.INVALID_MOVE
+
+
+def test_mathy_env_terminal_conditions():
 
     expectations = [
         ("70656 * (x^2 * z^6)", True),

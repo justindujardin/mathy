@@ -1,4 +1,4 @@
-from ..mathy.teacher import Student, Teacher
+from mathy.teacher import Student, Teacher
 
 topic_names = ["poly", "binomial", "poly-blockers", "complex"]
 me = 0

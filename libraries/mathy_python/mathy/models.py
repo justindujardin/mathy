@@ -52,7 +52,7 @@ REQUIRED_META_KEYS = ["units", "embedding_units", "lstm_units", "version"]
 REQUIRED_MODEL_FILES = ["model.h5", "model.optimizer", "model.config.json"]
 
 
-def load_model(name: str, **overrides) -> Mathy:
+def load_model(name: Union[Path, str], **overrides) -> Mathy:
     """Load a model from a shortcut link, package or data path.
 
     # Arguments

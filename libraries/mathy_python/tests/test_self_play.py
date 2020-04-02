@@ -1,6 +1,6 @@
 import pytest
 
-from ..mathy.agents.zero import SelfPlayConfig, self_play_runner
+from mathy.agents.zero import SelfPlayConfig, self_play_runner
 
 
 def test_self_play_runner_errors():

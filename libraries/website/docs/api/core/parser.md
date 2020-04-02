@@ -83,13 +83,13 @@ Returns : The evaluatable expression tree.
 
 ## TokenSet
 ```python
-TokenSet(self, source:Union[_ForwardRef('TokenSet'), int])
+TokenSet(self, source:int)
 ```
 TokenSet objects are bitmask combinations for checking to see
 if a token is part of a valid set.
 ### add
 ```python
-TokenSet.add(self, addTokens)
+TokenSet.add(self, addTokens:int) -> 'TokenSet'
 ```
 Add tokens to self set and return a TokenSet representing
 their combination of flags.  Value can be an integer or an instance

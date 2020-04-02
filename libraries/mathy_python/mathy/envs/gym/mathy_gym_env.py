@@ -28,6 +28,8 @@ class MathyGymEnv(gym.Env):
         self,
         env_class: Type[MathyEnv] = MathyEnv,
         env_problem_args: Optional[MathyEnvProblemArgs] = None,
+        env_problem: Optional[str] = None,
+        env_max_moves: int = 64,
         np_observation: bool = False,
         repeat_problem: bool = False,
         **env_kwargs,
@@ -38,7 +40,12 @@ class MathyGymEnv(gym.Env):
         self.mathy = env_class(**env_kwargs)
         self.env_class = env_class
         self.env_problem_args = env_problem_args
-        self._challenge, _ = self.mathy.get_initial_state(env_problem_args)
+        if env_problem is not None:
+            self._challenge = MathyEnvState(
+                problem=env_problem, max_moves=env_max_moves
+            )
+        else:
+            self._challenge, _ = self.mathy.get_initial_state(env_problem_args)
         self.action_space = MaskedDiscrete(self.action_size, [1] * self.action_size)
 
     @property
@@ -71,7 +78,9 @@ class MathyGymEnv(gym.Env):
             # convert mask to probabilities
             nodes = np.array(pad_array(observation.nodes, 512, 0))
             mask = np.array(pad_array(observation.mask, 512, 0))
-            mask = mask / np.sum(mask)
+            mask_sum = np.sum(mask)
+            if mask_sum > 0.0:
+                mask = mask / mask_sum
             return np.vstack((nodes, mask))
         return observation
 

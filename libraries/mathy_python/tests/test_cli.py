@@ -5,8 +5,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ..mathy.cli import cli
-from ..mathy.envs.gym import MathyGymEnv  # noqa
+from mathy.cli import cli
+from mathy.envs.gym import MathyGymEnv  # noqa
 
 
 def test_cli_contribute():
@@ -30,6 +30,16 @@ def test_cli_simplify():
     for problem in ["4x + 2x", "(4 + 2) * x"]:
         result = runner.invoke(cli, ["simplify", problem, "--max-steps=3"])
         assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("use_mp", [True, False])
+def test_cli_simplify_swarm(use_mp: bool):
+    runner = CliRunner()
+    args = ["simplify", "4x + 2x", "--swarm"]
+    if use_mp:
+        args.append("--parallel")
+    result = runner.invoke(cli, args)
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize("agent", ["a3c", "zero"])
