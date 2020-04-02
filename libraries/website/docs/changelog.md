@@ -1,3 +1,10 @@
+## [0.7.6](https://github.com/justindujardin/mathy/compare/v0.7.5...v0.7.6) (2020-04-02)
+
+
+### Bug Fixes
+
+* **pypi:** optional swarm install with mathy[fragile] ([b6203fd](https://github.com/justindujardin/mathy/commit/b6203fde9fece38dc5d6f387fdc7b74f914eddda))
+
 ## [0.7.5](https://github.com/justindujardin/mathy/compare/v0.7.4...v0.7.5) (2020-04-02)
 
 
