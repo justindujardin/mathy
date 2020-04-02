@@ -4,6 +4,8 @@ from setuptools import setup, find_packages
 
 def setup_package():
 
+    FRAGILE_MODULES = ["fragile==0.0.27", "plangym==0.0.2"]
+
     package_name = "mathy"
     root = Path(__file__).parent.resolve()
 
@@ -35,7 +37,7 @@ def setup_package():
         keywords="math",
         install_requires=REQUIRED_MODULES,
         packages=find_packages(),
-        extras_require={"dev": DEVELOPMENT_MODULES},
+        extras_require={"dev": DEVELOPMENT_MODULES, "fragile": FRAGILE_MODULES},
         package_data={"mathy": ["tests/api/*.json", "tests/rules/*.json"]},
         entry_points="""
             [console_scripts]

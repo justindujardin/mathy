@@ -11,7 +11,7 @@ if [ ! -d "${DIR}" ]; then
   python -m virtualenv .env -p python3.6
 fi
 echo "Installing/updating requirements..."
-.env/bin/pip install -e ./libraries/mathy_python
+.env/bin/pip install -e ./libraries/mathy_python[fragile]
 
 . .env/bin/activate
 
