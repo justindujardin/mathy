@@ -11,6 +11,7 @@ operators = list("+*")
 common_variables = list("xyz")
 variables = list("abcdfghjklmnopqrstuvwxyz")
 max_const = 12
+_pretty_numbers = True
 
 
 class MathyTermTemplate(BaseModel):
@@ -109,12 +110,27 @@ def maybe_power(percent_chance=80, max_power=4, or_else=""):
         return or_else
 
 
+def use_pretty_numbers(enabled: bool = True):
+    """Determine if problems should include only pretty numbers or 
+    a whole range of integers and floats. Using pretty numbers will
+    restrict the numbers that are generated to integers between 1 and
+    12. When not using pretty numbers, floats and large integers will
+    be included in the output from `rand_number`"""
+    global _pretty_numbers
+    _pretty_numbers = enabled
+
+
 def rand_number():
-    min_value = -10000
-    max_value = 10000
+    global _pretty_numbers
+    if _pretty_numbers:
+        min_value = 1
+        max_value = 12
+    else:
+        min_value = -10000
+        max_value = 10000
     # Use an integer?
-    if rand_bool(66):
-        if rand_bool(50):
+    if _pretty_numbers or rand_bool(66):
+        if _pretty_numbers or rand_bool(50):
             result = random.randint(min_value, max_value)
         else:
             result = random.randint(1, max_const)
@@ -539,4 +555,3 @@ def gen_move_around_blockers_two(number_blockers: int, powers_probability: float
         three_exp,
     )
     return problem, complexity
-
