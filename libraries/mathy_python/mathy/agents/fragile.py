@@ -9,6 +9,7 @@ import gym
 import numpy as np
 from gym import spaces
 from pydantic import BaseModel
+from wasabi import msg
 
 from mathy import EnvRewards, MathTypeKeysMax, MathyEnvState, is_terminal_transition
 from mathy.envs.gym import MathyGymEnv
@@ -29,7 +30,7 @@ def mathy_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 def swarm_solve(problem: str, config: SwarmConfig):
     from plangym import ParallelEnvironment
-    from plangym.env import Environment
+    from plangym.core import BaseEnvironment
 
     from fragile.core.env import DiscreteEnv
     from fragile.core.models import DiscreteModel
@@ -37,6 +38,7 @@ def swarm_solve(problem: str, config: SwarmConfig):
     from fragile.core.swarm import Swarm
     from fragile.core.tree import HistoryTree
     from fragile.core.utils import StateDict
+    from fragile.core.walkers import Walkers
 
     class DiscreteMasked(DiscreteModel):
         def sample(
@@ -69,14 +71,8 @@ def swarm_solve(problem: str, config: SwarmConfig):
                 **kwargs,
             )
 
-    class MathySwarm(Swarm):
-        def calculate_end_condition(self) -> bool:
-            """Stop when a walker receives a positive terminal reward."""
-            max_reward = self.walkers.env_states.rewards.max()
-            return max_reward > EnvRewards.WIN or self.walkers.calculate_end_condition()
-
     class FragileMathyEnv(DiscreteEnv):
-        """FragileMathyEnv is an interface between the `plangym.Environment` and a
+        """FragileMathyEnv is an interface between the `plangym.BaseEnvironment` and a
         Mathy environment."""
 
         STATE_CLASS = StatesEnv
@@ -120,7 +116,7 @@ def swarm_solve(problem: str, config: SwarmConfig):
             )
             return new_states
 
-    class FragileEnvironment(Environment):
+    class FragileEnvironment(BaseEnvironment):
         """Fragile Environment for solving Mathy problems."""
 
         problem: Optional[str]
@@ -216,12 +212,13 @@ def swarm_solve(problem: str, config: SwarmConfig):
 
     print_every = 1e6
 
-    swarm = MathySwarm(
+    swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=lambda: FragileMathyEnv(env=env),
         tree=HistoryTree,
+        walkers=lambda **kwargs: Walkers(reward_limit=EnvRewards.WIN, **kwargs),
         n_walkers=config.n_walkers,
-        max_iters=config.max_iters,
+        max_epochs=config.max_iters,
         prune_tree=True,
         reward_scale=5,
         distance_scale=10,
@@ -229,9 +226,12 @@ def swarm_solve(problem: str, config: SwarmConfig):
         minimize=False,
     )
 
-    _ = swarm.run(print_every=print_every)
-    best_ix = swarm.walkers.states.cum_rewards.argmax()
-    best_id = swarm.walkers.states.id_walkers[best_ix]
-    path = swarm.tree.get_branch(best_id, from_hash=True)
-    last_state = MathyEnvState.from_np(path[0][-1])
-    env._env.mathy.print_history(last_state)
+    with msg.loading(f"Solving {problem} ..."):
+        _ = swarm.run(show_pbar=False)
+
+    if swarm.walkers.best_reward > EnvRewards.WIN:
+        last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
+        msg.good(f"Solved! {problem} = {last_state.agent.problem}")
+        env._env.mathy.print_history(last_state)
+    else:
+        msg.fail(f"Failed to find a solution! :(")
