@@ -29,9 +29,24 @@ def mathy_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def swarm_solve(problem: str, config: SwarmConfig):
-    from plangym import ParallelEnvironment
-    from plangym.core import BaseEnvironment
+    from contextlib import contextmanager
+    import sys, os
 
+    @contextmanager
+    def suppress_stdout():
+        with open(os.devnull, "w") as devnull:
+            old_stdout = sys.stdout
+            sys.stdout = devnull
+            try:
+                yield
+            finally:
+                sys.stdout = old_stdout
+
+    # Suppress the plangym package error "Please install OpenAI retro" that happens
+    # on import. We don't use it, so it's safe to ignore.
+    with suppress_stdout():
+        from plangym import ParallelEnvironment
+        from plangym.core import BaseEnvironment
     from fragile.core.env import DiscreteEnv
     from fragile.core.models import DiscreteModel
     from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
@@ -215,13 +230,11 @@ def swarm_solve(problem: str, config: SwarmConfig):
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=lambda: FragileMathyEnv(env=env),
-        tree=HistoryTree,
         walkers=lambda **kwargs: Walkers(reward_limit=EnvRewards.WIN, **kwargs),
         n_walkers=config.n_walkers,
         max_epochs=config.max_iters,
-        prune_tree=True,
-        reward_scale=5,
-        distance_scale=10,
+        reward_scale=1,
+        distance_scale=3,
         distance_function=mathy_dist,
         minimize=False,
     )
