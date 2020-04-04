@@ -278,6 +278,7 @@ class MathyEnv:
                 return out_env, transition, ExpressionChangeRule(BaseRule())
 
         change = operation.apply_to(token.clone_from_root())
+        assert change.result is not None
         root = change.result.get_root()
         change_name = operation.name
         out_problem = str(root)
@@ -303,11 +304,12 @@ class MathyEnv:
         token_index: int = -1,
         change: ExpressionChangeRule = None,
         change_reward: float = 0.0,
+        pretty: bool = False,
     ):
         """Render the given state to stdout for visualization"""
         print(
             self.render_state(
-                env_state, action_name, token_index, change, change_reward
+                env_state, action_name, token_index, change, change_reward, pretty
             )
         )
 
@@ -322,7 +324,7 @@ class MathyEnv:
         """
         return is_terminal_transition(self.get_state_transition(env_state))
 
-    def print_history(self, env_state: MathyEnvState) -> None:
+    def print_history(self, env_state: MathyEnvState, pretty: bool = True) -> None:
         """Render the history of an episode from a given state.
 
         # Arguments
@@ -333,17 +335,19 @@ class MathyEnv:
         curr_state: MathyEnvState = MathyEnvState(
             problem=initial_step.raw, max_moves=env_state.max_moves,
         )
-        self.print_state(curr_state, "initial-state")
-        while not self.is_terminal_state(curr_state):
+        self.print_state(curr_state, "initial-state", pretty=pretty)
+        while len(history) > 0:
             step: MathyEnvStateStep = history.pop(0)
             curr_state, transition, change = self.get_next_state(
                 curr_state, step.action + (step.focus * len(self.rules))
             )
             rule_idx, token_idx = self.get_action_indices(step.action)
             rule: BaseRule = self.rules[rule_idx]
+            rule_name: str = rule.name[:25].lower()
             self.print_state(
+                pretty=pretty,
                 env_state=curr_state,
-                action_name=rule.name[:25].lower(),
+                action_name=rule_name,
                 token_index=int(f"{step.focus}".zfill(3)),
                 change=change,
                 change_reward=transition.reward,
@@ -356,6 +360,7 @@ class MathyEnv:
         token_index: int = -1,
         change: ExpressionChangeRule = None,
         change_reward: float = 0.0,
+        pretty: bool = False,
     ) -> str:
         """Render the given state to a string suitable for printing to a log"""
         changed_problem = env_state.agent.problem
@@ -379,6 +384,8 @@ class MathyEnv:
         moves = " ".join(move_codes)
         reward = f"{change_reward:.2}"
         reward = f"{reward:<5}"
+        if pretty:
+            return output
         return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
 
     def random_action(self, expression: MathExpression, rule: Type[BaseRule]) -> int:
