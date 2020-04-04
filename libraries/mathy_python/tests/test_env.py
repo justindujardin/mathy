@@ -71,14 +71,15 @@ def test_mathy_env_terminal_conditions():
         assert text == text and is_terminal_transition(reward) == bool(is_win)
 
 
-def test_print_history():
+@pytest.mark.parametrize("pretty", [True, False])
+def test_print_history(pretty: bool):
     env = PolySimplify()
     env_state = MathyEnvState(problem="4x+2")
     for i in range(10):
         env_state = env_state.get_out_state(
             problem="2+4x", focus=i, moves_remaining=10 - i, action=i
         )
-    assert env.print_history(env_state) is None
+    env.print_history(env_state, pretty=pretty)
 
 
 def test_env_finalize_state():
