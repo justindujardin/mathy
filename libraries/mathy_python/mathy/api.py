@@ -42,8 +42,10 @@ class Mathy:
                 raise ValueError("config must be a BaseConfig instance")
             self.state = MathyAPIModelState(model=model, config=config)
         else:
+            if config is None:
+                config = SwarmConfig()
             if not isinstance(config, SwarmConfig):
-                raise ValueError("config must be a BaseConfig instance")
+                raise ValueError("config must be a SwarmConfig instance")
             self.state = MathyAPISwarmState(config=config)
 
     def simplify(
@@ -51,8 +53,9 @@ class Mathy:
     ) -> EpisodeMemory:
         if isinstance(self.state, MathyAPISwarmState):
             return self.simplify_swarm(problem=problem, max_steps=max_steps)
-        if not isinstance(self.state, MathyAPIModelState):
-            raise ValueError(f"unknown state type: {type(self.state)}!")
+        assert isinstance(
+            self.state, MathyAPIModelState
+        ), f"unknown state type: {type(self.state)}!"
         return self.simplify_model(model=model, problem=problem, max_steps=max_steps)
 
     def simplify_swarm(self, *, problem: str, max_steps: int) -> EpisodeMemory:
@@ -102,20 +105,12 @@ class Mathy:
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.state.config.prediction_window_size
             )
-            try:
-                action, value = selector.select(
-                    last_state=env.state,
-                    last_window=window,
-                    last_action=last_action,
-                    last_reward=last_reward,
-                )
-            except KeyboardInterrupt:
-                print("Done!")
-                return episode_memory
-            except BaseException as e:
-                print("Prediction failed with error:", e)
-                print("Inputs to model are:", window)
-                continue
+            action, value = selector.select(
+                last_state=env.state,
+                last_window=window,
+                last_action=last_action,
+                last_reward=last_reward,
+            )
             # Take an env step
             observation, reward, done, _ = env.step(action)
             new_text = env.state.agent.problem

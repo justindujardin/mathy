@@ -18,6 +18,7 @@
 #
 #  - 2019/12/09 JD: inline and remove tensorflow dependency/shape support
 #  - 2019/12/11 JD: add MathyObservation type hints
+#  - 2020/04/04 JD: remove more unused code
 """TimeStep representing a step in the environment.
 
 This file is a mostly direct copy of the implementation from the
@@ -29,11 +30,6 @@ Mathy doesn't use these features and the overhead of loading tensorflow
 to pass environment states around is not great for things like CLI start
 times.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import numpy as np
 
@@ -44,15 +40,6 @@ class TimeStep(
     )
 ):
     __slots__ = ()
-
-    def is_first(self):
-        return np.equal(self.step_type, StepType.FIRST)
-
-    def is_mid(self):
-        return np.equal(self.step_type, StepType.MID)
-
-    def is_last(self):
-        return np.equal(self.step_type, StepType.LAST)
 
     def __hash__(self):
         return hash(tuple(self))
@@ -68,17 +55,6 @@ class StepType(object):
     # Denotes the last `TimeStep` in a sequence.
     LAST = np.asarray(2, dtype=np.int32)
 
-    def __new__(cls, value):
-        """Add ability to create StepType constants from a value."""
-        if value == cls.FIRST:
-            return cls.FIRST
-        if value == cls.MID:
-            return cls.MID
-        if value == cls.LAST:
-            return cls.LAST
-
-        raise ValueError("No known conversion for `%r` into a StepType" % value)
-
 
 def transition(observation, reward, discount=1.0):
     """Returns a `TimeStep` with `step_type` set equal to `StepType.MID`."""
@@ -88,8 +64,3 @@ def transition(observation, reward, discount=1.0):
 def termination(observation, reward):
     """Returns a `TimeStep` with `step_type` set to `StepType.LAST`."""
     return TimeStep(StepType.LAST, reward, 00, observation)
-
-
-def truncation(observation, reward, discount=1.0):
-    """Returns a `TimeStep` with `step_type` set to `StepType.LAST`."""
-    return TimeStep(StepType.LAST, reward, discount, observation)
