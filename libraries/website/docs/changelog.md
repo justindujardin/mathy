@@ -1,3 +1,10 @@
+## [0.7.7](https://github.com/justindujardin/mathy/compare/v0.7.6...v0.7.7) (2020-04-04)
+
+
+### Features
+
+* **print_history:** add pretty print flag ([#38](https://github.com/justindujardin/mathy/issues/38)) ([4cf6255](https://github.com/justindujardin/mathy/commit/4cf625564695b10bff897102659b4da9ece1beef))
+
 ## [0.7.6](https://github.com/justindujardin/mathy/compare/v0.7.5...v0.7.6) (2020-04-02)
 
 
