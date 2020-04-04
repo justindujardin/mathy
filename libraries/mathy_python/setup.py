@@ -23,7 +23,7 @@ def setup_package():
         DEVELOPMENT_MODULES = [line.strip() for line in file if "-e" not in line]
 
     extras = {
-        "fragile": ["fragile==0.0.40", "plangym==0.0.6", "tqdm"],
+        "fragile": ["fragile==0.0.44"],
         "dev": DEVELOPMENT_MODULES,
     }
     extras["all"] = [item for group in extras.values() for item in group]
