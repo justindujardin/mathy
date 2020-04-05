@@ -213,4 +213,4 @@ def swarm_solve(problem: str, config: SwarmConfig):
         msg.good(f"Solved! {problem} = {last_state.agent.problem}")
         mathy_env.print_history(last_state)
     else:
-        msg.fail(f"Failed to find a solution! :(")
+        msg.fail(f"Failed to find a solution :(")
