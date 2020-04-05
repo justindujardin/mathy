@@ -13,3 +13,7 @@ gym
 tensorflow>=2.1.0
 tensorflow_probability
 keras-self-attention
+
+# new python feature backports
+dataclasses>=0.6,<1.0; python_version < "3.7"
+typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"
