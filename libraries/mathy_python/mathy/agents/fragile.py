@@ -3,7 +3,7 @@ trained neural network."""
 
 import copy
 import time
-from typing import List, Optional, Union, Dict
+from typing import Dict, List, Optional, Union
 
 import gym
 import numpy as np
@@ -20,18 +20,16 @@ from wasabi import msg
 from .. import (
     EnvRewards,
     MathTypeKeysMax,
-    MathyEnvState,
-    is_terminal_transition,
     MathyEnv,
+    MathyEnvState,
+    about,
+    is_terminal_transition,
 )
 from ..envs.gym import MathyGymEnv
-
-from .. import about
 
 
 class SwarmConfig(BaseModel):
     verbose: bool = False
-    use_mp: bool = True
     n_walkers: int = 512
     max_iters: int = 100
 
@@ -191,15 +189,10 @@ class FragileEnvironment:
 
 
 def swarm_solve(problem: str, config: SwarmConfig):
-
-    from fragile.distributed import ParallelEnv
-
     env_callable = lambda: FragileMathyEnv(
         name="mathy_v0", problem=problem, repeat_problem=True
     )
     mathy_env: MathyEnv = env_callable()._env._env.mathy
-    if config.use_mp:
-        env_callable = ParallelEnv(env_callable=env_callable)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,

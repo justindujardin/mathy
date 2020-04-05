@@ -32,13 +32,9 @@ def test_cli_simplify():
         assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("use_mp", [True, False])
-def test_cli_simplify_swarm(use_mp: bool):
+def test_cli_simplify_swarm():
     runner = CliRunner()
-    args = ["simplify", "4x + 2x", "--swarm"]
-    if use_mp:
-        args.append("--parallel")
-    result = runner.invoke(cli, args)
+    result = runner.invoke(cli, ["simplify", "4x + 2x", "--swarm"])
     assert result.exit_code == 0
 
 

@@ -37,13 +37,6 @@ def cli_contribute():
     help="Use swarm solver from fragile library without a trained model",
 )
 @click.option(
-    "parallel",
-    "--parallel",
-    default=False,
-    is_flag=True,
-    help="Use parallel execution with the swarm solver",
-)
-@click.option(
     "model", "--model", default="mathy_alpha_sm", help="The path to a mathy model",
 )
 @click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
@@ -54,9 +47,7 @@ def cli_contribute():
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(
-    agent: str, problem: str, model: str, max_steps: int, swarm: bool, parallel: bool
-):
+def cli_simplify(agent: str, problem: str, model: str, max_steps: int, swarm: bool):
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
@@ -66,12 +57,12 @@ def cli_simplify(
 
     mt: Mathy
     if swarm is True:
-        mt = Mathy(config=SwarmConfig(use_mp=parallel))
+        mt = Mathy(config=SwarmConfig())
     else:
         try:
             mt = load_model(model)
         except ValueError:
-            mt = Mathy(config=SwarmConfig(use_mp=parallel))
+            mt = Mathy(config=SwarmConfig())
 
     mt.simplify(problem=problem, max_steps=max_steps)
 
