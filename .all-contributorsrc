@@ -18,6 +18,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Guillemdb",
+      "name": "Guillem Duran Ballester",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/7149899?v=4",
+      "profile": "https://twitter.com/Miau_DB",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "skipCi": true,
