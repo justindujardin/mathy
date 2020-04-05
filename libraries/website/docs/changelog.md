@@ -1,3 +1,10 @@
+## [0.7.9](https://github.com/justindujardin/mathy/compare/v0.7.8...v0.7.9) (2020-04-05)
+
+
+### Features
+
+* **fragile:** update to 0.0.45 ([a8bc2b4](https://github.com/justindujardin/mathy/commit/a8bc2b4c2dc3b6b59f669b9ec61276a56a19023a))
+
 ## [0.7.8](https://github.com/justindujardin/mathy/compare/v0.7.7...v0.7.8) (2020-04-04)
 
 
