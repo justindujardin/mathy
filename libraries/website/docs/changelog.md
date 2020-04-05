@@ -1,3 +1,10 @@
+## [0.7.10](https://github.com/justindujardin/mathy/compare/v0.7.9...v0.7.10) (2020-04-05)
+
+
+### Bug Fixes
+
+* **python3.6:** add backports for new typing features ([11017f9](https://github.com/justindujardin/mathy/commit/11017f9b26959e75eb39e4124237a36639c75008))
+
 ## [0.7.9](https://github.com/justindujardin/mathy/compare/v0.7.8...v0.7.9) (2020-04-05)
 
 
