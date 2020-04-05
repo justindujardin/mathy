@@ -1,3 +1,10 @@
+## [0.7.11](https://github.com/justindujardin/mathy/compare/v0.7.10...v0.7.11) (2020-04-05)
+
+
+### Features
+
+* **problems:** add `use_pretty_numbers` function ([#41](https://github.com/justindujardin/mathy/issues/41)) ([8c54e2e](https://github.com/justindujardin/mathy/commit/8c54e2ed21c8e6906faf2e93cb82f54ff464bb9b))
+
 ## [0.7.10](https://github.com/justindujardin/mathy/compare/v0.7.9...v0.7.10) (2020-04-05)
 
 
