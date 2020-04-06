@@ -13,6 +13,7 @@ from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from fragile.core.swarm import Swarm
 from fragile.core.utils import StateDict
 from fragile.core.walkers import Walkers
+from fragile.distributed.env import ParallelEnv
 from gym import spaces
 from pydantic import BaseModel
 from wasabi import msg
@@ -29,6 +30,7 @@ from ..envs.gym import MathyGymEnv
 
 
 class SwarmConfig(BaseModel):
+    use_mp: bool = True
     verbose: bool = False
     n_walkers: int = 512
     max_iters: int = 100
@@ -193,6 +195,8 @@ def swarm_solve(problem: str, config: SwarmConfig):
         name="mathy_v0", problem=problem, repeat_problem=True
     )
     mathy_env: MathyEnv = env_callable()._env._env.mathy
+    if config.use_mp:
+        env_callable = ParallelEnv(env_callable=env_callable)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,

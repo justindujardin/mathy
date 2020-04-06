@@ -24,11 +24,6 @@ def test_mathy_with_model_and_config():
     mt = Mathy(model=model, config=config)
 
 
-def test_api_mathy_simplify():
-    mt: Mathy = Mathy(config=SwarmConfig())
-    mt.simplify(problem="2x+4x", max_steps=4)
-
-
 def test_api_mathy_constructor():
     # Defaults to swarm config
     assert isinstance(Mathy().state, MathyAPISwarmState)
