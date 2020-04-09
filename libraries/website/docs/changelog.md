@@ -1,3 +1,10 @@
+## [0.7.12](https://github.com/justindujardin/mathy/compare/v0.7.11...v0.7.12) (2020-04-09)
+
+
+### Features
+
+* **fragile:** enable multiprocessing solver by default ([3016c48](https://github.com/justindujardin/mathy/commit/3016c4810e2e96fa7505277afd2ac197bd1fe930))
+
 ## [0.7.11](https://github.com/justindujardin/mathy/compare/v0.7.10...v0.7.11) (2020-04-05)
 
 
