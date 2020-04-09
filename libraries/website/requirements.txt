@@ -8,7 +8,8 @@ snakeviz
 pydot
 # Docs 
 mkdocs
-mkdocs-material
+# Until the build error is fixed: https://github.com/squidfunk/mkdocs-material/issues/1469
+mkdocs-material==4.6.3
 markdown-include
 mkdocs-minify-plugin
 ruamel.yaml
