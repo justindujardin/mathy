@@ -23,6 +23,7 @@ from ..policy_value_model import PolicyValueModel
 from .config import SelfPlayConfig
 from .trainer import SelfPlayTrainer
 from .types import EpisodeHistory, EpisodeSummary
+from .zero_model import zero_save
 
 
 class PracticeRunner:
@@ -32,6 +33,8 @@ class PracticeRunner:
     but is not ideal for machines with many processors available. For multiprocessing swap out the default 
     `PracticeRunner` class for the `ParallelPracticeRunner` class that is defined below.    
     """
+
+    config: SelfPlayConfig
 
     def __init__(self, config: SelfPlayConfig):
         if config is None or not isinstance(config, SelfPlayConfig):
@@ -221,7 +224,7 @@ class PracticeRunner:
         pass
 
     def process_trained_model(
-        self, updated_model, iteration, train_examples, model_path
+        self, updated_model, iteration: int, train_examples: List[Any], model_path: str,
     ):
         if updated_model is None:
             return False
@@ -242,9 +245,9 @@ class PracticeRunner:
     def train_with_examples(self, iteration, train_examples, model_path=None):
         game = self.get_env()
         new_net = self.get_model(game)
-        trainer = SelfPlayTrainer(self.config, new_net, action_size=new_net.predictions)
+        trainer = SelfPlayTrainer(self.config, new_net, action_size=game.action_size)
         if trainer.train(train_examples, new_net):
-            new_net.save()
+            zero_save(self.config, new_net)
 
 
 class ParallelPracticeRunner(PracticeRunner):

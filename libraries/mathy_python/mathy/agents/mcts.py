@@ -65,7 +65,8 @@ class MCTS:
         probs: List[float]
         values: List[float] = []
         for _ in range(self.num_mcts_sims):
-            values.append(self.search(env_state, True))
+            value = self.search(env_state, True)
+            values.append(value)
         value = numpy.asarray(values).mean()
 
         s = self.env.to_hash_key(env_state)
@@ -121,10 +122,39 @@ class MCTS:
         if s not in self.Ps:
             # leaf node
             valids = self.env.get_valid_moves(env_state)
+            num_valids = len(valids)
             obs = env_state.to_observation(valids)
             observations = observations_to_window([obs]).to_inputs()
-            out_policy, state_v = self.model.predict_next(observations)
+            out_policy, state_v, state_r = self.model.predict(observations)
+            out_policy = out_policy[-1].flatten()
+            state_v = tf.squeeze(state_v[-1]).numpy()
+            state_r = tf.squeeze(state_r[-1]).numpy()
+            # Clip any predictions over batch-size padding tokens
+            if len(out_policy) > num_valids:
+                out_policy = out_policy[:num_valids]
             self.Ps[s] = out_policy
+            # print("calculating valid moves for: {}".format(s))
+            # print("action_v = {}".format(action_v))
+            # print("Ps = {}".format(self.Ps[s].shape))
+            # save_ps = self.Ps[s]
+            self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
+            sum_Ps_s = numpy.sum(self.Ps[s])
+            # print("sum Ps = {}".format(sum_Ps_s))
+            if sum_Ps_s > 0:
+                # renormalize so values sum to 1
+                self.Ps[s] /= sum_Ps_s
+            else:
+                # If all valid moves were masked make all valid moves equally probable
+                # NOTE: This can happen if your model is under/over fitting.
+                # MORE: https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
+                # print("All valid moves were masked, do workaround.")
+                # print("problem: {}".format(env_state.agent.problem))
+                # print("history: {}".format(env_state.agent.history))
+                # print("save: {}".format(save_ps))
+                # print("mask: {}".format(self.Ps[s]))
+                # print("valids: {}".format(valids))
+                self.Ps[s] = self.Ps[s] + valids
+                self.Ps[s] /= numpy.sum(self.Ps[s])
             self.Vs[s] = valids
             self.Ns[s] = 0
             return state_v

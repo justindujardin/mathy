@@ -33,15 +33,9 @@ def self_play_runner(config: SelfPlayConfig):
             return gym.make(lesson_name)
 
         def get_model(self, game):
-            from ...agents.policy_value_model import (
-                get_or_create_policy_model,
-                PolicyValueModel,
-            )
+            from .zero_model import get_zero
 
-            model: PolicyValueModel = get_or_create_policy_model(
-                args=config, predictions=game.action_space.n, is_main=True
-            )
-            return model
+            return get_zero(config=config, predictions=game.action_space.n)
 
     print("Practicing {}...".format(config.topics))
     runner = LessonRunner(config)

@@ -63,7 +63,6 @@ class SelfPlayTrainer:
         )
 
         for epoch in range(self.args.epochs):
-            print("EPOCH ::: " + str(epoch + 1))
             data_time = AverageMeter()
             batch_time = AverageMeter()
             pi_losses = AverageMeter()
@@ -71,7 +70,7 @@ class SelfPlayTrainer:
             end = time.time()
 
             batch_steps = int(len(examples) / self.args.batch_size)
-            bar = Bar("Training Net", max=batch_steps)
+            bar = Bar(f"Epoch {epoch + 1}", max=batch_steps)
             batch_idx = 0
 
             # self.session.run(tf.local_variables_initializer())
@@ -134,7 +133,7 @@ class SelfPlayTrainer:
 
         batch_size = len(inputs.nodes)
         step = self.model.optimizer.iterations
-        logits, values, _, _, _ = self.model(inputs.to_inputs())
+        logits, values, _ = self.model(inputs.to_inputs())
         value_loss = tf.losses.mean_squared_error(
             target_v, tf.reshape(values, shape=[-1])
         )
