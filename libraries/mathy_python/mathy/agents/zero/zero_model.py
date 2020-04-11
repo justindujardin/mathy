@@ -5,7 +5,10 @@ import tensorflow as tf
 
 from ...core.expressions import MathTypeKeysMax
 from ...env import MathyEnv
+from ..attention import SeqSelfAttention
 from .config import SelfPlayConfig
+
+from tensorflow.keras.utils import CustomObjectScope
 
 
 def zero_model(config: SelfPlayConfig, predictions: int) -> tf.keras.Sequential:
@@ -17,17 +20,19 @@ def zero_model(config: SelfPlayConfig, predictions: int) -> tf.keras.Sequential:
         mask_zero=True,
     )
     x = embed(nodes_input)
+    self_attn = SeqSelfAttention(attention_activation="sigmoid", name="self_attn",)
+    x = self_attn(x)
+
+    shared_dense = tf.keras.layers.Dense(
+        predictions,
+        name="policy_ts_hidden",
+        kernel_initializer="he_normal",
+        activation=None,
+    )
+
     policy_net = tf.keras.Sequential(
         [
-            tf.keras.layers.TimeDistributed(
-                tf.keras.layers.Dense(
-                    predictions,
-                    name="policy_ts_hidden",
-                    kernel_initializer="he_normal",
-                    activation=None,
-                ),
-                name="policy_logits",
-            ),
+            tf.keras.layers.TimeDistributed(shared_dense, name="policy_logits"),
             tf.keras.layers.LayerNormalization(name="policy_layer_norm"),
         ],
         name="policy_head",
@@ -103,7 +108,8 @@ def get_zero(
     model_path = os.path.join(config.model_dir, config.model_name)
     model_file = f"{model_path}.h5"
     if os.path.exists(model_file):
-        return tf.keras.models.load_model(model_file)
+        with CustomObjectScope({"SeqSelfAttention": SeqSelfAttention}):
+            return tf.keras.models.load_model(model_file)
     if is_main:
         cfg = f"{model_path}.config.json"
         srsly.write_json(cfg, config.dict(exclude_defaults=False))
