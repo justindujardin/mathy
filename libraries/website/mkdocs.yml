@@ -67,11 +67,11 @@ nav:
 
 extra:
   social:
-  - type: github
+  - icon: fontawesome/brands/github-alt
     link: https://github.com/justindujardin
-  - type: twitter
+  - icon: fontawesome/brands/twitter
     link: https://twitter.com/justindujardin
-  - type: linkedin
+  - icon: fontawesome/brands/linkedin
     link: https://linkedin.com/in/justindujardin
 
 extra_css:
@@ -82,7 +82,10 @@ extra_javascript:
 
 theme:
   name: material
-  logo: img/school-24px.svg
+  icon:
+    logo: material/school
+  features:
+    - instant
   favicon: img/favicon/favicon-16x16.png
   palette:
     primary: deep-orange
@@ -109,5 +112,6 @@ markdown_extensions:
 plugins:
 - mathy
 - search
+- git-revision-date-localized
 - minify:
     minify_html: true
