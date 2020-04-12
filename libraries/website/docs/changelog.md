@@ -1,3 +1,10 @@
+## [0.7.13](https://github.com/justindujardin/mathy/compare/v0.7.12...v0.7.13) (2020-04-12)
+
+
+### Features
+
+* **mkdocs:** update mkdocs-material to 5.x SPA ([0be38b4](https://github.com/justindujardin/mathy/commit/0be38b4284cdbbf321c9d67f9a14a0a706feb259))
+
 ## [0.7.12](https://github.com/justindujardin/mathy/compare/v0.7.11...v0.7.12) (2020-04-09)
 
 
