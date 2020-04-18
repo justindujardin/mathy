@@ -201,11 +201,9 @@ def mathy_swarm(config: SwarmConfig, env_callable=None) -> Swarm:
         )
     if config.use_mp:
         env_callable = ParallelEnv(env_callable=env_callable)
-    tree = None
+    tree_callable = None
     if config.history:
-        tree_callable = lambda: HistoryTree(
-            prune=True, names=config.history_names or []
-        )
+        tree_callable = lambda: HistoryTree(prune=True, names=config.history_names)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,
