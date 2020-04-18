@@ -2,7 +2,7 @@ Mathy can solve problems using a planning only algorithm that does not require a
 
 It comes with support for planning using a swarming algorithm from the [fragile](https://github.com/FragileTech/fragile){target=\_blank} library.
 
-The basic idea behind the swarm planning is to simulate a bunch of different possible actions at the same time, then select the most rewarding one to take.
+The basic idea behind fragile's swarm planning is to simulate a bunch of different possible actions at the same time, then select the most rewarding one to take.
 
 In practice, the swarm planning algorithm can solve almost all of the mathy environments with little effort.
 
