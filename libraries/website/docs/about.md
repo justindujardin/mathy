@@ -99,6 +99,20 @@ FastAPI has a magnificent documentation site, and Mathy uses its template to str
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
 
+### [Fragile](https://github.com/FragileTech/fragile){target=\_blank}
+
+Fragile implements a swarm planning aglorithm that Mathy uses to solve problems without a trained model. It is able to solve most of the built-in Mathy environments on a desktop computer without a GPU.
+
+??? note "MIT License"
+
+    Copyright 2020, Fragile Technologies
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 ### [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/){target=\_blank}
 
 The material theme for [MkDocs](https://www.mkdocs.org/){target=\_blank} makes creating beautiful documentation sites with mobile navigation and search as easy as writing some markdown files in a folder. Mathy uses this theme for its documentation site.
