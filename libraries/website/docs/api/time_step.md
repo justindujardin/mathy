@@ -25,8 +25,3 @@ Returns a `TimeStep` with `step_type` set to `StepType.LAST`.
 transition(observation, reward, discount=1.0)
 ```
 Returns a `TimeStep` with `step_type` set equal to `StepType.MID`.
-## truncation
-```python
-truncation(observation, reward, discount=1.0)
-```
-Returns a `TimeStep` with `step_type` set to `StepType.LAST`.

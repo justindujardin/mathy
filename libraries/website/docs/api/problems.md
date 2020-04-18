@@ -176,3 +176,12 @@ split_in_two_random(value:int)
 Split a given number into two smaller numbers that sum to it.
 Returns: a tuple of (lower, higher) numbers that sum to the input
 
+## use_pretty_numbers
+```python
+use_pretty_numbers(enabled:bool=True)
+```
+Determine if problems should include only pretty numbers or
+a whole range of integers and floats. Using pretty numbers will
+restrict the numbers that are generated to integers between 1 and
+12. When not using pretty numbers, floats and large integers will
+be included in the output from `rand_number`

@@ -202,7 +202,11 @@ MathyEnv.max_moves_fn(
 Return the environment specific maximum move count for a given prolem.
 ### print_history
 ```python
-MathyEnv.print_history(self, env_state:mathy.state.MathyEnvState) -> None
+MathyEnv.print_history(
+    self,
+    env_state: mathy.state.MathyEnvState,
+    pretty: bool = True,
+) -> None
 ```
 Render the history of an episode from a given state.
 
@@ -219,6 +223,7 @@ MathyEnv.print_state(
     token_index: int = -1,
     change: mathy.core.rule.ExpressionChangeRule = None,
     change_reward: float = 0.0,
+    pretty: bool = False,
 )
 ```
 Render the given state to stdout for visualization
@@ -252,6 +257,7 @@ MathyEnv.render_state(
     token_index: int = -1,
     change: mathy.core.rule.ExpressionChangeRule = None,
     change_reward: float = 0.0,
+    pretty: bool = False,
 ) -> str
 ```
 Render the given state to a string suitable for printing to a log
