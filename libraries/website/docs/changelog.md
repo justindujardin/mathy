@@ -1,3 +1,10 @@
+## [0.7.14](https://github.com/justindujardin/mathy/compare/v0.7.13...v0.7.14) (2020-04-19)
+
+
+### Features
+
+* **fragile:** update for website examples ([d9c8128](https://github.com/justindujardin/mathy/commit/d9c81286b29ce61bf92b60f77d62e5208cdabe1b))
+
 ## [0.7.13](https://github.com/justindujardin/mathy/compare/v0.7.12...v0.7.13) (2020-04-12)
 
 
