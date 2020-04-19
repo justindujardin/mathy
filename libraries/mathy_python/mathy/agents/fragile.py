@@ -14,8 +14,9 @@ from fragile.core.swarm import Swarm
 from fragile.core.utils import StateDict
 from fragile.core.walkers import Walkers
 from fragile.distributed.env import ParallelEnv
+from fragile.core.tree import HistoryTree
 from gym import spaces
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from wasabi import msg
 
 from .. import (
@@ -31,6 +32,9 @@ from ..envs.gym import MathyGymEnv
 
 class SwarmConfig(BaseModel):
     use_mp: bool = True
+    history: bool = False
+    history_names: List[str] = ["states", "actions", "rewards"]
+    single_problem: bool = False
     verbose: bool = False
     n_walkers: int = 512
     max_iters: int = 100
@@ -80,7 +84,7 @@ class FragileMathyEnv(DiscreteEnv):
         self,
         name: str,
         environment: str = "poly",
-        difficulty: str = "normal",
+        difficulty: str = "easy",
         problem: str = None,
         max_steps: int = 64,
         **kwargs,
@@ -190,16 +194,20 @@ class FragileEnvironment:
         return self.get_state(), obs
 
 
-def swarm_solve(problem: str, config: SwarmConfig):
-    env_callable = lambda: FragileMathyEnv(
-        name="mathy_v0", problem=problem, repeat_problem=True
-    )
-    mathy_env: MathyEnv = env_callable()._env._env.mathy
+def mathy_swarm(config: SwarmConfig, env_callable=None) -> Swarm:
+    if env_callable is None:
+        env_callable = lambda: FragileMathyEnv(
+            name="mathy_v0", repeat_problem=config.single_problem
+        )
     if config.use_mp:
         env_callable = ParallelEnv(env_callable=env_callable)
+    tree_callable = None
+    if config.history:
+        tree_callable = lambda: HistoryTree(prune=True, names=config.history_names)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,
+        tree=tree_callable,
         reward_limit=EnvRewards.WIN,
         n_walkers=config.n_walkers,
         max_epochs=config.max_iters,
@@ -208,13 +216,50 @@ def swarm_solve(problem: str, config: SwarmConfig):
         distance_function=mathy_dist,
         show_pbar=False,
     )
+    return swarm
 
-    with msg.loading(f"Solving {problem} ..."):
-        _ = swarm.run()
 
-    if swarm.walkers.best_reward > EnvRewards.WIN:
-        last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
-        msg.good(f"Solved! {problem} = {last_state.agent.problem}")
-        mathy_env.print_history(last_state)
-    else:
-        msg.fail(f"Failed to find a solution :(")
+def swarm_solve(
+    problems: Union[List[str], str],
+    config: SwarmConfig,
+    max_moves: Union[List[int], int] = 128,
+) -> Swarm:
+    single_problem: bool = isinstance(problems, str)
+    if single_problem:
+        problems = [problems]
+    if isinstance(max_moves, int):
+        max_moves = [max_moves] if single_problem else [max_moves] * len(problems)
+    assert len(problems) > 0, "no problems to solve"
+    assert len(problems) == len(max_moves)
+    assert isinstance(problems, list)
+    current_problem: str = problems.pop(0)
+    current_max_moves: str = max_moves.pop(0)
+
+    def env_callable():
+        nonlocal current_problem, current_max_moves
+        return FragileMathyEnv(
+            name="mathy_v0",
+            problem=current_problem,
+            repeat_problem=True,
+            max_steps=current_max_moves,
+        )
+
+    mathy_env: MathyEnv = env_callable()._env._env.mathy
+    swarm: Swarm = mathy_swarm(config, env_callable)
+    while True:
+        with msg.loading(f"Solving {current_problem} ..."):
+            _ = swarm.run()
+
+        if swarm.walkers.best_reward > EnvRewards.WIN:
+            last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
+            msg.good(f"Solved! {current_problem} = {last_state.agent.problem}")
+            mathy_env.print_history(last_state)
+        else:
+            msg.fail(f"Failed to find a solution :(")
+
+        if len(max_moves) > 0:
+            current_max_moves = max_moves.pop(0)
+            current_problem = problems.pop(0)
+        else:
+            break
+    return swarm
