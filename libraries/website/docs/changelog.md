@@ -3,7 +3,9 @@
 
 ### Features
 
-* **fragile:** update for website examples ([d9c8128](https://github.com/justindujardin/mathy/commit/d9c81286b29ce61bf92b60f77d62e5208cdabe1b))
+* **fragile:** add HistoryTree support
+* **fragile:** add support for lists of problems to swarm_solve
+* **fragile:** install as a non-optional dependency
 
 ## [0.7.13](https://github.com/justindujardin/mathy/compare/v0.7.12...v0.7.13) (2020-04-12)
 
