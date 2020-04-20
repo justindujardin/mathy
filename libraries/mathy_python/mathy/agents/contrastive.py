@@ -107,11 +107,10 @@ class PredictiveMathModel:
             ]
         )
         model.compile(
-            loss=tf.nn.softmax_cross_entropy_with_logits,
+            loss="binary_crossentropy",
             optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01),
             metrics=["accuracy"],
         )
-        model.summary()
         return model
 
 
@@ -131,6 +130,7 @@ class ContrastiveModelTrainer:
         self.predict = PredictiveMathModel(input_shape=(batch_size * 4, out_dim * 2))
         self.model_file = model_file
         self.writer = writer
+        self.bce = tf.keras.losses.BinaryCrossentropy()
 
     def train(
         self, batch_fn: Any, batches: int = 100, epochs: int = 10, verbose: int = 0,
@@ -141,19 +141,24 @@ class ContrastiveModelTrainer:
             loss_ab_disagreement: float = 0.0
             loss_b_agreement: float = 0.0
             loss_ba_disagreement: float = 0.0
+            loss_predict: float = 0.0
             print(f"Epoch: {i}")
             for j in tqdm.tqdm(range(batches)):
                 aa_batch, ab_batch, ba_batch, bb_batch = batch_fn()
                 step_losses = self.train_step(aa_batch, ab_batch, ba_batch, bb_batch)
-                a_agree, ab_disagree, b_agree, ba_disagree = step_losses
+                a_agree, ab_disagree, b_agree, ba_disagree, predict = step_losses
                 loss_a_agreement += a_agree
                 loss_ab_disagreement += ab_disagree
                 loss_b_agreement += b_agree
                 loss_ba_disagreement += ba_disagree
-                epoch_loss += a_agree + b_agree + ab_disagree + ba_disagree
+                loss_predict += predict
+                epoch_loss += (
+                    a_agree + b_agree + ab_disagree + ba_disagree + loss_predict
+                )
             if self.writer is not None:
                 with self.writer.as_default():
                     step = self.model.optimizer.iterations
+                    tf.summary.scalar("loss/predict", loss_predict, step=step)
                     tf.summary.scalar("loss/a_agreement", loss_a_agreement, step=step)
                     tf.summary.scalar("loss/b_agreement", loss_b_agreement, step=step)
                     tf.summary.scalar(
@@ -167,25 +172,26 @@ class ContrastiveModelTrainer:
                         tf.summary.histogram(var.name, var, step=step)
                 self.model.save(self.model_file)
             print(
-                f"total: {epoch_loss} aa: {loss_a_agreement} bb: {loss_b_agreement} dab: {loss_ab_disagreement} dba: {loss_ba_disagreement}"
+                f"total: {epoch_loss} predict: {loss_predict} aa: {loss_a_agreement} bb: {loss_b_agreement} dab: {loss_ab_disagreement} dba: {loss_ba_disagreement}"
             )
 
-    def train_step(self, aa, ab, ba, bb):
-        with tf.GradientTape(persistent=True) as tape:
-            aa = self.model(aa)
-            ab = self.model(ab)
-            ba = self.model(ba)
-            bb = self.model(bb)
+    def train_step(self, aa_batch, ab_batch, ba_batch, bb_batch):
+        with tf.GradientTape() as tape:
+            aa = self.model(aa_batch)
+            ab = self.model(ab_batch)
+            ba = self.model(ba_batch)
+            bb = self.model(bb_batch)
             logits, labels, a, ab, b, ba = calculate_contrastive_loss(
                 aa, ab, ba, bb, self.writer
             )
-            self.predict.train_on_batch(logits, labels)
-            total_loss = a + ab + b + ba
+            predict_logits = self.predict(logits)
+            predict_loss = self.bce(predict_logits, labels)
+            total_loss = a + ab + b + ba + predict_loss
             grads = tape.gradient(total_loss, self.model.trainable_weights)
             self.model.optimizer.apply_gradients(
                 zip(grads, self.model.trainable_weights)
             )
-        return a, ab, b, ba
+        return a, ab, b, ba, predict_loss
 
 
 def peek(iterable) -> Optional[Tuple[Any, Any]]:
