@@ -223,6 +223,7 @@ def swarm_solve(
     problems: Union[List[str], str],
     config: SwarmConfig,
     max_moves: Union[List[int], int] = 128,
+    silent: bool = False,
 ) -> Swarm:
     single_problem: bool = isinstance(problems, str)
     if single_problem:
@@ -247,15 +248,19 @@ def swarm_solve(
     mathy_env: MathyEnv = env_callable()._env._env.mathy
     swarm: Swarm = mathy_swarm(config, env_callable)
     while True:
-        with msg.loading(f"Solving {current_problem} ..."):
-            _ = swarm.run()
-
-        if swarm.walkers.best_reward > EnvRewards.WIN:
-            last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
-            msg.good(f"Solved! {current_problem} = {last_state.agent.problem}")
-            mathy_env.print_history(last_state)
+        if not silent:
+            with msg.loading(f"Solving {current_problem} ..."):
+                swarm.run()
         else:
-            msg.fail(f"Failed to find a solution :(")
+            swarm.run()
+
+        if not silent:
+            if swarm.walkers.best_reward > EnvRewards.WIN:
+                last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
+                msg.good(f"Solved! {current_problem} = {last_state.agent.problem}")
+                mathy_env.print_history(last_state)
+            else:
+                msg.fail(f"Failed to find a solution :(")
 
         if len(max_moves) > 0:
             current_max_moves = max_moves.pop(0)
