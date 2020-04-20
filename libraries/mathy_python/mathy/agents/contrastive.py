@@ -3,6 +3,7 @@ from typing import Any, Optional, Tuple
 
 import numpy
 import tensorflow as tf
+import tqdm
 from fragile.core import HistoryTree, Swarm
 from fragile.core.utils import random_state
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
@@ -11,59 +12,76 @@ from tensorflow.keras.optimizers import RMSprop
 
 
 def calculate_contrastive_loss(
-    hidden1: tf.Tensor,
-    hidden2: tf.Tensor,
-    hidden3: tf.Tensor,
-    hidden4: tf.Tensor,
+    hidden_aa: tf.Tensor,
+    hidden_ab: tf.Tensor,
+    hidden_ba: tf.Tensor,
+    hidden_bb: tf.Tensor,
     hidden_norm: bool = True,
     temperature: float = 1.0,
     weights: float = 1.0,
     writer: tf.summary.SummaryWriter = None,
-) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
+) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
     """Compute loss for model.
   Args:
-    hidden1: hidden vector (`Tensor`) of shape (bsz, dim).
-    hidden2: hidden vector (`Tensor`) of shape (bsz, dim).
-    hidden3: hidden vector (`Tensor`) of shape (bsz, dim).
-    hidden4: hidden vector (`Tensor`) of shape (bsz, dim).
+    hidden_aa: hidden vector (`Tensor`) of shape (bsz, dim).
+    hidden_ab: hidden vector (`Tensor`) of shape (bsz, dim).
+    hidden_ba: hidden vector (`Tensor`) of shape (bsz, dim).
+    hidden_bb: hidden vector (`Tensor`) of shape (bsz, dim).
     hidden_norm: whether or not to use normalization on the hidden vector.
     temperature: a `floating` number for temperature scaling.
     weights: a weighting number or vector.
   Returns:
-    A loss scalar for agreement between hidden1 and hidden2
-    A loss scalar for agreement between hidden3 and hidden4
-    A loss scalar for disagreement between hidden1 and hidden3
-    A loss scalar for disagreement between hidden2 and hidden4
+    A logits tensor for the predictive task
+    A labels tensor for the predictive task
+    A loss scalar for agreement between hidden_aa and hidden_ab
+    A loss scalar for agreement between hidden_ba and hidden_bb
+    A loss scalar for disagreement between hidden_aa and hidden_ba
+    A loss scalar for disagreement between hidden_ab and hidden_bb
   """
-    # Get (normalized) hidden1 and hidden2.
+    # Get (normalized) hidden_aa and hidden_ab.
     if hidden_norm:
-        hidden1 = tf.math.l2_normalize(hidden1, -1)
-        hidden2 = tf.math.l2_normalize(hidden2, -1)
-        hidden3 = tf.math.l2_normalize(hidden3, -1)
-        hidden4 = tf.math.l2_normalize(hidden4, -1)
-    batch_size = tf.shape(hidden1)[0]
-    loss_a = tf.compat.v1.losses.softmax_cross_entropy(
-        hidden1, hidden2, weights=weights
+        hidden_aa = tf.math.l2_normalize(hidden_aa, -1)
+        hidden_ab = tf.math.l2_normalize(hidden_ab, -1)
+        hidden_ba = tf.math.l2_normalize(hidden_ba, -1)
+        hidden_bb = tf.math.l2_normalize(hidden_bb, -1)
+    cosine_loss = tf.keras.losses.CosineSimilarity(axis=1)
+    loss_a = cosine_loss(hidden_aa, hidden_ab)
+    loss_b = cosine_loss(hidden_ba, hidden_bb)
+    loss_contrast_a = -cosine_loss(hidden_aa, hidden_ba)
+    loss_contrast_b = -cosine_loss(hidden_ab, hidden_bb)
+    logits_match_one = tf.concat([hidden_aa, hidden_ab], axis=-1)
+    logits_match_two = tf.concat([hidden_ba, hidden_bb], axis=-1)
+    logits_mismatch_one = tf.concat([hidden_aa, hidden_bb], axis=-1)
+    logits_mismatch_two = tf.concat([hidden_ba, hidden_ab], axis=-1)
+    batch_size = tf.shape(hidden_aa)[0]
+    labels_mismatch = tf.zeros((batch_size, 1))
+    labels_match = tf.ones((batch_size, 1))
+    logits = tf.concat(
+        [logits_match_one, logits_mismatch_one, logits_match_two, logits_mismatch_two],
+        axis=0,
     )
-    loss_b = tf.compat.v1.losses.softmax_cross_entropy(
-        hidden3, hidden4, weights=weights
+    labels = tf.concat(
+        [labels_match, labels_mismatch, labels_match, labels_mismatch], axis=0
     )
-    loss_contrast_a = -tf.compat.v1.losses.softmax_cross_entropy(
-        hidden1, hidden3, weights=weights
-    )
-    loss_contrast_b = -tf.compat.v1.losses.softmax_cross_entropy(
-        hidden2, hidden4, weights=weights
-    )
-    return loss_a, loss_contrast_a, loss_b, loss_contrast_b
+    return logits, labels, loss_a, loss_contrast_a, loss_b, loss_contrast_b
 
 
 class ContrastiveMathModel:
-    def __new__(cls, input_shape: Tuple[int, int, int], out_dim: int = 32):
+    def __new__(
+        cls, input_shape: Tuple[int, int, int], vocab_len: int, out_dim: int = 32
+    ):
         model = Sequential(
             [
-                Dense(128, activation="relu", input_shape=input_shape),
-                Dense(64, activation="relu"),
-                Dense(out_dim),
+                tf.keras.layers.Embedding(
+                    input_shape=input_shape,
+                    input_dim=vocab_len + 1,
+                    output_dim=64,
+                    name="inputs",
+                    mask_zero=True,
+                ),
+                Dense(256, activation="relu", name="hidden"),
+                Flatten(),
+                Dense(out_dim, name="output"),
             ]
         )
         model.compile(
@@ -75,20 +93,47 @@ class ContrastiveMathModel:
         return model
 
 
+class PredictiveMathModel:
+    """Predict if two vectors are different views of the same expression
+    or views of different expressions"""
+
+    def __new__(cls, input_shape: Tuple[int, int, int]):
+        model = Sequential(
+            [
+                Dense(
+                    128, activation="relu", name="head", batch_input_shape=input_shape
+                ),
+                Dense(1, name="output"),
+            ]
+        )
+        model.compile(
+            loss=tf.nn.softmax_cross_entropy_with_logits,
+            optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01),
+            metrics=["accuracy"],
+        )
+        model.summary()
+        return model
+
+
 class ContrastiveModelTrainer:
     def __init__(
-        self, input_shape: tuple, writer: tf.summary.SummaryWriter = None,
+        self,
+        vocab_len: int,
+        input_shape: tuple,
+        writer: tf.summary.SummaryWriter = None,
+        model_file: str = None,
+        batch_size: int = 12,
     ):
-        self.model = ContrastiveMathModel(input_shape)
+        out_dim = 32
+        self.model = ContrastiveMathModel(
+            input_shape=input_shape, vocab_len=vocab_len, out_dim=out_dim
+        )
+        self.predict = PredictiveMathModel(input_shape=(batch_size * 4, out_dim * 2))
+        self.model_file = model_file
         self.writer = writer
 
     def train(
-        self,
-        compare: Swarm,
-        contrast: Swarm,
-        batch_size: int = 256,
-        epochs: int = 10,
-        verbose: int = 0,
+        self, batch_fn: Any, batches: int = 100, epochs: int = 10, verbose: int = 0,
     ):
         for i in range(epochs):
             epoch_loss: float = 0.0
@@ -97,30 +142,9 @@ class ContrastiveModelTrainer:
             loss_b_agreement: float = 0.0
             loss_ba_disagreement: float = 0.0
             print(f"Epoch: {i}")
-            # Generate random sample batches from the compare/contrast swarms
-            random_compare_batches = list(
-                compare.tree.iterate_nodes_at_random(
-                    batch_size=batch_size, names=["observs", "next_observs"]
-                )
-            )
-            assert len(random_compare_batches) > 0, "compare swarm contains no batches"
-            random_contrast_batches = list(
-                contrast.tree.iterate_nodes_at_random(
-                    batch_size=batch_size, names=["observs", "next_observs"]
-                )
-            )
-            assert (
-                len(random_contrast_batches) > 0
-            ), "contrast swarm contains no batches"
-            # Clip the batches to the smaller of the two, so they can be zipped
-            batches = min(len(random_compare_batches), len(random_contrast_batches))
-            random_contrast_batches = random_compare_batches[:batches]
-            random_contrast_batches = random_contrast_batches[:batches]
-            random_batches = zip(random_compare_batches, random_contrast_batches)
-            for a_batch, b_batch in random_batches:
-                a_observs, a_next = a_batch
-                b_observs, b_next = b_batch
-                step_losses = self.train_step(a_observs, a_next, b_observs, b_next)
+            for j in tqdm.tqdm(range(batches)):
+                aa_batch, ab_batch, ba_batch, bb_batch = batch_fn()
+                step_losses = self.train_step(aa_batch, ab_batch, ba_batch, bb_batch)
                 a_agree, ab_disagree, b_agree, ba_disagree = step_losses
                 loss_a_agreement += a_agree
                 loss_ab_disagreement += ab_disagree
@@ -139,24 +163,29 @@ class ContrastiveModelTrainer:
                         "loss/ba_disagreement", loss_ba_disagreement, step=step
                     )
                     tf.summary.scalar("loss/total", epoch_loss, step=step)
+                    for var in self.model.trainable_variables:
+                        tf.summary.histogram(var.name, var, step=step)
+                self.model.save(self.model_file)
             print(
-                f" - Epoch: {epoch_loss}, AA {loss_a_agreement}, ABD {loss_ab_disagreement}, BB {loss_b_agreement}, BAD {loss_ba_disagreement}"
+                f"total: {epoch_loss} aa: {loss_a_agreement} bb: {loss_b_agreement} dab: {loss_ab_disagreement} dba: {loss_ba_disagreement}"
             )
 
     def train_step(self, aa, ab, ba, bb):
-        with tf.GradientTape() as tape:
-            aa = self.model(prepare_batch(aa))
-            ab = self.model(prepare_batch(ab))
-            ba = self.model(prepare_batch(ba))
-            bb = self.model(prepare_batch(bb))
-            losses = calculate_contrastive_loss(aa, ab, ba, bb, self.writer)
-            a, ab, b, ba = losses
+        with tf.GradientTape(persistent=True) as tape:
+            aa = self.model(aa)
+            ab = self.model(ab)
+            ba = self.model(ba)
+            bb = self.model(bb)
+            logits, labels, a, ab, b, ba = calculate_contrastive_loss(
+                aa, ab, ba, bb, self.writer
+            )
+            self.predict.train_on_batch(logits, labels)
             total_loss = a + ab + b + ba
             grads = tape.gradient(total_loss, self.model.trainable_weights)
             self.model.optimizer.apply_gradients(
                 zip(grads, self.model.trainable_weights)
             )
-        return losses
+        return a, ab, b, ba
 
 
 def peek(iterable) -> Optional[Tuple[Any, Any]]:
@@ -168,4 +197,4 @@ def peek(iterable) -> Optional[Tuple[Any, Any]]:
 
 
 def prepare_batch(batch_observations):
-    return numpy.transpose(batch_observations, [0, 2, 1])[:, :, 0]
+    return batch_observations
