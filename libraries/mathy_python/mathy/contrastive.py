@@ -22,7 +22,7 @@ from .core.parser import ExpressionParser
 from .problems import get_rand_vars
 from .envs import PolySimplify
 from .envs.gym import MathyGymEnv
-from .state import MathyObservation
+from .state import MathyObservation, MathyEnvState
 
 app = typer.Typer()
 
@@ -286,8 +286,43 @@ def swap_vars(expression: MathExpression) -> str:
     return str(expression)
 
 
-def augment_problem(expression: MathExpression) -> str:
-    return swap_vars(expression)
+def augment_problem(expression: MathExpression, env: MathyGymEnv) -> str:
+    roll = random.random()
+    if roll < 0.3:
+        # Swap variables leaving the same expression
+        augmented = swap_vars(expression)
+    elif roll < 0.6:
+        # Apply random actions
+        state = MathyEnvState(problem=str(expression))
+        for i in range(random.randint(0, 4)):
+            try:
+                action = env.mathy.random_action(expression)
+            except ValueError:
+                # Happens if there are no valid actions (accidentally solved?)
+                break
+            state: MathyEnvState = env.mathy.get_next_state(state, action)[0]
+            expression = env.mathy.parser.parse(state.agent.problem)
+        augmented = str(expression)
+    else:
+        # Remove spaces randomly
+        def space_indices(s) -> List[int]:
+            return [i for i, ltr in enumerate(augmented) if ltr == " "]
+
+        augmented = str(expression)
+        spaces = space_indices(augmented)
+        for i in range(random.randint(1, len(spaces))):
+            spaces = space_indices(augmented)
+            if len(spaces) == 0:
+                continue
+            space_idx = random.choice(spaces)
+            augmented = augmented[:space_idx] + augmented[space_idx + 1 :]
+
+    # Finally, roll to see if random spaces should be prepended or appended
+    if random.random() > 0.5:
+        augmented = (" " * random.randint(1, 5)) + augmented
+    if random.random() > 0.5:
+        augmented = augmented + (" " * random.randint(1, 5))
+    return augmented
 
 
 #
@@ -325,9 +360,18 @@ def get_agreement_disagreement_pair(
         f"mathy-{candidate_types[-1]}-{env_difficulty}-v0"
     )
     compare: str = generate_problem(compare_env)
-    compare_aug: str = augment_problem(compare_env.mathy.parser.parse(compare))
+    compare_aug: str = augment_problem(
+        compare_env.mathy.parser.parse(compare), env=compare_env
+    )
     contrast: str = generate_problem(contrast_env)
-    contrast_aug: str = augment_problem(compare_env.mathy.parser.parse(contrast))
+    contrast_aug: str = augment_problem(
+        compare_env.mathy.parser.parse(contrast), env=compare_env
+    )
+    # if random.random() > 0.99:
+    #     print(f"pos: {compare}")
+    #     print(f"pos: {compare_aug}")
+    #     print(f"neg: {contrast}")
+    #     print(f"neg: {contrast_aug}")
     return (
         encode_text(compare),
         encode_text(compare_aug),

@@ -1,3 +1,4 @@
+import random
 from itertools import groupby
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -388,20 +389,30 @@ class MathyEnv:
             return output
         return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
 
-    def random_action(self, expression: MathExpression, rule: Type[BaseRule]) -> int:
+    def random_action(
+        self, expression: MathExpression, rule: Type[BaseRule] = None
+    ) -> int:
         """Get a random action index that represents a particular rule"""
 
-        found = False
-        for r in self.rules:
-            if isinstance(r, rule):
-                found = True
-                break
-        if found is False:
-            raise ValueError(
-                "The action {rule} does not exist in the environment rule list"
-            )
-        actions = np.nonzero(self.get_actions_for_node(expression, [rule]))
-        action = np.random.choice(actions[0])
+        if rule is not None:
+            found = False
+            for r in self.rules:
+                if isinstance(r, rule):
+                    found = True
+                    break
+            if found is False:
+                raise ValueError(
+                    "The action {rule} does not exist in the environment rule list"
+                )
+            actions = np.nonzero(self.get_actions_for_node(expression, [rule]))
+            action = np.random.choice(actions[0])
+            return action
+
+        actions = np.nonzero(self.get_actions_for_node(expression))
+        try:       
+            action = np.random.choice(random.choice(actions))
+        except ValueError:
+            raise ValueError(f"no valid actions for expression: {expression}")
         return action
 
     def get_initial_state(
