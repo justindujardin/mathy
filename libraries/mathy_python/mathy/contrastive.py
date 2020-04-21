@@ -19,7 +19,7 @@ from wasabi import msg
 
 from .core.expressions import VariableExpression, MathExpression
 from .core.parser import ExpressionParser
-from .problems import get_rand_vars
+from .problems import get_rand_vars, use_pretty_numbers
 from .envs import PolySimplify
 from .envs.gym import MathyGymEnv
 from .state import MathyObservation, MathyEnvState
@@ -33,7 +33,7 @@ PAD_TOKEN = VOCAB.index("")
 CHAR_TO_INT = {char: index for index, char in enumerate(VOCAB)}
 VOCAB_LEN = len(VOCAB)
 SEQ_LEN = 128
-BATCH_SIZE = 512
+BATCH_SIZE = 2
 DEFAULT_MODEL = "training/contrastive"
 
 
@@ -44,10 +44,12 @@ class ContrastiveModelTrainer:
         input_shape: tuple,
         writer: tf.summary.SummaryWriter = None,
         model_file: str = None,
+        predict_file: str = None,
         batch_size: int = 12,
         out_dim: int = 32,
     ):
         self.model_file = model_file
+        self.predict_file = predict_file
         self.writer = writer
         self.bce = tf.keras.losses.BinaryCrossentropy()
         self.model = math_encoder(
@@ -96,15 +98,20 @@ class ContrastiveModelTrainer:
                         "loss/ba_disagreement", loss_ba_disagreement, step=step
                     )
                     tf.summary.scalar("loss/total", epoch_loss, step=step)
+                    # representation variables
                     for var in self.model.trainable_variables:
                         tf.summary.histogram(var.name, var, step=step)
+                    # prediction variables
+                    for var in self.predict.trainable_variables:
+                        tf.summary.histogram(var.name, var, step=step)
                 self.model.save(self.model_file)
+                self.predict.save(self.predict_file)
             print(
                 f"total: {epoch_loss} predict: {loss_predict} aa: {loss_a_agreement} bb: {loss_b_agreement} dab: {loss_ab_disagreement} dba: {loss_ba_disagreement}"
             )
 
     def train_step(self, aa_batch, ab_batch, ba_batch, bb_batch):
-        with tf.GradientTape() as tape:
+        with tf.GradientTape(persistent=True) as tape:
             aa = self.model(aa_batch)
             ab = self.model(ab_batch)
             ba = self.model(ba_batch)
@@ -117,30 +124,44 @@ class ContrastiveModelTrainer:
             predict_loss = self.bce(self.predict(logits), labels)
             # Combine the cosine similarity and prediction losses
             total_loss = a + ab + b + ba + predict_loss
-            # Update the model
-            grads = tape.gradient(total_loss, self.model.trainable_weights)
-            self.model.optimizer.apply_gradients(
-                zip(grads, self.model.trainable_weights)
-            )
+        # Update the representation model
+        grads = tape.gradient(total_loss, self.model.trainable_weights)
+        self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
+        # Update the prediction model
+        grads = tape.gradient(total_loss, self.predict.trainable_weights)
+        self.predict.optimizer.apply_gradients(
+            zip(grads, self.predict.trainable_weights)
+        )
+        # Don't forget to free the persistent=True tape
+        del tape
         return a, ab, b, ba, predict_loss
 
 
 def get_trainer(folder: str, quiet: bool = False) -> ContrastiveModelTrainer:
     """Create and return a trainer, optionally loading an existing model"""
-    model_file = os.path.join(folder, "model")
+    model_file = os.path.join(folder, "encoder")
+    predict_file = os.path.join(folder, "predict")
     log_dir = os.path.join(os.path.dirname(model_file), "tensorboard")
     writer: tf.summary.SummaryWriter = tf.summary.create_file_writer(log_dir)
     trainer = ContrastiveModelTrainer(
         input_shape=(SEQ_LEN,),
         writer=writer,
         model_file=model_file,
+        predict_file=predict_file,
         vocab_len=VOCAB_LEN,
         batch_size=BATCH_SIZE,
     )
     if os.path.exists(model_file):
         if not quiet:
-            print(f"Loading model: {model_file}")
+            print(f"Loading encoder: {model_file}")
         trainer.model = tf.keras.models.load_model(model_file)
+    if os.path.exists(predict_file):
+        if not quiet:
+            print(f"Loading predictor: {predict_file}")
+        trainer.predict = tf.keras.models.load_model(predict_file)
+    if not quiet:
+        trainer.model.summary()
+        trainer.predict.summary()
     return trainer
 
 
@@ -179,12 +200,20 @@ def calculate_contrastive_loss(
     labels = tf.concat(
         [labels_match, labels_mismatch, labels_match, labels_mismatch], axis=0
     )
+    # Shuffle the labels/logits to make the task non-trivial
+    combined = tf.concat([logits, labels], axis=-1)
+    # tf.random.shuffle by itself yields an error: https://bit.ly/3btNfaD
+    shuffled = tf.gather(combined, tf.random.shuffle(tf.range(tf.shape(combined)[0])))
+    logits = shuffled[:, :-1]
+    labels = shuffled[:, -1:]
+
     return logits, labels, loss_a, loss_contrast_a, loss_b, loss_contrast_b
 
 
 def math_encoder(
     input_shape: Tuple[int, int, int],
     vocab_len: int,
+    embed_dim: int = 256,
     out_dim: int = 32,
     quiet: bool = False,
 ):
@@ -193,14 +222,13 @@ def math_encoder(
         tf.keras.layers.Embedding(
             input_shape=input_shape,
             input_dim=vocab_len + 1,
-            output_dim=64,
-            name="inputs",
+            output_dim=embed_dim,
+            name="encoder/inputs",
             mask_zero=True,
         ),
-        Dense(256, activation="relu", name="hidden"),
-        Dense(64, activation="relu", name="hidden_2"),
-        Flatten(),
-        Dense(out_dim, name="output"),
+        Dense(256, activation="relu", name="encoder/hidden"),
+        Flatten(name="encoder/flatten"),
+        Dense(out_dim, name="encoder/output"),
     ]
     model = Sequential(layers)
     model.compile(
@@ -208,8 +236,6 @@ def math_encoder(
         optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01),
         metrics=["accuracy"],
     )
-    if not quiet:
-        model.summary()
     return model
 
 
@@ -218,9 +244,15 @@ def likeness_predictor(input_shape: Tuple[int, int, int]):
     or views of different expressions"""
     model = Sequential(
         [
-            Dense(512, activation="relu", name="head", batch_input_shape=input_shape),
-            Dense(1, name="output"),
-        ]
+            Dense(
+                512,
+                activation="relu",
+                name="prediction/head",
+                batch_input_shape=input_shape,
+            ),
+            Dense(1, name="prediction/output"),
+        ],
+        name="prediction",
     )
     model.compile(
         loss="binary_crossentropy",
@@ -262,66 +294,48 @@ def encode_text(
 #
 
 
-def swap_vars(expression: MathExpression) -> str:
-    """Given an input expression, substitute unique variables in for the 
-    ones in the expression. This augmentation works because by mapping the
-    existing variables to others, we maintain the value of the expression if
-    it were to be evaluated. We can say that it's a view of the same expression
-    because the value hasn't changed.
-    
-    # Examples
-
-    - "4x + 2x" => "4y + 2y"
-    - "12b^3 - 7x + 14.3y" => "12i^3 - 7l + 14.3q"    
-    """
-    var_nodes: List[VariableExpression] = expression.find_type(VariableExpression)
-    curr_vars: List[str] = list(set([n.identifier for n in var_nodes]))
-    new_vars: List[str] = get_rand_vars(len(curr_vars), exclude_vars=curr_vars)
-    var_map = {}
-    for var in new_vars:
-        var_map[curr_vars.pop()] = var
-    node: VariableExpression
-    for node in var_nodes:
-        node.identifier = var_map[node.identifier]
-    return str(expression)
+def some_spaces(min_inclusive: int = 0, max_exclusive: int = 3) -> str:
+    return " " * random.randint(min_inclusive, max_exclusive)
 
 
-def augment_problem(expression: MathExpression, env: MathyGymEnv) -> str:
-    roll = random.random()
-    if roll < 0.3:
-        # Swap variables leaving the same expression
-        augmented = swap_vars(expression)
-    elif roll < 0.6:
-        # Apply random actions
-        state = MathyEnvState(problem=str(expression))
-        for i in range(random.randint(0, 4)):
-            try:
-                action = env.mathy.random_action(expression)
-            except ValueError:
-                # Happens if there are no valid actions (accidentally solved?)
-                break
-            state: MathyEnvState = env.mathy.get_next_state(state, action)[0]
-            expression = env.mathy.parser.parse(state.agent.problem)
-        augmented = str(expression)
-    else:
-        # Remove spaces randomly
-        def space_indices(s) -> List[int]:
-            return [i for i, ltr in enumerate(augmented) if ltr == " "]
+def space_indices(s) -> List[int]:
+    return [i for i, ltr in enumerate(s) if ltr == " "]
 
-        augmented = str(expression)
-        spaces = space_indices(augmented)
-        for i in range(random.randint(1, len(spaces))):
+
+def augment_problem(
+    expression: MathExpression,
+    *,
+    env: MathyGymEnv,
+    min_transforms: int = 2,
+    max_transforms: int = 4,
+) -> str:
+    # Apply random actions
+    state = MathyEnvState(problem=str(expression))
+    for i in range(random.randint(1, max_transforms)):
+        try:
+            action = env.mathy.random_action(expression)
+        except ValueError:
+            # Happens if there are no valid actions (accidentally solved?)
+            break
+        state: MathyEnvState = env.mathy.get_next_state(state, action)[0]
+        expression = env.mathy.parser.parse(state.agent.problem)
+    augmented = str(expression)
+
+    # Remove spaces randomly
+    spaces = space_indices(augmented)
+    if len(spaces) > 0:
+        steps = random.randint(1, len(spaces))
+        for i in range(steps):
             spaces = space_indices(augmented)
             if len(spaces) == 0:
-                continue
+                break
             space_idx = random.choice(spaces)
-            augmented = augmented[:space_idx] + augmented[space_idx + 1 :]
+            # Either remove the space or add a few extra
+            mid = some_spaces(2, 4) if random.random() > 0.7 else ""
+            augmented = augmented[:space_idx] + mid + augmented[space_idx + 1 :]
 
-    # Finally, roll to see if random spaces should be prepended or appended
-    if random.random() > 0.5:
-        augmented = (" " * random.randint(1, 5)) + augmented
-    if random.random() > 0.5:
-        augmented = augmented + (" " * random.randint(1, 5))
+    # Finally maybe append/prepend spaces
+    augmented = some_spaces() + augmented + some_spaces()
     return augmented
 
 
@@ -400,12 +414,18 @@ def make_batch(batch_size=BATCH_SIZE):
     return aa, ab, ba, bb
 
 
+#
+# CLI App
+#
+
+
 @app.command()
 def train(
     folder: str = typer.Argument(DEFAULT_MODEL),
     eval_every: int = 4,
     iterations: int = 500,
 ):
+    use_pretty_numbers(False)
     trainer: ContrastiveModelTrainer = get_trainer(folder)
     trainer.train(batch_fn=make_batch, batches=eval_every, epochs=iterations)
 
@@ -415,7 +435,7 @@ def compare(first: str, second: str, model: str = DEFAULT_MODEL):
     def cosine_similarity(a: numpy.ndarray, b: numpy.ndarray):
         return numpy.dot(a, b) / (numpy.linalg.norm(a) * numpy.linalg.norm(b))
 
-    trainer: ContrastiveModelTrainer = get_trainer(model)
+    trainer: ContrastiveModelTrainer = get_trainer(model, quiet=True)
     first_repr: numpy.ndarray = tf.squeeze(
         trainer.model(encode_text(first, include_batch=True))
     ).numpy()
