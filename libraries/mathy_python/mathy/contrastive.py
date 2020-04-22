@@ -51,6 +51,11 @@ DEFAULT_MODEL = "training/contrastive"
 LARGE_NUM = 1e9
 DEFAULT_LR = 0.001
 
+# Reuse the augmentation envs
+GYM_ENVS: List[MathyGymEnv] = []
+for name in ["poly", "complex", "binomial"]:
+    GYM_ENVS.append(gym.make(f"mathy-{name}-easy-v0"))
+
 
 class ContrastiveModelTrainer:
     def __init__(
@@ -63,18 +68,20 @@ class ContrastiveModelTrainer:
         batch_size: int = 12,
         out_dim: int = 32,
         training: bool = True,
+        profile: bool = False,
     ):
         self.model_file = model_file
         self.project_file = project_file
         self.writer = writer
         self.training = training
+        self.profile = profile
         self.model = build_math_encoder(
             input_shape=input_shape, vocab_len=vocab_len, out_dim=out_dim
         )
         self.project = build_projection_network(input_shape=(out_dim,))
 
     def train(
-        self, batch_fn: Any, batches: int = 100, epochs: int = 10, verbose: int = 0,
+        self, batch_fn: Any, batches: int = 100, epochs: int = 10,
     ):
 
         if self.writer is not None:
@@ -93,14 +100,40 @@ class ContrastiveModelTrainer:
                 )
                 tf.summary.trace_off()
 
+        pr = None
+        if self.profile:
+            import cProfile
+
+            pr = cProfile.Profile()
+            pr.enable()
+
+        try:
+            self.train_loop(batch_fn=batch_fn, epochs=epochs, batches=batches)
+        except KeyboardInterrupt:
+            print("Exiting...")
+
+        if self.profile:
+            assert pr is not None
+            profile_path = os.path.join(
+                os.path.dirname(f"{self.model_file}"), f"training.profile"
+            )
+            pr.disable()
+            pr.dump_stats(profile_path)
+            print(f"PROFILER: saved {profile_path}")
+
+    def train_loop(self, batch_fn: Any, batches: int = 100, epochs: int = 10):
         for i in range(epochs):
             epoch_loss: List[float] = []
             epoch_acc: List[float] = []
             epoch_entropy: List[float] = []
             print(f"Iteration: {i}")
             for j in tqdm.tqdm(range(batches)):
+                # start = time.time()
                 batch = batch_fn()
+                # print(f"make batch: {time.time() - start}")
+                # start = time.time()
                 contrast_loss, contrast_acc, contrast_entropy = self.train_step(batch)
+                # print(f"train step: {time.time() - start}")
                 epoch_acc.append(contrast_acc)
                 epoch_loss.append(contrast_loss)
                 epoch_entropy.append(contrast_entropy)
@@ -168,7 +201,7 @@ class ContrastiveModelTrainer:
 
 
 def get_trainer(
-    folder: str, quiet: bool = False, training: bool = True
+    folder: str, quiet: bool = False, training: bool = True, profile: bool = False
 ) -> ContrastiveModelTrainer:
     """Create and return a trainer, optionally loading an existing model"""
     model_file = os.path.join(folder, "representation")
@@ -183,6 +216,7 @@ def get_trainer(
         vocab_len=VOCAB_LEN,
         batch_size=BATCH_SIZE,
         training=training,
+        profile=profile,
     )
     if os.path.exists(model_file):
         if not quiet:
@@ -218,16 +252,20 @@ def build_math_encoder(
             input_shape=input_shape,
             input_dim=vocab_len + 1,
             output_dim=embed_dim,
-            name="representation/inputs",
+            name="inputs",
             mask_zero=True,
         ),
         # DenseNetStack(
-        #     units=64, num_layers=4, activation=swish, output_transform=Dense(8, activation=swish, name="representation"), name="representation/feature_extractor"
+        #     units=64,
+        #     num_layers=4,
+        #     activation=swish,
+        #     output_transform=Dense(8, activation=swish, name="representation"),
+        #     name="feature_extractor",
         # ),
-        Dense(32, activation=swish, name="representation/features"),
-        tf.keras.layers.LayerNormalization(name="representation/features_ln"),
-        Flatten(name="representation/flatten"),
-        Dense(out_dim, name="representation/output", activation=swish),
+        Dense(256, activation=swish, name="features"),
+        tf.keras.layers.LayerNormalization(name="features_ln"),
+        Flatten(name="flatten"),
+        Dense(out_dim, name="output", activation=swish),
     ]
     model = Sequential(layers, name="representation")
     model.compile(
@@ -274,9 +312,7 @@ def encode_text(
     text: str, pad_length: int = SEQ_LEN, include_batch: bool = False
 ) -> tf.Tensor:
     """Encode text into a list of indices in the vocabulary"""
-    values = [CHAR_TO_INT[c] for c in text]
-    while len(values) < pad_length:
-        values.append(PAD_TOKEN)
+    values = [CHAR_TO_INT[c] for c in text] + [PAD_TOKEN] * (pad_length - len(text))
     if include_batch:
         values = [values]
     return tf.convert_to_tensor(values, dtype=tf.float32)
@@ -299,36 +335,27 @@ def augment_problem(
     expression: MathExpression,
     *,
     env: MathyGymEnv,
-    min_transforms: int = 3,
-    max_transforms: int = 6,
+    min_transforms: int = 1,
+    max_transforms: int = 3,
+    can_drop: bool = True,
 ) -> str:
-    transforms = (
-        AssociativeSwapRule,
-        CommutativeSwapRule,
-        DistributiveFactorOutRule,
-        DistributiveMultiplyRule,
-        ConstantsSimplifyRule,
-    )
-
-    if random.random() > 0.7:
+    augmented = str(expression)
+    if random.random() > 0.85 and can_drop:
         # Drop part of the tree and return a subtree. This breaks the value evaluation
         # of the expressions (if that's the comparison metric you want to use) but is
         # similar to a crop in an image.
-        augmented = str(expression)
         operators = expression.find_type(
             (AddExpression, MultiplyExpression, DivideExpression, SubtractExpression)
         )
         if len(operators) > 0:
             target: MathExpression = random.choice(operators)
-            augmented = str(unlink(target.clone()))
-        else:
-            augmented = str(expression)
+            augmented = str(target)
     else:
         # Apply random actions
-        state = MathyEnvState(problem=str(expression))
+        state = MathyEnvState(problem=augmented)
         for _ in range(random.randint(1, max_transforms)):
             try:
-                action = env.mathy.random_action(expression, transforms)
+                action = env.mathy.random_action(expression)
             except ValueError:
                 # Happens if there are no valid actions (accidentally solved?)
                 break
@@ -360,38 +387,21 @@ def augment_problem(
 
 
 def generate_problem(env: MathyGymEnv) -> str:
-    # HACKS: force selection of expressions with fewer than 6 unique vars
-    compare_exp: MathExpression
-    while True:
-        _, problem = env.mathy.get_initial_state(
-            env.env_problem_args, print_problem=False
-        )
-        compare_exp = env.mathy.parser.parse(problem.text)
-        curr_vars: List[str] = list(
-            set(
-                [
-                    n.identifier
-                    for n in compare_exp.find_type(VariableExpression)
-                    if n.identifier is not None
-                ]
-            )
-        )
-        if len(curr_vars) < 6:
-            break
+    _, problem = env.mathy.get_initial_state(env.env_problem_args, print_problem=False)
     return problem.text
 
 
-def get_agreement_pair(env_types: List[str]) -> List[int]:
-    env_difficulty = random.choice(["easy", "normal"])
-    compare_env: MathyGymEnv = gym.make(
-        f"mathy-{random.choice(env_types)}-{env_difficulty}-v0"
-    )
-    problem: str = generate_problem(compare_env)
-    augment_one: str = augment_problem(
-        compare_env.mathy.parser.parse(problem), env=compare_env
-    )
+def get_agreement_pair(envs: List[MathyGymEnv]) -> List[int]:
+    env: MathyGymEnv = random.choice(envs)
+    problem: str = generate_problem(env)
+    augment_one: str = augment_problem(env.mathy.parser.parse(problem), env=env)
+    # Don't allow dropping parts of the tree on the second example to avoid invalid
+    # augmentations where both are local views of some global context, but neither
+    # has enough information to connect the two. Unlike an image of a dog, you can't
+    # necessarily determine that non-overlapping chunks of the same expression
+    # are from the same source (unless the source is visible)
     augment_two: str = augment_problem(
-        compare_env.mathy.parser.parse(problem), env=compare_env
+        env.mathy.parser.parse(problem), env=env, can_drop=False
     )
     # if random.random() > 0.99:
     #     print(f"text: {problem}")
@@ -401,8 +411,8 @@ def get_agreement_pair(env_types: List[str]) -> List[int]:
 
 
 def make_batch(batch_size=BATCH_SIZE) -> tf.Tensor:
-    env_types = ["poly", "binomial", "complex"]
-    pairs = [get_agreement_pair(env_types) for _ in range(batch_size)]
+    global GYM_ENVS
+    pairs = [get_agreement_pair(GYM_ENVS) for _ in range(batch_size)]
     pairs_tensor = tf.convert_to_tensor(pairs, dtype=tf.float32)
     return pairs_tensor
 
@@ -477,9 +487,10 @@ def train(
     folder: str = typer.Argument(DEFAULT_MODEL),
     eval_every: int = 4,
     iterations: int = 500,
+    profile: bool = False,
 ):
     use_pretty_numbers(False)
-    trainer: ContrastiveModelTrainer = get_trainer(folder)
+    trainer: ContrastiveModelTrainer = get_trainer(folder, profile=profile)
     trainer.train(batch_fn=make_batch, batches=eval_every, epochs=iterations)
 
 
