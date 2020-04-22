@@ -1,4 +1,3 @@
-
 """Implements a contrastive pretraining CLI app for producing math expression
 vector representations from character inputs"""
 import os
@@ -8,22 +7,35 @@ from typing import Any, List, Tuple
 import gym
 import numpy
 import tensorflow as tf
+import tqdm
+import typer
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import CustomObjectScope
 
-import tqdm
-import typer
-
-from .rules import AssociativeSwapRule, CommutativeSwapRule
-from .core.expressions import MathExpression, VariableExpression
+from .agents.attention import SeqSelfAttention
+from .agents.densenet import DenseNetStack
+from .core.expressions import (
+    AddExpression,
+    DivideExpression,
+    MathExpression,
+    MultiplyExpression,
+    SubtractExpression,
+    VariableExpression,
+)
 from .core.parser import ExpressionParser
 from .envs.gym import MathyGymEnv
 from .problems import use_pretty_numbers
+from .rules import (
+    AssociativeSwapRule,
+    CommutativeSwapRule,
+    ConstantsSimplifyRule,
+    DistributiveFactorOutRule,
+    DistributiveMultiplyRule,
+)
 from .state import MathyEnvState
-from .agents.densenet import DenseNetStack
-from .agents.attention import SeqSelfAttention
+from .util import unlink
 
 app = typer.Typer()
 
@@ -38,6 +50,7 @@ BATCH_SIZE = 512
 DEFAULT_MODEL = "training/contrastive"
 LARGE_NUM = 1e9
 DEFAULT_LR = 0.001
+
 
 class ContrastiveModelTrainer:
     def __init__(
@@ -67,16 +80,18 @@ class ContrastiveModelTrainer:
         if self.writer is not None:
             with self.writer.as_default():
                 tf.summary.trace_on(graph=True)
+
                 @tf.function
                 def trace_fn():
                     self.model(encode_text("4x+2x", include_batch=True))
 
                 trace_fn()
                 tf.summary.trace_export(
-                    name="representation", step=0, profiler_outdir=os.path.dirname(str(self.model_file))
+                    name="representation",
+                    step=0,
+                    profiler_outdir=os.path.dirname(str(self.model_file)),
                 )
                 tf.summary.trace_off()
-
 
         for i in range(epochs):
             epoch_loss: List[float] = []
@@ -92,9 +107,15 @@ class ContrastiveModelTrainer:
             if self.writer is not None:
                 with self.writer.as_default():
                     step = self.model.optimizer.iterations
-                    tf.summary.scalar("contrast/loss", tf.reduce_mean(epoch_loss), step=step)
-                    tf.summary.scalar("contrast/entropy", tf.reduce_mean(epoch_entropy), step=step)
-                    tf.summary.scalar("contrast/accuracy", tf.reduce_mean(epoch_acc), step=step)
+                    tf.summary.scalar(
+                        "contrast/loss", tf.reduce_mean(epoch_loss), step=step
+                    )
+                    tf.summary.scalar(
+                        "contrast/entropy", tf.reduce_mean(epoch_entropy), step=step
+                    )
+                    tf.summary.scalar(
+                        "contrast/accuracy", tf.reduce_mean(epoch_acc), step=step
+                    )
                     # representation variables
                     for var in self.model.trainable_variables:
                         tf.summary.histogram(var.name, var, step=step)
@@ -103,7 +124,9 @@ class ContrastiveModelTrainer:
                         tf.summary.histogram(var.name, var, step=step)
                 self.model.save(self.model_file)
                 self.project.save(self.project_file)
-            print(f"loss: {tf.reduce_mean(epoch_loss)} acc: {tf.reduce_mean(epoch_acc)} entropy: {tf.reduce_mean(epoch_entropy)}")
+            print(
+                f"loss: {tf.reduce_mean(epoch_loss)} acc: {tf.reduce_mean(epoch_acc)} entropy: {tf.reduce_mean(epoch_entropy)}"
+            )
 
     def train_step(self, batch):
         with tf.GradientTape(persistent=True) as tape:
@@ -115,11 +138,15 @@ class ContrastiveModelTrainer:
             total_loss, logits_con, labels_con = add_contrastive_loss(hiddens)
             # Compute stats for the summary.
             prob_con = tf.nn.softmax(logits_con)
-            entropy_con = - tf.reduce_mean(tf.reduce_sum(prob_con * tf.math.log(prob_con + 1e-8), -1))
-            contrast_acc = tf.equal(tf.argmax(labels_con, 1), tf.argmax(logits_con, axis=1))
+            entropy_con = -tf.reduce_mean(
+                tf.reduce_sum(prob_con * tf.math.log(prob_con + 1e-8), -1)
+            )
+            contrast_acc = tf.equal(
+                tf.argmax(labels_con, 1), tf.argmax(logits_con, axis=1)
+            )
             contrast_acc = tf.reduce_mean(tf.cast(contrast_acc, tf.float32))
         # Update the representation model
-        grads=tape.gradient(total_loss, self.model.trainable_weights)
+        grads = tape.gradient(total_loss, self.model.trainable_weights)
         grads = [(tf.clip_by_value(grad, -1.0, 1.0)) for grad in grads]
         self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
 
@@ -129,9 +156,9 @@ class ContrastiveModelTrainer:
         self.project.optimizer.apply_gradients(
             zip(pred_grads, self.project.trainable_weights)
         )
-        # 
+        #
         # Debug gradient norms
-        # 
+        #
         # print(f"repr - {tf.linalg.global_norm(grads).numpy()}")
         # print(f"pred - {tf.linalg.global_norm(pred_grads).numpy()}")
 
@@ -140,7 +167,9 @@ class ContrastiveModelTrainer:
         return total_loss, contrast_acc, entropy_con
 
 
-def get_trainer(folder: str, quiet: bool = False, training: bool = True) -> ContrastiveModelTrainer:
+def get_trainer(
+    folder: str, quiet: bool = False, training: bool = True
+) -> ContrastiveModelTrainer:
     """Create and return a trainer, optionally loading an existing model"""
     model_file = os.path.join(folder, "representation")
     project_file = os.path.join(folder, "project")
@@ -153,12 +182,14 @@ def get_trainer(folder: str, quiet: bool = False, training: bool = True) -> Cont
         project_file=project_file,
         vocab_len=VOCAB_LEN,
         batch_size=BATCH_SIZE,
-        training=training
+        training=training,
     )
     if os.path.exists(model_file):
         if not quiet:
             print(f"Loading representation: {model_file}")
-        with CustomObjectScope({"SeqSelfAttention": SeqSelfAttention,"DenseNetStack": DenseNetStack}):
+        with CustomObjectScope(
+            {"SeqSelfAttention": SeqSelfAttention, "DenseNetStack": DenseNetStack}
+        ):
             trainer.model = tf.keras.models.load_model(model_file)
     if os.path.exists(project_file):
         if not quiet:
@@ -169,9 +200,11 @@ def get_trainer(folder: str, quiet: bool = False, training: bool = True) -> Cont
         trainer.project.summary()
     return trainer
 
+
 def swish(x):
     """Swish activation function: https://arxiv.org/pdf/1710.05941.pdf"""
     return x * tf.nn.sigmoid(x)
+
 
 def build_math_encoder(
     input_shape: Tuple[int, ...],
@@ -209,10 +242,7 @@ def build_projection_network(input_shape: Tuple[int, ...]) -> tf.keras.Sequentia
     model = Sequential(
         [
             Dense(
-                64,
-                activation=swish,
-                name="projection/head",
-                input_shape=input_shape,
+                64, activation=swish, name="projection/head", input_shape=input_shape,
             ),
             tf.keras.layers.LayerNormalization(name="projection/head_ln"),
             Dense(32, name="projection/output"),
@@ -269,21 +299,42 @@ def augment_problem(
     expression: MathExpression,
     *,
     env: MathyGymEnv,
-    min_transforms: int = 2,
-    max_transforms: int = 4,
+    min_transforms: int = 3,
+    max_transforms: int = 6,
 ) -> str:
-    rules = (AssociativeSwapRule, CommutativeSwapRule)
-    # Apply random actions
-    state = MathyEnvState(problem=str(expression))
-    for i in range(random.randint(1, max_transforms)):
-        try:
-            action = env.mathy.random_action(expression, rules)
-        except ValueError:
-            # Happens if there are no valid actions (accidentally solved?)
-            break
-        state: MathyEnvState = env.mathy.get_next_state(state, action)[0]
-        expression = env.mathy.parser.parse(state.agent.problem)
-    augmented = str(expression)
+    transforms = (
+        AssociativeSwapRule,
+        CommutativeSwapRule,
+        DistributiveFactorOutRule,
+        DistributiveMultiplyRule,
+        ConstantsSimplifyRule,
+    )
+
+    if random.random() > 0.7:
+        # Drop part of the tree and return a subtree. This breaks the value evaluation
+        # of the expressions (if that's the comparison metric you want to use) but is
+        # similar to a crop in an image.
+        augmented = str(expression)
+        operators = expression.find_type(
+            (AddExpression, MultiplyExpression, DivideExpression, SubtractExpression)
+        )
+        if len(operators) > 0:
+            target: MathExpression = random.choice(operators)
+            augmented = str(unlink(target.clone()))
+        else:
+            augmented = str(expression)
+    else:
+        # Apply random actions
+        state = MathyEnvState(problem=str(expression))
+        for _ in range(random.randint(1, max_transforms)):
+            try:
+                action = env.mathy.random_action(expression, transforms)
+            except ValueError:
+                # Happens if there are no valid actions (accidentally solved?)
+                break
+            state: MathyEnvState = env.mathy.get_next_state(state, action)[0]
+            expression = env.mathy.parser.parse(state.agent.problem)
+        augmented = str(expression)
 
     # Remove spaces randomly
     spaces = space_indices(augmented)
@@ -312,12 +363,18 @@ def generate_problem(env: MathyGymEnv) -> str:
     # HACKS: force selection of expressions with fewer than 6 unique vars
     compare_exp: MathExpression
     while True:
-        _,  problem = env.mathy.get_initial_state(
+        _, problem = env.mathy.get_initial_state(
             env.env_problem_args, print_problem=False
         )
         compare_exp = env.mathy.parser.parse(problem.text)
         curr_vars: List[str] = list(
-            set([n.identifier for n in compare_exp.find_type(VariableExpression) if n.identifier is not None])
+            set(
+                [
+                    n.identifier
+                    for n in compare_exp.find_type(VariableExpression)
+                    if n.identifier is not None
+                ]
+            )
         )
         if len(curr_vars) < 6:
             break
@@ -329,14 +386,18 @@ def get_agreement_pair(env_types: List[str]) -> List[int]:
     compare_env: MathyGymEnv = gym.make(
         f"mathy-{random.choice(env_types)}-{env_difficulty}-v0"
     )
-    compare: str = generate_problem(compare_env)
-    compare_aug: str = augment_problem(
-        compare_env.mathy.parser.parse(compare), env=compare_env
+    problem: str = generate_problem(compare_env)
+    augment_one: str = augment_problem(
+        compare_env.mathy.parser.parse(problem), env=compare_env
+    )
+    augment_two: str = augment_problem(
+        compare_env.mathy.parser.parse(problem), env=compare_env
     )
     # if random.random() > 0.99:
-    #     print(f"pos: {compare}")
-    #     print(f"pos: {compare_aug}")
-    return tf.concat([encode_text(compare), encode_text(compare_aug)], axis=-1)
+    #     print(f"text: {problem}")
+    #     print(f"aug1: {augment_one}")
+    #     print(f"aug2: {augment_two}")
+    return tf.concat([encode_text(augment_one), encode_text(augment_two)], axis=-1)
 
 
 def make_batch(batch_size=BATCH_SIZE) -> tf.Tensor:
@@ -345,10 +406,10 @@ def make_batch(batch_size=BATCH_SIZE) -> tf.Tensor:
     pairs_tensor = tf.convert_to_tensor(pairs, dtype=tf.float32)
     return pairs_tensor
 
-def add_contrastive_loss(hidden:tf.Tensor,
-                         hidden_norm:bool=True,
-                         temperature=0.1,
-                         weights=1.0):
+
+def add_contrastive_loss(
+    hidden: tf.Tensor, hidden_norm: bool = True, temperature=0.1, weights=1.0
+):
     """Compute NT-Xent contrastive loss.
 
     Copyright 2020 The SimCLR Authors.
@@ -396,12 +457,15 @@ def add_contrastive_loss(hidden:tf.Tensor,
     logits_ba = tf.matmul(hidden2, hidden1_large, transpose_b=True) / temperature
 
     loss_a = tf.compat.v1.losses.softmax_cross_entropy(
-        labels, tf.concat([logits_ab, logits_aa], 1), weights=weights)
+        labels, tf.concat([logits_ab, logits_aa], 1), weights=weights
+    )
     loss_b = tf.compat.v1.losses.softmax_cross_entropy(
-        labels, tf.concat([logits_ba, logits_bb], 1), weights=weights)
+        labels, tf.concat([logits_ba, logits_bb], 1), weights=weights
+    )
     loss = loss_a + loss_b
 
     return loss, logits_ab, labels
+
 
 #
 # CLI App

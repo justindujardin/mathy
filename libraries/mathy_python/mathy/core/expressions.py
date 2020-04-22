@@ -184,7 +184,7 @@ class MathExpression(BinaryTreeNode):
         self.visit_inorder(visit_fn)
 
     def find_type(
-        self, instanceType: Union[Type[NodeType], Tuple[Type[NodeType]]]
+        self, instanceType: Union[Type[NodeType], Tuple[Type[NodeType], ...]]
     ) -> List[NodeType]:
         """Find an expression in this tree by type.
 
