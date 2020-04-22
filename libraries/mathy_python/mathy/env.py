@@ -390,7 +390,9 @@ class MathyEnv:
         return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
 
     def random_action(
-        self, expression: MathExpression, rule: Type[BaseRule] = None
+        self,
+        expression: MathExpression,
+        rule: Union[Type[BaseRule], Tuple[Type[BaseRule], ...]] = None,
     ) -> int:
         """Get a random action index that represents a particular rule"""
 
@@ -409,7 +411,7 @@ class MathyEnv:
             return action
 
         actions = np.nonzero(self.get_actions_for_node(expression))
-        try:       
+        try:
             action = np.random.choice(random.choice(actions))
         except ValueError:
             raise ValueError(f"no valid actions for expression: {expression}")
