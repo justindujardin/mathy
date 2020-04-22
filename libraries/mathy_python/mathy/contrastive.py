@@ -1,28 +1,24 @@
+
 """Implements a contrastive pretraining CLI app for producing math expression
 vector representations from character inputs"""
-import itertools
 import os
 import random
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 import gym
 import numpy
 import tensorflow as tf
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
 import tqdm
 import typer
-from fragile.core import HistoryTree, Swarm
-from fragile.core.utils import random_state
-from tensorflow.keras.layers import Conv2D, Dense, Flatten
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import RMSprop
-from wasabi import msg
 
-from .core.expressions import VariableExpression, MathExpression
+from .core.expressions import MathExpression, VariableExpression
 from .core.parser import ExpressionParser
-from .problems import get_rand_vars, use_pretty_numbers
-from .envs import PolySimplify
 from .envs.gym import MathyGymEnv
-from .state import MathyObservation, MathyEnvState
+from .problems import use_pretty_numbers
+from .state import MathyEnvState
 
 app = typer.Typer()
 
@@ -33,7 +29,7 @@ PAD_TOKEN = VOCAB.index("")
 CHAR_TO_INT = {char: index for index, char in enumerate(VOCAB)}
 VOCAB_LEN = len(VOCAB)
 SEQ_LEN = 128
-BATCH_SIZE = 2
+BATCH_SIZE = 512
 DEFAULT_MODEL = "training/contrastive"
 
 
@@ -41,7 +37,7 @@ class ContrastiveModelTrainer:
     def __init__(
         self,
         vocab_len: int,
-        input_shape: tuple,
+        input_shape: Tuple[int, ...],
         writer: tf.summary.SummaryWriter = None,
         model_file: str = None,
         predict_file: str = None,
@@ -51,8 +47,8 @@ class ContrastiveModelTrainer:
         self.model_file = model_file
         self.predict_file = predict_file
         self.writer = writer
-        self.bce = tf.keras.losses.BinaryCrossentropy()
-        self.model = math_encoder(
+        self.bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        self.model = build_math_encoder(
             input_shape=input_shape, vocab_len=vocab_len, out_dim=out_dim
         )
         # The input to contrastive prediction task is four double-length hidden vectors
@@ -62,7 +58,7 @@ class ContrastiveModelTrainer:
         # A(aug) = self.model(encode_text("2 + 4x"))
         # B      = self.model(encode_text("7p * p + 2q^4"))
         # B(aug) = self.model(encode_text("7x * x + 2j^4"))
-        self.predict = likeness_predictor(input_shape=(batch_size * 4, out_dim * 2))
+        self.predict = build_prediction_head(input_shape=(batch_size * 4, out_dim * 2))
 
     def train(
         self, batch_fn: Any, batches: int = 100, epochs: int = 10, verbose: int = 0,
@@ -118,20 +114,28 @@ class ContrastiveModelTrainer:
             bb = self.model(bb_batch)
             # Calculate the cosine similarity loss between our vector pairs
             logits, labels, a, ab, b, ba = calculate_contrastive_loss(
-                aa, ab, ba, bb, self.writer
+                aa, ab, ba, bb, writer=self.writer
             )
             # Predict the likeness of the a/b b/a pairs returned from the contastive loss
             predict_loss = self.bce(self.predict(logits), labels)
             # Combine the cosine similarity and prediction losses
-            total_loss = a + ab + b + ba + predict_loss
+            total_loss = a + ab + b + ba
         # Update the representation model
         grads = tape.gradient(total_loss, self.model.trainable_weights)
         self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
+
         # Update the prediction model
-        grads = tape.gradient(total_loss, self.predict.trainable_weights)
+        pred_grads = tape.gradient(predict_loss, self.predict.trainable_weights)
         self.predict.optimizer.apply_gradients(
-            zip(grads, self.predict.trainable_weights)
+            zip(pred_grads, self.predict.trainable_weights)
         )
+
+        # 
+        # Debug gradient norms
+        # 
+        # print(f"repr - {tf.linalg.global_norm(grads).numpy()}")
+        # print(f"pred - {tf.linalg.global_norm(pred_grads).numpy()}")
+
         # Don't forget to free the persistent=True tape
         del tape
         return a, ab, b, ba, predict_loss
@@ -139,7 +143,7 @@ class ContrastiveModelTrainer:
 
 def get_trainer(folder: str, quiet: bool = False) -> ContrastiveModelTrainer:
     """Create and return a trainer, optionally loading an existing model"""
-    model_file = os.path.join(folder, "encoder")
+    model_file = os.path.join(folder, "representation")
     predict_file = os.path.join(folder, "predict")
     log_dir = os.path.join(os.path.dirname(model_file), "tensorboard")
     writer: tf.summary.SummaryWriter = tf.summary.create_file_writer(log_dir)
@@ -153,7 +157,7 @@ def get_trainer(folder: str, quiet: bool = False) -> ContrastiveModelTrainer:
     )
     if os.path.exists(model_file):
         if not quiet:
-            print(f"Loading encoder: {model_file}")
+            print(f"Loading representation: {model_file}")
         trainer.model = tf.keras.models.load_model(model_file)
     if os.path.exists(predict_file):
         if not quiet:
@@ -210,54 +214,56 @@ def calculate_contrastive_loss(
     return logits, labels, loss_a, loss_contrast_a, loss_b, loss_contrast_b
 
 
-def math_encoder(
-    input_shape: Tuple[int, int, int],
+def swish(x):
+    """Swish activation function: https://arxiv.org/pdf/1710.05941.pdf"""
+    return x * tf.nn.sigmoid(x)
+
+
+def build_math_encoder(
+    input_shape: Tuple[int, ...],
     vocab_len: int,
-    embed_dim: int = 256,
-    out_dim: int = 32,
+    embed_dim: int = 512,
+    out_dim: int = 128,
     quiet: bool = False,
 ):
-
     layers = [
         tf.keras.layers.Embedding(
             input_shape=input_shape,
             input_dim=vocab_len + 1,
             output_dim=embed_dim,
-            name="encoder/inputs",
+            name="representation/inputs",
             mask_zero=True,
         ),
-        Dense(256, activation="relu", name="encoder/hidden"),
-        Flatten(name="encoder/flatten"),
-        Dense(out_dim, name="encoder/output"),
+        Dense(128, activation=swish, name="representation/hidden"),
+        tf.keras.layers.LayerNormalization(name="representation/hidden_ln"),
+        Flatten(name="representation/flatten"),
+        Dense(out_dim, name="representation/output", activation=swish),
     ]
     model = Sequential(layers)
     model.compile(
-        loss="mean_squared_error",
-        optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01),
-        metrics=["accuracy"],
+        loss="mean_squared_error", optimizer=Adam(lr=3e-3), metrics=["accuracy"],
     )
     return model
 
 
-def likeness_predictor(input_shape: Tuple[int, int, int]):
+def build_prediction_head(input_shape: Tuple[int, ...]) -> tf.keras.Sequential:
     """Predict if two vectors are different views of the same expression
     or views of different expressions"""
     model = Sequential(
         [
             Dense(
-                512,
-                activation="relu",
+                64,
+                activation=swish,
                 name="prediction/head",
                 batch_input_shape=input_shape,
             ),
-            Dense(1, name="prediction/output"),
+            tf.keras.layers.LayerNormalization(name="prediction/head_ln"),
+            Dense(1, name="prediction/output", activation="sigmoid"),
         ],
         name="prediction",
     )
     model.compile(
-        loss="binary_crossentropy",
-        optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01),
-        metrics=["accuracy"],
+        loss="binary_crossentropy", optimizer=Adam(lr=3e-4), metrics=["accuracy"],
     )
     return model
 
