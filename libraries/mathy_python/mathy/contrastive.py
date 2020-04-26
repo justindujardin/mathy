@@ -46,7 +46,7 @@ PAD_TOKEN = VOCAB.index("")
 CHAR_TO_INT = {char: index for index, char in enumerate(VOCAB)}
 VOCAB_LEN = len(VOCAB)
 SEQ_LEN = 128
-BATCH_SIZE = 512
+BATCH_SIZE = 128
 DEFAULT_MODEL = "training/contrastive"
 LARGE_NUM = 1e9
 DEFAULT_LR = 0.001
@@ -243,7 +243,7 @@ def swish(x):
 def build_math_encoder(
     input_shape: Tuple[int, ...],
     vocab_len: int,
-    embed_dim: int = 512,
+    embed_dim: int = 128,
     out_dim: int = 64,
     quiet: bool = False,
 ):
@@ -255,16 +255,8 @@ def build_math_encoder(
             name="inputs",
             mask_zero=True,
         ),
-        # DenseNetStack(
-        #     units=64,
-        #     num_layers=4,
-        #     activation=swish,
-        #     output_transform=Dense(8, activation=swish, name="representation"),
-        #     name="feature_extractor",
-        # ),
-        Dense(256, activation=swish, name="features"),
+        tf.keras.layers.LSTM(256, name="features", return_sequences=False),
         tf.keras.layers.LayerNormalization(name="features_ln"),
-        Flatten(name="flatten"),
         Dense(out_dim, name="output", activation=swish),
     ]
     model = Sequential(layers, name="representation")
