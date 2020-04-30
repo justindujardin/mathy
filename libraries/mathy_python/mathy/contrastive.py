@@ -22,20 +22,10 @@ from .core.expressions import (
     MathExpression,
     MultiplyExpression,
     SubtractExpression,
-    VariableExpression,
 )
-from .core.parser import ExpressionParser
 from .envs.gym import MathyGymEnv
 from .problems import use_pretty_numbers
-from .rules import (
-    AssociativeSwapRule,
-    CommutativeSwapRule,
-    ConstantsSimplifyRule,
-    DistributiveFactorOutRule,
-    DistributiveMultiplyRule,
-)
 from .state import MathyEnvState
-from .util import unlink
 
 app = typer.Typer()
 
@@ -49,7 +39,13 @@ SEQ_LEN = 128
 BATCH_SIZE = 128
 DEFAULT_MODEL = "training/contrastive"
 LARGE_NUM = 1e9
-DEFAULT_LR = 0.001
+
+# Optimizer
+LR_INITIAL = 0.001
+LR_DECAY_STEPS = 50
+LR_DECAY_RATE = 0.96
+LR_DECAY_STAIRCASE = False
+
 
 # Reuse the augmentation envs
 GYM_ENVS: List[MathyGymEnv] = []
@@ -66,7 +62,8 @@ class ContrastiveModelTrainer:
         model_file: str = None,
         project_file: str = None,
         batch_size: int = 12,
-        out_dim: int = 32,
+        out_dim: int = 128,
+        embed_dim: int = 1024,
         training: bool = True,
         profile: bool = False,
     ):
@@ -76,7 +73,10 @@ class ContrastiveModelTrainer:
         self.training = training
         self.profile = profile
         self.model = build_math_encoder(
-            input_shape=input_shape, vocab_len=vocab_len, out_dim=out_dim
+            input_shape=input_shape,
+            vocab_len=vocab_len,
+            out_dim=out_dim,
+            embed_dim=embed_dim,
         )
         self.project = build_projection_network(input_shape=(out_dim,))
 
@@ -94,7 +94,7 @@ class ContrastiveModelTrainer:
 
                 trace_fn()
                 tf.summary.trace_export(
-                    name="representation",
+                    name="model",
                     step=0,
                     profiler_outdir=os.path.dirname(str(self.model_file)),
                 )
@@ -106,6 +106,7 @@ class ContrastiveModelTrainer:
 
             pr = cProfile.Profile()
             pr.enable()
+            print("PROFILER: recording")
 
         try:
             self.train_loop(batch_fn=batch_fn, epochs=epochs, batches=batches)
@@ -141,6 +142,11 @@ class ContrastiveModelTrainer:
                 with self.writer.as_default():
                     step = self.model.optimizer.iterations
                     tf.summary.scalar(
+                        f"contrast/learning_rate",
+                        data=self.model.optimizer.lr(step),
+                        step=step,
+                    )
+                    tf.summary.scalar(
                         "contrast/loss", tf.reduce_mean(epoch_loss), step=step
                     )
                     tf.summary.scalar(
@@ -155,8 +161,9 @@ class ContrastiveModelTrainer:
                     # projection variables
                     for var in self.project.trainable_variables:
                         tf.summary.histogram(var.name, var, step=step)
-                self.model.save(self.model_file)
-                self.project.save(self.project_file)
+
+                tf.keras.models.save_model(self.model, self.model_file)
+                tf.keras.models.save_model(self.project, self.project_file)
             print(
                 f"loss: {tf.reduce_mean(epoch_loss)} acc: {tf.reduce_mean(epoch_acc)} entropy: {tf.reduce_mean(epoch_entropy)}"
             )
@@ -240,11 +247,26 @@ def swish(x):
     return x * tf.nn.sigmoid(x)
 
 
+def build_exponential_decay_adam(
+    lr_initial: float = LR_INITIAL,
+    lr_decay_steps: float = LR_DECAY_STEPS,
+    lr_decay_rate: float = LR_DECAY_RATE,
+    lr_decay_staircase: bool = LR_DECAY_STAIRCASE,
+) -> tf.keras.optimizers.Optimizer:
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        lr_initial,
+        decay_steps=lr_decay_steps,
+        decay_rate=lr_decay_rate,
+        staircase=lr_decay_staircase,
+    )
+    return tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+
 def build_math_encoder(
     input_shape: Tuple[int, ...],
     vocab_len: int,
-    embed_dim: int = 128,
-    out_dim: int = 64,
+    embed_dim: int,
+    out_dim: int,
     quiet: bool = False,
 ):
     layers = [
@@ -252,27 +274,28 @@ def build_math_encoder(
             input_shape=input_shape,
             input_dim=vocab_len + 1,
             output_dim=embed_dim,
-            name="inputs",
+            name="embeddings",
             mask_zero=True,
         ),
-        tf.keras.layers.LSTM(256, name="features", return_sequences=False),
-        tf.keras.layers.LayerNormalization(name="features_ln"),
-        Dense(out_dim, name="output", activation=swish),
+        tf.keras.layers.LSTM(out_dim, name="lstm", return_sequences=False),
+        tf.keras.layers.LayerNormalization(name="layer_norm"),
     ]
     model = Sequential(layers, name="representation")
     model.compile(
-        loss="mean_squared_error", optimizer=Adam(lr=DEFAULT_LR), metrics=["accuracy"],
+        loss="mean_squared_error",
+        optimizer=build_exponential_decay_adam(),
+        metrics=["accuracy"],
     )
     return model
 
 
 def build_projection_network(input_shape: Tuple[int, ...]) -> tf.keras.Sequential:
-    """Predict if two vectors are different views of the same expression
-    or views of different expressions"""
+    """Projection model for building a richer representation of output vectors for the
+    contrastive loss task. The paper claims this greatly improved performance."""
     model = Sequential(
         [
             Dense(
-                64, activation=swish, name="projection/head", input_shape=input_shape,
+                64, activation="relu", name="projection/head", input_shape=input_shape,
             ),
             tf.keras.layers.LayerNormalization(name="projection/head_ln"),
             Dense(32, name="projection/output"),
@@ -280,7 +303,9 @@ def build_projection_network(input_shape: Tuple[int, ...]) -> tf.keras.Sequentia
         name="projection",
     )
     model.compile(
-        loss="binary_crossentropy", optimizer=Adam(lr=DEFAULT_LR), metrics=["accuracy"],
+        loss="binary_crossentropy",
+        optimizer=build_exponential_decay_adam(),
+        metrics=["accuracy"],
     )
     return model
 
