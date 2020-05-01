@@ -350,7 +350,7 @@ class ExpressionParser:
                 self.eat(TokenCloseParen)
             else:
                 raise UnexpectedBehavior(
-                    "Unexpected token in Factor: {}".format(self.current_token.type)
+                    "Unexpected token in Factor: {}".format(self.current_token.value)
                 )
 
             found = self.check(_FIRST_FACTOR)

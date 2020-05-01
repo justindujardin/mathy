@@ -295,10 +295,10 @@ def build_projection_network(input_shape: Tuple[int, ...]) -> tf.keras.Sequentia
     model = Sequential(
         [
             Dense(
-                64, activation="relu", name="projection/head", input_shape=input_shape,
+                256, activation="relu", name="projection/head", input_shape=input_shape,
             ),
             tf.keras.layers.LayerNormalization(name="projection/head_ln"),
-            Dense(32, name="projection/output"),
+            Dense(128, name="projection/output"),
         ],
         name="projection",
     )
