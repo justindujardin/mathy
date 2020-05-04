@@ -311,6 +311,7 @@ def gen_simplify_multiple_terms(
     """
     power_prob_percent = powers_probability * 100
     num_like_terms = max(2, int(num_terms * inner_terms_scaling))
+    use_noise = rand_bool(noise_probability * 100) is True
     if num_terms <= 1:
         raise ValueError("num_terms must be at least 2")
     if num_terms == 2:
@@ -319,16 +320,21 @@ def gen_simplify_multiple_terms(
     term_templates = like_term_vars[:]
 
     # Use shared variables with different expoonents (4x, 2x^3)
-    if num_like_terms > 1 and rand_bool(share_var_probability * 100) is True:
-        shared_var = term_templates[0]
-        term_templates[1] = f"{shared_var}^{rand_number()}"
-        # Maybe add exponents to non-shared terms
-        for i, var in enumerate(term_templates[2:]):
-            term_templates[i + 2] = f"{var}{maybe_power(power_prob_percent)}"
-    else:
-        # Use unique variables (and maybe add exponents)
-        for i, var in enumerate(term_templates):
-            term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
+    share_var: bool = rand_bool(share_var_probability * 100) is True
+    shared_var: Optional[str] = None
+    adorn_offset: int = 0
+    if share_var:
+        # Like terms with a shared variable.
+        if num_like_terms > 1 and not use_noise:
+            adorn_offset = 2
+            term_templates[1] = f"{term_templates[0]}{maybe_power(100)}"
+        else:
+            # Unlike terms with a shared variable
+            shared_var = f"{term_templates[0]}{maybe_power(100)}"
+
+    # Maybe add exponents to non-shared terms
+    for i, var in enumerate(term_templates[adorn_offset:]):
+        term_templates[i + adorn_offset] = f"{var}{maybe_power(power_prob_percent)}"
 
     complexity = num_terms
 
@@ -336,8 +342,13 @@ def gen_simplify_multiple_terms(
     term_templates *= num_terms
     term_templates = term_templates[0:num_terms]
 
+    # Do this after repeating the term_templates (else shared would always have
+    # "like" terms)
+    if shared_var is not None:
+        term_templates.append(shared_var)
+
     # sometimes add noise terms to the ends
-    if rand_bool(noise_probability * 100) is True:
+    if use_noise:
         num_noise_terms = min(5, max(1, num_terms // 3))
         if noise_terms is not None:
             num_noise_terms = noise_terms
