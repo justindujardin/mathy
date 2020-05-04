@@ -295,6 +295,7 @@ def gen_simplify_multiple_terms(
     optional_var_probability: float = 0.8,
     noise_probability: float = 0.8,
     shuffle_probability: float = 0.66,
+    share_var_probability: float = 0.5,
     noise_terms: int = None,
 ) -> Tuple[str, int]:
     """Generate a polynomial problem with like terms that need to be combined and
@@ -316,8 +317,18 @@ def gen_simplify_multiple_terms(
         num_like_terms = 1
     like_term_vars = get_rand_vars(num_like_terms)
     term_templates = like_term_vars[:]
-    for i, var in enumerate(term_templates):
-        term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
+
+    # Use shared variables with different expoonents (4x, 2x^3)
+    if num_like_terms > 1 and rand_bool(share_var_probability * 100) is True:
+        shared_var = term_templates[0]
+        term_templates[1] = f"{shared_var}^{rand_number()}"
+        # Maybe add exponents to non-shared terms
+        for i, var in enumerate(term_templates[2:]):
+            term_templates[i + 2] = f"{var}{maybe_power(power_prob_percent)}"
+    else:
+        # Use unique variables (and maybe add exponents)
+        for i, var in enumerate(term_templates):
+            term_templates[i] = f"{var}{maybe_power(power_prob_percent)}"
 
     complexity = num_terms
 
