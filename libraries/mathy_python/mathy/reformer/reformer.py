@@ -18,18 +18,20 @@ TensorType = torch.Tensor
 
 
 class MathyReformerConfig(BaseModel):
-    folder: str
+    root_folder: str
     train_file: str
     eval_file: str
     seq_len: int = 128
-    batch_size: int = 512
     eval_batch_size: int = 128
+    save_every: int = 100
+    histogram_every: int = 100
+    validate_every: int = 100
+    print_every: int = 100
+    use_cuda: bool = False
+
+    batch_size: int = 512
     accumulate_every: int = 4
     learning_rate: float = 3e-4
-    save_every: int = 100
-    validate_every: int = 100
-    print_every: int = 10
-    use_cuda: bool = False
 
     # ReformerLM config
     reformer_dim: int = 512
@@ -39,6 +41,30 @@ class MathyReformerConfig(BaseModel):
     reformer_n_hashes: int = 4
     reformer_ff_chunks: int = 0
     reformer_lsh_dropout: float = 0.1
+
+    @property
+    def folder(self) -> str:
+        """Generate a dir that includes run hyper parameters in its name"""
+        args = [
+            f"ebatch{self.batch_size * self.accumulate_every}"
+            f"dim{self.reformer_dim}"
+            f"depth{self.reformer_depth}"
+            f"head{self.reformer_heads}"
+            f"hash{self.reformer_n_hashes}"
+            f"dropout{self.reformer_lsh_dropout}".replace(".", "_")
+        ]
+        run_name = "_".join(args)
+        return os.path.join(self.root_folder, run_name)
+
+    @property
+    def model_name(self) -> str:
+        """Return the path to model.torch file for this configuration"""
+        return os.path.join(self.folder, "model.torch")
+
+    @property
+    def log_dir(self) -> str:
+        """Return the path to store tensorboard logs in"""
+        return os.path.join(self.folder, "tensorboard")
 
 
 DatasetTuple = Tuple[List[TensorType], List[Tuple[TensorType, int]]]
@@ -84,26 +110,41 @@ class MathyVocab:
 
 
 class MathyReformer(ReformerLM):
+    epoch: int
     config: MathyReformerConfig
     vocab: MathyVocab
+    optimizer: torch.optim.Adam
 
     def __init__(self, config: MathyReformerConfig, vocab: MathyVocab, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         self.vocab = vocab
+        if self.config.use_cuda:
+            self.cuda()
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=config.learning_rate)
+        model = os.path.join(config.folder, "model.torch")
+        if os.path.exists(model):
+            print(f"loading model: {model}")
+            checkpoint = torch.load(model)
+            self.load_state_dict(checkpoint["model_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            self.epoch = checkpoint.get("epoch", 0)
+        else:
+            self.epoch = 0
+        print(f"model epoch: {self.epoch}")
 
 
 def main(
-    folder: str = "training/reformer/dev",
+    root_folder: str = "training/reformer/",
     train_file="like_terms_prediction.train.txt",
     eval_file="like_terms_prediction.eval.txt",
 ):
     config = MathyReformerConfig(
-        folder=folder, train_file=train_file, eval_file=eval_file
+        root_folder=root_folder, train_file=train_file, eval_file=eval_file
     )
     vocab = MathyVocab()
+    print(f"Folder: {config.folder}")
     print(f"Config: {json.dumps(config.dict(), indent=2)}")
-    print(f"Batch Size: {config.batch_size}")
     reformer: MathyReformer = MathyReformer(
         config=config,
         vocab=vocab,
@@ -117,23 +158,7 @@ def main(
         ff_chunks=config.reformer_ff_chunks,
         lsh_dropout=config.reformer_lsh_dropout,
     )
-    if config.use_cuda:
-        reformer.cuda()
-
-    optimizer = torch.optim.Adam(reformer.parameters(), lr=config.learning_rate)
-    model = os.path.join(folder, "model.torch")
-    if os.path.exists(model):
-        print(f"loading model: {model}")
-        checkpoint = torch.load(model)
-        reformer.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        reformer.epoch = checkpoint.get("epoch", 0)
-    else:
-        reformer.epoch = 0
-    print(f"model epoch: {reformer.epoch}")
-    train(
-        reformer, config=config, model_name=model, optimizer=optimizer, epochs=3000,
-    )
+    train(reformer, config=config, epochs=3000)
 
 
 def load_dataset(file_name: str, pad_length: int, vocab: MathyVocab) -> DatasetTuple:
@@ -252,60 +277,75 @@ def get_batch_loss(
 
 
 def train(
-    model: MathyReformer,
-    *,
-    model_name: str,
-    config: MathyReformerConfig,
-    optimizer: torch.optim.Adam,
-    epochs: int,
+    model: MathyReformer, *, config: MathyReformerConfig, epochs: int,
 ):
 
-    summary = SummaryWriter(os.path.join(config.folder, "tensorboard"), flush_secs=30)
+    summary = SummaryWriter(os.path.join(config.log_dir), flush_secs=30)
     data_train = load_dataset(config.train_file, config.seq_len, model.vocab)
     data_val = load_dataset(config.eval_file, config.seq_len, model.vocab)
     train_dataset = ProblemAnswerDataset(config, data_train)
     val_dataset = ProblemAnswerDataset(config, data_val)
     train_loader = cycle(DataLoader(train_dataset, batch_size=config.batch_size))
     loss: TensorType = torch.zeros(1)
-    for i in range(epochs):
-        model.epoch += 1
-        model.train()
 
-        step_start = time.time()
-        for __ in range(config.accumulate_every):
-            loss = get_batch_loss(model, next(train_loader))
-            loss.backward()
-        print(".", end="", flush=True)
-        step_end = time.time()
-        summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
-        summary.add_scalar("loss/train", loss, model.epoch)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-        optimizer.step()
-        optimizer.zero_grad()
+    def save():
+        print(
+            f"save: {config.model_name} | step: {model.epoch} | loss_train: {loss.item()}"
+        )
+        torch.save(
+            {
+                "epoch": model.epoch,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": model.optimizer.state_dict(),
+            },
+            config.model_name,
+        )
 
-        if i % config.print_every == 0:
-            print(f"step: {model.epoch} | loss: {loss.item()}")
+    try:
+        for i in range(epochs):
+            model.epoch += 1
+            model.train()
 
-        if i % config.save_every == 0:
-            if i > 0:
-                print(
-                    f"save: {model_name} | step: {model.epoch} | loss_train: {loss.item()}"
+            step_start = time.time()
+            for __ in range(config.accumulate_every):
+                loss = get_batch_loss(model, next(train_loader))
+                loss.backward()
+            print(".", end="", flush=True)
+            step_end = time.time()
+            summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
+            summary.add_scalar("loss/train", loss, model.epoch)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            model.optimizer.step()
+            # run before zero-grad
+            if i % config.histogram_every == 0:
+                for tag, value in model.named_parameters():
+                    tag = tag.replace(".", "/")
+                    summary.add_histogram(
+                        tag + "/data", value.data.cpu().numpy(), model.epoch
+                    )
+                    summary.add_histogram(
+                        tag + "/gradient", value.grad.data.cpu().numpy(), model.epoch
+                    )
+            model.optimizer.zero_grad()
+
+            if i % config.print_every == 0:
+                print(f"step: {model.epoch} | loss: {loss.item()}")
+
+            if i % config.save_every == 0:
+                if i > 0:
+                    save()
+            if i % config.validate_every == 0:
+                eval_loss, eval_win_pct = evaluate_model(model, val_dataset)
+                print(f"loss_train: {loss.item()} | loss_eval: {eval_loss}")
+                summary.add_scalar("loss/eval", eval_loss, model.epoch)
+                summary.add_scalar(
+                    "metrics/eval_correct_pct", eval_win_pct, model.epoch
                 )
-                torch.save(
-                    {
-                        "epoch": model.epoch,
-                        "model_state_dict": model.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                    },
-                    model_name,
-                )
-        if i % config.validate_every == 0:
-            eval_loss, eval_win_pct = evaluate_model(model, val_dataset)
-            print(f"loss_train: {loss.item()} | loss_eval: {eval_loss}")
-            summary.add_scalar("loss/eval", eval_loss, model.epoch)
-            summary.add_scalar("correct/eval", eval_win_pct, model.epoch)
+    except KeyboardInterrupt:
+        pass
 
     summary.close()
+    save()
 
 
 if __name__ == "__main__":
