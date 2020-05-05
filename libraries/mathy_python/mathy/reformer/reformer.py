@@ -219,7 +219,7 @@ class ProblemAnswerDataset(Dataset):
 
 def evaluate_model(
     model: MathyReformer, dataset: ProblemAnswerDataset
-) -> Tuple[float, float]:
+) -> Tuple[float, float, List[str]]:
     """Evaluate a model on a dataset and return a tuple of the total number
     of problems evaluated, the number answered correctly, and the total loss"""
     model.eval()
@@ -229,6 +229,7 @@ def evaluate_model(
     total: int = len(dataset)
     print_max = 3
     printed = 0
+    texts = []
     with torch.no_grad():
         for batch_with_labels in loader:
             # Check correct/incorrect answers
@@ -245,9 +246,9 @@ def evaluate_model(
                     printed += 1
                     question = model.vocab.decode_text(X).replace("\n", "")
                     outcome = "WRONG" if expected != answer else "RIGHT"
-                    print(
-                        f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
-                    )
+                    print_text = f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
+                    print(print_text)
+                    texts.append(print_text)
                 if answer == expected:
                     correct += 1
             loss += get_batch_loss(
@@ -255,7 +256,7 @@ def evaluate_model(
             ).item()
     ratio = correct / total
     print(f"evaluation accuracy: {int(ratio * 100)}% | correct: ({correct}/{total})")
-    return loss, ratio
+    return loss, ratio, texts
 
 
 def get_batch_loss(
@@ -335,12 +336,14 @@ def train(
                 if i > 0:
                     save()
             if i % config.validate_every == 0:
-                eval_loss, eval_win_pct = evaluate_model(model, val_dataset)
+                eval_loss, eval_win_pct, texts = evaluate_model(model, val_dataset)
                 print(f"loss_train: {loss.item()} | loss_eval: {eval_loss}")
                 summary.add_scalar("loss/eval", eval_loss, model.epoch)
                 summary.add_scalar(
                     "metrics/eval_correct_pct", eval_win_pct, model.epoch
                 )
+                for i, text in enumerate(texts):
+                    summary.add_text(f"metrics/eval_sample_{i}", text, model.epoch)
     except KeyboardInterrupt:
         pass
 
