@@ -83,9 +83,6 @@ class MathyVocab:
         self.char_to_int = {char: index for index, char in enumerate(self.vocab)}
         self.vocab_len = len(self.vocab)
 
-    def to_int(self, char: str):
-        return self.char_to_int[char]
-
     def decode_text(self, tokens: TensorType) -> str:
         """Decode a list of integer tensors to produce a string"""
         output: List[str] = []

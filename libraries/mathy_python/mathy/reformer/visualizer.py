@@ -8,105 +8,101 @@ from reformer_pytorch import ReformerLM, Recorder
 from torch.nn.functional import cross_entropy
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
-from wasabi import msg
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from .reformer import (
-    PAD_TOKEN,
     SEQ_LEN,
     USE_CUDA,
-    VOCAB,
     VOCAB_LEN,
-    DatasetTuple,
     ProblemAnswerDataset,
     decode_text,
-    encode_text,
     load_dataset,
 )
 
 
+# From: https://www.tensorflow.org/tutorials/text/nmt_with_attention
+def plot_attention(
+    attention: torch.Tensor,
+    input_one: str,
+    input_two: str,
+    seq_len: int,
+    title: str,
+    answer: int,
+) -> bool:
 
-def show_head_view(model, tokenizer, sentence_a, sentence_b=None):
-    inputs = tokenizer.encode_plus(
-        sentence_a, sentence_b, return_tensors="pt", add_special_tokens=True
-    )
-    input_ids = inputs["input_ids"]
-    if sentence_b:
-        token_type_ids = inputs["token_type_ids"]
-        attention = model(input_ids, token_type_ids=token_type_ids)[-1]
-        sentence_b_start = token_type_ids[0].tolist().index(1)
+    if seq_len < 35:
+        fig_size = 6
+        font_size = 12
     else:
-        attention = model(input_ids)[-1]
-        sentence_b_start = None
-    input_id_list = input_ids[0].tolist()  # Batch index 0
-    tokens = tokenizer.convert_ids_to_tokens(input_id_list)
-    head_view(attention, tokens, sentence_b_start)
+        fig_size = 12
+        font_size = 8
+
+    fig = plt.figure(figsize=(fig_size, fig_size))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_title(title)
+    ax.matshow(attention[0:seq_len, 0:seq_len], cmap="viridis")
+
+    fontdict = {"fontsize": font_size}
+
+    ax.set_xticklabels([""] + list(input_one), fontdict=fontdict)
+    ax.set_yticklabels([""] + list(input_two), fontdict=fontdict)
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+    plt.show()
+    return True
 
 
-def evaluate_model(model: ReformerLM, dataset: ProblemAnswerDataset) -> float:
+def evaluate_model_attention(model: ReformerLM, dataset: ProblemAnswerDataset) -> None:
     """Evaluate a model on a dataset and return a tuple of the total number
     of problems evaluated, the number answered correctly, and the total loss"""
     model.eval()
-    batch_size = 4
-    loader = DataLoader(dataset, batch_size=batch_size)
-    loss: float = 0.0
-    correct: int = 0
-    total: int = len(dataset)
-    with torch.no_grad():
-        for batch_with_labels in loader:
-            # Check correct/incorrect answers
-            batch, batch_labels = batch_with_labels
-            # Clear recorded attentions
-            model.clear()
-            prediction = model(batch)
-            answer: Any
-
-            for batch_i, X, label, answer in zip(
-                list(range(batch_size)), batch, batch_labels[0], prediction
-            ):
-                input_text = decode_text(X)
-                input_len = input_text.index("\n")
-                print(input_len)
-                expected = decode_text(label).replace("\n", "")
-                # argmax resolves the class probs to ints, and squeeze removes extra dim
-                answer = decode_text(answer.argmax(-1).squeeze())
-                if "\n" in answer:
-                    answer = answer[0 : answer.index("\n")]
-                if True:
-                    question = input_text.replace("\n", "")
-                    print_fn = msg.good if expected == answer else msg.fail
-                    op = "==" if expected == answer else "!="
-                    msg.info(f"Question: {question}")
-                    msg.info(f"Answer  : {expected}")
-                    print_fn(f"Model   : {answer}")
-                correct += 1
-                layers = model.recordings[0][batch_i]["attn"]
-                for i, attn_layer in enumerate(layers):
-                    for j, attn_head in enumerate(attn_layer):
-                        title = f"layer: {i} head: {j} correct: {answer == expected} answer: {expected} model: {answer}"
-                        print(title)
-                        plot_attention(
-                            attn_head, input_text, input_text, input_len, title,
-                        )
-
-    pct = int(correct / total * 100)
-    msg.divider(f"{pct}% correct ({correct}/{total})")
-    return loss
+    loader = DataLoader(dataset, batch_size=1)
+    for batch_with_labels in loader:
+        batch, batch_labels = batch_with_labels
+        # Clear recorded attentions
+        model.clear()
+        prediction = model(batch)
+        answer: Any
+        X = batch[0]
+        label = batch_labels[0][0]
+        answer = prediction
+        input_text = decode_text(X)
+        input_len = input_text.index("\n")
+        expected = decode_text(label).replace("\n", "")
+        # argmax resolves the class probs to ints, and squeeze removes extra dim
+        answer = decode_text(answer.argmax(-1).squeeze())
+        question = input_text.replace("\n", "")
+        print(f"Question: {question}")
+        print(f"Answer  : {expected}")
+        print(f"Model   : {answer}")
+        correct_str = "CORRECT" if expected == answer else "WRONG"
+        # The like terms attention tends to be informative on head/layer 0
+        attn_head = model.recordings[0][0]["attn"][0][0]
+        title = f"expected: {expected} model:{answer} - {correct_str}"
+        plot_attention(
+            attention=attn_head,
+            input_one=input_text,
+            input_two=input_text,
+            seq_len=input_len,
+            title=title,
+            answer=int(answer),
+        )
 
 
 if __name__ == "__main__":
-
-    file_name: str = "hoarding/like_terms_prediction.torch"
+    file_name: str = "training/reformer/ltp_only_hard.torch"
     model = ReformerLM(
         dim=512,
-        depth=4,
+        depth=2,
         max_seq_len=SEQ_LEN,
         num_tokens=VOCAB_LEN,
-        bucket_size=16,
-        heads=2,
-        n_hashes=2,
-        ff_chunks=8,
+        bucket_size=64,
+        heads=4,
+        n_hashes=4,
+        ff_chunks=0,
         lsh_dropout=0.1,
     )
     if USE_CUDA:
@@ -118,5 +114,7 @@ if __name__ == "__main__":
     checkpoint = torch.load(file_name, map_location=torch.device(dev))
     model.load_state_dict(checkpoint["model_state_dict"])
     model = Recorder(model)
-    dataset = ProblemAnswerDataset(load_dataset("hoarding/ltp_hard.eval.txt", SEQ_LEN))
-    evaluate_model(model, dataset)
+    dataset = ProblemAnswerDataset(
+        load_dataset("training/reformer/ltp_hard.eval.txt", SEQ_LEN)
+    )
+    evaluate_model_attention(model, dataset)

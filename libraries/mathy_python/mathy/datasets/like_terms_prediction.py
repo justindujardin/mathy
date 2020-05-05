@@ -7,7 +7,7 @@ import typer
 from tqdm.auto import tqdm
 
 from mathy import ExpressionParser, MathExpression, TermEx, get_term_ex, get_terms
-from mathy.problems import gen_simplify_multiple_terms, mathy_term_string
+from mathy.problems import gen_simplify_multiple_terms, mathy_term_string, use_pretty_numbers
 
 parser = ExpressionParser()
 
@@ -27,16 +27,14 @@ def generate_newline_q_a(
     skip_threshold = 100
     problems = 0
     min_like = 4 if eval else 2
-    max_like = 12 if eval else 4
-    min_noise = 0
-    max_noise = 2
+    max_like = 12 if eval else 8
     with Path(train_file).open("w") as f:
         with tqdm(total=number, mininterval=0.25, desc=file_base) as pbar:
             while problems < number:
                 text, complexity = gen_simplify_multiple_terms(
                     random.randint(min_like, max_like),
                     noise_probability=0.5,
-                    noise_terms=random.randint(min_noise, max_noise),
+                    noise_terms=random.randint(1, 5),
                     op=["+", "-"],
                 )
 
@@ -50,13 +48,13 @@ def generate_newline_q_a(
 
                 skips = 0
                 exclude.add(text)
-                answer = list_like_terms(text, sep=" ")
+                answer = count_like_terms(text)
                 f.write(f"{text}\n{answer}\n")
                 pbar.update(1)
                 problems += 1
 
 
-def list_like_terms(input_problem: str, sep: str) -> int:
+def count_like_terms(input_problem: str) -> int:
     expression: MathExpression = parser.parse(input_problem)
     term_nodes: List[MathExpression] = get_terms(expression)
     node_groups: Dict[str, List[MathExpression]] = {}
@@ -71,23 +69,25 @@ def list_like_terms(input_problem: str, sep: str) -> int:
         else:
             node_groups[key].append(term_node)
     like_terms = 0
-    out_terms: List[str] = []
     for k, v in node_groups.items():
         if len(v) <= 1:
             continue
-        for t in v:
-            out_terms.append(str(t))
-    return sep.join(out_terms)
+        like_terms += len(v)
+    return like_terms
 
 
 def main(
     name: str,
-    train_size: int = 1000 * 1000,
+    train_size: int = 200 * 1000,
     eval_size: int = 1000,
     max_len: int = 128,
     include_eval: bool = True,
     include_generalization: bool = True,
+    pretty:bool = False
 ):
+
+    use_pretty_numbers(pretty)
+
     current = os.path.dirname(__file__)
     train_file = os.path.join(current, f"{name}.train")
     eval_file = os.path.join(current, f"{name}.eval")
