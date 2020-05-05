@@ -205,7 +205,7 @@ def evaluate_model(
     print_max = 3
     printed = 0
     with torch.no_grad():
-        for batch_with_labels in tqdm(loader, desc="evaluating model"):
+        for batch_with_labels in loader:
             # Check correct/incorrect answers
             batch, batch_labels = batch_with_labels
             prediction = model(batch)
@@ -219,16 +219,17 @@ def evaluate_model(
                 if printed < print_max:
                     printed += 1
                     question = model.vocab.decode_text(X).replace("\n", "")
-                    print(f"Question: {question}")
-                    print(f"Answer  : {expected}")
-                    print(f"Model   : {answer}")
+                    outcome = "WRONG" if expected != answer else "RIGHT"
+                    print(
+                        f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
+                    )
                 if answer == expected:
                     correct += 1
             loss += get_batch_loss(
                 model, batch_with_labels, prediction=prediction
             ).item()
     ratio = correct / total
-    msg.divider(f"{int(ratio * 100)}% correct ({correct}/{total})")
+    print(f"evaluation accuracy: {int(ratio * 100)}% | correct: ({correct}/{total})")
     return loss, ratio
 
 
@@ -274,7 +275,7 @@ def train(
         for __ in range(config.accumulate_every):
             loss = get_batch_loss(model, next(train_loader))
             loss.backward()
-        print(".", end="")
+        print(".", end="", flush=True)
         step_end = time.time()
         summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
         summary.add_scalar("loss/train", loss, model.epoch)
@@ -287,7 +288,9 @@ def train(
 
         if i % config.save_every == 0:
             if i > 0:
-                print(f"save: {model_name} | step: {model.epoch} | loss: {loss.item()}")
+                print(
+                    f"save: {model_name} | step: {model.epoch} | loss_train: {loss.item()}"
+                )
                 torch.save(
                     {
                         "epoch": model.epoch,
