@@ -1,89 +1,150 @@
-import gzip
+import json
+import time
 import os
-import random
-import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 import torch
-import typer
-from reformer_pytorch import ReformerLM, Recorder
-from torch.nn import functional as F
+from pydantic import BaseModel
+from reformer_pytorch import ReformerLM
 from torch.nn.functional import cross_entropy
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
-from tqdm.auto import tqdm
+from tqdm import tqdm
 from wasabi import msg
 
-VOCAB = ["", " ", "\t", "\n"] + list(
-    ".+-/^*()[]-?01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-PAD_TOKEN = VOCAB.index("")
-CHAR_TO_INT = {char: index for index, char in enumerate(VOCAB)}
-VOCAB_LEN = len(VOCAB)
-UNK_TOKEN_STR = "<UNK>"
-SEQ_LEN = 128
-BATCH_SIZE = 4
-EVAL_BATCH_SIZE = 128
-GRADIENT_ACCUMULATE_EVERY = 4
-LEARNING_RATE = 3e-4
-SAVE_EVERY = 50
-VALIDATE_EVERY = 100
-PRINT_EVERY = 25
-GENERATE_EVERY = 100
-ATTENTION_EVERY = 50
-USE_CUDA = False
-USE_PROFILER = True
-
-print(f"Use CUDA: {USE_CUDA}")
-print(f"Batch size: {BATCH_SIZE}")
-print(f"CPU Profiling: {USE_PROFILER}")
-if USE_PROFILER:
-    import cProfile
-
-    pr = cProfile.Profile()
-    pr.enable()
-
-DatasetTuple = Tuple[List[torch.Tensor], List[Tuple[torch.Tensor, int]]]
+# TODO: Replace with thinc to make swapping frameworks easier
+TensorType = torch.Tensor
 
 
-# For writing to tensorboard
-MODEL_NAME = "test_tb.torch"
+class MathyReformerConfig(BaseModel):
+    folder: str
+    train_file: str
+    eval_file: str
+    seq_len: int = 128
+    batch_size: int = 512
+    eval_batch_size: int = 128
+    accumulate_every: int = 4
+    learning_rate: float = 3e-4
+    save_every: int = 100
+    validate_every: int = 100
+    print_every: int = 10
+    use_cuda: bool = False
 
-WRITER = SummaryWriter(f"training/{os.path.basename(MODEL_NAME)}", flush_secs=30)
+    # ReformerLM config
+    reformer_dim: int = 512
+    reformer_depth: int = 2
+    reformer_bucket_size: int = 64
+    reformer_heads: int = 4
+    reformer_n_hashes: int = 4
+    reformer_ff_chunks: int = 0
+    reformer_lsh_dropout: float = 0.1
 
 
-def decode_text(tokens: torch.Tensor) -> str:
-    """Decode a list of integer tensors to produce a string"""
-    output: List[str] = []
-    for token in tokens.tolist():
-        token_index = int(token)
-        if token_index >= VOCAB_LEN:
-            output.append(UNK_TOKEN_STR)
+DatasetTuple = Tuple[List[TensorType], List[Tuple[TensorType, int]]]
+
+
+class MathyVocab:
+    vocab: List[str]
+    pad_token: int
+    char_to_int: Dict[str, int]
+
+    def __init__(self):
+        self.vocab = ["", " ", "\t", "\n"] + list(
+            "=.+-/^*()[]-?01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        )
+        self.pad_token = self.vocab.index("")
+        self.char_to_int = {char: index for index, char in enumerate(self.vocab)}
+        self.vocab_len = len(self.vocab)
+
+    def to_int(self, char: str):
+        return self.char_to_int[char]
+
+    def decode_text(self, tokens: TensorType) -> str:
+        """Decode a list of integer tensors to produce a string"""
+        output: List[str] = []
+        for token in tokens.tolist():
+            token_index = int(token)
+            assert token_index < self.vocab_len, "invalid token"
+            output.append(self.vocab[token_index])
+        return "".join(output)
+
+    def encode_text(
+        self, text: str, pad_length: int = None, include_batch: bool = False
+    ) -> TensorType:
+        """Encode text into a list of indices in the vocabulary"""
+        if pad_length is not None:
+            padding = [self.pad_token] * (pad_length - len(text))
         else:
-            output.append(VOCAB[token_index])
-    return "".join(output)
+            padding = []
+        values = [self.char_to_int[c] for c in text] + padding
+        if include_batch:
+            values = [values]
+        return torch.from_numpy(np.asarray(values, dtype=np.uint8)).long()
 
 
-def encode_text(text: str, pad_length: int) -> torch.Tensor:
-    """Encode text into a list of indices in the vocabulary"""
-    values = [CHAR_TO_INT[c] for c in text]
-    while len(values) < pad_length:
-        values.append(PAD_TOKEN)
-    return torch.from_numpy(np.asarray(values, dtype=np.uint8)).long()
+class MathyReformer(ReformerLM):
+    config: MathyReformerConfig
+    vocab: MathyVocab
+
+    def __init__(self, config: MathyReformerConfig, vocab: MathyVocab, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.vocab = vocab
 
 
-def load_dataset(file_name: str, pad_length: int) -> DatasetTuple:
+def main(
+    folder: str = "training/reformer/dev",
+    train_file="like_terms_prediction.train.txt",
+    eval_file="like_terms_prediction.eval.txt",
+):
+    config = MathyReformerConfig(
+        folder=folder, train_file=train_file, eval_file=eval_file
+    )
+    vocab = MathyVocab()
+    print(f"Config: {json.dumps(config.dict(), indent=2)}")
+    print(f"Batch Size: {config.batch_size}")
+    reformer: MathyReformer = MathyReformer(
+        config=config,
+        vocab=vocab,
+        dim=config.reformer_dim,
+        depth=config.reformer_depth,
+        max_seq_len=config.seq_len,
+        num_tokens=vocab.vocab_len,
+        bucket_size=config.reformer_bucket_size,
+        heads=config.reformer_heads,
+        n_hashes=config.reformer_n_hashes,
+        ff_chunks=config.reformer_ff_chunks,
+        lsh_dropout=config.reformer_lsh_dropout,
+    )
+    if config.use_cuda:
+        reformer.cuda()
+
+    optimizer = torch.optim.Adam(reformer.parameters(), lr=config.learning_rate)
+    model = os.path.join(folder, "model.torch")
+    if os.path.exists(model):
+        print(f"loading model: {model}")
+        checkpoint = torch.load(model)
+        reformer.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        reformer.epoch = checkpoint.get("epoch", 0)
+    else:
+        reformer.epoch = 0
+    print(f"model epoch: {reformer.epoch}")
+    train(
+        reformer, config=config, model_name=model, optimizer=optimizer, epochs=3000,
+    )
+
+
+def load_dataset(file_name: str, pad_length: int, vocab: MathyVocab) -> DatasetTuple:
     """Load a dataset where question/answer pairs are separated by newlines, and
     pad the outputs to match the transformer sequence length."""
     with open(file_name) as f:
         lines = f.readlines()
-    in_lines: List[torch.Tensor] = []
-    out_lines: List[Tuple[torch.Tensor, int]] = []
+    in_lines: List[TensorType] = []
+    out_lines: List[Tuple[TensorType, int]] = []
     for i, l in tqdm(enumerate(lines), desc=f"loading dataset: {file_name}"):
-        encoded = encode_text(l, pad_length)
+        encoded = vocab.encode_text(l, pad_length)
         if i % 2 == 0:
             in_lines.append(encoded)
         else:
@@ -107,20 +168,22 @@ class ProblemAnswerDataset(Dataset):
     
     The label lengths are used to mask the output when calculating loss."""
 
-    outputs: List[Tuple[torch.Tensor, int]]
-    inputs: List[torch.Tensor]
+    config: MathyReformerConfig
+    outputs: List[Tuple[TensorType, int]]
+    inputs: List[TensorType]
 
-    def __init__(self, data: DatasetTuple):
+    def __init__(self, config: MathyReformerConfig, data: DatasetTuple):
         super().__init__()
+        self.config = config
         self.inputs = data[0]
         self.outputs = data[1]
 
     def __getitem__(self, index):
-        rand_start = torch.randint(0, len(self.inputs), (1,))
+        rand_start = int(torch.randint(0, len(self.inputs), (1,)))
         input_seq = self.inputs[rand_start].long()
         output_seq = self.outputs[rand_start][0].long()
         output_len = self.outputs[rand_start][1]
-        if USE_CUDA:
+        if self.config.use_cuda:
             input_seq = input_seq.cuda()
             output_seq = output_seq.cuda()
         return input_seq, (output_seq, output_len)
@@ -130,16 +193,16 @@ class ProblemAnswerDataset(Dataset):
 
 
 def evaluate_model(
-    model: ReformerLM, dataset: ProblemAnswerDataset
+    model: MathyReformer, dataset: ProblemAnswerDataset
 ) -> Tuple[float, float]:
     """Evaluate a model on a dataset and return a tuple of the total number
     of problems evaluated, the number answered correctly, and the total loss"""
     model.eval()
-    loader = DataLoader(dataset, batch_size=EVAL_BATCH_SIZE)
+    loader = DataLoader(dataset, batch_size=model.config.batch_size)
     loss: float = 0.0
     correct: int = 0
     total: int = len(dataset)
-    print_max = 10
+    print_max = 3
     printed = 0
     with torch.no_grad():
         for batch_with_labels in tqdm(loader, desc="evaluating model"):
@@ -148,19 +211,17 @@ def evaluate_model(
             prediction = model(batch)
             answer: Any
             for X, label, answer in zip(batch, batch_labels[0], prediction):
-                expected = decode_text(label).replace("\n", "")
+                expected = model.vocab.decode_text(label).replace("\n", "")
                 # argmax resolves the class probs to ints, and squeeze removes extra dim
-                answer = decode_text(answer.argmax(-1).squeeze())
+                answer = model.vocab.decode_text(answer.argmax(-1).squeeze())
                 if "\n" in answer:
                     answer = answer[0 : answer.index("\n")]
                 if printed < print_max:
                     printed += 1
-                    question = decode_text(X).replace("\n", "")
-                    print_fn = msg.good if expected == answer else msg.fail
-                    op = "==" if expected == answer else "!="
-                    msg.info(f"Question: {question}")
-                    msg.info(f"Answer  : {expected}")
-                    print_fn(f"Model   : {answer}")
+                    question = model.vocab.decode_text(X).replace("\n", "")
+                    print(f"Question: {question}")
+                    print(f"Answer  : {expected}")
+                    print(f"Model   : {answer}")
                 if answer == expected:
                     correct += 1
             loss += get_batch_loss(
@@ -173,14 +234,14 @@ def evaluate_model(
 
 def get_batch_loss(
     model,
-    data: Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
-    prediction: torch.Tensor = None,
+    data: Tuple[TensorType, Tuple[TensorType, TensorType]],
+    prediction: TensorType = None,
 ):
     x, y = data
-    # Allow passing a prediction if it's already known to avoid duplicate
-    # model calls which generally are expensive.
+    # Allow passing a prediction to avoid duplicate model calls
     if prediction is None:
         prediction = model(x)
+    # y is a tuple of (label, length) to allow unpadding
     label = y[0]
     label_len = int(y[1].max())
     label = label.narrow(1, 0, label_len)
@@ -190,171 +251,61 @@ def get_batch_loss(
 
 
 def train(
-    model: ReformerLM,
+    model: MathyReformer,
+    *,
+    model_name: str,
+    config: MathyReformerConfig,
     optimizer: torch.optim.Adam,
     epochs: int,
-    train_file: str,
-    eval_file: str,
-    generalize_file: str = None,
 ):
 
-    data_train = load_dataset(train_file, SEQ_LEN)
-    data_val = load_dataset(eval_file, SEQ_LEN)
-    train_dataset = ProblemAnswerDataset(data_train)
-    val_dataset = ProblemAnswerDataset(data_val)
-    train_loader = cycle(DataLoader(train_dataset, batch_size=BATCH_SIZE))
-    if generalize_file is not None:
-        data_gen = load_dataset(generalize_file, SEQ_LEN)
-        gen_dataset = ProblemAnswerDataset(data_gen)
-        gen_loader = cycle(DataLoader(gen_dataset, batch_size=BATCH_SIZE))
-    with tqdm(total=epochs, desc="Training") as pbar:
+    summary = SummaryWriter(os.path.join(config.folder, "tensorboard"), flush_secs=30)
+    data_train = load_dataset(config.train_file, config.seq_len, model.vocab)
+    data_val = load_dataset(config.eval_file, config.seq_len, model.vocab)
+    train_dataset = ProblemAnswerDataset(config, data_train)
+    val_dataset = ProblemAnswerDataset(config, data_val)
+    train_loader = cycle(DataLoader(train_dataset, batch_size=config.batch_size))
+    loss: TensorType = torch.zeros(1)
+    for i in range(epochs):
+        model.epoch += 1
+        model.train()
 
-        for i in range(epochs):
-            model.epoch += 1
-            model.train()
+        step_start = time.time()
+        for __ in range(config.accumulate_every):
+            loss = get_batch_loss(model, next(train_loader))
+            loss.backward()
+        print(".", end="")
+        step_end = time.time()
+        summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
+        summary.add_scalar("loss/train", loss, model.epoch)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+        optimizer.step()
+        optimizer.zero_grad()
 
-            for __ in range(GRADIENT_ACCUMULATE_EVERY):
-                loss = get_batch_loss(model, next(train_loader))
-                loss.backward()
+        if i % config.print_every == 0:
+            print(f"step: {model.epoch} | loss: {loss.item()}")
 
-            WRITER.add_scalar("loss/train", loss, model.epoch)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-            optimizer.step()
-            optimizer.zero_grad()
+        if i % config.save_every == 0:
+            if i > 0:
+                print(f"save: {model_name} | step: {model.epoch} | loss: {loss.item()}")
+                torch.save(
+                    {
+                        "epoch": model.epoch,
+                        "model_state_dict": model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                    },
+                    model_name,
+                )
+        if i % config.validate_every == 0:
+            eval_loss, eval_win_pct = evaluate_model(model, val_dataset)
+            print(f"loss_train: {loss.item()} | loss_eval: {eval_loss}")
+            summary.add_scalar("loss/eval", eval_loss, model.epoch)
+            summary.add_scalar("correct/eval", eval_win_pct, model.epoch)
 
-            if i % ATTENTION_EVERY == 0:
-                r_model = Recorder(model)
-                with torch.no_grad():
-                    batch_with_labels = next(train_loader)
-                    # Check correct/incorrect answers
-                    batch, batch_labels = batch_with_labels
-                    # Clear recorded attentions
-                    r_model.clear()
-                    prediction = r_model(batch)
-                    answer: Any
-                    X = batch[0]
-                    label = batch_labels[0][0]
-                    answer = prediction[0]
-                    input_text = decode_text(X)
-                    input_len = input_text.index("\n")
-                    expected = decode_text(label).replace("\n", "")
-                    # argmax resolves the class probs to ints, and squeeze removes extra dim
-                    answer = decode_text(answer.argmax(-1).squeeze())
-                    if "\n" in answer:
-                        answer = answer[0 : answer.index("\n")]
-                    layers = r_model.recordings[0][0]["attn"]
-                    for i, attn_layer in enumerate(layers):
-                        for j, attn_head in enumerate(attn_layer):
-                            title = f"layer: {i} head: {j} correct: {answer == expected} answer: {expected} model: {answer}"
-                            figure = plot_attention(
-                                attn_head,
-                                input_text,
-                                input_text,
-                                input_len,
-                                title,
-                                return_figure=True,
-                            )
-                            WRITER.add_figure(
-                                title, figure, global_step=model.epoch,
-                            )
-            pbar.desc = f"loss: {loss.item()}"
-            if i % PRINT_EVERY == 0:
-                print(f"Step: {model.epoch}")
-
-            if i % SAVE_EVERY == 0:
-                if i > 0:
-                    print(f"Saving checkpoint: {MODEL_NAME}")
-                    torch.save(
-                        {
-                            "epoch": model.epoch,
-                            "model_state_dict": model.state_dict(),
-                            "optimizer_state_dict": optimizer.state_dict(),
-                        },
-                        MODEL_NAME,
-                    )
-            if i % VALIDATE_EVERY == 0:
-                eval_loss, eval_win_pct = evaluate_model(model, val_dataset)
-                print(f"Loss (train): {loss.item()}")
-                print(f"Loss (eval) : {eval_loss}")
-                if generalize_file:
-                    gen_loss, gen_correct = evaluate_model(model, gen_dataset)
-                    WRITER.add_scalar("loss/generalize", gen_loss, model.epoch)
-                    WRITER.add_scalar("correct/generalize", gen_correct, model.epoch)
-                    print(f"Loss (gen)  : {gen_loss}")
-                WRITER.add_scalar("loss/eval", eval_loss, model.epoch)
-                WRITER.add_scalar("correct/eval", eval_win_pct, model.epoch)
-
-            pbar.update(1)
-
-
-# From: https://www.tensorflow.org/tutorials/text/nmt_with_attention
-def plot_attention(
-    attention: torch.Tensor,
-    input_one: str,
-    input_two: str,
-    seq_len: int,
-    title: str,
-    return_figure: bool = False,
-):
-    fig = plt.figure(figsize=(seq_len, seq_len))
-    ax = fig.add_subplot(1, 1, 1)
-    ax.matshow(attention[0:seq_len, 0:seq_len], cmap="viridis")
-
-    fontdict = {"fontsize": 14}
-
-    plt.title(title)
-
-    ax.set_xticklabels([""] + list(input_one), fontdict=fontdict)
-    ax.set_yticklabels([""] + list(input_two), fontdict=fontdict)
-
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-    if return_figure is False:
-        plt.show()
-    else:
-        return fig
-
-
-def main():
-    # instantiate model
-    model = ReformerLM(
-        dim=128,
-        depth=1,
-        max_seq_len=SEQ_LEN,
-        num_tokens=VOCAB_LEN,
-        bucket_size=16,
-        heads=2,
-        n_hashes=2,
-        ff_chunks=0,
-        lsh_dropout=0.1,
-    )
-    # WRITER.add_graph(model, torch.zeros(4, SEQ_LEN).long())
-    if USE_CUDA:
-        model.cuda()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    if os.path.exists(MODEL_NAME):
-        print(f"Loading existing model: {MODEL_NAME}")
-        dev = "cpu" if USE_CUDA is False else "gpu"
-        checkpoint = torch.load(MODEL_NAME, map_location=torch.device(dev))
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        model.epoch = checkpoint.get("epoch", 0)
-        print(f"Loaded model (epoch={model.epoch})")
-    else:
-        model.epoch = 0
-
-    train(
-        model, optimizer, 1000, "hoarding/tiny.train.txt", "hoarding/ltp_hard.eval.txt"
-    )
-    # train(
-    #     model,
-    #     optimizer,
-    #     1000,
-    #     "like.train.txt",
-    #     "like.eval.txt",
-    #     "like.generalization.txt",
-    # )
+    summary.close()
 
 
 if __name__ == "__main__":
+    import typer
+
     typer.run(main)
