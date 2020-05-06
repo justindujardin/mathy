@@ -1,27 +1,40 @@
 import json
-import time
 import os
+import time
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-import torch
 from pydantic import BaseModel
 from reformer_pytorch import ReformerLM
+import srsly
+import torch
 from torch.nn.functional import cross_entropy
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from wasabi import msg
+from pathlib import Path
 
 # TODO: Replace with thinc to make swapping frameworks easier
 TensorType = torch.Tensor
 
 
+class ReformerLMConfig(BaseModel):
+    # ReformerLM config
+    num_tokens: int
+    max_seq_len: int = 128
+    dim: int = 512
+    depth: int = 2
+    bucket_size: int = 64
+    heads: int = 4
+    n_hashes: int = 4
+    ff_chunks: int = 0
+    lsh_dropout: float = 0.1
+
+
 class MathyReformerConfig(BaseModel):
-    root_folder: str
-    train_file: str
-    eval_file: str
-    seq_len: int = 128
+    folder: str
+    train_file: str = "/dev/null"
+    eval_file: str = "/dev/null"
     eval_batch_size: int = 128
     save_every: int = 100
     histogram_every: int = 100
@@ -33,28 +46,7 @@ class MathyReformerConfig(BaseModel):
     accumulate_every: int = 4
     learning_rate: float = 3e-4
 
-    # ReformerLM config
-    reformer_dim: int = 512
-    reformer_depth: int = 2
-    reformer_bucket_size: int = 64
-    reformer_heads: int = 4
-    reformer_n_hashes: int = 4
-    reformer_ff_chunks: int = 0
-    reformer_lsh_dropout: float = 0.1
-
-    @property
-    def folder(self) -> str:
-        """Generate a dir that includes run hyper parameters in its name"""
-        args = [
-            f"ebatch{self.batch_size * self.accumulate_every}"
-            f"dim{self.reformer_dim}"
-            f"depth{self.reformer_depth}"
-            f"head{self.reformer_heads}"
-            f"hash{self.reformer_n_hashes}"
-            f"dropout{self.reformer_lsh_dropout}".replace(".", "_")
-        ]
-        run_name = "_".join(args)
-        return os.path.join(self.root_folder, run_name)
+    reformer: ReformerLMConfig
 
     @property
     def model_name(self) -> str:
@@ -112,48 +104,52 @@ class MathyReformer(ReformerLM):
     vocab: MathyVocab
     optimizer: torch.optim.Adam
 
-    def __init__(self, config: MathyReformerConfig, vocab: MathyVocab, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        self.vocab = vocab
-        if self.config.use_cuda:
+    def __init__(
+        self, config: MathyReformerConfig, vocab: MathyVocab, must_exist: bool = False,
+    ):
+        model = os.path.join(config.folder, "model.torch")
+        model_config = os.path.join(config.folder, "config.json")
+        if os.path.exists(model):
+            config = MathyReformerConfig(**srsly.read_json(model_config))
+        elif must_exist:
+            raise ValueError(f"model not found: {model}")
+        else:
+            Path(model_config).parent.mkdir(exist_ok=True, parents=True)
+            srsly.write_json(model_config, config.dict())
+            print(f"wrote model config: {model_config}")
+        super().__init__(**config.reformer.dict())
+        if config.use_cuda:
             self.cuda()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=config.learning_rate)
-        model = os.path.join(config.folder, "model.torch")
+        self.config = config
+        self.vocab = vocab
+        self.epoch = 0
         if os.path.exists(model):
             print(f"loading model: {model}")
-            checkpoint = torch.load(model)
+            dev = "cpu" if config.use_cuda is False else "cuda"
+            checkpoint = torch.load(model, map_location=torch.device(dev))
             self.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
             self.epoch = checkpoint.get("epoch", 0)
-        else:
-            self.epoch = 0
         print(f"model epoch: {self.epoch}")
 
 
 def main(
-    root_folder: str = "training/reformer/",
+    folder: str = "training/reformer/dev_reformer",
     train_file="like_terms_prediction.train.txt",
     eval_file="like_terms_prediction.eval.txt",
 ):
-    config = MathyReformerConfig(
-        root_folder=root_folder, train_file=train_file, eval_file=eval_file
-    )
     vocab = MathyVocab()
+    config = MathyReformerConfig(
+        folder=folder,
+        train_file=train_file,
+        eval_file=eval_file,
+        reformer=ReformerLMConfig(num_tokens=vocab.vocab_len),
+    )
     print(f"Folder: {config.folder}")
     print(f"Config: {json.dumps(config.dict(), indent=2)}")
     reformer: MathyReformer = MathyReformer(
-        config=config,
-        vocab=vocab,
-        dim=config.reformer_dim,
-        depth=config.reformer_depth,
-        max_seq_len=config.seq_len,
-        num_tokens=vocab.vocab_len,
-        bucket_size=config.reformer_bucket_size,
-        heads=config.reformer_heads,
-        n_hashes=config.reformer_n_hashes,
-        ff_chunks=config.reformer_ff_chunks,
-        lsh_dropout=config.reformer_lsh_dropout,
+        config=config, vocab=vocab,
     )
     train(reformer, config=config, epochs=3000)
 
@@ -279,8 +275,10 @@ def train(
 ):
 
     summary = SummaryWriter(os.path.join(config.log_dir), flush_secs=30)
-    data_train = load_dataset(config.train_file, config.seq_len, model.vocab)
-    data_val = load_dataset(config.eval_file, config.seq_len, model.vocab)
+    data_train = load_dataset(
+        config.train_file, config.reformer.max_seq_len, model.vocab
+    )
+    data_val = load_dataset(config.eval_file, config.reformer.max_seq_len, model.vocab)
     train_dataset = ProblemAnswerDataset(config, data_train)
     val_dataset = ProblemAnswerDataset(config, data_val)
     train_loader = cycle(DataLoader(train_dataset, batch_size=config.batch_size))
