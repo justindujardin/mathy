@@ -1,19 +1,23 @@
 import json
 import os
+from pathlib import Path
 import time
 from typing import Any, Dict, List, Tuple
+from typing import List, Tuple, Union
 
-import numpy as np
 from pydantic import BaseModel
-from reformer_pytorch import ReformerLM
+from reformer_pytorch import Recorder, ReformerLM
 import srsly
+from thinc.api import Model, Ops, PyTorchWrapper, fix_random_seed, get_current_ops
+from thinc.types import Ints2d
 import torch
 from torch.nn.functional import cross_entropy
-from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from pathlib import Path
+from tqdm import tqdm
+import typer
 
+fix_random_seed(0)
 # TODO: Replace with thinc to make swapping frameworks easier
 TensorType = torch.Tensor
 
@@ -88,6 +92,7 @@ class MathyVocab:
         self, text: str, pad_length: int = None, include_batch: bool = False
     ) -> TensorType:
         """Encode text into a list of indices in the vocabulary"""
+        ops: Ops = get_current_ops()
         if pad_length is not None:
             padding = [self.pad_token] * (pad_length - len(text))
         else:
@@ -95,17 +100,22 @@ class MathyVocab:
         values = [self.char_to_int[c] for c in text] + padding
         if include_batch:
             values = [values]
-        return torch.from_numpy(np.asarray(values, dtype=np.uint8)).long()
+        return ops.asarray2i(values, dtype="int64")
 
 
-class MathyReformer(ReformerLM):
+class MathyReformer:
     epoch: int
     config: MathyReformerConfig
     vocab: MathyVocab
     optimizer: torch.optim.Adam
+    reformer: Union[ReformerLM, Recorder]
 
     def __init__(
-        self, config: MathyReformerConfig, vocab: MathyVocab, must_exist: bool = False,
+        self,
+        config: MathyReformerConfig,
+        vocab: MathyVocab,
+        must_exist: bool = False,
+        record_attention: bool = False,
     ):
         model = os.path.join(config.folder, "model.torch")
         model_config = os.path.join(config.folder, "config.json")
@@ -117,10 +127,12 @@ class MathyReformer(ReformerLM):
             Path(model_config).parent.mkdir(exist_ok=True, parents=True)
             srsly.write_json(model_config, config.dict())
             print(f"wrote model config: {model_config}")
-        super().__init__(**config.reformer.dict())
+        self.reformer = ReformerLM(**config.reformer.dict())
         if config.use_cuda:
-            self.cuda()
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=config.learning_rate)
+            self.reformer.cuda()
+        self.optimizer = torch.optim.Adam(
+            self.reformer.parameters(), lr=config.learning_rate
+        )
         self.config = config
         self.vocab = vocab
         self.epoch = 0
@@ -128,9 +140,11 @@ class MathyReformer(ReformerLM):
             print(f"loading model: {model}")
             dev = "cpu" if config.use_cuda is False else "cuda"
             checkpoint = torch.load(model, map_location=torch.device(dev))
-            self.load_state_dict(checkpoint["model_state_dict"])
+            self.reformer.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
             self.epoch = checkpoint.get("epoch", 0)
+        if record_attention:
+            self.reformer = Recorder(self.reformer)
         print(f"model epoch: {self.epoch}")
 
 
@@ -178,58 +192,32 @@ def cycle(loader):
             yield data
 
 
-class ProblemAnswerDataset(Dataset):
-    """A sequence-to-sequence dataset for question/answer pairs.
-    
-    Provided label is a tuple of two tensors, the first is the max-length padded label
-    and the second is a tensor containing the actual label lengths.
-    
-    The label lengths are used to mask the output when calculating loss."""
-
-    config: MathyReformerConfig
-    outputs: List[Tuple[TensorType, int]]
-    inputs: List[TensorType]
-
-    def __init__(self, config: MathyReformerConfig, data: DatasetTuple):
-        super().__init__()
-        self.config = config
-        self.inputs = data[0]
-        self.outputs = data[1]
-
-    def __getitem__(self, index):
-        rand_start = int(torch.randint(0, len(self.inputs), (1,)))
-        input_seq = self.inputs[rand_start].long()
-        output_seq = self.outputs[rand_start][0].long()
-        output_len = self.outputs[rand_start][1]
-        if self.config.use_cuda:
-            input_seq = input_seq.cuda()
-            output_seq = output_seq.cuda()
-        return input_seq, (output_seq, output_len)
-
-    def __len__(self):
-        return len(self.inputs)
-
-
 def evaluate_model(
-    model: MathyReformer, dataset: ProblemAnswerDataset
+    model: MathyReformer, dataset: DatasetTuple
 ) -> Tuple[float, float, List[str]]:
     """Evaluate a model on a dataset and return a tuple of the total number
-    of problems evaluated, the number answered correctly, and the total loss"""
-    model.eval()
-    loader = DataLoader(dataset, batch_size=model.config.batch_size)
+    of problems evaluated, the number answered correctly, and the total loss """
+    ops: Ops = get_current_ops()
+    batches = ops.multibatch(
+        model.config.eval_batch_size, dataset[0], dataset[1], shuffle=True
+    )
+    model.reformer.eval()
     loss: float = 0.0
     correct: int = 0
-    total: int = len(dataset)
+    total: int = len(dataset[0])
     print_max = 3
     printed = 0
     texts = []
     with torch.no_grad():
-        for batch_with_labels in loader:
-            # Check correct/incorrect answers
+        for batch_with_labels in batches:
             batch, batch_labels = batch_with_labels
-            prediction = model(batch)
+            # Check correct/incorrect answers
+            # TODO: remove the need for this torch/ops/long conversion
+            batch = torch.from_numpy(ops.asarray(batch))
+            prediction = model.reformer(batch)
             answer: Any
-            for X, label, answer in zip(batch, batch_labels[0], prediction):
+            for X, label_and_len, answer in zip(batch, batch_labels, prediction):
+                label = label_and_len[0]
                 expected = model.vocab.decode_text(label).replace("\n", "")
                 # argmax resolves the class probs to ints, and squeeze removes extra dim
                 answer = model.vocab.decode_text(answer.argmax(-1).squeeze())
@@ -240,7 +228,6 @@ def evaluate_model(
                     question = model.vocab.decode_text(X).replace("\n", "")
                     outcome = "WRONG" if expected != answer else "RIGHT"
                     print_text = f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
-                    print(print_text)
                     texts.append(print_text)
                 if answer == expected:
                     correct += 1
@@ -253,19 +240,23 @@ def evaluate_model(
 
 
 def get_batch_loss(
-    model,
+    model: MathyReformer,
     data: Tuple[TensorType, Tuple[TensorType, TensorType]],
     prediction: TensorType = None,
 ):
+    ops: Ops = get_current_ops()
     x, y = data
+    x = torch.from_numpy(ops.asarray(x))
+    label = torch.from_numpy(ops.asarray([l[0] for l in y]))
+    label_len = torch.from_numpy(ops.asarray([l[1] for l in y]))
+
     # Allow passing a prediction to avoid duplicate model calls
     if prediction is None:
-        prediction = model(x)
+        prediction = model.reformer(x)
     # y is a tuple of (label, length) to allow unpadding
-    label = y[0]
-    label_len = int(y[1].max())
-    label = label.narrow(1, 0, label_len)
-    pred = prediction.narrow(1, 0, label_len)
+    label_max_len = int(label_len.max())
+    label = label.narrow(1, 0, label_max_len)
+    pred = prediction.narrow(1, 0, label_max_len)
     loss = cross_entropy(pred.transpose(1, 2), label, reduction="mean")
     return loss
 
@@ -273,15 +264,17 @@ def get_batch_loss(
 def train(
     model: MathyReformer, *, config: MathyReformerConfig, epochs: int,
 ):
-
     summary = SummaryWriter(os.path.join(config.log_dir), flush_secs=30)
     data_train = load_dataset(
         config.train_file, config.reformer.max_seq_len, model.vocab
     )
     data_val = load_dataset(config.eval_file, config.reformer.max_seq_len, model.vocab)
-    train_dataset = ProblemAnswerDataset(config, data_train)
-    val_dataset = ProblemAnswerDataset(config, data_val)
-    train_loader = cycle(DataLoader(train_dataset, batch_size=config.batch_size))
+    ops: Ops = get_current_ops()
+    train_loader = cycle(
+        ops.multibatch(
+            model.config.batch_size, data_train[0], data_train[1], shuffle=True
+        )
+    )
     loss: TensorType = torch.zeros(1)
 
     def save():
@@ -291,7 +284,7 @@ def train(
         torch.save(
             {
                 "epoch": model.epoch,
-                "model_state_dict": model.state_dict(),
+                "model_state_dict": model.reformer.state_dict(),
                 "optimizer_state_dict": model.optimizer.state_dict(),
             },
             config.model_name,
@@ -300,7 +293,7 @@ def train(
     try:
         for i in range(epochs):
             model.epoch += 1
-            model.train()
+            model.reformer.train()
 
             step_start = time.time()
             for __ in range(config.accumulate_every):
@@ -310,11 +303,11 @@ def train(
             step_end = time.time()
             summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
             summary.add_scalar("loss/train", loss, model.epoch)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            torch.nn.utils.clip_grad_norm_(model.reformer.parameters(), 0.5)
             model.optimizer.step()
             # run before zero-grad
             if i % config.histogram_every == 0:
-                for tag, value in model.named_parameters():
+                for tag, value in model.reformer.named_parameters():
                     tag = tag.replace(".", "/")
                     summary.add_histogram(
                         tag + "/data", value.data.cpu().numpy(), model.epoch
@@ -331,7 +324,7 @@ def train(
                 if i > 0:
                     save()
             if i % config.validate_every == 0:
-                eval_loss, eval_win_pct, texts = evaluate_model(model, val_dataset)
+                eval_loss, eval_win_pct, texts = evaluate_model(model, data_val)
                 print(f"loss_train: {loss.item()} | loss_eval: {eval_loss}")
                 summary.add_scalar("loss/eval", eval_loss, model.epoch)
                 summary.add_scalar(
