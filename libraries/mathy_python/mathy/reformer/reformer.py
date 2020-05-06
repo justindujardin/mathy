@@ -4,23 +4,29 @@ from pathlib import Path
 import time
 from typing import Any, Dict, List, Tuple
 from typing import List, Tuple, Union
+from typing import Union
 
+import numpy
 from pydantic import BaseModel
 from reformer_pytorch import Recorder, ReformerLM
 import srsly
-from thinc.api import Model, Ops, PyTorchWrapper, fix_random_seed, get_current_ops
+import thinc
+from thinc.api import (
+    Ops,
+    PyTorchWrapper,
+    fix_random_seed,
+    get_current_ops,
+    to_categorical,
+)
 from thinc.types import Ints2d
 import torch
-from torch.nn.functional import cross_entropy
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 from tqdm import tqdm
 import typer
 
 fix_random_seed(0)
-# TODO: Replace with thinc to make swapping frameworks easier
-TensorType = torch.Tensor
 
+TensorType = Ints2d
 
 class ReformerLMConfig(BaseModel):
     # ReformerLM config
@@ -80,11 +86,11 @@ class MathyVocab:
         self.vocab_len = len(self.vocab)
 
     def decode_text(self, tokens: TensorType) -> str:
-        """Decode a list of integer tensors to produce a string"""
+        """Decode an integer tensor to produce a string"""
         output: List[str] = []
         for token in tokens.tolist():
             token_index = int(token)
-            assert token_index < self.vocab_len, "invalid token"
+            assert token_index < self.vocab_len, f"invalid token: {token_index}"
             output.append(self.vocab[token_index])
         return "".join(output)
 
@@ -145,6 +151,7 @@ class MathyReformer:
             self.epoch = checkpoint.get("epoch", 0)
         if record_attention:
             self.reformer = Recorder(self.reformer)
+        self.net = PyTorchWrapper(self.reformer)
         print(f"model epoch: {self.epoch}")
 
 
@@ -214,7 +221,7 @@ def evaluate_model(
             # Check correct/incorrect answers
             # TODO: remove the need for this torch/ops/long conversion
             batch = torch.from_numpy(ops.asarray(batch))
-            prediction = model.reformer(batch)
+            prediction = model.net.predict(batch)
             answer: Any
             for X, label_and_len, answer in zip(batch, batch_labels, prediction):
                 label = label_and_len[0]
@@ -231,9 +238,7 @@ def evaluate_model(
                     texts.append(print_text)
                 if answer == expected:
                     correct += 1
-            loss += get_batch_loss(
-                model, batch_with_labels, prediction=prediction
-            ).item()
+            loss += get_batch_loss(model, batch_with_labels, prediction=prediction)
     ratio = correct / total
     print(f"evaluation accuracy: {int(ratio * 100)}% | correct: ({correct}/{total})")
     return loss, ratio, texts
@@ -243,7 +248,7 @@ def get_batch_loss(
     model: MathyReformer,
     data: Tuple[TensorType, Tuple[TensorType, TensorType]],
     prediction: TensorType = None,
-):
+) -> float:
     ops: Ops = get_current_ops()
     x, y = data
     x = torch.from_numpy(ops.asarray(x))
@@ -251,13 +256,27 @@ def get_batch_loss(
     label_len = torch.from_numpy(ops.asarray([l[1] for l in y]))
 
     # Allow passing a prediction to avoid duplicate model calls
+    backprop = None
     if prediction is None:
-        prediction = model.reformer(x)
+        Y = model.net.begin_update(x)
+        prediction, backprop = Y
+
     # y is a tuple of (label, length) to allow unpadding
     label_max_len = int(label_len.max())
-    label = label.narrow(1, 0, label_max_len)
-    pred = prediction.narrow(1, 0, label_max_len)
-    loss = cross_entropy(pred.transpose(1, 2), label, reduction="mean")
+    # label = label.narrow(1, 0, label_max_len)
+    pred = torch.from_numpy(prediction)
+    # pred = pred.narrow(1, 0, label_max_len)
+    n_classes = prediction.shape[-1]
+
+    d_loss = []
+    loss = 0.0
+    for i in range(len(pred)):
+        label_i = to_categorical(label[i], n_classes=n_classes)
+        err = pred[i] - label_i
+        d_loss.append(err)
+        loss += (err ** 2).mean()
+    if backprop is not None:
+        backprop(torch.stack(d_loss))
     return loss
 
 
@@ -298,12 +317,11 @@ def train(
             step_start = time.time()
             for __ in range(config.accumulate_every):
                 loss = get_batch_loss(model, next(train_loader))
-                loss.backward()
             print(".", end="", flush=True)
             step_end = time.time()
             summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
             summary.add_scalar("loss/train", loss, model.epoch)
-            torch.nn.utils.clip_grad_norm_(model.reformer.parameters(), 0.5)
+            # torch.nn.utils.clip_grad_norm_(model.reformer.parameters(), 0.5)
             model.optimizer.step()
             # run before zero-grad
             if i % config.histogram_every == 0:

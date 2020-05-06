@@ -1,8 +1,6 @@
 import json
 from typing import Any
 
-import matplotlib.pyplot as plt
-from matplotlib import ticker
 from reformer_pytorch import Recorder
 import torch
 from thinc.api import Ops, get_current_ops
@@ -19,6 +17,9 @@ from .reformer import (
 def plot_attention(
     attention: torch.Tensor, text: str, seq_len: int, title: str, answer: int,
 ) -> bool:
+    import matplotlib.pyplot as plt
+    from matplotlib import ticker
+
     big_problem_len = 35
     fig_size = 6 if seq_len < big_problem_len else 12
     font_size = 10 if seq_len < big_problem_len else 8
@@ -89,8 +90,5 @@ if __name__ == "__main__":
     )
     print(f"Folder: {config.folder}")
     print(f"Config: {json.dumps(model.config.dict(), indent=2)}")
-    print("Loading dataset")
-
     dataset = load_dataset(config.eval_file, config.reformer.max_seq_len, model.vocab)
-    print("Loaded dataset")
     evaluate_model_attention(model, dataset)
