@@ -52,7 +52,7 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
             prediction = model.reformer(batch)
             answer: Any
             X = batch[0]
-            label = batch_labels[0][0]
+            label = batch_labels[0]
             answer = prediction
             input_text = model.vocab.decode_text(X)
             input_len = input_text.index("\n")
@@ -81,7 +81,7 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
 if __name__ == "__main__":
     vocab = MathyVocab()
     config = MathyReformerConfig(
-        folder="training/reformer/lte_latest",
+        folder="training/reformer/lte_thinc",
         eval_file="training/reformer/like_terms_prediction.eval.txt",
         reformer=ReformerLMConfig(num_tokens=vocab.vocab_len),
     )
@@ -90,5 +90,5 @@ if __name__ == "__main__":
     )
     print(f"Folder: {config.folder}")
     print(f"Config: {json.dumps(model.config.dict(), indent=2)}")
-    dataset = load_dataset(config.eval_file, config.reformer.max_seq_len, model.vocab)
+    dataset = load_dataset(config.eval_file, config.reformer.max_seq_len, model)
     evaluate_model_attention(model, dataset)

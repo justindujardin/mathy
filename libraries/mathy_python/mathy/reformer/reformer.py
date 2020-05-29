@@ -2,7 +2,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Union, cast
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 import numpy as np
 import srsly
@@ -11,60 +11,100 @@ import typer
 from pydantic import BaseModel
 from reformer_pytorch import Recorder, ReformerLM
 from thinc.api import (
+    to_numpy,
     Adam,
     Ops,
     PyTorchWrapper,
     fix_random_seed,
     get_current_ops,
-    to_categorical,
     xp2torch,
 )
 from thinc.loss import Loss
 from thinc.types import Floats1d, Floats2d, Ints1d, Ints2d
+
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from thinc.api import prefer_gpu, use_pytorch_for_gpu_memory
 
+if prefer_gpu():
+    use_pytorch_for_gpu_memory()
 fix_random_seed(0)
 
 TensorType = Ints2d
 
+DatasetTuple = Tuple[List[TensorType], List[TensorType]]
 
-class CategoricalCrossentropy(Loss):
-    def __init__(self, *, normalize: bool = True):
+
+class PyTorchCrossEntropy(Loss):
+    """A custom thinc loss class that delegates to PyTorch's built-in
+    cross_entropy function. It uses log_softmax + nll_loss and performs
+    great on this task."""
+
+    def __init__(
+        self,
+        *,
+        normalize: bool = True,
+        size_average: Optional[bool] = None,
+        ignore_index: int = 0,
+        reduce: Optional[bool] = None,
+        reduction: str = "mean",
+    ):
         self.normalize = normalize
+        self.reduction = reduction
+        self.size_average = size_average
+        self.ignore_index = ignore_index
+        self.reduce = reduce
 
     def __call__(
         self, guesses: Floats2d, truths: Union[Ints1d, Floats2d]
     ) -> Tuple[Floats2d, float]:
         return self.get_grad(guesses, truths), self.get_loss(guesses, truths)
 
-    def get_grad(self, guesses: Floats2d, truths: Union[Ints1d, Floats2d]) -> Floats2d:
-        if truths.ndim != guesses.ndim:
-            # transform categorical values to one-hot encoding
-            target = to_categorical(cast(Ints1d, truths), n_classes=guesses.shape[-1])
-        else:  # pragma: no cover
-            target = cast(Floats2d, truths)
-        if guesses.shape != target.shape:  # pragma: no cover
-            err = f"Cannot calculate CategoricalCrossentropy loss: mismatched shapes: {guesses.shape} vs {target.shape}."
-            raise ValueError(err)
-        # NOTE: these showed up taking a ton of time in colab profiles when using cupy.
-        # .any() must not be cheap on the GPU.
-        #
-        # if guesses.any() > 1 or guesses.any() < 0:  # pragma: no cover
-        #     err = f"Cannot calculate CategoricalCrossentropy loss with guesses outside the [0,1] interval."
-        #     raise ValueError(err)
-        # if target.any() > 1 or target.any() < 0:  # pragma: no cover
-        #     err = f"Cannot calculate CategoricalCrossentropy loss with truth values outside the [0,1] interval."
-        #     raise ValueError(err)
-        difference = guesses - target
-        if self.normalize:
-            difference = difference / guesses.shape[0]
-        return difference
+    def get_torch_loss(
+        self, guesses: "torch.Tensor", truths: "torch.Tensor", is_train: bool = False,
+    ) -> "torch.Tensor":
+        from torch.nn.functional import cross_entropy as torch_entropy
 
-    def get_loss(self, guesses: Floats2d, truths: Union[Ints1d, Floats2d]) -> float:
-        d_truth = self.get_grad(guesses, truths)
-        # TODO: Add overload for axis=None case to sum
-        return (d_truth ** 2).sum()  # type: ignore
+        if is_train:
+            guesses.retain_grad()
+        loss = torch_entropy(
+            guesses,
+            truths,
+            size_average=self.size_average,
+            ignore_index=self.ignore_index,
+            reduction=self.reduction,
+            reduce=self.reduce,
+        )
+        return loss.cpu()
+
+    def get_grad(self, guesses: Floats2d, truths: Union[Ints1d, Floats2d]) -> Floats2d:
+        import torch
+
+        batch_tensor: torch.Tensor = xp2torch(guesses, requires_grad=True)
+        need_transpose = len(batch_tensor.shape) == 3
+        if need_transpose:
+            batch_tensor = batch_tensor.transpose(2, 1)
+        batch_labels = xp2torch(truths).long()
+        batch_tensor.retain_grad()
+        torch_loss = self.get_torch_loss(batch_tensor, batch_labels)
+        torch_loss.backward()
+        assert batch_tensor.grad is not None
+        difference = batch_tensor.grad.data
+        if need_transpose:
+            difference = difference.transpose(2, 1)
+        if self.normalize:
+            difference = difference / batch_tensor.shape[0]
+        return to_numpy(difference.cpu().numpy())
+
+    def get_loss(
+        self, guesses: Floats2d, truths: Union[Ints1d, Floats2d], is_train: bool = False
+    ) -> float:
+        batch_tensor = xp2torch(guesses, requires_grad=is_train)
+        batch_labels = xp2torch(truths).long()
+        if len(batch_tensor.shape) == 3:
+            batch_tensor = batch_tensor.transpose(2, 1)
+        loss = self.get_torch_loss(batch_tensor, batch_labels, is_train)
+        return float(loss.cpu().numpy())
 
 
 class ReformerLMConfig(BaseModel):
@@ -81,6 +121,9 @@ class ReformerLMConfig(BaseModel):
 
 class MathyReformerConfig(BaseModel):
     folder: str
+    batch_size: int = 512
+    accumulate_every: int = 4
+    learning_rate: float = 3e-4
     train_file: str = "/dev/null"
     eval_file: str = "/dev/null"
     eval_batch_size: int = 128
@@ -90,10 +133,6 @@ class MathyReformerConfig(BaseModel):
     print_every: int = 100
     use_cuda: bool = True
     use_profiler: bool = False
-
-    batch_size: int = 512
-    accumulate_every: int = 4
-    learning_rate: float = 3e-4
 
     reformer: ReformerLMConfig
 
@@ -106,9 +145,6 @@ class MathyReformerConfig(BaseModel):
     def log_dir(self) -> str:
         """Return the path to store tensorboard logs in"""
         return os.path.join(self.folder, "tensorboard")
-
-
-DatasetTuple = Tuple[List[TensorType], List[TensorType]]
 
 
 class MathyVocab:
@@ -148,7 +184,7 @@ class MathyReformer:
     config: MathyReformerConfig
     vocab: MathyVocab
     optimizer: Adam
-    loss_fn: CategoricalCrossentropy
+    loss_fn: PyTorchCrossEntropy
 
     def save(self) -> None:
         model = os.path.join(self.config.folder, "model.thinc")
@@ -161,7 +197,7 @@ class MathyReformer:
         must_exist: bool = False,
         record_attention: bool = False,
     ):
-        self.loss_fn = CategoricalCrossentropy(normalize=False)
+        self.loss_fn = PyTorchCrossEntropy(normalize=False, reduction="sum")
         model = os.path.join(config.folder, "model.thinc")
         model_config = os.path.join(config.folder, "config.json")
         if os.path.exists(model):
@@ -180,8 +216,6 @@ class MathyReformer:
         if os.path.exists(model):
             print(f"loading model: {model}")
             self.net.from_disk(model)
-            # self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            # self.epoch = checkpoint.get("epoch", 0)
         if record_attention:
             self.reformer = Recorder(self.reformer)
         self.optimizer = Adam(config.learning_rate)
@@ -253,46 +287,51 @@ def evaluate_model(
 ) -> Tuple[float, float, List[str]]:
     """Evaluate a model on a dataset and return a tuple of the total number
     of problems evaluated, the number answered correctly, and the total loss """
-    ops: Ops = get_current_ops()
-    batches = ops.multibatch(
-        model.config.eval_batch_size, dataset[0], dataset[1], shuffle=True
-    )
-    model.reformer.eval()
-    losses: List[float] = []
-    correct: int = 0
-    total: int = len(dataset[0])
-    print_max = 3
-    printed = 0
-    texts = []
-    for batch_with_labels in batches:
-        batch, batch_labels = batch_with_labels
-        # Check correct/incorrect answers
-        # TODO: remove the need for this torch/ops/long conversion
-        batch = xp2torch(ops.asarray(batch, dtype="int64"))
-        prediction = model.net.predict(batch)
-        answer: Any
-        for X, label, answer in zip(batch, batch_labels, prediction):
-            label = xp2torch(model.net.ops.asarray2i(label))
-            expected = model.vocab.decode_text(label).replace("\n", "")
-            # argmax resolves the class probs to ints, and squeeze removes extra dim
-            answer = model.vocab.decode_text(answer.argmax(-1).squeeze())
-            if "\n" in answer:
-                answer = answer[0 : answer.index("\n")]
-            if printed < print_max:
-                printed += 1
-                question = model.vocab.decode_text(X).replace("\n", "")
-                outcome = "WRONG" if expected != answer else "RIGHT"
-                print_text = f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
-                texts.append(print_text)
-            if answer == expected:
-                correct += 1
-        batch_loss = get_batch_loss(model, batch_with_labels, prediction=prediction)
-        batch_loss.squeeze()
-        losses.append(float(batch_loss))
-    ratio = correct / total
-    print(f"evaluation accuracy: {int(ratio * 100)}% | correct: ({correct}/{total})")
-    loss = model.net.ops.asarray1f(losses).mean()
-    return loss, ratio, texts
+    with torch.no_grad():
+        ops: Ops = get_current_ops()
+        batches = ops.multibatch(
+            model.config.eval_batch_size, dataset[0], dataset[1], shuffle=True
+        )
+        model.reformer.eval()
+        losses: List[float] = []
+        correct: int = 0
+        total: int = len(dataset[0])
+        print_max = 3
+        printed = 0
+        texts = []
+        for batch_with_labels in batches:
+            batch, batch_labels = batch_with_labels
+            # Check correct/incorrect answers
+            # TODO: remove the need for this torch/ops/long conversion
+            batch = xp2torch(ops.asarray(batch, dtype="int64")).long()
+            if model.config.use_cuda:
+                batch = batch.cuda()
+            prediction = model.net(batch, is_train=False)[0]
+            answer: Any
+            for X, label, answer in zip(batch, batch_labels, prediction):
+                label = xp2torch(model.net.ops.asarray2i(label))
+                expected = model.vocab.decode_text(label).replace("\n", "")
+                # argmax resolves the class probs to ints, and squeeze removes extra dim
+                answer = model.vocab.decode_text(answer.argmax(-1).squeeze())
+                if "\n" in answer:
+                    answer = answer[0 : answer.index("\n")]
+                if printed < print_max:
+                    printed += 1
+                    question = model.vocab.decode_text(X).replace("\n", "")
+                    outcome = "WRONG" if expected != answer else "RIGHT"
+                    print_text = f"{outcome} | answer: {expected} | model: {answer} | question: {question}"
+                    texts.append(print_text)
+                if answer == expected:
+                    correct += 1
+            batch_loss = get_batch_loss(model, batch_with_labels, prediction=prediction)
+            batch_loss.squeeze()
+            losses.append(float(batch_loss.mean()))
+        ratio = correct / total
+        print(
+            f"evaluation accuracy: {int(ratio * 100)}% | correct: ({correct}/{total})"
+        )
+        loss = model.net.ops.asarray1f(losses).mean()
+        return loss, ratio, texts
 
 
 def train(
@@ -317,7 +356,7 @@ def train(
             for __ in range(config.accumulate_every):
                 batch_loss = get_batch_loss(model, next(train_loader))
                 batch_loss.squeeze()
-                losses.append(float(batch_loss))
+                losses.append(float(batch_loss.mean()))
 
             loss = float(
                 model.net.ops.asarray1f(losses).mean() / config.accumulate_every
@@ -327,7 +366,6 @@ def train(
             summary.add_scalar("metrics/epoch_time", step_end - step_start, model.epoch)
             summary.add_scalar("loss/train", float(loss), model.epoch)
             torch.nn.utils.clip_grad_norm_(model.reformer.parameters(), 0.5)
-            # model.optimizer.step()
             # run before zero-grad
             if i % config.histogram_every == 0:
                 for tag, value in model.reformer.named_parameters():
@@ -340,7 +378,6 @@ def train(
                     )
             model.net.finish_update(model.optimizer)
             model.optimizer.step_schedules()
-            # model.optimizer.zero_grad()
 
             if i % config.print_every == 0:
                 print(f"step: {model.epoch} | loss: {loss}")
@@ -376,13 +413,10 @@ def get_batch_loss(
     if prediction is None:
         prediction, backprop = model.net.begin_update(xp2torch(x.astype("int64")))
 
-    # TODO: remove this reshape when/if to_categorical does it automatically
-    label = to_categorical(label, n_classes=prediction.shape[-1]).reshape(
-        prediction.shape
-    )
-    d_loss, loss = model.loss_fn(prediction, label)
+    loss = model.loss_fn.get_loss(prediction, label)
     if backprop is not None:
-        backprop(torch.stack([xp2torch(l) for l in d_loss]))
+        d_loss = xp2torch(model.loss_fn.get_grad(prediction, label))
+        backprop(d_loss)
     return model.net.ops.asarray1f(loss)
 
 
