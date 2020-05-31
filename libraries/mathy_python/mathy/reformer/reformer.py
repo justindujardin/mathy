@@ -24,22 +24,25 @@ from thinc.types import Floats1d, Floats2d, Ints1d, Ints2d
 
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+
+# %%
+#
+# Configure the GPU (if available)
+#
 from thinc.api import prefer_gpu, use_pytorch_for_gpu_memory
 
 if prefer_gpu():
     use_pytorch_for_gpu_memory()
 fix_random_seed(0)
 
+# %%
+# 
+# 
+# 
 TensorType = Ints2d
 
-DatasetTuple = Tuple[List[TensorType], List[TensorType]]
 
-
-class PyTorchCrossEntropy(Loss):
-    """A custom thinc loss class that delegates to PyTorch's built-in
-    cross_entropy function. It uses log_softmax + nll_loss and performs
-    great on this task."""
-
+class LogSoftmaxNegativeLogLikelihoodLoss(Loss):
     def __init__(
         self,
         *,
@@ -121,9 +124,6 @@ class ReformerLMConfig(BaseModel):
 
 class MathyReformerConfig(BaseModel):
     folder: str
-    batch_size: int = 512
-    accumulate_every: int = 4
-    learning_rate: float = 3e-4
     train_file: str = "/dev/null"
     eval_file: str = "/dev/null"
     eval_batch_size: int = 128
@@ -133,6 +133,10 @@ class MathyReformerConfig(BaseModel):
     print_every: int = 100
     use_cuda: bool = True
     use_profiler: bool = False
+
+    batch_size: int = 512
+    accumulate_every: int = 4
+    learning_rate: float = 3e-4
 
     reformer: ReformerLMConfig
 
@@ -145,6 +149,9 @@ class MathyReformerConfig(BaseModel):
     def log_dir(self) -> str:
         """Return the path to store tensorboard logs in"""
         return os.path.join(self.folder, "tensorboard")
+
+
+DatasetTuple = Tuple[List[TensorType], List[TensorType]]
 
 
 class MathyVocab:
@@ -184,7 +191,7 @@ class MathyReformer:
     config: MathyReformerConfig
     vocab: MathyVocab
     optimizer: Adam
-    loss_fn: PyTorchCrossEntropy
+    loss_fn: LogSoftmaxNegativeLogLikelihoodLoss
 
     def save(self) -> None:
         model = os.path.join(self.config.folder, "model.thinc")
@@ -197,7 +204,9 @@ class MathyReformer:
         must_exist: bool = False,
         record_attention: bool = False,
     ):
-        self.loss_fn = PyTorchCrossEntropy(normalize=False, reduction="sum")
+        self.loss_fn = LogSoftmaxNegativeLogLikelihoodLoss(
+            normalize=False, reduction="sum"
+        )
         model = os.path.join(config.folder, "model.thinc")
         model_config = os.path.join(config.folder, "config.json")
         if os.path.exists(model):
@@ -216,6 +225,8 @@ class MathyReformer:
         if os.path.exists(model):
             print(f"loading model: {model}")
             self.net.from_disk(model)
+            # self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            # self.epoch = checkpoint.get("epoch", 0)
         if record_attention:
             self.reformer = Recorder(self.reformer)
         self.optimizer = Adam(config.learning_rate)
