@@ -174,7 +174,6 @@ class ContrastiveModelTrainer:
             hiddens_a = self.project(self.model(batch_a))
             hiddens_b = self.project(self.model(batch_b))
             hiddens = tf.concat([hiddens_a, hiddens_b], axis=-1)
-            # Calculate the cosine similarity loss between our vector pairs
             total_loss, logits_con, labels_con = add_contrastive_loss(hiddens)
             # Compute stats for the summary.
             prob_con = tf.nn.softmax(logits_con)
@@ -471,17 +470,15 @@ def add_contrastive_loss(
     batch_size = tf.shape(hidden1)[0]
 
     # Gather hidden1/hidden2 across replicas and create local labels.
-    hidden1_large = hidden1
-    hidden2_large = hidden2
     labels = tf.one_hot(tf.range(batch_size), batch_size * 2)
     masks = tf.one_hot(tf.range(batch_size), batch_size)
 
-    logits_aa = tf.matmul(hidden1, hidden1_large, transpose_b=True) / temperature
+    logits_aa = tf.matmul(hidden1, hidden1, transpose_b=True) / temperature
     logits_aa = logits_aa - masks * LARGE_NUM
-    logits_bb = tf.matmul(hidden2, hidden2_large, transpose_b=True) / temperature
+    logits_bb = tf.matmul(hidden2, hidden2, transpose_b=True) / temperature
     logits_bb = logits_bb - masks * LARGE_NUM
-    logits_ab = tf.matmul(hidden1, hidden2_large, transpose_b=True) / temperature
-    logits_ba = tf.matmul(hidden2, hidden1_large, transpose_b=True) / temperature
+    logits_ab = tf.matmul(hidden1, hidden2, transpose_b=True) / temperature
+    logits_ba = tf.matmul(hidden2, hidden1, transpose_b=True) / temperature
 
     loss_a = tf.compat.v1.losses.softmax_cross_entropy(
         labels, tf.concat([logits_ab, logits_aa], 1), weights=weights

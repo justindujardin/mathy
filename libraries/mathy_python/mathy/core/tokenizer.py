@@ -19,8 +19,10 @@ TokensMap: Dict[str, int] = {
     "CloseParen": 1 << 10,
     "Function": 1 << 11,
     "Equal": 1 << 12,
-    "EOF": 1 << 13,
+    "Pad": 1 << 13,
+    "EOF": 1 << 14,
 }
+MaxToken = len(TokensMap)
 
 TokenNone = TokensMap["None"]
 TokenConstant = TokensMap["Constant"]
@@ -35,6 +37,7 @@ TokenOpenParen = TokensMap["OpenParen"]
 TokenCloseParen = TokensMap["CloseParen"]
 TokenFunction = TokensMap["Function"]
 TokenEqual = TokensMap["Equal"]
+TokenPad = TokensMap["Pad"]
 TokenEOF = TokensMap["EOF"]
 
 
@@ -46,8 +49,11 @@ class Token:
         self.value = value
         self.type = type
 
+    def __repr__(self):
+        return str(self)
+
     def __str__(self):
-        return "[type={}],[value={}]".format(self.type, self.value)
+        return f'(type={self.type}, value="{self.value}")'
 
 
 class TokenContext:
@@ -73,7 +79,10 @@ class TokenContext:
 class Tokenizer:
     """The Tokenizer produces a list of tokens from an input string."""
 
-    def __init__(self):
+    exclude_padding: bool
+
+    def __init__(self, exclude_padding: bool = True):
+        self.exclude_padding = exclude_padding
         self.find_functions()
 
     # Populate the `@functions` object with all known `FunctionExpression`s
@@ -136,7 +145,9 @@ class Tokenizer:
         """Identify and tokenize operators."""
         ch = context.chunk[0]
         if ch == " " or ch == "\t" or ch == "\r" or ch == "\n":
-            pass
+            # NOTE: originally introduced this to include padding for token prediction
+            if self.exclude_padding is False:
+                context.tokens.append(Token(ch, TokenPad))
         elif ch == "+":
             context.tokens.append(Token("+", TokenPlus))
         elif ch == "-" or ch == "–":

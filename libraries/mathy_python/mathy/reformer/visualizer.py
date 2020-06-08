@@ -1,9 +1,12 @@
 import json
+from pathlib import Path
+import re
 from typing import Any
 
 from reformer_pytorch import Recorder
-import torch
 from thinc.api import Ops, get_current_ops
+import torch
+
 from .reformer import (
     DatasetTuple,
     MathyReformer,
@@ -12,6 +15,15 @@ from .reformer import (
     ReformerLMConfig,
     load_dataset,
 )
+
+
+def slugify(input_name: str = "") -> str:
+    input_name = re.sub("-", "_", input_name)
+    input_name = re.sub(r"[^A-Za-z0-9_ ]", "", input_name)
+    input_name = re.sub(r"\s+", "_", input_name)
+    input_name = input_name.lower()
+    return input_name
+
 
 # From: https://www.tensorflow.org/tutorials/text/nmt_with_attention
 def plot_attention(
@@ -36,6 +48,25 @@ def plot_attention(
     return True
 
 
+def trim_attention(attention: torch.Tensor, input_length: int) -> torch.Tensor:
+    return attention[:, 0:input_length, 0:input_length]
+
+
+def write_attention(
+    attention: torch.Tensor, text: str, seq_len: int, title: str, answer: int,
+) -> str:
+    json_file_path = Path(__file__).parent / f"{slugify(text)}.json"
+    to_write = {
+        "title": title,
+        "problem": text,
+        "answer": answer,
+        "attention": trim_attention(attention, seq_len).numpy().tolist(),
+    }
+    json_file_path.write_text(json.dumps(to_write))
+    print(f"Wrote to {json_file_path.absolute()}")
+    return str(json_file_path)
+
+
 def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> None:
     """Evaluate a model on a dataset and return a tuple of the total number
     of problems evaluated, the number answered correctly, and the total loss """
@@ -56,6 +87,8 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
             answer = prediction
             input_text = model.vocab.decode_text(X)
             input_len = input_text.index("\n")
+            if input_len > 18:
+                continue
             expected = model.vocab.decode_text(label).replace("\n", "")
             # argmax resolves the class probs to ints, and squeeze removes extra dim
             answer = model.vocab.decode_text(answer.argmax(-1).squeeze())
@@ -69,6 +102,13 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
             # The like terms attention tends to be informative on head/layer 0
             attn_head = model.reformer.recordings[0][0]["attn"][0][0]
             title = f"expected: {expected} model:{answer} - {correct_str}"
+            write_attention(
+                attention=model.reformer.recordings[0][0]["attn"],
+                text=input_text,
+                seq_len=input_len,
+                title=title,
+                answer=int(answer),
+            )
             plot_attention(
                 attention=attn_head,
                 text=input_text,
@@ -81,7 +121,7 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
 if __name__ == "__main__":
     vocab = MathyVocab()
     config = MathyReformerConfig(
-        folder="training/reformer/lte_thinc",
+        folder="training/reformer/thinc_torch_cce",
         eval_file="training/reformer/like_terms_prediction.eval.txt",
         reformer=ReformerLMConfig(num_tokens=vocab.vocab_len),
     )

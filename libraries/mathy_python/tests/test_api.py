@@ -1,13 +1,9 @@
 import pytest
 import tensorflow as tf
 
-from mathy import envs
 from mathy.agents.base_config import BaseConfig
-from mathy.agents.fragile import SwarmConfig
 from mathy.agents.policy_value_model import PolicyValueModel
-from mathy.api import Mathy, MathyAPIModelState, MathyAPISwarmState
-from mathy.env import MathyEnv
-from mathy.state import MathyObservation, observations_to_window
+from mathy.api import Mathy, MathyAPISwarmState
 
 
 def test_mathy_policy_value_subclass_error():
@@ -30,14 +26,14 @@ def test_api_mathy_constructor():
 
     # Config must be a known pydantic config
     with pytest.raises(ValueError):
-        Mathy(config={})
+        Mathy(config={})  # type:ignore
 
     # Model must be PVM
     with pytest.raises(ValueError):
-        Mathy(model=dict(), config=BaseConfig())
+        Mathy(model=dict(), config=BaseConfig())  # type:ignore
     # Model Config must extend BaseConfig
     with pytest.raises(ValueError):
-        Mathy(model=PolicyValueModel(), config=dict())
+        Mathy(model=PolicyValueModel(), config=dict())  # type:ignore
 
     # Config by itself must be SwarmConfig()
     with pytest.raises(ValueError):

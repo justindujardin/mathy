@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 
 
 def setup_package():
+    # from mathy.about import PackageExtras
 
     package_name = "mathy"
     root = Path(__file__).parent.resolve()
@@ -12,6 +13,7 @@ def setup_package():
     with about_path.open("r", encoding="utf8") as f:
         about = {}
         exec(f.read(), about)
+        PackageExtras = about["PackageExtras"]
 
     with open(root / "README.md", "r") as fh:
         long_description = fh.read()
@@ -24,6 +26,15 @@ def setup_package():
 
     extras = {
         "dev": DEVELOPMENT_MODULES,
+        PackageExtras.AGENTS: [
+            "tensorflow>=2.1.0,<2.2.0",
+            "tensorboard>=2.1.0,<2.2.0",
+            "tensorflow_probability",
+            "keras-self-attention",
+            "gym",
+        ],
+        PackageExtras.SOLVER: ["fragile==0.0.47", "tqdm>=4.43.0", "gym"],
+        PackageExtras.REFORMER: ["torch", "reformer_pytorch", "thinc>=8.0.0a6"],
     }
     extras["all"] = [item for group in extras.values() for item in group]
 

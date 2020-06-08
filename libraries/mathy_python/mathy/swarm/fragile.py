@@ -1,33 +1,18 @@
 """Use Fractal Monte Carlo search in order to solve mathy problems without a
 trained neural network."""
-
-import copy
-import time
 from typing import Dict, List, Optional, Union
 
-import gym
 import numpy as np
 from fragile.core.env import DiscreteEnv
 from fragile.core.models import DiscreteModel
 from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from fragile.core.swarm import Swarm
-from fragile.core.utils import StateDict
-from fragile.core.walkers import Walkers
-from fragile.distributed.env import ParallelEnv
 from fragile.core.tree import HistoryTree
-from gym import spaces
-from pydantic import BaseModel, Field
+from fragile.distributed.env import ParallelEnv
+from pydantic import BaseModel
 from wasabi import msg
 
-from .. import (
-    EnvRewards,
-    MathTypeKeysMax,
-    MathyEnv,
-    MathyEnvState,
-    about,
-    is_terminal_transition,
-)
-from ..envs.gym import MathyGymEnv
+from .. import EnvRewards, MathTypeKeysMax, MathyEnv, MathyEnvState
 
 
 class SwarmConfig(BaseModel):
@@ -141,6 +126,10 @@ class FragileEnvironment:
         max_steps: int = 64,
         **kwargs,
     ):
+        import gym
+        from gym import spaces
+        from ..envs.gym import MathyGymEnv
+
         self._env: MathyGymEnv = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
             np_observation=True,
@@ -165,7 +154,7 @@ class FragileEnvironment:
         self._env.state = MathyEnvState.from_np(state)
         return state
 
-    def step(self, action: int, state: np.ndarray = None,) -> tuple:
+    def step(self, action: int, state: np.ndarray = None) -> tuple:
         assert self._env is not None, "env required to step"
         assert state is not None, "only works with state stepping"
         self.set_state(state)

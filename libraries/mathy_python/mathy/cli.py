@@ -62,11 +62,11 @@ def cli_simplify(
 
     from .models import load_model
     from .api import Mathy
-    from .agents.fragile import SwarmConfig
+    from .swarm import SwarmConfig
 
-    mt: Mathy
     if swarm is True:
         mt = Mathy(config=SwarmConfig(use_mp=parallel))
+        mt.simplify(problem=problem, max_steps=max_steps)
     else:
         try:
             mt = load_model(model)
