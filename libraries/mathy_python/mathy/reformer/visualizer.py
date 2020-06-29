@@ -49,7 +49,7 @@ def plot_attention(
 
 
 def trim_attention(attention: torch.Tensor, input_length: int) -> torch.Tensor:
-    return attention[:, 0:input_length, 0:input_length]
+    return attention[:, :, 0:input_length, 0:input_length]
 
 
 def write_attention(
@@ -87,7 +87,7 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
             answer = prediction
             input_text = model.vocab.decode_text(X)
             input_len = input_text.index("\n")
-            if input_len > 18:
+            if input_len > 32:
                 continue
             expected = model.vocab.decode_text(label).replace("\n", "")
             # argmax resolves the class probs to ints, and squeeze removes extra dim
@@ -102,8 +102,11 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
             # The like terms attention tends to be informative on head/layer 0
             attn_head = model.reformer.recordings[0][0]["attn"][0][0]
             title = f"expected: {expected} model:{answer} - {correct_str}"
+            attentions = torch.cat(
+                [r["attn"] for r in model.reformer.recordings[0]], axis=0
+            )
             write_attention(
-                attention=model.reformer.recordings[0][0]["attn"],
+                attention=attentions,
                 text=input_text,
                 seq_len=input_len,
                 title=title,
