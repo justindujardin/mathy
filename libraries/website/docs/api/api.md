@@ -6,7 +6,7 @@ Mathy(
     self,
     model_path: str = None,
     model: mathy.agents.policy_value_model.PolicyValueModel = None,
-    config: Union[mathy.agents.base_config.BaseConfig, mathy.agents.fragile.SwarmConfig] = None,
+    config: Union[mathy.agents.config.AgentConfig, mathy.agents.fragile.SwarmConfig] = None,
     silent: bool = False,
 )
 ```
@@ -39,11 +39,11 @@ __Returns__
 ```python
 MathyAPIModelState(
     self,
-    config: mathy.agents.base_config.BaseConfig,
+    config: mathy.agents.config.AgentConfig,
     model: mathy.agents.policy_value_model.PolicyValueModel,
 ) -> None
 ```
-MathyAPIModelState(config:mathy.agents.base_config.BaseConfig, model:mathy.agents.policy_value_model.PolicyValueModel)
+MathyAPIModelState(config:mathy.agents.config.AgentConfig, model:mathy.agents.policy_value_model.PolicyValueModel)
 ## MathyAPISwarmState
 ```python
 MathyAPISwarmState(self, config:mathy.agents.fragile.SwarmConfig) -> None

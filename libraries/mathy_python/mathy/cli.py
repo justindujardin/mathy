@@ -253,9 +253,9 @@ def cli_train(
     if agent == "a3c":
         setup_tf_env()
 
-        from .agents.a3c import A3CAgent, A3CConfig
+        from .agents import A3CAgent, AgentConfig
 
-        args = A3CConfig(
+        args = AgentConfig(
             verbose=verbose,
             difficulty=difficulty,
             action_strategy=strategy,

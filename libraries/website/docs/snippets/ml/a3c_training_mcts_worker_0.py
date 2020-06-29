@@ -1,13 +1,13 @@
 #!pip install gym
 from mathy.cli import setup_tf_env
-from mathy.agents.a3c import A3CAgent, A3CConfig
+from mathy.agents.a3c import A3CAgent, AgentConfig
 import shutil
 import tempfile
 
 model_folder = tempfile.mkdtemp()
 setup_tf_env()
 
-args = A3CConfig(
+args = AgentConfig(
     max_eps=1,
     verbose=True,
     action_strategy="mcts_worker_0",

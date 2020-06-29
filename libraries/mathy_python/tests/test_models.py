@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mathy.agents.a3c import A3CAgent, A3CConfig
+from mathy.agents.a3c import A3CAgent, AgentConfig
 from mathy.agents.policy_value_model import (
     PolicyValueModel,
     get_or_create_policy_model,
@@ -78,7 +78,7 @@ def test_models_train_and_package() -> None:
     input_folder = tempfile.mkdtemp()
     output_folder = tempfile.mkdtemp()
     setup_tf_env()
-    args = A3CConfig(
+    args = AgentConfig(
         max_eps=1,
         topics=["poly-combine"],
         model_dir=input_folder,

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from .agents.base_config import BaseConfig
+from .agents.config import AgentConfig
 from .agents.episode_memory import EpisodeMemory
 from .swarm import SwarmConfig, swarm_solve
 from .agents.policy_value_model import PolicyValueModel, load_policy_value_model
@@ -9,7 +9,7 @@ from .agents.policy_value_model import PolicyValueModel, load_policy_value_model
 
 @dataclass
 class MathyAPIModelState:
-    config: BaseConfig
+    config: AgentConfig
     model: PolicyValueModel
 
 
@@ -28,7 +28,7 @@ class Mathy:
         *,
         model_path: str = None,
         model: PolicyValueModel = None,
-        config: Union[BaseConfig, SwarmConfig] = None,
+        config: Union[AgentConfig, SwarmConfig] = None,
         silent: bool = False,
     ):
         if model_path is not None:
@@ -37,8 +37,8 @@ class Mathy:
         elif model is not None and config is not None:
             if not isinstance(model, PolicyValueModel):
                 raise ValueError("model must derive PolicyValueModel for compatibility")
-            if not isinstance(config, BaseConfig):
-                raise ValueError("config must be a BaseConfig instance")
+            if not isinstance(config, AgentConfig):
+                raise ValueError("config must be a AgentConfig instance")
             self.state = MathyAPIModelState(model=model, config=config)
         else:
             if config is None:

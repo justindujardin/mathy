@@ -1,11 +1,11 @@
 from mathy import envs
-from mathy.agents.base_config import BaseConfig
+from mathy.agents.config import AgentConfig
 from mathy.agents.embedding import MathyEmbedding
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
 
 
-args = BaseConfig()
+args = AgentConfig()
 env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
 model = MathyEmbedding(args)

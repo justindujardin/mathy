@@ -22,24 +22,24 @@ from ..state import (
     observations_to_window,
 )
 from ..util import print_error
-from .base_config import BaseConfig
+from .config import AgentConfig
 from .embedding import MathyEmbedding
 
 
 class PolicyValueModel(tf.keras.Model):
-    args: BaseConfig
+    args: AgentConfig
     optimizer: tf.optimizers.Optimizer
 
     def __init__(
         self,
-        args: BaseConfig = None,
+        args: AgentConfig = None,
         predictions: int = 2,
         initial_state: Any = None,
         **kwargs,
     ):
         super(PolicyValueModel, self).__init__(**kwargs)
         if args is None:
-            args = BaseConfig()
+            args = AgentConfig()
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             args.lr_initial,
             decay_steps=args.lr_decay_steps,
@@ -183,7 +183,7 @@ def _load_model(
 
 
 def get_or_create_policy_model(
-    args: BaseConfig,
+    args: AgentConfig,
     predictions: int,
     is_main=False,
     required=False,
@@ -261,12 +261,12 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> Tuple[PolicyValueModel, BaseConfig]:
+) -> Tuple[PolicyValueModel, AgentConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
-    args = BaseConfig(**srsly.read_json(str(meta_file)))
-    model_file = Path(model_data_folder) / "model.h5"
+    args = AgentConfig(**srsly.read_json(str(meta_file)))
+    model_file = Path(model_data_folder) / "model"
     optimizer_file = Path(model_data_folder) / "model.optimizer"
     if not model_file.exists():
         raise ValueError(f"model not found: {model_file}")

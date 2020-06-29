@@ -36,9 +36,9 @@ if prefer_gpu():
 fix_random_seed(0)
 
 # %%
-# 
-# 
-# 
+#
+#
+#
 TensorType = Ints2d
 
 
@@ -113,12 +113,12 @@ class LogSoftmaxNegativeLogLikelihoodLoss(Loss):
 class ReformerLMConfig(BaseModel):
     num_tokens: int
     max_seq_len: int = 128
-    dim: int = 512
-    depth: int = 2
-    bucket_size: int = 64
+    dim: int = 16
+    depth: int = 3
+    bucket_size: int = 4
     heads: int = 4
-    n_hashes: int = 4
-    ff_chunks: int = 0
+    n_hashes: int = 2
+    ff_chunks: int = 1
     lsh_dropout: float = 0.1
 
 
@@ -131,10 +131,10 @@ class MathyReformerConfig(BaseModel):
     histogram_every: int = 100
     validate_every: int = 100
     print_every: int = 100
-    use_cuda: bool = True
+    use_cuda: bool = prefer_gpu()
     use_profiler: bool = False
 
-    batch_size: int = 512
+    batch_size: int = 12
     accumulate_every: int = 4
     learning_rate: float = 3e-4
 

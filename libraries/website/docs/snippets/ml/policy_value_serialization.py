@@ -2,7 +2,7 @@
 import shutil
 import tempfile
 
-from mathy.agents.a3c import A3CAgent, A3CConfig
+from mathy.agents.a3c import A3CAgent, AgentConfig
 from mathy.agents.policy_value_model import PolicyValueModel, get_or_create_policy_model
 from mathy.cli import setup_tf_env
 from mathy.envs import PolySimplify
@@ -10,7 +10,7 @@ from mathy.envs import PolySimplify
 model_folder = tempfile.mkdtemp()
 setup_tf_env()
 
-args = A3CConfig(
+args = AgentConfig(
     max_eps=3,
     verbose=True,
     topics=["poly"],

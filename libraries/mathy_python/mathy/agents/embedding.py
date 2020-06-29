@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tf_siren import SinusodialRepresentationDense, SIRENModel
 
-from mathy.agents.base_config import BaseConfig
+from mathy.agents.config import AgentConfig
 from mathy.core.expressions import MathTypeKeysMax
 from mathy.state import (
     MathyInputsType,
@@ -10,7 +10,7 @@ from mathy.state import (
 
 
 class MathyEmbedding(tf.keras.Model):
-    def __init__(self, config: BaseConfig, **kwargs):
+    def __init__(self, config: AgentConfig, **kwargs):
         super(MathyEmbedding, self).__init__(**kwargs)
         self.config = config
         self.token_embedding = tf.keras.layers.Embedding(

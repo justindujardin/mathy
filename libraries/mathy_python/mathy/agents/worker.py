@@ -11,19 +11,19 @@ import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
-from ...state import MathyEnvState, MathyObservation, observations_to_window
-from ...teacher import Teacher
-from .. import action_selectors
-from ..episode_memory import EpisodeMemory
-from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
-from ..trfl import discrete_policy_entropy_loss, td_lambda
-from .config import A3CConfig
+from ..state import MathyEnvState, MathyObservation, observations_to_window
+from ..teacher import Teacher
+from . import action_selectors
+from .episode_memory import EpisodeMemory
+from .policy_value_model import PolicyValueModel, get_or_create_policy_model
+from .trfl import discrete_policy_entropy_loss, td_lambda
+from .config import AgentConfig
 from .util import EpisodeLosses, record, truncate
 
 
 class A3CWorker(threading.Thread):
 
-    args: A3CConfig
+    args: AgentConfig
 
     # <GLOBAL_VARS>
     global_episode = 0
@@ -39,7 +39,7 @@ class A3CWorker(threading.Thread):
 
     def __init__(
         self,
-        args: A3CConfig,
+        args: AgentConfig,
         action_size: int,
         global_model: PolicyValueModel,
         optimizer,
