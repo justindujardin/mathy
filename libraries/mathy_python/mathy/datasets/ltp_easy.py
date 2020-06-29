@@ -33,14 +33,15 @@ def generate_newline_q_a(
     if exclude is None:
         exclude = set()
     skips = 0
-    skip_threshold = 100
+    skip_threshold = 50000
     problems = 0
-    min_like = 4 if eval else 2
-    max_like = 12 if eval else 8
+    half = number // 2
+    positives: int = 0
+    negatives: int = 0
     with Path(train_file).open("w") as f:
         with tqdm(total=number, mininterval=0.25, desc=file_base) as pbar:
             while problems < number:
-                text, answer = make_problem()
+                text, answer = make_problem(positives >= half, negatives >= half)
                 if text in exclude or len(text) >= max_len:
                     skips += 1
                     if skips >= skip_threshold:
@@ -48,6 +49,16 @@ def generate_newline_q_a(
                             f"Failed to generate more unique problems after {skips} tries!"
                         )
                     continue
+                # Make sure the dataset is split 50/50 for labels
+                if answer == 2:
+                    if positives >= half:
+                        continue
+                    positives += 1
+                elif answer == 0:
+                    if negatives >= half:
+                        continue
+                    negatives += 1
+
                 skips = 0
                 exclude.add(text)
                 f.write(f"{text}\n{answer}\n")
@@ -55,15 +66,20 @@ def generate_newline_q_a(
                 problems += 1
 
 
-def make_problem() -> Tuple[str, int]:
+def make_problem(
+    skip_positives: bool = False, skip_negatives: bool = False
+) -> Tuple[str, int]:
     left_tpl, right_tpl = get_rand_term_templates(2, exponent_probability=0.5)
     left_base = f"{left_tpl.variable}^{left_tpl.exponent}"
-    right_base = f"{right_tpl.variable}^{right_tpl.exponent}"
     assert left_base != right_tpl
     problem_type = random.randint(0, 3)
+    if problem_type < 2 and skip_negatives:
+        problem_type = 2
+    elif problem_type == 2 and skip_positives:
+        problem_type = 0
+
     if problem_type == 0:
         # Generate a problem with 0 like terms, and a random operator
-        use_mult = rand_bool(10)
         operator = random.choice(["+", "-", "*"])
         problem = f"{left_tpl.make()} {operator} {right_tpl.make()}"
         count = 0
@@ -86,7 +102,7 @@ def make_problem() -> Tuple[str, int]:
 
 def main(
     name: str,
-    train_size: int = 200 * 1000,
+    train_size: int = 100 * 1000,
     eval_size: int = 1000,
     max_len: int = 32,
     include_eval: bool = True,
