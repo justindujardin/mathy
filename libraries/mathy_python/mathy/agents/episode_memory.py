@@ -1,13 +1,20 @@
 from multiprocessing import Queue
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Tuple, Union, Iterator
 
 import numpy as np
+
+from ..types import Literal
 
 from ..state import (
     MathyObservation,
     MathyWindowObservation,
     observations_to_window,
 )
+
+
+EpisodeMemoryKeys = Union[
+    Literal["actions"], Literal["rewards"], Literal["values"],
+]
 
 
 class EpisodeMemory(object):
@@ -43,6 +50,39 @@ class EpisodeMemory(object):
         window_observations = self.observations[previous:] + [observation]
         assert len(window_observations) <= window_size
         return observations_to_window(window_observations)
+
+    def to_window_observations(
+        self,
+        window: int = 3,
+        stride: int = 1,
+        other_keys: List[EpisodeMemoryKeys] = [],
+        only_full_windows: bool = True,
+        zip_with: Optional[List[Any]] = None,
+    ) -> List[Tuple[Any, ...]]:
+        if zip_with is not None:
+            o_len = len(self.observations)
+            z_len = len(zip_with)
+            assert (
+                o_len == z_len
+            ), f"zip_with len({z_len}) must match observations({o_len})"
+        results = []
+        for i in range(len(self.observations)):
+            if i % stride != 0:
+                continue
+            start = i
+            end = i + window
+            i_window = observations_to_window(self.observations[start:end])
+            # Maybe exclude partial windows
+            if only_full_windows and len(i_window.nodes) != window:
+                continue
+
+            item: List[Any] = [i_window]
+            for key in other_keys:
+                item += [getattr(self, key)[start:end]]
+            if zip_with is not None:
+                item += [zip_with[start:end]]
+            results.append(tuple(item))
+        return results
 
     def to_episode_window(self) -> MathyWindowObservation:
         return observations_to_window(self.observations)
