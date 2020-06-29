@@ -21,7 +21,7 @@ class BaseConfig(BaseModel):
     normalization_style = "layer"
     # The number of timesteps use when making predictions. This includes the current timestep and
     # (n - 1) previous timesteps
-    prediction_window_size: int = 16
+    prediction_window_size: int = 6
     # Dropout to apply to LSTMs
     dropout: float = 0.2
     units: int = 64

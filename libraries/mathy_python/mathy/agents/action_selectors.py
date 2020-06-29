@@ -4,7 +4,6 @@ import numpy as np
 
 from ..state import MathyEnvState, MathyWindowObservation
 from .policy_value_model import PolicyValueModel
-from .mcts import MCTS
 
 
 class ActionSelector:
@@ -70,20 +69,3 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         else:
             action = np.argmax(probs)
         return action, float(value)
-
-
-class MCTSActionSelector(ActionSelector):
-    def __init__(self, mcts: MCTS, **kwargs):
-        super(MCTSActionSelector, self).__init__(**kwargs)
-        self.mcts = mcts
-
-    def select(
-        self,
-        *,
-        last_state: MathyEnvState,
-        last_window: MathyWindowObservation,
-        last_action: int,
-        last_reward: float,
-    ) -> Tuple[int, float]:
-        probs, value = self.mcts.estimate_policy(last_state)
-        return np.argmax(probs), value

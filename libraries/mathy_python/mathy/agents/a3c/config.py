@@ -7,27 +7,9 @@ class A3CConfig(BaseConfig):
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
     update_gradients_every: int = 8
-
-    normalization_style: str = "layer"
-
-    # Strategy for introducing MCTS into the A3C agent training process
-    #
-    #   - "a3c" Do not use MCTS when training the A3C agent
-    #   - "mcts_worker_0" uses MCTS for observations on the greediest worker. This
-    #                usually looks the best visually, because mcts_worker_0 is print
-    #                to stdout, so it results in lots of green. It's unclear that
-    #                it helps improve the A3C agent performance after MCTS is removed.
-    #   - "mcts_worker_n" uses MCTS for observations on all workers except worker_0.
-    #                This adds the strength of MCTS to observation gathering, without
-    #                biasing the observed strength of the model (because only worker_0)
-    #                reports statistics.
-    action_strategy = "a3c"
-    # MCTS provides higher quality observations at extra computational cost.
-    mcts_sims: int = 200
-
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
-    e_greedy_max = 0.1
+    e_greedy_max = 0.04
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -49,7 +31,7 @@ class A3CConfig(BaseConfig):
     aux_tasks_weight_scale = 1.0
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.2
+    td_lambda: float = 0.5
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 50
@@ -59,7 +41,7 @@ class A3CConfig(BaseConfig):
     # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
     # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
-    teacher_promote_wins = 0.95
+    teacher_promote_wins = 0.90
     # If the agent loses >= this value, demot to the previous difficulty class
     teacher_demote_wins = 0.50
 

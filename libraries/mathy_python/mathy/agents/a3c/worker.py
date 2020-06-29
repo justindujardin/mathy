@@ -11,23 +11,14 @@ import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
-from ...envs.gym.mathy_gym_env import MathyGymEnv
-from ...state import (
-    MathyEnvState,
-    MathyObservation,
-    MathyWindowObservation,
-    ObservationFeatureIndices,
-    observations_to_window,
-)
+from ...state import MathyEnvState, MathyObservation, observations_to_window
 from ...teacher import Teacher
-from ...util import discount, print_error
 from .. import action_selectors
 from ..episode_memory import EpisodeMemory
-from ..mcts import MCTS
 from ..policy_value_model import PolicyValueModel, get_or_create_policy_model
 from ..trfl import discrete_policy_entropy_loss, td_lambda
 from .config import A3CConfig
-from .util import record, truncate, EpisodeLosses
+from .util import EpisodeLosses, record, truncate
 
 
 class A3CWorker(threading.Thread):
@@ -147,71 +138,6 @@ class A3CWorker(threading.Thread):
                 print(f"PROFILER: saved {profile_path}")
         self.result_queue.put(None)
 
-    def build_episode_selector(
-        self, env: MathyGymEnv
-    ) -> "action_selectors.ActionSelector":
-        if self.worker_idx == 0:
-            # disable dirichlet noise in worker_0
-            epsilon = 0.0
-        else:
-            # explore based on eGreedy param (wild guess for values)
-            epsilon = 0.1 + self.epsilon
-        selector: action_selectors.ActionSelector
-        if self.args.action_strategy == "mcts_worker_0":
-            mcts = MCTS(
-                env=env.mathy,
-                model=self.local_model,
-                num_mcts_sims=self.args.mcts_sims,
-                epsilon=epsilon,
-            )
-            if self.worker_idx == 0:
-                selector = action_selectors.MCTSActionSelector(
-                    model=self.global_model,
-                    worker_id=self.worker_idx,
-                    mcts=mcts,
-                    episode=A3CWorker.global_episode,
-                )
-            else:
-                selector = action_selectors.A3CEpsilonGreedyActionSelector(
-                    model=self.global_model,
-                    worker_id=self.worker_idx,
-                    epsilon=self.epsilon,
-                    episode=A3CWorker.global_episode,
-                )
-        elif self.args.action_strategy == "mcts_worker_n":
-            mcts = MCTS(
-                env=env.mathy,
-                model=self.local_model,
-                num_mcts_sims=self.args.mcts_sims,
-                epsilon=epsilon,
-            )
-            if self.worker_idx != 0:
-                selector = action_selectors.MCTSActionSelector(
-                    model=self.global_model,
-                    worker_id=self.worker_idx,
-                    mcts=mcts,
-                    episode=A3CWorker.global_episode,
-                )
-            else:
-                selector = action_selectors.A3CEpsilonGreedyActionSelector(
-                    model=self.global_model,
-                    worker_id=self.worker_idx,
-                    epsilon=self.epsilon,
-                    episode=A3CWorker.global_episode,
-                )
-        elif self.args.action_strategy in ["a3c"]:
-            selector = action_selectors.A3CEpsilonGreedyActionSelector(
-                model=self.global_model,
-                worker_id=self.worker_idx,
-                epsilon=self.epsilon,
-                episode=A3CWorker.global_episode,
-            )
-        else:
-            raise EnvironmentError(
-                f"Unknown action_strategy: {self.args.action_strategy}"
-            )
-        return selector
-
     def run_episode(self, episode_memory: EpisodeMemory) -> float:
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
         env = gym.make(env_name, **self.env_extra)
@@ -226,7 +152,12 @@ class A3CWorker(threading.Thread):
         last_action = -1
         last_reward = 0.0
 
-        selector = self.build_episode_selector(env)
+        selector = action_selectors.A3CEpsilonGreedyActionSelector(
+            model=self.global_model,
+            worker_id=self.worker_idx,
+            epsilon=self.epsilon,
+            episode=A3CWorker.global_episode,
+        )
 
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
@@ -234,16 +165,12 @@ class A3CWorker(threading.Thread):
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
             )
-            try:
-                action, value = selector.select(
-                    last_state=env.state,
-                    last_window=window,
-                    last_action=last_action,
-                    last_reward=last_reward,
-                )
-            except BaseException as err:
-                print_error(err, "failed to select an action during an episode step")
-                continue
+            action, value = selector.select(
+                last_state=env.state,
+                last_window=window,
+                last_action=last_action,
+                last_reward=last_reward,
+            )
 
             # Take an env step
             observation, reward, done, last_obs_info = env.step(action)

@@ -1,17 +1,12 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
 import tensorflow as tf
+from tf_siren import SinusodialRepresentationDense, SIRENModel
 
 from mathy.agents.base_config import BaseConfig
 from mathy.core.expressions import MathTypeKeysMax
 from mathy.state import (
     MathyInputsType,
-    MathyWindowObservation,
     ObservationFeatureIndices,
 )
-from mathy.agents.densenet import DenseNetStack
-
-from .attention import SeqSelfAttention
-from tf_siren import SinusodialRepresentationDense, SIRENModel
 
 
 class MathyEmbedding(tf.keras.Model):
@@ -24,8 +19,6 @@ class MathyEmbedding(tf.keras.Model):
             name="nodes_input",
             mask_zero=True,
         )
-        # +1 for the value
-        # +2 for the problem type hashes
         self.values_dense = SinusodialRepresentationDense(
             self.config.units, name="values_input"
         )
@@ -39,9 +32,6 @@ class MathyEmbedding(tf.keras.Model):
             units=self.config.units,
             final_units=self.config.units,
             num_layers=2,
-            # In transform gets the embeddings concatenated with the
-            # floating point value at each node.
-            # input_shape=(None, self.config.embedding_units + self.concat_size),
             name="siren",
         )
 
