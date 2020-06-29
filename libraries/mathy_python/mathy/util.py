@@ -27,6 +27,52 @@ from .core.tree import LEFT
 from .types import EnvRewards, Literal
 
 
+from importlib.util import find_spec
+
+
+def has_modules(to_check: Union[List[str], str]) -> bool:
+    if isinstance(to_check, str):
+        return find_spec(to_check) is not None
+
+    checks = [find_spec(a) is not None for a in to_check]
+    return False not in checks
+
+
+MISSING_LIBRARIES_ALERT = (
+    "\n\nThe functionality you are trying to use requires optional "
+    "packages that aren't installed:\n\n\t{}\n\nTry running:\n\n"
+    "\tpip install mathy[{}]\n\n"
+)
+MODULE_JOIN = "\n\t"
+
+
+def assert_torch_installed():
+    requires = ["torch", "reformer_pytorch"]
+    extra_name = "torch"
+    if not has_modules(requires):
+        raise EnvironmentError(
+            MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
+        )
+
+
+def assert_fragile_installed():
+    requires = ["fragile", "gym"]
+    extra_name = "swarm"
+    if not has_modules(requires):
+        raise EnvironmentError(
+            MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
+        )
+
+
+def assert_tensorflow_installed():
+    requires = ["tensorflow", "keras_self_attention", "tensorflow_probability"]
+    extra_name = "tf"
+    if not has_modules(requires):
+        raise EnvironmentError(
+            MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
+        )
+
+
 def is_debug_mode() -> bool:
     """Debug mode enables extra logging and assertions, but is slower."""
     return False
@@ -751,7 +797,6 @@ def pad_array(in_list: List[Any], max_length: int, value: Any = 0) -> List[Any]:
     while len(in_list) < max_length:
         in_list.append(value)
     return in_list
-
 
 
 def print_error(error, text, print_error=True):

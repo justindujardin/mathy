@@ -1,4 +1,3 @@
+from ..util import assert_tensorflow_installed
 
-from ..about import PackageExtras
-
-PackageExtras.requires(PackageExtras.AGENTS)
+assert_tensorflow_installed()
