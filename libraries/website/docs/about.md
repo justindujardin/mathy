@@ -32,45 +32,6 @@ The work done by **[Jaderberg et al.](https://arxiv.org/pdf/1611.05397.pdf){targ
 
 The scope of Mathy is large, and there are a few key contributions that have come from Open Source software that deserve special recognition.
 
-### [AlphaZero General](https://github.com/suragnair/alpha-zero-general){target=\_blank}
-
-AlphaZero General is a mostly-faithful implementation of AlphaGo in python. A heavily modified version is used by the `zero` agent in mathy. While the code has changed quite a bit, you can continue see parts of AZG in the MathyEnv and MCTS classes.
-
-??? warning "Missing Functionality"
-
-        At one point during an aggressive refactor and simplification pass, I removed the self-play evaluation step from the `zero` agent's training loop. Later, I saw a comment from DeepMind (link?) about how self-play is critical to continual learning because it creates a competetive challenge that is never too hard or too easy.
-
-        The code for self-play is relatively straight-forward and should be revived for optimal training. It basically breaks down as:
-
-        1.  gather **n** episodes of training data
-        2.  **train** the **neural network** with all of the accumulated knowledge
-        3.  execute **trial** number of episodes where the **current agent** and the **newly trained agent** race to see who can complete the task first
-        4.  if the **newly trained agent** wins more than **55%** of all the trial episodes
-            - assign the **current agent** to be the **newly trained agent**
-        5.  goto 1.
-
-??? note "MIT License"
-
-    Copyright (c) 2018 Surag Nair
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
-
 ### [FastAPI](https://fastapi.tiangolo.com/){target=\_blank}
 
 FastAPI has a magnificent documentation site, and Mathy uses its template to structure its own site. A key insight from FastAPI that has made this site possible is the inclusion of code snippets from the website as tests that are run automatically. This makes maintaining tens or hundreds of code examples as easy as maintaining tests from a test suite.

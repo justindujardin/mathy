@@ -118,16 +118,6 @@ A3C uses multiple worker threads to train a shared model in a CPU-friendly setti
 $ mathy train a3c poly ./training/my_model
 ```
 
-### Train an MCTS agent
-
-Mathy has a [MCTS agent](/ml/zero) built-in that you can train from the CLI:
-
-MCTS is a powerful tree search that is combined with a neural network to produce
-high quality actions.
-
-```bash
-$ mathy train zero poly ./training/my_model
-```
 
 ## Code It
 

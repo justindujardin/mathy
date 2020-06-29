@@ -41,11 +41,10 @@ nav:
   - Binomial Multiply: envs/binomial_multiply.md
   - Machine Learning:
     - Overview: ml/overview.md
+    - A3C Agent: ml/a3c.md
     - Debugging: ml/debugging.md
     - Math Embeddings: ml/embeddings.md
     - Policy/Value Model: ml/policy_value_model.md
-    - A3C Agent: ml/a3c.md
-    - Zero Agent: ml/zero.md
 - API Documentation:
   - api: api/api.md
   - core:

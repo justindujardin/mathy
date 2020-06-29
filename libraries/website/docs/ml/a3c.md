@@ -2,10 +2,6 @@ Mathy provides an on-policy learning agent (a3c) that can be trained on a modern
 
 For some tasks the A3C agent trains quickly, but for more complex tasks it can require long training periods.
 
-It may even not find reasonable solutions to difficult problems.
-
-For more difficult problems, the [zero agent](/ml/zero) is slower but finds great solutions in large search spaces.
-
 ## Asynchronous Advantage Actor-Critic
 
 Asynchronous Advantage Actor-Critic (A3C) is an algorithm that uses multiple workers to train a shared model. It roughly breaks down like this:

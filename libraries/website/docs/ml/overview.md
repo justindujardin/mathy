@@ -13,7 +13,6 @@ Mathy uses machine learning in a few ways, and has the following features:
 - [Math Embeddings](/ml/embeddings) layer for processing sequences of sequences
 - [Policy/Value model](/ml/policy_value_model) for estimating which actions to apply to which nodes
 - [A3C agent](/ml/a3c) for online training of agents in a CPU-friendly setting
-- [MCTS agent](/ml/zero) for batch training in a GPU-friendly setting
 
 ## Text Preprocessing
 

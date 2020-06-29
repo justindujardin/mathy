@@ -42,22 +42,17 @@ def test_cli_simplify_swarm(use_mp: bool):
     assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("agent", ["a3c", "zero"])
-def test_cli_train(agent: str):
+def test_cli_train():
     runner = CliRunner()
     model_folder = tempfile.mkdtemp()
     result = runner.invoke(
         cli,
         [
             "train",
-            agent,
             "poly-like-terms-haystack,poly-grouping",
             model_folder,
             "--verbose",
-            "--mcts-sims=3",
             "--episodes=2",
-            "--self-play-problems=1",
-            "--training-iterations=1",
             "--workers=1",
         ],
     )
