@@ -11,6 +11,7 @@ from mathy.state import (
 from mathy.agents.densenet import DenseNetStack
 
 from .attention import SeqSelfAttention
+from tf_siren import SinusodialRepresentationDense, SIRENModel
 
 
 class MathyEmbedding(tf.keras.Model):
@@ -25,54 +26,23 @@ class MathyEmbedding(tf.keras.Model):
         )
         # +1 for the value
         # +2 for the problem type hashes
-        self.concat_size = 3
-        self.values_dense = tf.keras.layers.Dense(
+        self.values_dense = SinusodialRepresentationDense(
             self.config.units, name="values_input"
         )
-        self.type_dense = tf.keras.layers.Dense(self.config.units, name="type_input")
-        self.in_dense = tf.keras.layers.Dense(
-            self.config.units,
+        self.type_dense = SinusodialRepresentationDense(
+            self.config.units, name="type_input"
+        )
+        self.time_dense = SinusodialRepresentationDense(
+            self.config.units, name="time_input"
+        )
+        self.siren_mlp = SIRENModel(
+            units=self.config.units,
+            final_units=self.config.units,
+            num_layers=2,
             # In transform gets the embeddings concatenated with the
             # floating point value at each node.
-            input_shape=(None, self.config.embedding_units + self.concat_size),
-            name="in_dense",
-            activation="relu",
-            kernel_initializer="he_normal",
-        )
-        self.output_dense = tf.keras.layers.Dense(
-            self.config.embedding_units,
-            name="out_dense",
-            activation="relu",
-            kernel_initializer="he_normal",
-        )
-
-        NormalizeClass = tf.keras.layers.LayerNormalization
-        if self.config.normalization_style == "batch":
-            NormalizeClass = tf.keras.layers.BatchNormalization
-        self.out_dense_norm = NormalizeClass(name="out_dense_norm")
-        self.nodes_lstm_norm = NormalizeClass(name="lstm_nodes_norm")
-        self.time_lstm_norm = NormalizeClass(name="time_lstm_norm")
-        self.lstm_nodes = tf.keras.layers.Bidirectional(
-            tf.keras.layers.LSTM(
-                self.config.lstm_units,
-                name="nodes_lstm",
-                time_major=False,
-                return_sequences=True,
-                dropout=self.config.dropout,
-            ),
-            merge_mode="ave",
-        )
-        self.lstm_time = tf.keras.layers.LSTM(
-            self.config.lstm_units,
-            name="time_lstm",
-            time_major=True,
-            return_sequences=True,
-            dropout=self.config.dropout,
-        )
-        self.lstm_attention = SeqSelfAttention(
-            attention_activation="sigmoid",
-            name="self_attention",
-            return_attention=True,
+            # input_shape=(None, self.config.embedding_units + self.concat_size),
+            name="siren",
         )
 
     def call(self, features: MathyInputsType, train: tf.Tensor = None) -> tf.Tensor:
@@ -83,14 +53,10 @@ class MathyEmbedding(tf.keras.Model):
                     tf.expand_dims(features[ObservationFeatureIndices.values], axis=-1)
                 ),
                 self.type_dense(features[ObservationFeatureIndices.type]),
+                self.time_dense(features[ObservationFeatureIndices.time]),
             ],
             axis=-1,
             name="input_vectors",
         )
-        output = self.in_dense(output)
-        output = self.lstm_time(output)
-        output = self.time_lstm_norm(output)
-        output = self.lstm_nodes(output)
-        output = self.nodes_lstm_norm(output)
-        output, attention = self.lstm_attention(output)
-        return self.out_dense_norm(self.output_dense(output)), attention
+        output = self.siren_mlp(output)
+        return output, tf.zeros((10, 10))

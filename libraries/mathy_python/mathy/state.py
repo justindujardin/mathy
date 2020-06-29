@@ -14,12 +14,14 @@ NodeIntList = List[int]
 NodeValuesFloatList = List[float]
 NodeMaskIntList = List[int]
 ProblemTypeIntList = List[int]
+TimeFloatList = List[float]
 
 
 WindowNodeIntList = List[NodeIntList]
 WindowNodeMaskIntList = List[NodeMaskIntList]
 WindowNodeValuesFloatList = List[NodeValuesFloatList]
 WindowProblemTypeIntList = List[ProblemTypeIntList]
+WindowTimeFloatList = List[TimeFloatList]
 
 
 # Input type for mathy models
@@ -31,6 +33,7 @@ class ObservationFeatureIndices(IntEnum):
     mask = 1
     values = 2
     type = 3
+    time = 4
 
 
 class MathyObservation(NamedTuple):
@@ -40,6 +43,7 @@ class MathyObservation(NamedTuple):
     mask: NodeMaskIntList
     values: NodeValuesFloatList
     type: ProblemTypeIntList
+    time: TimeFloatList
 
 
 # fmt: off
@@ -47,6 +51,7 @@ MathyObservation.nodes.__doc__ = "tree node types in the current environment sta
 MathyObservation.mask.__doc__ = "0/1 mask where 0 indicates an invalid action shape=[n,]" # noqa
 MathyObservation.values.__doc__ = "tree node value sequences, with non number indices set to 0.0 shape=[n,]" # noqa
 MathyObservation.type.__doc__ = "two column hash of problem environment type shape=[2,]" # noqa
+MathyObservation.time.__doc__ = "float value between 0.0 and 1.0 indicating the time elapsed shape=[1,]" # noqa
 # fmt: on
 
 
@@ -57,8 +62,11 @@ class MathyWindowObservation(NamedTuple):
     mask: WindowNodeMaskIntList
     values: WindowNodeValuesFloatList
     type: WindowProblemTypeIntList
+    time: WindowTimeFloatList
 
-    def to_inputs(self, as_tf_tensor: bool = False) -> MathyInputsType:
+    def to_inputs(
+        self, as_tf_tensor: bool = False, pad_length: Optional[int] = None
+    ) -> MathyInputsType:
         if as_tf_tensor:
             import tensorflow as tf
 
@@ -72,6 +80,7 @@ class MathyWindowObservation(NamedTuple):
             to_res(self.mask),
             to_res(self.values),
             to_res(self.type),
+            to_res(self.time),
         ]
         for r in result:
             for s in r.shape:
@@ -86,6 +95,7 @@ class MathyWindowObservation(NamedTuple):
             np.asarray(self.mask).shape,
             np.asarray(self.values).shape,
             np.asarray(self.type).shape,
+            np.asarray(self.time).shape,
         ]
         return result
 
@@ -95,6 +105,7 @@ MathyWindowObservation.nodes.__doc__ = "n-step list of node sequences `shape=[n,
 MathyWindowObservation.mask.__doc__ = "n-step list of node sequence masks `shape=[n, max(len(s))]`" # noqa
 MathyWindowObservation.values.__doc__ = "n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`" # noqa
 MathyWindowObservation.type.__doc__ = "n-step problem type hash `shape=[n, 2]`" # noqa
+MathyWindowObservation.time.__doc__ = "n-step problem time values `shape=[n, 2]`" # noqa
 # fmt: on
 
 
@@ -121,7 +132,7 @@ def observations_to_window(
     observations: List[MathyObservation], total_length: int = None
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
-    output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[])
+    output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[], time=[])
     sequence_lengths: List[int] = []
     max_mask_length: int = 0
     for i in range(len(observations)):
@@ -137,7 +148,9 @@ def observations_to_window(
         output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
         output.mask.append(pad_array(obs.mask, max_mask_length, 0))
         output.values.append(pad_array(obs.values, max_length, 0.0))
+        # repeat type/time values so they can be combined with nodes/values
         output.type.append(pad_array([], max_length, obs.type))
+        output.time.append(pad_array([], max_length, obs.time))
     return output
 
 
@@ -229,7 +242,11 @@ class MathyEnvState(object):
         mask = [0] * num_actions
         values = [0.0]
         return MathyObservation(
-            nodes=[MathTypeKeys["empty"]], mask=mask, values=values, type=hash,
+            nodes=[MathTypeKeys["empty"]],
+            mask=mask,
+            values=values,
+            type=[0],
+            time=[0.0],
         )
 
     def to_observation(
@@ -249,6 +266,7 @@ class MathyEnvState(object):
         values: NodeValuesFloatList = []
         if move_mask is None:
             move_mask = np.zeros(len(nodes))
+        assert move_mask is not None
         for node in nodes:
             vectors.append(node.type_id)
             if isinstance(node, ConstantExpression):
@@ -256,8 +274,14 @@ class MathyEnvState(object):
             else:
                 values.append(0.0)
 
+        # Pass a 0-1 value indicating the relative episode time where 0.0 is
+        # the episode start, and 1.0 is the episode end as indicated by the
+        # maximum allowed number of actions.
+        step = int(self.max_moves - self.agent.moves_remaining)
+        time = int(step / self.max_moves * 10)
+
         return MathyObservation(
-            nodes=vectors, mask=move_mask, values=values, type=hash_type
+            nodes=vectors, mask=move_mask, values=values, type=hash_type, time=[time]
         )
 
     @classmethod
@@ -285,6 +309,7 @@ class MathyEnvState(object):
     def to_string(self) -> str:
         """Convert a state object into a string representation"""
         sep = "@"
+        assert self.agent is not None, "invalid state"
         out = [
             str(self.max_moves),
             str(self.num_rules),

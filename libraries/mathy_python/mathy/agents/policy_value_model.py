@@ -9,6 +9,7 @@ import numpy as np
 import srsly
 import tensorflow as tf
 from tensorflow.keras import backend as K
+from tf_siren import SinusodialRepresentationDense
 from wasabi import msg
 
 from ..env import MathyEnv
@@ -52,11 +53,8 @@ class PolicyValueModel(tf.keras.Model):
         self.policy_net = tf.keras.Sequential(
             [
                 tf.keras.layers.TimeDistributed(
-                    tf.keras.layers.Dense(
-                        self.predictions,
-                        name="policy_ts_hidden",
-                        kernel_initializer="he_normal",
-                        activation=None,
+                    SinusodialRepresentationDense(
+                        self.predictions, name="policy_ts_hidden", activation=None,
                     ),
                     name="policy_logits",
                 ),
@@ -66,36 +64,19 @@ class PolicyValueModel(tf.keras.Model):
         )
         self.value_net = tf.keras.Sequential(
             [
-                tf.keras.layers.Dense(
-                    self.args.units,
-                    name="value_hidden",
-                    kernel_initializer="he_normal",
-                    activation="relu",
-                ),
-                tf.keras.layers.LayerNormalization(name="value_layer_norm"),
-                tf.keras.layers.Dense(
-                    1,
-                    name="value_logits",
-                    kernel_initializer="he_normal",
-                    activation=None,
-                ),
+                SinusodialRepresentationDense(self.args.units, name="value_hidden"),
+                SinusodialRepresentationDense(1, name="value_logits", activation=None),
             ],
             name="value_head",
         )
         self.reward_net = tf.keras.Sequential(
             [
-                tf.keras.layers.Dense(
-                    self.args.units,
-                    name="reward_hidden",
-                    kernel_initializer="he_normal",
-                    activation="relu",
+                SinusodialRepresentationDense(
+                    self.args.units, name="reward_hidden", activation="relu",
                 ),
                 tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
-                tf.keras.layers.Dense(
-                    1,
-                    name="reward_logits",
-                    kernel_initializer="he_normal",
-                    activation=None,
+                SinusodialRepresentationDense(
+                    1, name="reward_logits", activation=None,
                 ),
             ],
             name="reward_head",
@@ -193,6 +174,8 @@ def _load_model(
         model.make_train_function()
     elif hasattr(model, "_make_train_function"):
         model._make_train_function()
+    else:
+        raise ValueError("model doesn't have a make_train_function")
     with open(optimizer_file, "rb") as f:
         weight_values = pickle.load(f)
     model.optimizer.set_weights(weight_values)
