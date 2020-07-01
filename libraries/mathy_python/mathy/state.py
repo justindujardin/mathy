@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import srsly
@@ -25,7 +25,7 @@ WindowTimeFloatList = List[TimeFloatList]
 
 
 # Input type for mathy models
-MathyInputsType = List[Any]
+MathyInputsType = Tuple[Any, ...]
 
 
 class ObservationFeatureIndices(IntEnum):
@@ -75,13 +75,13 @@ class MathyWindowObservation(NamedTuple):
                 return tf.convert_to_tensor(in_value, dtype=tf.float32)
             return np.asarray(in_value, dtype="float32")
 
-        result = [
+        result = (
             to_res(self.nodes),
             to_res(self.mask),
             to_res(self.values),
             to_res(self.type),
             to_res(self.time),
-        ]
+        )
         for r in result:
             for s in r.shape:
                 assert s is not None

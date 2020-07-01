@@ -1,13 +1,13 @@
 from mathy import envs
 from mathy.agents.config import AgentConfig
-from mathy.agents.policy_value_model import PolicyValueModel
+from mathy.agents.model import AgentModel
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
 
 args = AgentConfig(use_env_features=True)
 env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
-model = PolicyValueModel(args, predictions=env.action_size)
+model = AgentModel(args, predictions=env.action_size)
 inputs = observations_to_window([observation]).to_inputs()
 # predict_next only returns a policy for the last observation
 # in the sequence, and applies masking and softmax to the output

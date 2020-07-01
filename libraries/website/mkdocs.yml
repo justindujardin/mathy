@@ -44,7 +44,7 @@ nav:
     - A3C Agent: ml/a3c.md
     - Debugging: ml/debugging.md
     - Math Embeddings: ml/embeddings.md
-    - Policy/Value Model: ml/policy_value_model.md
+    - Policy/Value Model: ml/model.md
 - API Documentation:
   - api: api/api.md
   - core:

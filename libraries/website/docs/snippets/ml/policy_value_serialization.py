@@ -3,7 +3,7 @@ import shutil
 import tempfile
 
 from mathy.agents.a3c import A3CAgent, AgentConfig
-from mathy.agents.policy_value_model import PolicyValueModel, get_or_create_policy_model
+from mathy.agents.model import AgentModel, get_or_create_policy_model
 from mathy.cli import setup_tf_env
 from mathy.envs import PolySimplify
 

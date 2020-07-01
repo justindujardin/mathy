@@ -1,16 +1,10 @@
 import shutil
 import tempfile
-from unittest.mock import patch
 
 import pytest
 
-from mathy.agents.a3c import A3CAgent, AgentConfig
-from mathy.agents.policy_value_model import (
-    PolicyValueModel,
-    get_or_create_policy_model,
-)
+from mathy.agents import A3CAgent, AgentConfig
 from mathy.cli import setup_tf_env
-from mathy.envs import PolySimplify
 from mathy.api import Mathy, MathyAPIModelState
 from mathy.models import load_model, package, load_model_from_init_py, get_model_meta
 from pathlib import Path

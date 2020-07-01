@@ -120,12 +120,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.argument("topics")
 @click.argument("folder")
 @click.option(
-    "transfer",
-    "--transfer",
-    default=None,
-    help="Location of a model to initialize the agent's weights from",
-)
-@click.option(
     "difficulty",
     "--difficulty",
     default=None,
@@ -183,7 +177,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 def cli_train(
     topics: str,
     folder: str,
-    transfer: str,
     difficulty: str,
     workers: int,
     units: int,
@@ -216,7 +209,6 @@ def cli_train(
         units=units,
         embedding_units=embeddings,
         model_dir=folder,
-        init_model_from=transfer,
         num_workers=workers,
         profile=profile,
         print_training=show,

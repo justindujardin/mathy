@@ -28,7 +28,6 @@ class AgentConfig(BaseModel):
     difficulty: Optional[str] = None
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
-    init_model_from: Optional[str] = None
     verbose: bool = False
     # Initial learning rate that decays over time.
     lr_initial: float = 0.01
@@ -47,7 +46,7 @@ class AgentConfig(BaseModel):
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
-    # This is very verbose and prints every policy_value_model.call time
+    # This is very verbose and prints every model.call time
     print_model_call_times: bool = False
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
@@ -84,7 +83,7 @@ class AgentConfig(BaseModel):
     td_lambda: float = 0.5
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 50
+    teacher_start_evaluations_at_episode = 500
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
     teacher_evaluation_steps = 20
     # If the agent wins >= this value, promote to the next difficulty class
@@ -93,7 +92,7 @@ class AgentConfig(BaseModel):
     # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
     teacher_promote_wins = 0.90
     # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.50
+    teacher_demote_wins = 0.65
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

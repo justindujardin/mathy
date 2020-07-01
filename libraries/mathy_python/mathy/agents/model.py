@@ -9,9 +9,10 @@ import numpy as np
 import srsly
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from tf_siren import SinusodialRepresentationDense
+from tf_siren import SinusodialRepresentationDense, SIRENModel
 from wasabi import msg
 
+from ..core.expressions import MathTypeKeysMax
 from ..env import MathyEnv
 from ..envs import PolySimplify
 from ..state import (
@@ -23,10 +24,9 @@ from ..state import (
 )
 from ..util import print_error
 from .config import AgentConfig
-from .embedding import MathyEmbedding
 
 
-class PolicyValueModel(tf.keras.Model):
+class AgentModel(tf.keras.Model):
     args: AgentConfig
     optimizer: tf.optimizers.Optimizer
 
@@ -37,7 +37,7 @@ class PolicyValueModel(tf.keras.Model):
         initial_state: Any = None,
         **kwargs,
     ):
-        super(PolicyValueModel, self).__init__(**kwargs)
+        super(AgentModel, self).__init__(**kwargs)
         if args is None:
             args = AgentConfig()
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -49,7 +49,29 @@ class PolicyValueModel(tf.keras.Model):
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.args = args
         self.predictions = predictions
-        self.embedding = MathyEmbedding(self.args)
+
+        self.token_embedding = tf.keras.layers.Embedding(
+            input_dim=MathTypeKeysMax,
+            output_dim=self.args.embedding_units,
+            name="nodes_input",
+            mask_zero=True,
+        )
+        self.values_dense = SinusodialRepresentationDense(
+            self.args.units, name="values_input"
+        )
+        self.type_dense = SinusodialRepresentationDense(
+            self.args.units, name="type_input"
+        )
+        self.time_dense = SinusodialRepresentationDense(
+            self.args.units, name="time_input"
+        )
+        self.siren_mlp = SIRENModel(
+            units=self.args.units,
+            final_units=self.args.units,
+            num_layers=2,
+            name="siren",
+        )
+
         self.policy_net = tf.keras.Sequential(
             [
                 tf.keras.layers.TimeDistributed(
@@ -98,31 +120,47 @@ class PolicyValueModel(tf.keras.Model):
         )
 
     def call(
-        self, features_window: MathyInputsType
+        self, features: MathyInputsType
     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
         call_print = self.args.print_model_call_times
-        nodes = features_window[ObservationFeatureIndices.nodes]
+        nodes = features[ObservationFeatureIndices.nodes]
+        values = features[ObservationFeatureIndices.values]
+        types = features[ObservationFeatureIndices.type]
+        times = features[ObservationFeatureIndices.time]
         batch_size = (
             len(nodes)
             if not isinstance(nodes, (tf.Tensor, np.ndarray))
             else nodes.shape[0]
         )
         start = time.time()
-        inputs = features_window
         # Extract features into contextual inputs, sequence inputs.
-        sequence_inputs, attention_weights = self.embedding(inputs)
+        sequence_inputs = self.siren_mlp(
+            tf.concat(
+                [
+                    self.token_embedding(nodes),
+                    self.values_dense(tf.expand_dims(values, axis=-1)),
+                    self.type_dense(types),
+                    self.time_dense(times),
+                ],
+                axis=-1,
+                name="input_vectors",
+            )
+        )
         sequence_mean = tf.reduce_mean(sequence_inputs, axis=1)
         values = self.value_net(sequence_mean)
         reward_logits = self.reward_net(sequence_mean)
         logits = self.policy_net(sequence_inputs)
-        mask_logits = self.apply_pi_mask(logits, features_window)
+        mask_logits = self.apply_pi_mask(logits, features)
         if call_print is True:
             print(
                 "call took : {0:03f} for batch {1}".format(
                     time.time() - start, batch_size
                 )
             )
-        return logits, values, mask_logits, reward_logits, attention_weights
+        # TODO: Clean up return values, e.g.
+        #
+        # return policy_logits, value_logits, reward_logits
+        return logits, values, mask_logits, reward_logits, tf.zeros((10, 10))
 
     def apply_pi_mask(
         self, logits: tf.Tensor, features_window: MathyInputsType,
@@ -167,8 +205,11 @@ class PolicyValueModel(tf.keras.Model):
 
 
 def _load_model(
-    model: PolicyValueModel, model_file: str, optimizer_file: str,
-) -> PolicyValueModel:
+    model: AgentModel,
+    model_file: str,
+    optimizer_file: str,
+    initial_state: MathyWindowObservation,
+) -> AgentModel:
     model.load_weights(model_file)
     if hasattr(model, "make_train_function"):
         model.make_train_function()
@@ -188,7 +229,7 @@ def get_or_create_policy_model(
     is_main=False,
     required=False,
     env: MathyEnv = None,
-) -> PolicyValueModel:
+) -> AgentModel:
     if env is None:
         env = PolySimplify()
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
@@ -197,53 +238,21 @@ def get_or_create_policy_model(
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
     model_path = os.path.join(args.model_dir, args.model_name)
-    # Transfer weights/optimizer from a different model
-    if is_main and args.init_model_from is not None:
-        init_model_path = os.path.join(args.init_model_from, args.model_name)
-        opt = f"{init_model_path}.optimizer"
-        mod = f"{init_model_path}.h5"
-        cfg = f"{init_model_path}.config.json"
-        if os.path.exists(f"{model_path}.bytes"):
-            print_error(
-                ValueError("Model Exists"),
-                f"Cannot initialize on top of model: {model_path}",
-                print_error=False,
-            )
-        if os.path.exists(opt) and os.path.exists(mod) and os.path.exists(cfg):
-            print(f"initialize model from: {init_model_path}")
-            copyfile(opt, f"{model_path}.optimizer")
-            copyfile(mod, f"{model_path}.h5")
-            copyfile(cfg, f"{model_path}.config.json")
-        else:
-            print_error(
-                ValueError("Model Exists"),
-                f"Cannot initialize on top of model: {model_path}",
-                print_error=False,
-            )
-
-    model = PolicyValueModel(args=args, predictions=predictions, name="agent")
-    init_inputs = initial_state.to_inputs()
+    model = AgentModel(args=args, predictions=predictions, name="agent")
     model.compile(
         optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
     )
     model.build(initial_state.to_input_shapes())
-    model.predict(init_inputs)
-    model.predict_next(init_inputs)
 
     opt = f"{model_path}.optimizer"
     mod = f"{model_path}.h5"
     if os.path.exists(mod):
         if is_main and args.verbose:
             with msg.loading(f"Loading model: {mod}..."):
-                _load_model(model, mod, opt)
+                _load_model(model, mod, opt, initial_state)
             msg.good(f"Loaded model: {mod}")
         else:
-            _load_model(model, mod, opt)
-
-        # If we're doing transfer, reset optimizer steps
-        if is_main and args.init_model_from is not None:
-            msg.info("reset optimizer steps to 0 for transfer model")
-            model.optimizer.iterations.assign(0)
+            _load_model(model, mod, opt, initial_state)
     elif required:
         print_error(
             ValueError("Model Not Found"),
@@ -261,12 +270,12 @@ def get_or_create_policy_model(
 
 def load_policy_value_model(
     model_data_folder: str, silent: bool = False
-) -> Tuple[PolicyValueModel, AgentConfig]:
+) -> Tuple[AgentModel, AgentConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
     args = AgentConfig(**srsly.read_json(str(meta_file)))
-    model_file = Path(model_data_folder) / "model"
+    model_file = Path(model_data_folder) / "model.h5"
     optimizer_file = Path(model_data_folder) / "model.optimizer"
     if not model_file.exists():
         raise ValueError(f"model not found: {model_file}")
@@ -275,19 +284,19 @@ def load_policy_value_model(
     env: MathyEnv = PolySimplify()
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window([observation])
-    model = PolicyValueModel(args=args, predictions=env.action_size, name="agent")
     init_inputs = initial_state.to_inputs()
-    model.compile(
-        optimizer=model.optimizer, loss="binary_crossentropy", metrics=["accuracy"]
-    )
-    model.build(initial_state.to_input_shapes())
+    init_shapes = initial_state.to_input_shapes()
+    model = AgentModel(args=args, predictions=env.action_size, name="agent")
+    model.compile(optimizer=model.optimizer, loss="mse", metrics=["accuracy"])
+    model.build(init_shapes)
+    model.summary()
     model.predict(init_inputs)
     model.predict_next(init_inputs)
 
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
-            _load_model(model, str(model_file), str(optimizer_file))
+            _load_model(model, str(model_file), str(optimizer_file), initial_state)
         msg.good(f"Loaded model: {model_file}")
     else:
-        _load_model(model, str(model_file), str(optimizer_file))
+        _load_model(model, str(model_file), str(optimizer_file), initial_state)
     return model, args

@@ -48,7 +48,7 @@ from .api import Mathy
 _data_path = Path(__file__).parent / "data"
 
 
-REQUIRED_META_KEYS = ["units", "embedding_units", "lstm_units", "version"]
+REQUIRED_META_KEYS = ["units", "embedding_units", "version"]
 REQUIRED_MODEL_FILES = ["model.h5", "model.optimizer", "model.config.json"]
 
 

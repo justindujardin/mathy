@@ -15,7 +15,7 @@ from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
 from . import action_selectors
 from .episode_memory import EpisodeMemory
-from .policy_value_model import PolicyValueModel, get_or_create_policy_model
+from .model import AgentModel, get_or_create_policy_model
 from .trfl import discrete_policy_entropy_loss, td_lambda
 from .config import AgentConfig
 from .util import EpisodeLosses, record, truncate
@@ -41,7 +41,7 @@ class A3CWorker(threading.Thread):
         self,
         args: AgentConfig,
         action_size: int,
-        global_model: PolicyValueModel,
+        global_model: AgentModel,
         optimizer,
         greedy_epsilon: Union[float, List[float]],
         result_queue: Queue,

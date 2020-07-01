@@ -4,13 +4,13 @@ from typing import Optional, Union
 from .agents.config import AgentConfig
 from .agents.episode_memory import EpisodeMemory
 from .swarm import SwarmConfig, swarm_solve
-from .agents.policy_value_model import PolicyValueModel, load_policy_value_model
+from .agents.model import AgentModel, load_policy_value_model
 
 
 @dataclass
 class MathyAPIModelState:
     config: AgentConfig
-    model: PolicyValueModel
+    model: AgentModel
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Mathy:
         self,
         *,
         model_path: str = None,
-        model: PolicyValueModel = None,
+        model: AgentModel = None,
         config: Union[AgentConfig, SwarmConfig] = None,
         silent: bool = False,
     ):
@@ -35,8 +35,8 @@ class Mathy:
             model, config = load_policy_value_model(model_path, silent=silent)
             self.state = MathyAPIModelState(model=model, config=config)
         elif model is not None and config is not None:
-            if not isinstance(model, PolicyValueModel):
-                raise ValueError("model must derive PolicyValueModel for compatibility")
+            if not isinstance(model, AgentModel):
+                raise ValueError("model must derive AgentModel for compatibility")
             if not isinstance(config, AgentConfig):
                 raise ValueError("config must be a AgentConfig instance")
             self.state = MathyAPIModelState(model=model, config=config)
@@ -84,7 +84,7 @@ class Mathy:
         from .envs.gym import MathyGymEnv
         from .agents.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
-        from .agents.policy_value_model import PolicyValueModel
+        from .agents.model import AgentModel
 
         environment = "poly"
         difficulty = "easy"

@@ -7,7 +7,7 @@ import gym
 import numpy as np
 
 from ..teacher import Teacher
-from .policy_value_model import get_or_create_policy_model, PolicyValueModel
+from .model import get_or_create_policy_model, AgentModel
 from .config import AgentConfig
 from .worker import A3CWorker
 from ..envs.gym import MathyGymEnv
@@ -17,7 +17,7 @@ from ..state import observations_to_window
 class A3CAgent:
 
     args: AgentConfig
-    global_model: PolicyValueModel
+    global_model: AgentModel
 
     def __init__(self, args: AgentConfig, env_extra: dict = None):
         import tensorflow as tf
@@ -53,7 +53,7 @@ class A3CAgent:
 
             trace_fn()
             tf.summary.trace_export(
-                name="PolicyValueModel", step=0, profiler_outdir=self.log_dir
+                name="AgentModel", step=0, profiler_outdir=self.log_dir
             )
             tf.summary.trace_off()
             if self.args.verbose:

@@ -181,7 +181,7 @@ class ContrastiveModelTrainer:
                 tf.reduce_sum(prob_con * tf.math.log(prob_con + 1e-8), -1)
             )
             contrast_acc = tf.equal(
-                tf.argmax(labels_con, 1), tf.argmax(logits_con, axis=1)
+                tf.argmax(labels_con, axis=1), tf.argmax(logits_con, axis=1)
             )
             contrast_acc = tf.reduce_mean(tf.cast(contrast_acc, tf.float32))
         # Update the representation model
