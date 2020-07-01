@@ -9,9 +9,8 @@ env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
 model = AgentModel(args, predictions=env.action_size)
 inputs = observations_to_window([observation]).to_inputs()
-# predict_next only returns a policy for the last observation
-# in the sequence, and applies masking and softmax to the output
-policy, value = model.predict_next(inputs)
+policy, value = model.predict(inputs)
+# TODO: this is broken until the model is updated to output one value
 
 # The policy is a 1D array of size (actions * num_nodes)
 assert policy.shape.rank == 1

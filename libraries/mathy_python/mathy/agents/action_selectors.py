@@ -1,9 +1,23 @@
 from typing import List, Tuple
 
 import numpy as np
+import tensorflow as tf
 
-from ..state import MathyEnvState, MathyWindowObservation
+from ..state import MathyEnvState, MathyInputsType, MathyWindowObservation
 from .model import AgentModel
+
+
+def predict_next(
+    model: AgentModel, inputs: MathyInputsType
+) -> Tuple[tf.Tensor, tf.Tensor]:
+    """Predict one probability distribution and value for the
+    given sequence of inputs """
+    logits, values, masked, rewards = model.call(inputs)
+    # take the last timestep
+    masked = masked[-1][:]
+    flat_logits = tf.reshape(tf.squeeze(masked), [-1])
+    probs = tf.nn.softmax(flat_logits)
+    return probs, tf.squeeze(values[-1])
 
 
 class ActionSelector:
@@ -38,7 +52,7 @@ class GreedyActionSelector(ActionSelector):
         last_action: int,
         last_reward: float,
     ) -> Tuple[int, float]:
-        probs, value = self.model.predict_next(last_window.to_inputs())
+        probs, value = predict_next(self.model, last_window.to_inputs())
         action = np.argmax(probs)
         return action, float(value)
 
@@ -57,7 +71,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_reward: float,
     ) -> Tuple[int, float]:
 
-        probs, value = self.model.predict_next(last_window.to_inputs())
+        probs, value = predict_next(self.model, last_window.to_inputs())
         last_move_mask = last_window.mask[-1]
         no_random = bool(self.worker_id == 0)
         if not no_random and np.random.random() < self.epsilon:

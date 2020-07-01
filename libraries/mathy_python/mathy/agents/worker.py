@@ -67,7 +67,9 @@ class A3CWorker(threading.Thread):
             first_env = self.teacher.get_env(self.worker_idx, self.iteration)
             self.writer = writer
             self.local_model = get_or_create_policy_model(
-                args, self.action_size, env=gym.make(first_env, **self.env_extra).mathy
+                config=args,
+                predictions=self.action_size,
+                env=gym.make(first_env, **self.env_extra).mathy,
             )
             self.last_model_write = -1
             self.last_histogram_write = -1
@@ -340,9 +342,10 @@ class A3CWorker(threading.Thread):
             # Do this inside the lock so other threads can't also acquire the
             # lock in the time between when it's released and assigned outside
             # of the if conditional.
+            model_path = os.path.join(self.args.model_dir, self.args.model_name)
             if increment_episode is True:
                 A3CWorker.global_episode += 1
-                self.global_model.save()
+                self.global_model.save(model_path)
 
     def compute_policy_value_loss(
         self,
@@ -356,7 +359,7 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _, _, _ = self.local_model.call(
+            _, values, _, _ = self.local_model.call(
                 observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
@@ -376,7 +379,7 @@ class A3CWorker(threading.Thread):
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
         model_results = self.local_model.call(inputs)
-        logits, values, trimmed_logits, reward_logits, attentions = model_results
+        logits, values, trimmed_logits, reward_logits = model_results
 
         logits = tf.reshape(logits, [batch_size, -1])
 

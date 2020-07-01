@@ -11,7 +11,6 @@ from .model import get_or_create_policy_model, AgentModel
 from .config import AgentConfig
 from .worker import A3CWorker
 from ..envs.gym import MathyGymEnv
-from ..state import observations_to_window
 
 
 class A3CAgent:
@@ -39,25 +38,11 @@ class A3CAgent:
         self.action_size = env.action_space.n
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        initial_window = observations_to_window([env.reset()])
         self.global_model = get_or_create_policy_model(
-            args=args, predictions=self.action_size, is_main=True, env=env.mathy
+            config=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
-        with self.writer.as_default():
-            tf.summary.trace_on(graph=True)
-            inputs = initial_window.to_inputs()
-
-            @tf.function
-            def trace_fn():
-                return self.global_model.call(inputs)
-
-            trace_fn()
-            tf.summary.trace_export(
-                name="AgentModel", step=0, profiler_outdir=self.log_dir
-            )
-            tf.summary.trace_off()
-            if self.args.verbose:
-                print(self.global_model.summary())
+        if self.args.verbose:
+            print(self.global_model.summary())
 
     def train(self):
         res_queue = Queue()
@@ -95,9 +80,10 @@ class A3CAgent:
             A3CWorker.request_quit = True
 
         # Do an optimistic save incase there's a problem joining the workers
-        self.global_model.save()
+        model_path = os.path.join(self.args.model_dir, self.args.model_name)
+        self.global_model.save(model_path)
         [w.join() for w in workers]
         # Do a final save after joining to get the very latest model
-        self.global_model.save()
+        self.global_model.save(model_path)
         print("Done. Bye!")
 

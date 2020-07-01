@@ -66,23 +66,17 @@ class MathyWindowObservation(NamedTuple):
 
     def to_inputs(
         self, as_tf_tensor: bool = False, pad_length: Optional[int] = None
-    ) -> MathyInputsType:
-        if as_tf_tensor:
-            import tensorflow as tf
+    ) -> dict:
+        import tensorflow as tf
 
-        def to_res(in_value):
-            if as_tf_tensor is True:
-                return tf.convert_to_tensor(in_value, dtype=tf.float32)
-            return np.asarray(in_value, dtype="float32")
-
-        result = (
-            to_res(self.nodes),
-            to_res(self.mask),
-            to_res(self.values),
-            to_res(self.type),
-            to_res(self.time),
-        )
-        for r in result:
+        result = {
+            "nodes_in": tf.convert_to_tensor(self.nodes, dtype=tf.int32),
+            "mask_in": tf.convert_to_tensor(self.mask, dtype=tf.int32),
+            "values_in": tf.convert_to_tensor(self.values, dtype=tf.float32),
+            "type_in": tf.convert_to_tensor(self.type, dtype=tf.float32),
+            "time_in": tf.convert_to_tensor(self.time, dtype=tf.float32),
+        }
+        for r in result.values():
             for s in r.shape:
                 assert s is not None
         return result

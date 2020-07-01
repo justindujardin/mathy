@@ -2,21 +2,13 @@ import pytest
 import tensorflow as tf
 
 from mathy.agents.config import AgentConfig
-from mathy.agents.model import AgentModel
+from mathy.agents.model import AgentModel, build_agent_model
 from mathy.api import Mathy, MathyAPISwarmState
-
-
-def test_mathy_policy_value_subclass_error():
-    """Do not allowing entirely custom models. They must subclass AgentModel"""
-    # NOTE: if this test is breaking your model, let's talk about it on Github
-    model = tf.keras.Model()
-    with pytest.raises(ValueError):
-        mt = Mathy(model=model, config=AgentConfig())
 
 
 def test_mathy_with_model_and_config():
     config = AgentConfig()
-    model = AgentModel(config, predictions=2)
+    model: AgentModel = build_agent_model(config, predictions=2)
     mt = Mathy(model=model, config=config)
 
 
@@ -28,12 +20,15 @@ def test_api_mathy_constructor():
     with pytest.raises(ValueError):
         Mathy(config={})  # type:ignore
 
-    # Model must be PVM
+    # Model must be a keras model
     with pytest.raises(ValueError):
-        Mathy(model=dict(), config=AgentConfig())  # type:ignore
+        Mathy(model=dict(), config=AgentConfig(), predictions=2)  # type:ignore
     # Model Config must extend AgentConfig
     with pytest.raises(ValueError):
-        Mathy(model=AgentModel(), config=dict())  # type:ignore
+        Mathy(
+            model=build_agent_model(AgentConfig(), predictions=2),
+            config=dict(),  # type:ignore
+        )
 
     # Config by itself must be SwarmConfig()
     with pytest.raises(ValueError):
