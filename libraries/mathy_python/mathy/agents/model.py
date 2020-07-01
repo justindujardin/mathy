@@ -26,29 +26,10 @@ from ..util import print_error
 from .config import AgentConfig
 
 
-def apply_pi_mask(logits: tf.Tensor, mask: tf.Tensor, predictions: int) -> tf.Tensor:
-    """Take the policy_mask from a batch of features and multiply
-    the policy logits by it to remove any invalid moves"""
-    logits_shape = tf.shape(logits)
-    features_mask = tf.reshape(
-        mask, (logits_shape[0], -1, predictions), name="pi_mask_reshape"
-    )
-    features_mask = tf.cast(features_mask, dtype=tf.float32)
-    mask_logits = tf.multiply(logits, features_mask, name="mask_logits")
-    negative_mask_logits = tf.where(
-        tf.equal(mask_logits, tf.constant(0.0)),
-        tf.fill(tf.shape(logits), -1000000.0),
-        mask_logits,
-        name="softmax_negative_logits",
-    )
-    return negative_mask_logits
-
-
 def build_agent_model(
     config: AgentConfig, predictions: int, name="embeddings"
 ) -> tf.keras.Model:
     nodes_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="nodes_in")
-    mask_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="mask_in")
     values_in = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, name="values_in")
     type_in = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, name="type_in")
     time_in = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, name="time_in")
@@ -110,19 +91,13 @@ def build_agent_model(
     values = value_net(sequence_mean)
     reward_logits = reward_net(sequence_mean)
     logits = policy_net(sequence_inputs)
-    mask_logits = apply_pi_mask(logits, mask_in, predictions)
-    # TODO: Clean up return values, e.g.
-    #
-    # return policy_logits, value_logits, reward_logits
-    # Result
     inputs = [
         nodes_in,
-        mask_in,
         values_in,
         type_in,
         time_in,
     ]
-    outputs = [logits, values, mask_logits, reward_logits]
+    outputs = [logits, values, reward_logits]
     out_model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
 
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -131,16 +106,15 @@ def build_agent_model(
         decay_rate=config.lr_decay_rate,
         staircase=config.lr_decay_staircase,
     )
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-
-    out_model.opt = optimizer
+    out_model.opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+    out_model.predictions = predictions
     return out_model
 
 
 AgentModel = tf.keras.Model
 
 
-def _load_model(model_path: Path) -> AgentModel:
+def _load_model(model_path: Path, predictions: int) -> AgentModel:
     model = tf.keras.models.load_model(
         model_path,
         custom_objects={
@@ -148,6 +122,8 @@ def _load_model(model_path: Path) -> AgentModel:
             "SinusodialRepresentationDense": SinusodialRepresentationDense,
         },
     )
+    model.opt = model.optimizer
+    model.predictions = predictions
     return model
 
 
@@ -172,10 +148,10 @@ def get_or_create_policy_model(
     if model_path.is_dir():
         if is_main and config.verbose:
             with msg.loading(f"Loading model: {model_path}..."):
-                model = _load_model(model_path)
+                model = _load_model(model_path, predictions)
             msg.good(f"Loaded model: {model_path}")
         else:
-            model = _load_model(model_path)
+            model = _load_model(model_path, predictions)
     elif required:
         print_error(
             ValueError("Model Not Found"),
@@ -216,8 +192,8 @@ def load_policy_value_model(
 
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
-            _load_model(model_file)
+            _load_model(model_file, env.action_size)
         msg.good(f"Loaded model: {model_file}")
     else:
-        _load_model(model_file)
+        _load_model(model_file, env.action_size)
     return model, args

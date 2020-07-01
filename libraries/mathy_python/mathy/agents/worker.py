@@ -359,7 +359,7 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _, _ = self.local_model.call(
+            _, values, _ = self.local_model.call(
                 observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
@@ -379,7 +379,7 @@ class A3CWorker(threading.Thread):
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
         model_results = self.local_model.call(inputs)
-        logits, values, trimmed_logits, reward_logits = model_results
+        logits, values, reward_logits = model_results
 
         logits = tf.reshape(logits, [batch_size, -1])
 

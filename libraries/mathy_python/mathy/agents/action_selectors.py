@@ -7,12 +7,32 @@ from ..state import MathyEnvState, MathyInputsType, MathyWindowObservation
 from .model import AgentModel
 
 
+def apply_pi_mask(logits: tf.Tensor, mask: tf.Tensor, predictions: int) -> tf.Tensor:
+    """Take the policy_mask from a batch of features and multiply
+    the policy logits by it to remove any invalid moves"""
+    logits_shape = tf.shape(logits)
+    features_mask = tf.reshape(
+        mask, (logits_shape[0], -1, predictions), name="pi_mask_reshape"
+    )
+    features_mask = tf.cast(features_mask, dtype=tf.float32)
+    mask_logits = tf.multiply(logits, features_mask, name="mask_logits")
+    negative_mask_logits = tf.where(
+        tf.equal(mask_logits, tf.constant(0.0)),
+        tf.fill(tf.shape(logits), -1000000.0),
+        mask_logits,
+        name="softmax_negative_logits",
+    )
+    return negative_mask_logits
+
+
 def predict_next(
     model: AgentModel, inputs: MathyInputsType
 ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Predict one probability distribution and value for the
     given sequence of inputs """
-    logits, values, masked, rewards = model.call(inputs)
+    mask = inputs.pop("mask_in")
+    logits, values, rewards = model.call(inputs)
+    masked = apply_pi_mask(logits, mask, model.predictions)
     # take the last timestep
     masked = masked[-1][:]
     flat_logits = tf.reshape(tf.squeeze(masked), [-1])

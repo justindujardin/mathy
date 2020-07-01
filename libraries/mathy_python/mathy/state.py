@@ -25,7 +25,7 @@ WindowTimeFloatList = List[TimeFloatList]
 
 
 # Input type for mathy models
-MathyInputsType = Tuple[Any, ...]
+MathyInputsType = Dict[str, Any]
 
 
 class ObservationFeatureIndices(IntEnum):
