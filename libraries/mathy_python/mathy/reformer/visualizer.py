@@ -27,7 +27,7 @@ def slugify(input_name: str = "") -> str:
 
 # From: https://www.tensorflow.org/tutorials/text/nmt_with_attention
 def plot_attention(
-    attention: torch.Tensor, text: str, seq_len: int, title: str, answer: int,
+    attention: torch.Tensor, text: str, seq_len: int, title: str, answer: str,
 ) -> bool:
     import matplotlib.pyplot as plt
     from matplotlib import ticker
@@ -110,22 +110,22 @@ def evaluate_model_attention(model: MathyReformer, dataset: DatasetTuple) -> Non
                 text=input_text,
                 seq_len=input_len,
                 title=title,
-                answer=int(answer),
+                answer=answer,
             )
             plot_attention(
                 attention=attn_head,
                 text=input_text,
                 seq_len=input_len,
                 title=title,
-                answer=int(answer),
+                answer=answer,
             )
 
 
 if __name__ == "__main__":
     vocab = MathyVocab()
     config = MathyReformerConfig(
-        folder="training/reformer/thinc_torch_cce",
-        eval_file="training/reformer/like_terms_prediction.eval.txt",
+        folder="training/reformer/reformer_lte_94pct",
+        eval_file="training/reformer/like_terms_extraction.eval.txt",
         reformer=ReformerLMConfig(num_tokens=vocab.vocab_len),
     )
     model: MathyReformer = MathyReformer(

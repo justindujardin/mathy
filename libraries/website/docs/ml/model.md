@@ -6,7 +6,7 @@ Mathy uses a model that predicts which action to take in an environment, and the
 
 Mathy's policy/value model takes in a [window of observations](/api/state/#mathywindowobservation) and outputs a weighted distribution over all the possible actions and value estimates for each observation.
 
-`model:mathy.agents.model:AgentModel`
+`model:mathy.agents.model:build_agent_model`
 
 ## Examples
 

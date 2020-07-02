@@ -142,6 +142,7 @@ gen_simplify_multiple_terms(
     optional_var_probability: float = 0.8,
     noise_probability: float = 0.8,
     shuffle_probability: float = 0.66,
+    share_var_probability: float = 0.5,
     noise_terms: int = None,
 ) -> Tuple[str, int]
 ```

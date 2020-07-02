@@ -14,8 +14,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import CustomObjectScope
 
-from .agents.attention import SeqSelfAttention
-from .agents.densenet import DenseNetStack
 from .core.expressions import (
     AddExpression,
     DivideExpression,
@@ -227,10 +225,7 @@ def get_trainer(
     if os.path.exists(model_file):
         if not quiet:
             print(f"Loading representation: {model_file}")
-        with CustomObjectScope(
-            {"SeqSelfAttention": SeqSelfAttention, "DenseNetStack": DenseNetStack}
-        ):
-            trainer.model = tf.keras.models.load_model(model_file)
+        trainer.model = tf.keras.models.load_model(model_file)
     if os.path.exists(project_file):
         if not quiet:
             print(f"Loading predictor: {project_file}")

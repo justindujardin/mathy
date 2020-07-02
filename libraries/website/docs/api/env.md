@@ -244,7 +244,7 @@ generate its own dataset with no required configuration.
 MathyEnv.random_action(
     self,
     expression: mathy.core.expressions.MathExpression,
-    rule: Type[mathy.core.rule.BaseRule],
+    rule: Union[Type[mathy.core.rule.BaseRule], Tuple[Type[mathy.core.rule.BaseRule], ...]] = None,
 ) -> int
 ```
 Get a random action index that represents a particular rule

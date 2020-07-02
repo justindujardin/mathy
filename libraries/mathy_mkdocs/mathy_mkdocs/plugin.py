@@ -325,11 +325,6 @@ def render_tokens_from_text(input_text: str):
 
 
 def render_model_architecture(match):
-    # HACK: disable this until I can figure out how to render graphs from models
-    #       without using the Functional keras API (which can't cope with variable)
-    #       length LSTM sequence inputs.
-    if True or False:
-        return ""
     global model_hashes
     import importlib
     import gym  # noqa
@@ -422,7 +417,7 @@ def render_html(text: str):
 
 if __name__ == "__main__":
     res = render_html("<code>features:4x^3 * 2x - 7</code>")
-    res = render_html("<code>model:mathy.agents.embedding:mathy_embedding</code>")
+    res = render_html("<code>model:mathy.agents.model:build_agent_model</code>")
     with open("./features.svg", "w") as f:
         f.write(res)
     print(res)

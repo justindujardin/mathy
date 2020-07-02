@@ -5,8 +5,8 @@
 Mathy(
     self,
     model_path: str = None,
-    model: mathy.agents.model.AgentModel = None,
-    config: Union[mathy.agents.config.AgentConfig, mathy.agents.fragile.SwarmConfig] = None,
+    model: tensorflow.python.keras.engine.training.Model = None,
+    config: Union[mathy.agents.config.AgentConfig, mathy.swarm.fragile.SwarmConfig] = None,
     silent: bool = False,
 )
 ```
@@ -40,12 +40,12 @@ __Returns__
 MathyAPIModelState(
     self,
     config: mathy.agents.config.AgentConfig,
-    model: mathy.agents.model.AgentModel,
+    model: tensorflow.python.keras.engine.training.Model,
 ) -> None
 ```
-MathyAPIModelState(config:mathy.agents.config.AgentConfig, model:mathy.agents.model.AgentModel)
+MathyAPIModelState(config:mathy.agents.config.AgentConfig, model:tensorflow.python.keras.engine.training.Model)
 ## MathyAPISwarmState
 ```python
-MathyAPISwarmState(self, config:mathy.agents.fragile.SwarmConfig) -> None
+MathyAPISwarmState(self, config:mathy.swarm.fragile.SwarmConfig) -> None
 ```
-MathyAPISwarmState(config:mathy.agents.fragile.SwarmConfig)
+MathyAPISwarmState(config:mathy.swarm.fragile.SwarmConfig)

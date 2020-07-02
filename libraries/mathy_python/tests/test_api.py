@@ -22,12 +22,11 @@ def test_api_mathy_constructor():
 
     # Model must be a keras model
     with pytest.raises(ValueError):
-        Mathy(model=dict(), config=AgentConfig(), predictions=2)  # type:ignore
+        Mathy(model=dict(), config=AgentConfig())  # type:ignore
     # Model Config must extend AgentConfig
     with pytest.raises(ValueError):
         Mathy(
-            model=build_agent_model(AgentConfig(), predictions=2),
-            config=dict(),  # type:ignore
+            model=build_agent_model(AgentConfig()), config=dict(),  # type:ignore
         )
 
     # Config by itself must be SwarmConfig()

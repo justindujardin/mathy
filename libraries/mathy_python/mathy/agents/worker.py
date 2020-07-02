@@ -28,7 +28,7 @@ class A3CWorker(threading.Thread):
     # <GLOBAL_VARS>
     global_episode = 0
     global_moving_average_reward = 0
-    save_every_n_episodes = 50
+    save_every_n_episodes = 250
     request_quit = False
     save_lock = threading.Lock()
     # </GLOBAL_VARS>
@@ -346,6 +346,7 @@ class A3CWorker(threading.Thread):
             if increment_episode is True:
                 A3CWorker.global_episode += 1
                 self.global_model.save(model_path)
+                print(f"model saved: {model_path} (ep:{A3CWorker.global_episode})")
 
     def compute_policy_value_loss(
         self,

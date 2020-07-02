@@ -49,7 +49,8 @@ _data_path = Path(__file__).parent / "data"
 
 
 REQUIRED_META_KEYS = ["units", "embedding_units", "version"]
-REQUIRED_MODEL_FILES = ["model.h5", "model.optimizer", "model.config.json"]
+REQUIRED_MODEL_FILES = ["model.config.json"]
+REQUIRED_MODEL_FOLDERS = ["model"]
 
 
 def load_model(name: Union[Path, str], **overrides) -> Mathy:
@@ -231,6 +232,15 @@ def package(
                 exits=1,
             )
         shutil.copyfile(file_name, main_path / f)
+    for f in REQUIRED_MODEL_FOLDERS:
+        folder_path: Path = input_path / f
+        if not folder_path.is_dir():
+            msg.fail(
+                f"Input path '{input_path}' is missing a required folder: '{f}'",
+                "This folder is required to build your package.",
+                exits=1,
+            )
+        shutil.copytree(folder_path, main_path / f)
     create_file(output_path / "model.config.json", srsly.json_dumps(meta, indent=2))
     create_file(output_path / "setup.py", TEMPLATE_SETUP)
     create_file(package_path / "__init__.py", TEMPLATE_INIT)

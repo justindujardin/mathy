@@ -157,7 +157,10 @@ Returns: The found `MathExpression` or `None`
 
 ### find_type
 ```python
-MathExpression.find_type(self, instanceType:Type[~NodeType]) -> List[~NodeType]
+MathExpression.find_type(
+    self,
+    instanceType: Union[Type[~NodeType], Tuple[Type[~NodeType], ...]],
+) -> List[~NodeType]
 ```
 Find an expression in this tree by type.
 

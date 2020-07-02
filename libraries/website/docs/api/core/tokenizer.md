@@ -2,7 +2,7 @@
 
 ## Tokenizer
 ```python
-Tokenizer(self)
+Tokenizer(self, exclude_padding:bool=True)
 ```
 The Tokenizer produces a list of tokens from an input string.
 ### eat_token

@@ -161,7 +161,7 @@ class MathyVocab:
 
     def __init__(self):
         self.vocab = [""] + list(
-            " \t\n=.+-/^*()[]-?01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            " \t\n,|=.+-/^*()[]-?01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         )
         self.pad_token = self.vocab.index("")
         self.char_to_int = {char: index for index, char in enumerate(self.vocab)}

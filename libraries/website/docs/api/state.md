@@ -114,6 +114,8 @@ A featurized observation from an environment state.
 0/1 mask where 0 indicates an invalid action shape=[n,]
 ### nodes
 tree node types in the current environment state shape=[n,]
+### time
+float value between 0.0 and 1.0 indicating the time elapsed shape=[1,]
 ### type
 two column hash of problem environment type shape=[2,]
 ### values
@@ -127,6 +129,8 @@ A featurized observation from an n-step sequence of environment states.
 n-step list of node sequence masks `shape=[n, max(len(s))]`
 ### nodes
 n-step list of node sequences `shape=[n, max(len(s))]`
+### time
+n-step problem time values `shape=[n, 2]`
 ### type
 n-step problem type hash `shape=[n, 2]`
 ### values
@@ -139,6 +143,8 @@ An enumeration.
 ### mask
 An enumeration.
 ### nodes
+An enumeration.
+### time
 An enumeration.
 ### type
 An enumeration.

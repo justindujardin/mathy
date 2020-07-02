@@ -27,8 +27,10 @@ from .config import AgentConfig
 
 
 def build_agent_model(
-    config: AgentConfig, predictions: int, name="embeddings"
+    config: AgentConfig = None, predictions: int = 6, name="embeddings"
 ) -> tf.keras.Model:
+    if config is None:
+        config = AgentConfig()
     nodes_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="nodes_in")
     values_in = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, name="values_in")
     type_in = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, name="type_in")
@@ -39,9 +41,24 @@ def build_agent_model(
         name="nodes_input",
         mask_zero=True,
     )
-    values_dense = SinusodialRepresentationDense(config.units, name="values_input")
-    type_dense = SinusodialRepresentationDense(config.units, name="type_input")
-    time_dense = SinusodialRepresentationDense(config.units, name="time_input")
+    values_dense = SinusodialRepresentationDense(
+        config.units,
+        name="values_input",
+        kernel_initializer="siren_first_uniform",
+        w0=30.0,
+    )
+    type_dense = SinusodialRepresentationDense(
+        config.units,
+        name="type_input",
+        kernel_initializer="siren_first_uniform",
+        w0=30.0,
+    )
+    time_dense = SinusodialRepresentationDense(
+        config.units,
+        name="time_input",
+        kernel_initializer="siren_first_uniform",
+        w0=30.0,
+    )
     siren_mlp = SIRENModel(
         units=config.units, final_units=config.units, num_layers=2, name="siren",
     )
@@ -115,13 +132,7 @@ AgentModel = tf.keras.Model
 
 
 def _load_model(model_path: Path, predictions: int) -> AgentModel:
-    model = tf.keras.models.load_model(
-        model_path,
-        custom_objects={
-            "SIRENModel": SIRENModel,
-            "SinusodialRepresentationDense": SinusodialRepresentationDense,
-        },
-    )
+    model = tf.keras.models.load_model(str(model_path))
     model.opt = model.optimizer
     model.predictions = predictions
     return model
@@ -187,13 +198,13 @@ def load_policy_value_model(
     )
     model.compile(optimizer=model.opt, loss="mse", metrics=["accuracy"])
     model.build(init_shapes)
-    model.summary()
     model.predict(init_inputs)
 
     if not silent:
         with msg.loading(f"Loading model: {model_file}..."):
             _load_model(model_file, env.action_size)
         msg.good(f"Loaded model: {model_file}")
+        model.summary()
     else:
         _load_model(model_file, env.action_size)
     return model, args

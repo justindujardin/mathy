@@ -10,6 +10,9 @@ import os
 import random
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+from mathy.core.expressions import SubtractExpression
+from collections import OrderedDict
+from mathy.core.tree import LEFT, RIGHT
 import numpy as np
 import typer
 from tqdm.auto import tqdm
@@ -36,7 +39,7 @@ def generate_newline_q_a(
     problems = 0
     min_like = 4 if eval else 2
     max_like = 12 if eval else 4
-    min_noise = 0
+    min_noise = 1
     max_noise = 2
     with Path(train_file).open("w") as f:
         with tqdm(total=number, mininterval=0.25, desc=file_base) as pbar:
@@ -67,7 +70,7 @@ def generate_newline_q_a(
 def list_like_terms(input_problem: str, sep: str) -> str:
     expression: MathExpression = parser.parse(input_problem)
     term_nodes: List[MathExpression] = get_terms(expression)
-    node_groups: Dict[str, List[MathExpression]] = {}
+    node_groups: OrderedDict[str, List[MathExpression]] = OrderedDict()
     for term_node in term_nodes:
         ex: Optional[TermEx] = get_term_ex(term_node)
         assert ex is not None, f"invalid expression {term_node}"
@@ -78,13 +81,20 @@ def list_like_terms(input_problem: str, sep: str) -> str:
             node_groups[key] = [term_node]
         else:
             node_groups[key].append(term_node)
-    like_terms = 0
     out_terms: List[str] = []
-    for k, v in node_groups.items():
-        if len(v) <= 1:
+    for term_node in term_nodes:
+        ex: Optional[TermEx] = get_term_ex(term_node)
+        assert ex is not None, f"invalid expression {term_node}"
+        key = mathy_term_string(variable=ex.variable, exponent=ex.exponent)
+        if key == "":
+            key = "const"
+        assert key in node_groups
+        if len(node_groups[key]) <= 1:
             continue
-        for t in v:
-            out_terms.append(str(t))
+        is_parent_sub = isinstance(term_node.parent, SubtractExpression)
+        is_right_side = term_node.parent.get_side(term_node) == RIGHT
+        pre = "-" if is_parent_sub and is_right_side else ""
+        out_terms.append(f"{pre}{term_node}")
     return sep.join(out_terms)
 
 
