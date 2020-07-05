@@ -4,7 +4,7 @@ from typing import Optional, Union
 from .agents.config import AgentConfig
 from .agents.episode_memory import EpisodeMemory
 from .swarm import SwarmConfig, swarm_solve
-from .agents.model import AgentModel, load_policy_value_model
+from .agents.model import AgentModel, load_agent_model
 
 
 @dataclass
@@ -32,7 +32,7 @@ class Mathy:
         silent: bool = False,
     ):
         if model_path is not None:
-            model, config = load_policy_value_model(model_path, silent=silent)
+            model, config = load_agent_model(model_path, silent=silent)
             self.state = MathyAPIModelState(model=model, config=config)
         elif model is not None and config is not None:
             if not isinstance(model, AgentModel):

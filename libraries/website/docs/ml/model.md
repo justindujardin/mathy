@@ -15,12 +15,12 @@ Mathy's policy/value model takes in a [window of observations](/api/state/#mathy
 The simplest thing to do is to load a blank model and pass some data through it. This gives us a sense of how things works:
 
 ```python
-{!./snippets/ml/policy_value_basic.py!}
+{!./snippets/ml/model_basic.py!}
 ```
 
 ### Save Model with Optimizer
 
-Mathy's optimizer is stateful and so it has to be saved alongside the model if we want to pause and continue training later. To help with this Mathy has a function `get_or_create_policy_model`.
+Mathy's optimizer is stateful and so it has to be saved alongside the model if we want to pause and continue training later. To help with this Mathy has a function `get_or_create_agent_model`.
 
 The helper function handles:
 
@@ -29,5 +29,5 @@ The helper function handles:
 - Initializing and sanity checking the model by compiling and calling it with a random observation
 
 ```python
-{!./snippets/ml/policy_value_serialization.py!}
+{!./snippets/ml/model_serialization.py!}
 ```

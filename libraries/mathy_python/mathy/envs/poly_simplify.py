@@ -68,9 +68,9 @@ class PolySimplify(MathyEnv):
                 num_terms,
                 op=self.ops,
                 inner_terms_scaling=scaling,
-                powers_probability=0.2,
+                powers_probability=0.5,
                 noise_probability=0.5,
-                shuffle_probability=0.0,
+                shuffle_probability=0.2,
                 noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.normal:
@@ -79,7 +79,7 @@ class PolySimplify(MathyEnv):
             #
             # e.g. mashing the 3rd node to commute the tree until a DF shows up in
             #      the desired position.
-            noise_terms = randint(1, 4)
+            noise_terms = randint(1, 3)
             num_terms = randint(4, 8)
             scaling = uniform(0.5, 0.6)
             powers = uniform(0.35, 0.8)
@@ -94,8 +94,8 @@ class PolySimplify(MathyEnv):
                 noise_terms=noise_terms,
             )
         elif params.difficulty == MathyEnvDifficulty.hard:
-            noise_terms = randint(3, 7)
-            num_terms = randint(6, 10)
+            noise_terms = randint(1, 4)
+            num_terms = randint(4, 10)
             scaling = uniform(0.5, 0.5)
             powers = uniform(0.15, 0.8)
             shuffle = uniform(0.35, 0.9)

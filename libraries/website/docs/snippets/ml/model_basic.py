@@ -2,14 +2,14 @@ import tensorflow as tf
 
 from mathy import envs
 from mathy.agents.config import AgentConfig
-from mathy.agents.model import AgentModel
+from mathy.agents.model import build_agent_model
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
 
 args = AgentConfig()
 env: MathyEnv = envs.PolySimplify()
 observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
-model = AgentModel(args, predictions=env.action_size)
+model = build_agent_model(args, predictions=env.action_size)
 inputs = observations_to_window([observation]).to_inputs()
 policy, value = model.predict(inputs)
 # TODO: this is broken until the model is restructured to produce a single output

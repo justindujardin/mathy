@@ -60,7 +60,7 @@ def build_agent_model(
         w0=30.0,
     )
     siren_mlp = SIRENModel(
-        units=config.units, final_units=config.units, num_layers=2, name="siren",
+        units=config.units, final_units=config.units, num_layers=6, name="siren",
     )
     policy_net = tf.keras.Sequential(
         [
@@ -87,7 +87,7 @@ def build_agent_model(
                 config.units, name="reward_hidden", activation="relu",
             ),
             tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
-            SinusodialRepresentationDense(1, name="reward_logits", activation=None,),
+            SinusodialRepresentationDense(1, name="reward_logits", activation=None),
         ],
         name="reward_head",
     )
@@ -138,7 +138,7 @@ def _load_model(model_path: Path, predictions: int) -> AgentModel:
     return model
 
 
-def get_or_create_policy_model(
+def get_or_create_agent_model(
     config: AgentConfig,
     predictions: int,
     is_main=False,
@@ -178,7 +178,7 @@ def get_or_create_policy_model(
     return model
 
 
-def load_policy_value_model(
+def load_agent_model(
     model_data_folder: str, silent: bool = False
 ) -> Tuple[AgentModel, AgentConfig]:
     meta_file = Path(model_data_folder) / "model.config.json"

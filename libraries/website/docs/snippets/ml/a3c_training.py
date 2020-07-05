@@ -1,6 +1,6 @@
 #!pip install gym
 from mathy.cli import setup_tf_env
-from mathy.agents.a3c import A3CAgent, AgentConfig
+from mathy.agents import A3CAgent, AgentConfig
 import shutil
 import tempfile
 
@@ -8,7 +8,7 @@ model_folder = tempfile.mkdtemp()
 setup_tf_env()
 
 args = AgentConfig(
-    max_eps=1,
+    max_eps=3,
     verbose=True,
     topics=["poly-combine"],
     model_dir=model_folder,

@@ -2,8 +2,8 @@
 import shutil
 import tempfile
 
-from mathy.agents.a3c import A3CAgent, AgentConfig
-from mathy.agents.model import AgentModel, get_or_create_policy_model
+from mathy.agents import A3CAgent, AgentConfig
+from mathy.agents.model import get_or_create_agent_model
 from mathy.cli import setup_tf_env
 from mathy.envs import PolySimplify
 
@@ -25,7 +25,7 @@ args = AgentConfig(
 instance = A3CAgent(args)
 instance.train()
 # Load the model back in
-model_two = get_or_create_policy_model(
+model_two = get_or_create_agent_model(
     config=args, predictions=PolySimplify().action_size, is_main=True
 )
 # Comment this out to keep your model

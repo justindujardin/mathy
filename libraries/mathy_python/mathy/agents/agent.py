@@ -7,7 +7,7 @@ import gym
 import numpy as np
 
 from ..teacher import Teacher
-from .model import get_or_create_policy_model, AgentModel
+from .model import get_or_create_agent_model, AgentModel
 from .config import AgentConfig
 from .worker import A3CWorker
 from ..envs.gym import MathyGymEnv
@@ -38,7 +38,7 @@ class A3CAgent:
         self.action_size = env.action_space.n
         self.log_dir = os.path.join(self.args.model_dir, "tensorboard")
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        self.global_model = get_or_create_policy_model(
+        self.global_model = get_or_create_agent_model(
             config=args, predictions=self.action_size, is_main=True, env=env.mathy
         )
         if self.args.verbose:

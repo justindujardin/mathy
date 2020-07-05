@@ -15,7 +15,7 @@ from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
 from . import action_selectors
 from .episode_memory import EpisodeMemory
-from .model import AgentModel, get_or_create_policy_model
+from .model import AgentModel, get_or_create_agent_model
 from .trfl import discrete_policy_entropy_loss, td_lambda
 from .config import AgentConfig
 from .util import EpisodeLosses, record, truncate
@@ -66,7 +66,7 @@ class A3CWorker(threading.Thread):
         with msg.loading(f"Worker {worker_idx} starting..."):
             first_env = self.teacher.get_env(self.worker_idx, self.iteration)
             self.writer = writer
-            self.local_model = get_or_create_policy_model(
+            self.local_model = get_or_create_agent_model(
                 config=args,
                 predictions=self.action_size,
                 env=gym.make(first_env, **self.env_extra).mathy,
