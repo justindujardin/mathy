@@ -189,7 +189,10 @@ def _load_model(
     model: PolicyValueModel, model_file: str, optimizer_file: str,
 ) -> PolicyValueModel:
     model.load_weights(model_file)
-    model._make_train_function()
+    if hasattr(model, "make_train_function"):
+        model.make_train_function()
+    elif hasattr(model, "_make_train_function"):
+        model._make_train_function()
     with open(optimizer_file, "rb") as f:
         weight_values = pickle.load(f)
     model.optimizer.set_weights(weight_values)

@@ -10,8 +10,8 @@ wasabi
 gym
 
 # ML model agents
-tensorflow>=2.1.0
-tensorflow_probability
+tensorflow>=2.1.0,<2.2.0
+tensorflow_probability==0.9.0
 keras-self-attention
 
 # new python feature backports
