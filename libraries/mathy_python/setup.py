@@ -25,10 +25,9 @@ def setup_package():
     extras = {
         "dev": DEVELOPMENT_MODULES,
         "tf": [
-            "tensorflow>=2.1.0,<2.2.0",
             "tensorboard>=2.1.0,<2.2.0",
+            "tensorflow>=2.1.0,<2.2.0",
             "tensorflow_probability",
-            "keras-self-attention",
             "tf_siren>=0.0.3",
             "gym",
         ],
