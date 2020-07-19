@@ -4,7 +4,7 @@
 ```python
 MathyEnv(
     self,
-    rules: List[mathy.core.rule.BaseRule] = None,
+    rules: List[mathy_core.rule.BaseRule] = None,
     max_moves: int = 20,
     verbose: bool = False,
     error_invalid: bool = False,
@@ -20,7 +20,7 @@ Return the number of available actions
 ```python
 MathyEnv.core_rules(
     preferred_term_commute: bool = False,
-) -> List[mathy.core.rule.BaseRule]
+) -> List[mathy_core.rule.BaseRule]
 ```
 Return the mathy core agent actions
 ### finalize_state
@@ -41,8 +41,8 @@ Returns a tuple of (rule_index, node_index)
 ```python
 MathyEnv.get_actions_for_node(
     self,
-    expression: mathy.core.expressions.MathExpression,
-    rule_list: List[Type[mathy.core.rule.BaseRule]] = None,
+    expression: mathy_core.expressions.MathExpression,
+    rule_list: List[Type[mathy_core.rule.BaseRule]] = None,
 ) -> List[int]
 ```
 Return a valid actions mask for the given expression and rule list.
@@ -86,7 +86,7 @@ MathyEnv.get_next_state(
     env_state: mathy.state.MathyEnvState,
     action: int,
     searching: bool = False,
-) -> Tuple[mathy.state.MathyEnvState, mathy.time_step.TimeStep, mathy.core.rule.ExpressionChangeRule]
+) -> Tuple[mathy.state.MathyEnvState, mathy.time_step.TimeStep, mathy_core.rule.ExpressionChangeRule]
 ```
 
 __Parameters__
@@ -108,7 +108,7 @@ __Returns__
 MathyEnv.get_penalizing_actions(
     self,
     state: mathy.state.MathyEnvState,
-) -> List[Type[mathy.core.rule.BaseRule]]
+) -> List[Type[mathy_core.rule.BaseRule]]
 ```
 Get the list of penalizing action types. When these actions
 are selected, the agent gets a negative reward.
@@ -117,7 +117,7 @@ are selected, the agent gets a negative reward.
 MathyEnv.get_rewarding_actions(
     self,
     state: mathy.state.MathyEnvState,
-) -> List[Type[mathy.core.rule.BaseRule]]
+) -> List[Type[mathy_core.rule.BaseRule]]
 ```
 Get the list of rewarding action types. When these actions
 are selected, the agent gets a positive reward.
@@ -144,9 +144,9 @@ __Returns__
 ```python
 MathyEnv.get_token_at_index(
     self,
-    expression: mathy.core.expressions.MathExpression,
+    expression: mathy_core.expressions.MathExpression,
     index: int,
-) -> Optional[mathy.core.expressions.MathExpression]
+) -> Optional[mathy_core.expressions.MathExpression]
 ```
 Get the token that is `index` from the left of the expression
 ### get_valid_moves
@@ -221,7 +221,7 @@ MathyEnv.print_state(
     env_state: mathy.state.MathyEnvState,
     action_name: str,
     token_index: int = -1,
-    change: mathy.core.rule.ExpressionChangeRule = None,
+    change: mathy_core.rule.ExpressionChangeRule = None,
     change_reward: float = 0.0,
     pretty: bool = False,
 )
@@ -243,8 +243,8 @@ generate its own dataset with no required configuration.
 ```python
 MathyEnv.random_action(
     self,
-    expression: mathy.core.expressions.MathExpression,
-    rule: Union[Type[mathy.core.rule.BaseRule], Tuple[Type[mathy.core.rule.BaseRule], ...]] = None,
+    expression: mathy_core.expressions.MathExpression,
+    rule: Union[Type[mathy_core.rule.BaseRule], Tuple[Type[mathy_core.rule.BaseRule], ...]] = None,
 ) -> int
 ```
 Get a random action index that represents a particular rule
@@ -255,7 +255,7 @@ MathyEnv.render_state(
     env_state: mathy.state.MathyEnvState,
     action_name: str,
     token_index: int = -1,
-    change: mathy.core.rule.ExpressionChangeRule = None,
+    change: mathy_core.rule.ExpressionChangeRule = None,
     change_reward: float = 0.0,
     pretty: bool = False,
 ) -> str
@@ -280,7 +280,7 @@ Convert env_state to a string for MCTS cache
 MathyEnv.transition_fn(
     self,
     env_state: mathy.state.MathyEnvState,
-    expression: mathy.core.expressions.MathExpression,
+    expression: mathy_core.expressions.MathExpression,
     features: mathy.state.MathyObservation,
 ) -> Optional[mathy.time_step.TimeStep]
 ```

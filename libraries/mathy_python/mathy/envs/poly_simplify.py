@@ -1,14 +1,14 @@
 from typing import List, Optional
 
+from mathy_core.expressions import MathExpression
+from mathy_core.problems import gen_simplify_multiple_terms
+from mathy_core.util import get_terms, has_like_terms, is_preferred_term_form
 from numpy.random import randint, uniform
 
 from .. import time_step
-from ..core.expressions import MathExpression
 from ..env import MathyEnv, MathyEnvProblem
-from ..problems import gen_simplify_multiple_terms
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import get_terms, has_like_terms, is_preferred_term_form
 
 
 class PolySimplify(MathyEnv):

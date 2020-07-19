@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from mathy.agents import A3CAgent, AgentConfig
+from mathy.agent import A3CAgent, AgentConfig
 from mathy.cli import setup_tf_env
 from mathy.api import Mathy, MathyAPIModelState
 from mathy.models import load_model, package, load_model_from_init_py, get_model_meta

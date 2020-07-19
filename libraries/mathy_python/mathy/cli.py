@@ -200,7 +200,7 @@ def cli_train(
 
     setup_tf_env()
 
-    from .agents import A3CAgent, AgentConfig
+    from .agent import A3CAgent, AgentConfig
 
     args = AgentConfig(
         verbose=verbose,

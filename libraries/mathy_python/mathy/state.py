@@ -4,8 +4,8 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 import numpy as np
 import srsly
 
-from .core.expressions import ConstantExpression, MathExpression, MathTypeKeys
-from .core.parser import ExpressionParser
+from mathy_core.expressions import ConstantExpression, MathExpression, MathTypeKeys
+from mathy_core.parser import ExpressionParser
 from .util import pad_array
 
 PROBLEM_TYPE_HASH_BUCKETS = 128

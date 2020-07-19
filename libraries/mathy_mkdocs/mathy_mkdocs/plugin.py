@@ -417,7 +417,7 @@ def render_html(text: str):
 
 if __name__ == "__main__":
     res = render_html("<code>features:4x^3 * 2x - 7</code>")
-    res = render_html("<code>model:mathy.agents.model:build_agent_model</code>")
+    res = render_html("<code>model:mathy.agent.model:build_agent_model</code>")
     with open("./features.svg", "w") as f:
         f.write(res)
     print(res)
@@ -454,7 +454,7 @@ Build your own tree transformation actions and use them with the built-in agents
 """
         )
     )
-    print(render_html("<code>model:mathy.agents.embedding:MathyEmbedding</code>"))
+    print(render_html("<code>model:mathy.agent.model:build_agent_model</code>"))
 else:
     from mkdocs.plugins import BasePlugin
 

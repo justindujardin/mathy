@@ -2,8 +2,8 @@
 import shutil
 import tempfile
 
-from mathy.agents import A3CAgent, AgentConfig
-from mathy.agents.model import get_or_create_agent_model
+from mathy.agent import A3CAgent, AgentConfig
+from mathy.agent.model import get_or_create_agent_model
 from mathy.cli import setup_tf_env
 from mathy.envs import PolySimplify
 

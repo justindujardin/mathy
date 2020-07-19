@@ -1,8 +1,8 @@
 import tensorflow as tf
 
 from mathy import envs
-from mathy.agents.config import AgentConfig
-from mathy.agents.model import build_agent_model
+from mathy.agent.config import AgentConfig
+from mathy.agent.model import build_agent_model
 from mathy.env import MathyEnv
 from mathy.state import MathyObservation, observations_to_window
 

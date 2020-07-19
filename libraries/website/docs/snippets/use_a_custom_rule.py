@@ -15,7 +15,7 @@ from mathy import (
     SubtractExpression,
 )
 from mathy.envs import PolySimplify
-from mathy.agents.a3c import A3CAgent, AgentConfig
+from mathy.agent.a3c import A3CAgent, AgentConfig
 from mathy.cli import setup_tf_env
 
 

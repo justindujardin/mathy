@@ -12,7 +12,7 @@ from tensorflow.keras import backend as K
 from tf_siren import SinusodialRepresentationDense, SIRENModel
 from wasabi import msg
 
-from ..core.expressions import MathTypeKeysMax
+from mathy_core.expressions import MathTypeKeysMax
 from ..env import MathyEnv
 from ..envs import PolySimplify
 from ..state import (
@@ -22,7 +22,7 @@ from ..state import (
     ObservationFeatureIndices,
     observations_to_window,
 )
-from ..util import print_error
+from mathy_core.util import print_error
 from .config import AgentConfig
 
 

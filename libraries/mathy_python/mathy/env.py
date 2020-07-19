@@ -3,12 +3,10 @@ from itertools import groupby
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
-
-from . import time_step
-from .core.expressions import STOP, MathExpression
-from .core.parser import ExpressionParser
-from .core.rule import BaseRule, ExpressionChangeRule
-from .rules import (
+from mathy_core.expressions import STOP, MathExpression
+from mathy_core.parser import ExpressionParser
+from mathy_core.rule import BaseRule, ExpressionChangeRule
+from mathy_core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
@@ -16,14 +14,16 @@ from .rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
-from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
-from .util import (
+from mathy_core.util import (
     compare_expression_string_values,
-    is_terminal_transition,
-    print_error,
     raise_with_history,
 )
+
+from .util import is_terminal_transition
+
+from . import time_step
+from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
+from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
 
 
 class MathyEnv:

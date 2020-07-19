@@ -1,19 +1,23 @@
 from typing import Any, Dict, List, Optional, Type
 
+from mathy_core.problems import (
+    gen_move_around_blockers_one,
+    gen_move_around_blockers_two,
+    rand_bool,
+)
+from mathy_core.rule import BaseRule
+from mathy_core.rules import (
+    AssociativeSwapRule,
+    CommutativeSwapRule,
+    ConstantsSimplifyRule,
+    DistributiveFactorOutRule,
+)
 from numpy.random import randint
 
 from ..env import MathyEnvProblem
 from ..state import MathyEnvState
-from ..core.rule import BaseRule
-from ..rules import (
-    CommutativeSwapRule,
-    ConstantsSimplifyRule,
-    DistributiveFactorOutRule,
-    AssociativeSwapRule,
-)
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify
-from ..problems import gen_move_around_blockers_one, gen_move_around_blockers_two, rand_bool
 
 
 class PolySimplifyBlockers(PolySimplify):
@@ -48,5 +52,7 @@ class PolySimplifyBlockers(PolySimplify):
                 hard_blockers, powers_probability=powers_probability
             )
         else:
-            text, complexity = gen_move_around_blockers_one(blockers, powers_probability)
+            text, complexity = gen_move_around_blockers_one(
+                blockers, powers_probability
+            )
         return MathyEnvProblem(text, complexity, self.get_env_namespace())

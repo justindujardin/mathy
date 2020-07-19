@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from .agents.config import AgentConfig
-from .agents.episode_memory import EpisodeMemory
+from .agent.config import AgentConfig
+from .agent.episode_memory import EpisodeMemory
 from .swarm import SwarmConfig, swarm_solve
-from .agents.model import AgentModel, load_agent_model
+from .agent.model import AgentModel, load_agent_model
 
 
 @dataclass
@@ -82,9 +82,9 @@ class Mathy:
         import tensorflow as tf
         from colr import color
         from .envs.gym import MathyGymEnv
-        from .agents.action_selectors import GreedyActionSelector
+        from .agent.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
-        from .agents.model import AgentModel
+        from .agent.model import AgentModel
 
         environment = "poly"
         difficulty = "easy"

@@ -3,7 +3,7 @@ from typing import Tuple
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from mathy.agents.episode_memory import EpisodeMemory
+from mathy.agent.episode_memory import EpisodeMemory
 from mathy.envs.poly_simplify import PolySimplify
 
 

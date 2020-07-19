@@ -6,7 +6,7 @@ Mathy(
     self,
     model_path: str = None,
     model: tensorflow.python.keras.engine.training.Model = None,
-    config: Union[mathy.agents.config.AgentConfig, mathy.swarm.fragile.SwarmConfig] = None,
+    config: Union[mathy.agent.config.AgentConfig, mathy.swarm.fragile.SwarmConfig] = None,
     silent: bool = False,
 )
 ```
@@ -18,7 +18,7 @@ Mathy.simplify_model(
     model: str = 'mathy_alpha_sm',
     problem: str,
     max_steps: int,
-) -> mathy.agents.episode_memory.EpisodeMemory
+) -> mathy.agent.episode_memory.EpisodeMemory
 ```
 Simplify an input problem using the PolySimplify environment.
 
@@ -39,11 +39,11 @@ __Returns__
 ```python
 MathyAPIModelState(
     self,
-    config: mathy.agents.config.AgentConfig,
+    config: mathy.agent.config.AgentConfig,
     model: tensorflow.python.keras.engine.training.Model,
 ) -> None
 ```
-MathyAPIModelState(config:mathy.agents.config.AgentConfig, model:tensorflow.python.keras.engine.training.Model)
+MathyAPIModelState(config:mathy.agent.config.AgentConfig, model:tensorflow.python.keras.engine.training.Model)
 ## MathyAPISwarmState
 ```python
 MathyAPISwarmState(self, config:mathy.swarm.fragile.SwarmConfig) -> None

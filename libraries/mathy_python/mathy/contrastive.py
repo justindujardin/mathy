@@ -9,20 +9,18 @@ import numpy
 import tensorflow as tf
 import tqdm
 import typer
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import CustomObjectScope
-
-from .core.expressions import (
+from mathy_core.expressions import (
     AddExpression,
     DivideExpression,
     MathExpression,
     MultiplyExpression,
     SubtractExpression,
 )
+from mathy_core.problems import use_pretty_numbers
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+
 from .envs.gym import MathyGymEnv
-from .problems import use_pretty_numbers
 from .state import MathyEnvState
 
 app = typer.Typer()

@@ -32,14 +32,15 @@ exclude_files = [
     "cli.py",
     "py.typed",
     "about.py",
+    "conrastive.py"
 ]
-include_folders = ["", "core"]
+include_folders = ["", "agent"]
 
 
 def render_docs(src_rel_path: str, src_file: str, to_file: str, modifier="++"):
     src_rel_ns = src_rel_path.replace("/", ".")
     src_base = src_file.replace(".py", "")
-    # mathy_pydoc simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
+    # mathy_pydoc simple mathymathy_core.expressions++ > ../website/docs/api/core/expressions.md
     file_dir = os.path.dirname(__file__)
     # Set CWD to the root
     os.chdir(os.path.join(file_dir, "../"))
@@ -106,7 +107,7 @@ if __name__ == "__main__":
                 nav_item[nav_key] = found
                 nav_entries.insert(0, nav_item)
 
-    # mathy_pydoc simple mathy.core.expressions++ > ../website/docs/api/core/expressions.md
+    # mathy_pydoc simple mathymathy_core.expressions++ > ../website/docs/api/core/expressions.md
     YAMLSection = List[Dict[str, List[Dict[str, str]]]]
 
     nav_entries.sort(key=lambda x: list(x)[0], reverse=False)
