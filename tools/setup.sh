@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-sh tools/ci-setup.sh
-
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
 if [ ! -d "${DIR}" ]; then
@@ -13,5 +11,5 @@ fi
 echo "Installing/updating requirements..."
 .env/bin/pip install -e ./libraries/mathy_python
 
-. .env/bin/activate
+sh tools/ci-setup.sh
 

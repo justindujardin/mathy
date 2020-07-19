@@ -27,7 +27,7 @@ def list_files(data_dir: str, root: str) -> List[str]:
 
 
 def list_requirements(meta):
-    parent_package = meta.get("parent_package", "mathy")
+    parent_package = meta.get("parent_package", "mathy[tf]")
     requirements = [parent_package + meta["mathy_version"]]
     requirements += ["tf_siren>=0.0.3"]
     if "setup_requires" in meta:
