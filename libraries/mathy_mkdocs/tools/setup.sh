@@ -11,4 +11,5 @@ fi
 # Use root env
 . ../../.env/bin/activate
 echo "Installing/updating requirements..."
-pip install -e .[dev]
+pip install -e .
+pip install -r requirements.txt
