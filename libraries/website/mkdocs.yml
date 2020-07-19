@@ -41,10 +41,9 @@ nav:
   - Binomial Multiply: envs/binomial_multiply.md
   - Machine Learning:
     - Overview: ml/overview.md
-    - A3C Agent: ml/a3c.md
+    - Agent: ml/a3c.md
+    - Model: ml/model.md
     - Debugging: ml/debugging.md
-    - Math Embeddings: ml/embeddings.md
-    - Policy/Value Model: ml/model.md
 - API Documentation:
   - agent:
     - action_selectors: api/agent/action_selectors.md
@@ -89,7 +88,7 @@ theme:
     logo: material/school
   features:
   - instant
-  - tabs
+  # - tabs
   favicon: img/favicon/favicon-16x16.png
   palette:
     primary: deep-orange

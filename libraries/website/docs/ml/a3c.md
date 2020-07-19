@@ -33,42 +33,6 @@ You can import the required bits and train an A3C agent using your own custom py
 {!./snippets/ml/a3c_training.py!}
 ```
 
-### Training A3C+MCTS
-
-Mathy exposes a few "action_strategy" options, including two for dealing with the combination of A3C and MCTS.
-
-Remember that MCTS is a powerful tree search that produces better actions the more "rollouts" or "simulations" you give it.
-
-#### MCTS Worker "0"
-
-The action strategy "mcts_worker_0" runs **MCTS only on worker #0**, the "greedy" worker.
-
-Because worker 0 is the one without random exploration, this means that the output and average episode rewards will all be based on a tree search, while in the background the other A3C workers will continue to use vanilla Actor/Critic action selection.
-
-```python
-{!./snippets/ml/a3c_training_mcts_worker_0.py!}
-```
-
-#### MCTS Worker "n"
-
-The action strategy "mcts_worker_n" runs **MCTS on all workers that are not #0** (the "greedy" worker).
-
-The idea behind this strategy was that perhaps MCTS observations would be beneficial to mix in with biased Actor/Critic observations.
-
-Because the 0 worker still uses plain A3C, its outputs should give a good sense of how the model will perform at inference time without MCTS.
-
-!!! warn "Warning about Performance"
-
-    Because the A3C workers are parallelized using the python threading module, this strategy does not generally perform well with **many workers**.
-
-    This is because python's `threading` module doesn't allow full system resource utilization when compared to the `multiprocessing` module.
-
-    I've found that it's better to use small numbers of workers with this strategy.
-
-```python
-{!./snippets/ml/a3c_training_mcts_worker_n.py!}
-```
-
 ### Training with the CLI
 
 Once mathy is installed on your system, you can train an agent using the CLI:

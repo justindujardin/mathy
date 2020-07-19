@@ -3,18 +3,13 @@ import inspect
 import os
 import re
 from pathlib import Path
-from typing import List, Dict
-from wasabi import msg
+from typing import Dict, List
 
 import svgwrite
-from mathy.cli import setup_tf_env
-
-from mathy import (
+from mathy_core import (
     BinaryExpression,
     ExpressionParser,
     MathExpression,
-    MathyEnvState,
-    MathyObservation,
     Token,
     Tokenizer,
     TreeLayout,
@@ -22,6 +17,10 @@ from mathy import (
     VariableExpression,
     testing,
 )
+from wasabi import msg
+
+from mathy import MathyEnvState, MathyObservation
+from mathy.cli import setup_tf_env
 
 try:
     from .vis_utils import model_to_dot
