@@ -12,12 +12,12 @@ function getBuildVersion() {
       // Core options
       dryRun: true,
       branch: "master",
-      repositoryUrl: "https://github.com/justindujardin/mathy.git"
+      repositoryUrl: "https://github.com/justindujardin/mathy.git",
     },
     {
       cwd: "./",
       stdout: stdoutBuffer,
-      stderr: stderrBuffer
+      stderr: stderrBuffer,
     }
   ).then((result: any) => {
     if (result) {
@@ -34,7 +34,7 @@ getBuildVersion()
 
     const modelFiles = [
       "../libraries/mathy_alpha_sm/mathy_alpha_sm/model.config.json",
-      "../libraries/mathy_alpha_sm/model.config.json"
+      "../libraries/mathy_alpha_sm/model.config.json",
     ]
 
     modelFiles.forEach((modelName: string) => {
@@ -45,10 +45,7 @@ getBuildVersion()
       fs.writeFileSync(modelPath, JSON.stringify(json, null, 2), "utf8")
     })
 
-    const aboutFiles = [
-      "../libraries/mathy_python/mathy/about.py",
-      "../libraries/mathy_pydoc/mathy_pydoc/about.py"
-    ]
+    const aboutFiles = ["../libraries/mathy_python/mathy/about.py"]
     aboutFiles.forEach((fileName: string) => {
       const filePath = path.join(__dirname, fileName)
       if (!fs.existsSync(filePath)) {

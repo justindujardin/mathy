@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 echo "Testing all apps..."
-libraries="mathy_python mathy_mkdocs mathy_pydoc website"
+libraries="mathy_python mathy_mkdocs website"
 for library in $libraries
 do
    echo "=== Testing: $library"
