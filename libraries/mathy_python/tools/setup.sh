@@ -11,5 +11,5 @@ fi
 # Use root env
 . ../../.env/bin/activate
 echo "Installing/updating requirements..."
-pip install -e .[all]
+pip install -e .[tf,all]
 pip install -e ../mathy_alpha_sm

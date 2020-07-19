@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Install Graphviz
+        run: sudo apt-get install graphviz
       - name: Setup Packages
         run: sh tools/setup.sh
       - name: Build Packages
