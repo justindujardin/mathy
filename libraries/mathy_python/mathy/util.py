@@ -41,7 +41,7 @@ def assert_fragile_installed():
 
 
 def assert_tensorflow_installed():
-    requires = ["tensorflow", "keras_self_attention", "tensorflow_probability"]
+    requires = ["tensorflow", "tensorflow_probability", "tf_siren"]
     extra_name = "tf"
     if not has_modules(requires):
         raise EnvironmentError(
