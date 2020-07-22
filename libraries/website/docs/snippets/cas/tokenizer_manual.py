@@ -1,5 +1,12 @@
 from typing import List
-from mathy import Token, TokenConstant, TokenEOF, Tokenizer, TokenPlus, TokenVariable
+from mathy_core import (
+    Token,
+    TokenConstant,
+    TokenEOF,
+    Tokenizer,
+    TokenPlus,
+    TokenVariable,
+)
 
 manual_tokens: List[Token] = [
     Token("4", TokenConstant),

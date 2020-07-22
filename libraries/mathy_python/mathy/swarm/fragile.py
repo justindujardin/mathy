@@ -3,7 +3,7 @@ trained neural network."""
 from typing import Dict, List, Optional, Union
 
 import numpy as np
-from mathy_core.expressions import MathTypeKeysMax
+from mathy_core import MathTypeKeysMax
 from pydantic import BaseModel
 from wasabi import msg
 

@@ -93,7 +93,7 @@ We'll use Mathy to generate random polynomial problems with a variable number of
 ```python
 from typing import List, Optional, Set
 import random
-from mathy_core.problems import gen_simplify_multiple_terms
+from mathy.problems import gen_simplify_multiple_terms
 
 def generate_problems(number: int, exclude: Optional[Set[str]] = None) -> List[str]:
     if exclude is None:
@@ -144,7 +144,7 @@ To accomplish this we'll use a few helpers from mathy to enumerate the terms and
 
 ```python
 from typing import Optional, List, Dict
-from mathy_core.problems import mathy_term_string
+from mathy.problems import mathy_term_string
 from mathy import MathExpression, ExpressionParser, get_terms, get_term_ex, TermEx
 
 parser = ExpressionParser()

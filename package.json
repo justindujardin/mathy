@@ -35,12 +35,12 @@
   },
   "lint-staged": {
     "libraries/website/docs/examples/*.ipynb": [
-      "libraries/website/.env/bin/python libraries/website/tools/write_notebook_pages.py",
-      "libraries/website/.env/bin/python libraries/website/tools/stage_notebook_pages.py"
+      ".env/bin/python libraries/website/tools/write_notebook_pages.py",
+      ".env/bin/python libraries/website/tools/stage_notebook_pages.py"
     ],
     "libraries/website/docs/**/*.py": [
-      "libraries/website/.env/bin/python libraries/website/tools/write_ipynb.py",
-      "libraries/website/.env/bin/python libraries/website/tools/stage_ipynb.py"
+      ".env/bin/python libraries/website/tools/write_ipynb.py",
+      ".env/bin/python libraries/website/tools/stage_ipynb.py"
     ]
   },
   "release": {

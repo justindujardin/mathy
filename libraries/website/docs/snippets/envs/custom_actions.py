@@ -1,11 +1,13 @@
 """Environment with user-defined actions"""
 
-from mathy import (
+from mathy_core import (
     AddExpression,
     BaseRule,
-    MathyEnvState,
     NegateExpression,
     SubtractExpression,
+)
+from mathy import (
+    MathyEnvState,
     envs,
     MathyEnv,
 )

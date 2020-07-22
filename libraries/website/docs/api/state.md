@@ -79,7 +79,7 @@ MathyEnvState.to_observation(
     self,
     move_mask: Optional[List[int]] = None,
     hash_type: Optional[List[int]] = None,
-    parser: Optional[mathy_core.parser.ExpressionParser] = None,
+    parser: Optional[mathy.parser.ExpressionParser] = None,
 ) -> mathy.state.MathyObservation
 ```
 Convert a state into an observation

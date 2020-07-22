@@ -1,6 +1,6 @@
 from typing import List
 
-from mathy import ExpressionParser, MathExpression, Token, VariableExpression
+from mathy_core import ExpressionParser, MathExpression, Token, VariableExpression
 
 problem = "4 + 2x"
 parser = ExpressionParser()
