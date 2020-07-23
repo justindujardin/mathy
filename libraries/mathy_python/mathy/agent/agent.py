@@ -46,7 +46,6 @@ class A3CAgent:
 
     def train(self):
         res_queue = Queue()
-        exp_out_queue = Queue()
         A3CWorker.global_episode = 0
         worker_exploration_epsilons = np.geomspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
@@ -61,20 +60,17 @@ class A3CAgent:
                 teacher=self.teacher,
                 worker_idx=i,
                 optimizer=self.global_model.optimizer,
-                result_queue=res_queue,
                 writer=self.writer,
             )
             for i in range(self.args.num_workers)
         ]
 
-        for i, worker in enumerate(workers):
+        for worker in workers:
             worker.start()
 
         try:
-            while True:
-                reward = res_queue.get()
-                if reward is None:
-                    break
+            for worker in workers:
+                worker.join()
         except KeyboardInterrupt:
             print("Received Keyboard Interrupt. Shutting down.")
             A3CWorker.request_quit = True

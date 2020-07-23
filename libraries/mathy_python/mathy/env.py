@@ -162,14 +162,11 @@ class MathyEnv:
         so that the reward signal can be problem-type dependent."""
         return EnvRewards.LOSE
 
-    def get_state_transition(
-        self, env_state: MathyEnvState, searching: bool = False
-    ) -> time_step.TimeStep:
+    def get_state_transition(self, env_state: MathyEnvState) -> time_step.TimeStep:
         """Given an input state calculate the transition value of the timestep.
 
         # Parameters
             env_state: current env_state
-            searching: True when called by MCTS simulation
 
         # Returns
             transition: the current state value transition
@@ -236,13 +233,12 @@ class MathyEnv:
         )
 
     def get_next_state(
-        self, env_state: MathyEnvState, action: int, searching: bool = False
+        self, env_state: MathyEnvState, action: int
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         # Parameters
         env_state: current env_state
         action:    action taken
-        searching: boolean set to True when called by MCTS
 
         # Returns
         next_state: env_state after applying action
@@ -290,8 +286,8 @@ class MathyEnv:
             moves_remaining=agent.moves_remaining - 1,
         )
 
-        transition = self.get_state_transition(out_env, searching)
-        if not searching and self.verbose:
+        transition = self.get_state_transition(out_env)
+        if self.verbose:
             token_idx = int("{}".format(token_index).zfill(3))
             self.print_state(
                 out_env, change_name[:25].lower(), token_idx, change, transition.reward

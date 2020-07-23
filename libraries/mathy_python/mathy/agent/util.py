@@ -40,7 +40,6 @@ def record(
     episode_reward: float,
     worker_idx: int,
     global_ep_reward: float,
-    result_queue: multiprocessing.Queue,
     losses: EpisodeLosses,
     num_steps: int,
     env_name: str,
@@ -51,7 +50,6 @@ def record(
     episode_reward: Reward accumulated over the current episode
     worker_idx: Which thread (worker)
     global_ep_reward: The moving average of the global reward
-    result_queue: Queue storing the moving average of the scores
     total_loss: The total loss accumualted over the current episode
     num_steps: The number of steps the episode took to complete
   """
@@ -76,5 +74,4 @@ def record(
     print(
         color(f"{heading} {rewards} {losses} [{env_name}]", fore=fore, style="bright")
     )
-    result_queue.put(global_ep_reward)
     return global_ep_reward

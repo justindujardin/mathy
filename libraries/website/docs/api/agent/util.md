@@ -13,7 +13,6 @@ record(
     episode_reward: float,
     worker_idx: int,
     global_ep_reward: float,
-    result_queue: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x10ccc5860>>,
     losses: mathy.agent.util.EpisodeLosses,
     num_steps: int,
     env_name: str,
@@ -25,7 +24,6 @@ Arguments:
   episode_reward: Reward accumulated over the current episode
   worker_idx: Which thread (worker)
   global_ep_reward: The moving average of the global reward
-  result_queue: Queue storing the moving average of the scores
   total_loss: The total loss accumualted over the current episode
   num_steps: The number of steps the episode took to complete
 

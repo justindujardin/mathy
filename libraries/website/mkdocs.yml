@@ -54,7 +54,6 @@ nav:
     - util: api/agent/util.md
     - worker: api/agent/worker.md
   - api: api/api.md
-  - contrastive: api/contrastive.md
   - env: api/env.md
   - models: api/models.md
   - state: api/state.md

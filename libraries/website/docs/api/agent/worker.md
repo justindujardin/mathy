@@ -9,7 +9,6 @@ A3CWorker(
     global_model: tensorflow.python.keras.engine.training.Model,
     optimizer,
     greedy_epsilon: Union[float, List[float]],
-    result_queue: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x111273860>>,
     worker_idx: int,
     writer: tensorflow.python.ops.summary_ops_v2.SummaryWriter,
     teacher: mathy.teacher.Teacher,

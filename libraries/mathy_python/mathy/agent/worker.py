@@ -44,7 +44,6 @@ class A3CWorker(threading.Thread):
         global_model: AgentModel,
         optimizer,
         greedy_epsilon: Union[float, List[float]],
-        result_queue: Queue,
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -56,7 +55,6 @@ class A3CWorker(threading.Thread):
         self.greedy_epsilon = greedy_epsilon
         self.iteration = 0
         self.action_size = action_size
-        self.result_queue = result_queue
         self.global_model = global_model
         self.optimizer = optimizer
         self.worker_idx = worker_idx
@@ -138,7 +136,6 @@ class A3CWorker(threading.Thread):
             pr.dump_stats(profile_path)
             if self.args.verbose:
                 print(f"PROFILER: saved {profile_path}")
-        self.result_queue.put(None)
 
     def run_episode(self, episode_memory: EpisodeMemory) -> float:
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
@@ -319,7 +316,6 @@ class A3CWorker(threading.Thread):
                 episode_reward,
                 self.worker_idx,
                 A3CWorker.global_moving_average_reward,
-                self.result_queue,
                 self.losses,
                 episode_steps,
                 env_name,
