@@ -59,11 +59,11 @@ def cli_simplify(problem: str, model: str, max_steps: int, swarm: bool, parallel
 
     from .models import load_model
     from .api import Mathy
-    from .swarm import SwarmConfig
 
     if swarm is True:
+        from .swarm import SwarmConfig
+
         mt = Mathy(config=SwarmConfig(use_mp=parallel))
-        mt.simplify(problem=problem, max_steps=max_steps)
     else:
         mt = load_model(model)
 
