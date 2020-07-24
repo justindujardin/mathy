@@ -1,3 +1,102 @@
+# [0.8.0](https://github.com/justindujardin/mathy/compare/v0.7.14...v0.8.0) (2020-07-24)
+
+
+### Features
+
+* **mathy:** cleanup and remove dead code ([ec686d9](https://github.com/justindujardin/mathy/commit/ec686d9421da64ea1915af62c593743dba2c87d1))
+
+
+### BREAKING CHANGES
+
+* **mathy:** This removes the MCTS powered agent. It was a nice agent but the pieces required for it to work effectively have been lost. It's not a primary use-case of mine now, so it's better to drop it and remove any confusion.
+
+* refactor(agents): move to singular agent with generic names
+
+ - PolicyValueModel -> AgentModel
+ - Remove embeddings model and make it part of AgentModel
+
+* refactor(model): replace custom keras model with functional
+
+ - allows graphing model architecture for website
+ - adds extra validation
+ - allows full-model saving (without explicit optimizer save/loading)
+
+* refactor(model): move action masking out of the model
+
+ - Soooo masking doesn't play well with full-model saving and loading, or functional models, or keras strict data validation. Drop it out of the model, and let the action selector do its own masking.
+ - TODO: add a loss term for the mask in addition to the policy loss?
+
+* chore: misc cleanup and fix tests
+
+* chore: update tf_siren dep
+
+* chore: fix some tests and remove dead ones
+
+* refactor(core): use mathy_core for CAS needs
+
+This moves a lot of complexity out to another package, which is desirable for a number of reasons:
+- when you only need to do CAS things, the mathy_core package can be installed without the need for larger things like TensorFlow or PyTorch which can make the install time much quicker
+- the build time for the Mathy repo goes down by however much time it took to compile and test the core mathy code.
+- it's easier to browse the code if you're unfamiliar with Mathy because it's not buried in a monorepo under a mountain of other folders
+
+* chore: fix website build
+
+* perf(ci): refactor virtual envs to reduce build time
+
+ - share a root virtualenv to avoid double or triple installing hefty packages like TensorFlow and PyTorch
+
+* chore: remove ci specific setup script
+
+* chore: remove disk space cleanup step
+
+ - it takes about a minute, and it's unclear if it's needed now that we share a root virtual env
+
+* chore: drop keras-self-attention dep
+
+* chore: fix requirements for tf agent
+
+* chore: fix requirements for mkdocs plugin
+
+* chore: install graphviz on ci build machine
+
+* chore: try tensorflow 2.2.0
+
+ - I think this caused optimizer loading problems last time I tried to upgrade, but let's see
+
+* chore: fix import errors
+
+* chore: try to confirm siren fix
+
+* chore: remove kwargs from Sine layer
+
+* chore: remove second pytest invocation for zero
+
+ - TensorFlow didn't mix too well with multiprocessing so I had to run the MP tests separately for the Zero agent.
+ - Zero agent is gone, cya extra test invocation
+
+* chore: fix venv path in test scripts
+
+* chore: drop example apps from main package
+
+ - will add them later as mathy org repositories
+ - update API docs
+ - drop some unused queues
+
+* chore: drop reformer test
+
+* chore: bump tf_siren to 0.0.5 for tf2.2
+
+* chore: drop misc cleanup
+
+* test(cli): better coverage for generating problems
+
+* chore: cleanup from review
+
+* chore: cleanup from review
+
+
+BREAKING CHANGES: This removes the "zero" agent entirely, and invalidates existing pretrained mathy models.
+
 ## [0.7.14](https://github.com/justindujardin/mathy/compare/v0.7.13...v0.7.14) (2020-04-19)
 
 
