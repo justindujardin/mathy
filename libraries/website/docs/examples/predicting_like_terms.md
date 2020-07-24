@@ -1,5 +1,5 @@
 
-# Predicting Like Terms [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/libraries/website/examples/predicting_like_terms.ipynb)
+# Predicting Like Terms [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/libraries/website/docs/examples/predicting_like_terms.ipynb)
 
 > This notebook is built using [thinc](https://thinc.ai){target=\_blank} and [Mathy](https://mathy.ai). 
 
@@ -93,7 +93,7 @@ We'll use Mathy to generate random polynomial problems with a variable number of
 ```python
 from typing import List, Optional, Set
 import random
-from mathy.problems import gen_simplify_multiple_terms
+from mathy_core.problems import gen_simplify_multiple_terms
 
 def generate_problems(number: int, exclude: Optional[Set[str]] = None) -> List[str]:
     if exclude is None:
@@ -144,8 +144,8 @@ To accomplish this we'll use a few helpers from mathy to enumerate the terms and
 
 ```python
 from typing import Optional, List, Dict
-from mathy.problems import mathy_term_string
-from mathy import MathExpression, ExpressionParser, get_terms, get_term_ex, TermEx
+from mathy_core.problems import mathy_term_string
+from mathy_core import MathExpression, ExpressionParser, get_terms, get_term_ex, TermEx
 
 parser = ExpressionParser()
 
