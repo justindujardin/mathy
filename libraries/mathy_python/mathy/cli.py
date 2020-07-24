@@ -65,10 +65,7 @@ def cli_simplify(problem: str, model: str, max_steps: int, swarm: bool, parallel
         mt = Mathy(config=SwarmConfig(use_mp=parallel))
         mt.simplify(problem=problem, max_steps=max_steps)
     else:
-        try:
-            mt = load_model(model)
-        except ValueError:
-            mt = Mathy(config=SwarmConfig(use_mp=parallel))
+        mt = load_model(model)
 
     mt.simplify(problem=problem, max_steps=max_steps)
 
@@ -219,9 +216,7 @@ def cli_train(
     instance.train()
 
 
-def setup_tf_env(use_mp=False):
-    if use_mp:
-        setup_tf_env_mp()
+def setup_tf_env():
     import os
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
@@ -234,22 +229,6 @@ def setup_tf_env(use_mp=False):
     tf.random.set_seed(1337)
 
     tf.compat.v1.logging.set_verbosity("CRITICAL")
-
-
-def setup_tf_env_mp():
-    """Create a sub-process and import Tensorflow inside of it
-    so that the library is loaded first in a subprocess. This is
-    the hacky way we get multiprocessing to work reliably. |o_O|"""
-    import multiprocessing
-
-    def worker():
-        import tensorflow as tf
-
-        return 0
-
-    proc = multiprocessing.Process(target=worker)
-    proc.start()
-    proc.join()
 
 
 if __name__ == "__main__":

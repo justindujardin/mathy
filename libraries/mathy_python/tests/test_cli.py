@@ -1,12 +1,30 @@
 import shutil
 import tempfile
 from unittest.mock import patch
+from mathy.env import MathyEnv
+from mathy.envs.gym.mathy_gym_env import safe_register
+from mathy.types import MathyEnvDifficulty, MathyEnvProblem, MathyEnvProblemArgs
 
 import pytest
 from click.testing import CliRunner
 
 from mathy.cli import cli
-from mathy.envs.gym import MathyGymEnv  # noqa
+from mathy.envs.gym import MathyGymEnv
+
+
+class InvalidProblemEnv(MathyEnv):
+    def get_env_namespace(self) -> str:
+        return "mathy.binomials.mulptiply"
+
+    def problem_fn(self, params: MathyEnvProblemArgs) -> MathyEnvProblem:
+        return MathyEnvProblem("4++++++7", 1, self.get_env_namespace())
+
+
+class InvalidProblemGymEnv(MathyGymEnv):
+    def __init__(self, difficulty: MathyEnvDifficulty, **kwargs):
+        super(InvalidProblemGymEnv, self).__init__(
+            env_class=InvalidProblemEnv, **kwargs
+        )
 
 
 def test_cli_contribute():
@@ -24,10 +42,17 @@ def test_cli_problems():
         result = runner.invoke(cli, ["problems", problem_type, "--number=100"])
         assert result.exit_code == 0
 
+    safe_register(
+        id="mathy-invalid-easy-v0",
+        entry_point="mathy.tests.test_cli:InvalidProblemGymEnv",
+    )
+    result = runner.invoke(cli, ["problems", "invalid", "--number=100"])
+    assert result.exit_code == 1
+
 
 def test_cli_simplify():
     runner = CliRunner()
-    for problem in ["4x + 2x", "(4 + 2) * x"]:
+    for problem in ["4x + 2x"]:
         result = runner.invoke(cli, ["simplify", problem, "--max-steps=3"])
         assert result.exit_code == 0
 
