@@ -1,3 +1,10 @@
+## [0.8.1](https://github.com/justindujardin/mathy/compare/v0.8.0...v0.8.1) (2020-07-24)
+
+
+### Bug Fixes
+
+* **cli:** simplify command without fragile installed ([c4dfcec](https://github.com/justindujardin/mathy/commit/c4dfcec6d2b61e3f9ca5c584a6c74742442e8e60))
+
 # [0.8.0](https://github.com/justindujardin/mathy/compare/v0.7.14...v0.8.0) (2020-07-24)
 
 
