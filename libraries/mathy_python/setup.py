@@ -28,7 +28,7 @@ def setup_package():
             "tensorboard>=2.2.0,<2.3.0",
             "tensorflow>=2.2.0,<2.3.0",
             "tensorflow_probability",
-            "tf_siren>=0.0.3",
+            "tf_siren>=0.0.5",
             "gym",
         ],
         "fragile": ["fragile==0.0.47", "tqdm>=4.43.0", "gym"],

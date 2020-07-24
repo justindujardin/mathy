@@ -180,6 +180,7 @@ class MathyEnvState(object):
             self.num_rules = state.num_rules
             self.max_moves = state.max_moves
             self.agent = MathyAgentState.copy(state.agent)
+        assert self.agent is not None, "either problem or state must be provided"
 
     @classmethod
     def copy(cls, from_state):

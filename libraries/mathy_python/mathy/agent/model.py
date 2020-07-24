@@ -9,7 +9,7 @@ import numpy as np
 import srsly
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from .siren import SinusodialRepresentationDense, SIRENModel
+from tf_siren import SinusodialRepresentationDense, SIRENModel
 from wasabi import msg
 
 from mathy_core.expressions import MathTypeKeysMax

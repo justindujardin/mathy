@@ -1,7 +1,5 @@
 import json
 import os
-from queue import Queue
-from typing import List
 
 import gym
 import numpy as np
@@ -45,7 +43,6 @@ class A3CAgent:
             print(self.global_model.summary())
 
     def train(self):
-        res_queue = Queue()
         A3CWorker.global_episode = 0
         worker_exploration_epsilons = np.geomspace(
             self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
@@ -71,7 +68,7 @@ class A3CAgent:
         try:
             for worker in workers:
                 worker.join()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt:  # pragma: no cover
             print("Received Keyboard Interrupt. Shutting down.")
             A3CWorker.request_quit = True
 
