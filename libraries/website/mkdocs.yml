@@ -20,6 +20,7 @@ nav:
 - Home: index.md
 - Examples:
   - Swarm Planning: examples/swarm.md
+  - Predicting Like Terms: examples/predicting_like_terms.md
 - Computer Algebra System:
   - Overview: cas/overview.md
   - Tokenizer: cas/tokenizer.md
@@ -32,33 +33,30 @@ nav:
     - Distributive Multiply: rules/distributive_property_multiply_across.md
     - Variable Multiply: rules/variable_multiplication.md
     - Constant Arithmetic: rules/constant_arithmetic.md
-- Reinforcement Learning:
+- Learning Environments:
   - Overview: envs/overview.md
   - Poly Simplify: envs/poly_simplify.md
   - Complex Simplify: envs/complex_simplify.md
   - Binomial Multiply: envs/binomial_multiply.md
-  - Machine Learning:
-    - Overview: ml/overview.md
-    - Debugging: ml/debugging.md
-    - Math Embeddings: ml/embeddings.md
-    - Policy/Value Model: ml/policy_value_model.md
-    - A3C Agent: ml/a3c.md
-    - Zero Agent: ml/zero.md
+- Machine Learning:
+  - Overview: ml/overview.md
+  - Agent: ml/a3c.md
+  - Model: ml/model.md
+  - Debugging: ml/debugging.md
 - API Documentation:
+  - agent:
+    - action_selectors: api/agent/action_selectors.md
+    - agent: api/agent/agent.md
+    - config: api/agent/config.md
+    - episode_memory: api/agent/episode_memory.md
+    - model: api/agent/model.md
+    - util: api/agent/util.md
+    - worker: api/agent/worker.md
   - api: api/api.md
-  - core:
-    - expressions: api/core/expressions.md
-    - layout: api/core/layout.md
-    - parser: api/core/parser.md
-    - rule: api/core/rule.md
-    - tokenizer: api/core/tokenizer.md
-    - tree: api/core/tree.md
   - env: api/env.md
   - models: api/models.md
-  - problems: api/problems.md
   - state: api/state.md
   - teacher: api/teacher.md
-  - testing: api/testing.md
   - time_step: api/time_step.md
   - util: api/util.md
 - Contributing: contributing.md
@@ -88,6 +86,7 @@ theme:
     logo: material/school
   features:
   - instant
+  # - tabs
   favicon: img/favicon/favicon-16x16.png
   palette:
     primary: deep-orange

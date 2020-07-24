@@ -1,13 +1,13 @@
 from typing import Any, List, Optional, Type
 
+from mathy_core.expressions import MathExpression
+from mathy_core.problems import gen_commute_haystack
+from mathy_core.rule import BaseRule
+from mathy_core.util import TermEx, get_term_ex, get_terms
 from numpy.random import randint
 
 from .. import time_step
-from ..core.expressions import MathExpression
-from ..util import TermEx, get_term_ex, get_terms
 from ..env import MathyEnv, MathyEnvProblem
-from ..problems import gen_commute_haystack
-from ..core.rule import BaseRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 

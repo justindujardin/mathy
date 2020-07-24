@@ -1,25 +1,25 @@
 from typing import Any, List, Optional, Type
 
-from numpy.random import randint, uniform
-
-from .. import time_step
-from ..core.expressions import MathExpression
-from ..core.rule import BaseRule
-from ..env import MathyEnv, MathyEnvProblem
-from ..problems import (
+from mathy_core.expressions import MathExpression
+from mathy_core.problems import (
     gen_binomial_times_binomial,
     gen_binomial_times_monomial,
     rand_bool,
 )
-from ..rules import (
+from mathy_core.rule import BaseRule
+from mathy_core.rules import (
     CommutativeSwapRule,
     ConstantsSimplifyRule,
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
+from mathy_core.util import get_terms, has_like_terms, is_preferred_term_form
+from numpy.random import randint, uniform
+
+from .. import time_step
+from ..env import MathyEnv, MathyEnvProblem
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
-from ..util import get_terms, has_like_terms, is_preferred_term_form
 
 
 class BinomialDistribute(MathyEnv):

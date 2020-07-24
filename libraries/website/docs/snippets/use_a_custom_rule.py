@@ -15,7 +15,7 @@ from mathy import (
     SubtractExpression,
 )
 from mathy.envs import PolySimplify
-from mathy.agents.a3c import A3CAgent, A3CConfig
+from mathy.agent.a3c import A3CAgent, AgentConfig
 from mathy.cli import setup_tf_env
 
 
@@ -52,7 +52,7 @@ all_rules = MathyEnv.core_rules() + [PlusNegationRule()]
 # Specify a set of operators to choose from when generating poly simplify problems
 env_args = {"ops": ["+", "-"], "rules": all_rules}
 # Configure and launch the A3C agent training
-args = A3CConfig(
+args = AgentConfig(
     max_eps=1,
     num_workers=1,
     print_training=True,

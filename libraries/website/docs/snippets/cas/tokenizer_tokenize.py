@@ -1,5 +1,5 @@
 from typing import List
-from mathy import Tokenizer, Token
+from mathy_core import Tokenizer, Token
 
 text = "4x + 2x^3 * 7x"
 tokenizer = Tokenizer()

@@ -46,7 +46,6 @@ def cli_contribute():
 @click.option(
     "model", "--model", default="mathy_alpha_sm", help="The path to a mathy model",
 )
-@click.option("agent", "--agent", default="a3c", help="one of 'a3c' or 'zero'")
 @click.option(
     "max_steps",
     "--max-steps",
@@ -54,24 +53,19 @@ def cli_contribute():
     help="The max number of steps before the episode is over",
 )
 @click.argument("problem", type=str)
-def cli_simplify(
-    agent: str, problem: str, model: str, max_steps: int, swarm: bool, parallel: bool
-):
+def cli_simplify(problem: str, model: str, max_steps: int, swarm: bool, parallel: bool):
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
     from .models import load_model
     from .api import Mathy
-    from .agents.fragile import SwarmConfig
+    from .swarm import SwarmConfig
 
-    mt: Mathy
     if swarm is True:
         mt = Mathy(config=SwarmConfig(use_mp=parallel))
+        mt.simplify(problem=problem, max_steps=max_steps)
     else:
-        try:
-            mt = load_model(model)
-        except ValueError:
-            mt = Mathy(config=SwarmConfig(use_mp=parallel))
+        mt = load_model(model)
 
     mt.simplify(problem=problem, max_steps=max_steps)
 
@@ -120,15 +114,8 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 
 
 @cli.command("train")
-@click.argument("agent")
 @click.argument("topics")
 @click.argument("folder")
-@click.option(
-    "transfer",
-    "--transfer",
-    default=None,
-    help="Location of a model to initialize the agent's weights from",
-)
 @click.option(
     "difficulty",
     "--difficulty",
@@ -143,25 +130,11 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Number of worker threads to use. More increases diversity of exp",
 )
 @click.option(
-    "strategy",
-    "--strategy",
-    default="a3c",
-    type=str,
-    help="The action selection strategy to use",
-)
-@click.option(
     "units",
     "--units",
     default=256,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
-)
-@click.option(
-    "rnn",
-    "--rnn",
-    default=None,
-    type=int,
-    help="Number of dimensions to use for token embeddings",
 )
 @click.option(
     "embeddings",
@@ -178,13 +151,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Maximum number of episodes to run",
 )
 @click.option(
-    "mcts_sims",
-    "--mcts-sims",
-    default=10,
-    type=int,
-    help="Number of rollouts per timestep when using MCTS",
-)
-@click.option(
     "show",
     "--show",
     default=False,
@@ -199,18 +165,6 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Set to gather profiler outputs for workers",
 )
 @click.option(
-    "self_play_problems",
-    "--self-play-problems",
-    default=100,
-    help="The number of self-play problems per gather/training iteration",
-)
-@click.option(
-    "training_iterations",
-    "--training-iterations",
-    default=10,
-    help="The max number of time to perform gather/training loops for the zero agent",
-)
-@click.option(
     "verbose",
     "--verbose",
     default=False,
@@ -218,29 +172,20 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Display verbose log items",
 )
 def cli_train(
-    agent: str,
     topics: str,
     folder: str,
-    transfer: str,
     difficulty: str,
-    strategy: str,
     workers: int,
     units: int,
-    rnn: int,
     embeddings: int,
     profile: bool,
     episodes: int,
-    mcts_sims: int,
     show: bool,
     verbose: bool,
-    training_iterations: int,
-    self_play_problems: int,
 ):
     """Train an agent to solve math problems and save the model.
 
     Arguments:
-
-    "agent" is one of the known agent types, either "a3c" or "zero".
 
     "topics" is a comma separated list of topic names to work problems from.
 
@@ -250,59 +195,28 @@ def cli_train(
     """
     topics_list = topics.split(",")
 
-    if agent == "a3c":
-        setup_tf_env()
+    setup_tf_env()
 
-        from .agents.a3c import A3CAgent, A3CConfig
+    from .agent import A3CAgent, AgentConfig
 
-        args = A3CConfig(
-            verbose=verbose,
-            difficulty=difficulty,
-            action_strategy=strategy,
-            topics=topics_list,
-            units=units,
-            embedding_units=embeddings,
-            mcts_sims=mcts_sims,
-            model_dir=folder,
-            init_model_from=transfer,
-            num_workers=workers,
-            profile=profile,
-            print_training=show,
-        )
-        if episodes is not None:
-            args.max_eps = episodes
-        if rnn is not None:
-            args.lstm_units = rnn
-        instance = A3CAgent(args)
-        instance.train()
-    elif agent == "zero":
-        setup_tf_env(use_mp=workers > 1)
-        from .agents.zero import SelfPlayConfig, self_play_runner
-
-        self_play_cfg = SelfPlayConfig(
-            verbose=verbose,
-            difficulty=difficulty,
-            topics=topics_list,
-            units=units,
-            embedding_units=embeddings,
-            mcts_sims=mcts_sims,
-            model_dir=folder,
-            init_model_from=transfer,
-            num_workers=workers,
-            training_iterations=training_iterations,
-            self_play_problems=self_play_problems,
-            print_training=show,
-            profile=profile,
-        )
-        if episodes is not None:
-            self_play_cfg.max_eps = episodes
-
-        self_play_runner(self_play_cfg)
+    args = AgentConfig(
+        verbose=verbose,
+        difficulty=difficulty,
+        topics=topics_list,
+        units=units,
+        embedding_units=embeddings,
+        model_dir=folder,
+        num_workers=workers,
+        profile=profile,
+        print_training=show,
+    )
+    if episodes is not None:
+        args.max_eps = episodes
+    instance = A3CAgent(args)
+    instance.train()
 
 
-def setup_tf_env(use_mp=False):
-    if use_mp:
-        setup_tf_env_mp()
+def setup_tf_env():
     import os
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
@@ -315,22 +229,6 @@ def setup_tf_env(use_mp=False):
     tf.random.set_seed(1337)
 
     tf.compat.v1.logging.set_verbosity("CRITICAL")
-
-
-def setup_tf_env_mp():
-    """Create a sub-process and import Tensorflow inside of it
-    so that the library is loaded first in a subprocess. This is
-    the hacky way we get multiprocessing to work reliably. |o_O|"""
-    import multiprocessing
-
-    def worker():
-        import tensorflow as tf
-
-        return 0
-
-    proc = multiprocessing.Process(target=worker)
-    proc.start()
-    proc.join()
 
 
 if __name__ == "__main__":

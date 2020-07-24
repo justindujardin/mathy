@@ -1,14 +1,22 @@
 from typing import Any, List, Optional, Type
 
+from mathy_core.expressions import MathExpression
+from mathy_core.problems import (
+    gen_combine_terms_in_place,
+    gen_commute_haystack,
+    rand_bool,
+)
+from mathy_core.rule import BaseRule
+from mathy_core.rules import (
+    AssociativeSwapRule,
+    CommutativeSwapRule,
+    DistributiveFactorOutRule,
+)
+from mathy_core.util import TermEx, get_term_ex, get_terms
 from numpy.random import randint
 
 from .. import time_step
-from ..core.expressions import MathExpression
-from ..core.rule import BaseRule
-from ..util import TermEx, get_term_ex, get_terms
 from ..env import MathyEnv, MathyEnvProblem
-from ..problems import gen_combine_terms_in_place, gen_commute_haystack, rand_bool
-from ..rules import AssociativeSwapRule, CommutativeSwapRule, DistributiveFactorOutRule
 from ..state import MathyEnvState, MathyObservation
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify

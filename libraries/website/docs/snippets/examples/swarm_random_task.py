@@ -4,7 +4,7 @@ import random
 
 import gym
 
-from mathy.agents.fragile import SwarmConfig, swarm_solve
+from mathy.swarm import SwarmConfig, swarm_solve
 from mathy.envs.gym import MathyGymEnv
 
 config = SwarmConfig(max_iters=10)

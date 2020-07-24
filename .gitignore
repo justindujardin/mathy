@@ -31,3 +31,6 @@ build
 coverage
 
 libraries/website/site/
+
+
+.ipynb_checkpoints

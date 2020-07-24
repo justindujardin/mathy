@@ -13,16 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      # from: https://bit.ly/2yo0tXG
-      - name: Free Disk Space
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
+      - name: Install Graphviz
+        run: sudo apt-get install graphviz
       - name: Setup Packages
-        run: sh tools/ci-setup.sh
+        run: sh tools/setup.sh
       - name: Build Packages
         run: sh tools/build.sh
       - name: Test Packages

@@ -1,17 +1,16 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from .agents.base_config import BaseConfig
-from .agents.episode_memory import EpisodeMemory
-from .agents.fragile import SwarmConfig, swarm_solve
-from .agents.policy_value_model import PolicyValueModel, load_policy_value_model
-from .state import MathyEnvState
+from .agent.config import AgentConfig
+from .agent.episode_memory import EpisodeMemory
+from .swarm import SwarmConfig, swarm_solve
+from .agent.model import AgentModel, load_agent_model
 
 
 @dataclass
 class MathyAPIModelState:
-    config: BaseConfig
-    model: PolicyValueModel
+    config: AgentConfig
+    model: AgentModel
 
 
 @dataclass
@@ -28,18 +27,18 @@ class Mathy:
         self,
         *,
         model_path: str = None,
-        model: PolicyValueModel = None,
-        config: Union[BaseConfig, SwarmConfig] = None,
+        model: AgentModel = None,
+        config: Union[AgentConfig, SwarmConfig] = None,
         silent: bool = False,
     ):
         if model_path is not None:
-            model, config = load_policy_value_model(model_path, silent=silent)
+            model, config = load_agent_model(model_path, silent=silent)
             self.state = MathyAPIModelState(model=model, config=config)
         elif model is not None and config is not None:
-            if not isinstance(model, PolicyValueModel):
-                raise ValueError("model must derive PolicyValueModel for compatibility")
-            if not isinstance(config, BaseConfig):
-                raise ValueError("config must be a BaseConfig instance")
+            if not isinstance(model, AgentModel):
+                raise ValueError("model must derive AgentModel for compatibility")
+            if not isinstance(config, AgentConfig):
+                raise ValueError("config must be a AgentConfig instance")
             self.state = MathyAPIModelState(model=model, config=config)
         else:
             if config is None:
@@ -83,9 +82,9 @@ class Mathy:
         import tensorflow as tf
         from colr import color
         from .envs.gym import MathyGymEnv
-        from .agents.action_selectors import GreedyActionSelector
+        from .agent.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
-        from .agents.policy_value_model import PolicyValueModel
+        from .agent.model import AgentModel
 
         environment = "poly"
         difficulty = "easy"

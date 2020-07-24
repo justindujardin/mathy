@@ -1,19 +1,17 @@
 #!pip install gym
 import os
 from mathy.cli import setup_tf_env
-from mathy.agents.a3c import A3CAgent, A3CConfig
+from mathy.agent import A3CAgent, AgentConfig
 import shutil
 import tempfile
 
 model_folder = tempfile.mkdtemp()
 setup_tf_env()
 
-args = A3CConfig(
+args = AgentConfig(
     profile=True,
     max_eps=2,
     verbose=True,
-    mcts_sims=1,
-    action_strategy="mcts_worker_0",
     topics=["poly-grouping"],
     model_dir=model_folder,
     num_workers=2,

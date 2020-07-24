@@ -1,17 +1,18 @@
 from typing import Any, Dict, List, Optional, Type
 
-from ..env import MathyEnvProblem
-from ..problems import gen_simplify_multiple_terms
-from ..rules import (
+from mathy_core.problems import gen_simplify_multiple_terms
+from mathy_core.rule import BaseRule
+from mathy_core.rules import (
     AssociativeSwapRule,
     ConstantsSimplifyRule,
     VariableMultiplyRule,
 )
-from ..core.rule import BaseRule
+from numpy.random import randint, uniform
+
+from ..env import MathyEnvProblem
 from ..state import MathyEnvState
 from ..types import MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify
-from numpy.random import randint, uniform
 
 
 class ComplexSimplify(PolySimplify):

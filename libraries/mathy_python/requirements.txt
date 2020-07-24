@@ -3,21 +3,15 @@ numpy
 colr
 srsly
 pydantic>=1.0.0
-click
+typer>=0.1.0,<0.2.0
 wasabi
-
-# OpenAI Gym environments
-gym
-
-# ML model agents
-tensorflow>=2.1.0,<2.2.0
-tensorflow_probability==0.9.0
-keras-self-attention
-
+mathy_core>=0.7.16,<0.8.0
 # new python feature backports
 dataclasses>=0.6,<1.0; python_version < "3.7"
 typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"
-
-# Swarm solver
-fragile==0.0.47
-tqdm>=4.43.0
+# TF agent
+gym
+tensorboard>=2.2.0,<2.3.0
+tensorflow>=2.2.0,<2.3.0
+tensorflow_probability
+tf_siren>=0.0.5

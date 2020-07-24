@@ -1,13 +1,12 @@
+import random
 from itertools import groupby
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
-
-from . import time_step
-from .core.expressions import STOP, MathExpression
-from .core.parser import ExpressionParser
-from .core.rule import BaseRule, ExpressionChangeRule
-from .rules import (
+from mathy_core.expressions import STOP, MathExpression
+from mathy_core.parser import ExpressionParser
+from mathy_core.rule import BaseRule, ExpressionChangeRule
+from mathy_core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
@@ -15,14 +14,16 @@ from .rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
-from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
-from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
-from .util import (
+from mathy_core.util import (
     compare_expression_string_values,
-    is_terminal_transition,
-    print_error,
     raise_with_history,
 )
+
+from .util import is_terminal_transition
+
+from . import time_step
+from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
+from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
 
 
 class MathyEnv:
@@ -161,14 +162,11 @@ class MathyEnv:
         so that the reward signal can be problem-type dependent."""
         return EnvRewards.LOSE
 
-    def get_state_transition(
-        self, env_state: MathyEnvState, searching: bool = False
-    ) -> time_step.TimeStep:
+    def get_state_transition(self, env_state: MathyEnvState) -> time_step.TimeStep:
         """Given an input state calculate the transition value of the timestep.
 
         # Parameters
             env_state: current env_state
-            searching: True when called by MCTS simulation
 
         # Returns
             transition: the current state value transition
@@ -235,13 +233,12 @@ class MathyEnv:
         )
 
     def get_next_state(
-        self, env_state: MathyEnvState, action: int, searching: bool = False
+        self, env_state: MathyEnvState, action: int
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         # Parameters
         env_state: current env_state
         action:    action taken
-        searching: boolean set to True when called by MCTS
 
         # Returns
         next_state: env_state after applying action
@@ -289,8 +286,8 @@ class MathyEnv:
             moves_remaining=agent.moves_remaining - 1,
         )
 
-        transition = self.get_state_transition(out_env, searching)
-        if not searching and self.verbose:
+        transition = self.get_state_transition(out_env)
+        if self.verbose:
             token_idx = int("{}".format(token_index).zfill(3))
             self.print_state(
                 out_env, change_name[:25].lower(), token_idx, change, transition.reward
@@ -388,20 +385,32 @@ class MathyEnv:
             return output
         return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
 
-    def random_action(self, expression: MathExpression, rule: Type[BaseRule]) -> int:
+    def random_action(
+        self,
+        expression: MathExpression,
+        rule: Union[Type[BaseRule], Tuple[Type[BaseRule], ...]] = None,
+    ) -> int:
         """Get a random action index that represents a particular rule"""
 
-        found = False
-        for r in self.rules:
-            if isinstance(r, rule):
-                found = True
-                break
-        if found is False:
-            raise ValueError(
-                "The action {rule} does not exist in the environment rule list"
-            )
-        actions = np.nonzero(self.get_actions_for_node(expression, [rule]))
-        action = np.random.choice(actions[0])
+        if rule is not None:
+            found = False
+            for r in self.rules:
+                if isinstance(r, rule):
+                    found = True
+                    break
+            if found is False:
+                raise ValueError(
+                    "The action {rule} does not exist in the environment rule list"
+                )
+            actions = np.nonzero(self.get_actions_for_node(expression, [rule]))
+            action = np.random.choice(actions[0])
+            return action
+
+        actions = np.nonzero(self.get_actions_for_node(expression))
+        try:
+            action = np.random.choice(random.choice(actions))
+        except ValueError:
+            raise ValueError(f"no valid actions for expression: {expression}")
         return action
 
     def get_initial_state(

@@ -3,18 +3,13 @@ import inspect
 import os
 import re
 from pathlib import Path
-from typing import List, Dict
-from wasabi import msg
+from typing import Dict, List
 
 import svgwrite
-from mathy.cli import setup_tf_env
-
-from mathy import (
+from mathy_core import (
     BinaryExpression,
     ExpressionParser,
     MathExpression,
-    MathyEnvState,
-    MathyObservation,
     Token,
     Tokenizer,
     TreeLayout,
@@ -22,6 +17,10 @@ from mathy import (
     VariableExpression,
     testing,
 )
+from wasabi import msg
+
+from mathy import MathyEnvState, MathyObservation
+from mathy.cli import setup_tf_env
 
 try:
     from .vis_utils import model_to_dot
@@ -325,11 +324,6 @@ def render_tokens_from_text(input_text: str):
 
 
 def render_model_architecture(match):
-    # HACK: disable this until I can figure out how to render graphs from models
-    #       without using the Functional keras API (which can't cope with variable)
-    #       length LSTM sequence inputs.
-    if True or False:
-        return ""
     global model_hashes
     import importlib
     import gym  # noqa
@@ -422,7 +416,7 @@ def render_html(text: str):
 
 if __name__ == "__main__":
     res = render_html("<code>features:4x^3 * 2x - 7</code>")
-    res = render_html("<code>model:mathy.agents.embedding:mathy_embedding</code>")
+    res = render_html("<code>model:mathy.agent.model:build_agent_model</code>")
     with open("./features.svg", "w") as f:
         f.write(res)
     print(res)
@@ -459,7 +453,7 @@ Build your own tree transformation actions and use them with the built-in agents
 """
         )
     )
-    print(render_html("<code>model:mathy.agents.embedding:MathyEmbedding</code>"))
+    print(render_html("<code>model:mathy.agent.model:build_agent_model</code>"))
 else:
     from mkdocs.plugins import BasePlugin
 

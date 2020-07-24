@@ -1,13 +1,7 @@
 from typing import Any, Dict, List, Optional, Type, Union
 
-from numpy import random
-from numpy.random import randint
-
-from .. import time_step
-from ..core.expressions import MathExpression
-from ..util import TermEx, get_term_ex, get_terms
-from ..env import MathyEnvProblem
-from ..problems import (
+from mathy_core.expressions import MathExpression
+from mathy_core.problems import (
     gen_combine_terms_in_place,
     get_rand_term_templates,
     get_rand_vars,
@@ -18,8 +12,8 @@ from ..problems import (
     rand_var,
     split_in_two_random,
 )
-from ..core.rule import BaseRule
-from ..rules import (
+from mathy_core.rule import BaseRule
+from mathy_core.rules import (
     AssociativeSwapRule,
     CommutativeSwapRule,
     ConstantsSimplifyRule,
@@ -27,8 +21,14 @@ from ..rules import (
     DistributiveMultiplyRule,
     VariableMultiplyRule,
 )
+from mathy_core.util import TermEx, get_term_ex, get_terms
+from numpy import random
+from numpy.random import randint
+
+from .. import time_step
+from ..env import MathyEnvProblem
 from ..state import MathyEnvState, MathyEnvStateStep, MathyObservation
-from ..types import MathyEnvDifficulty, MathyEnvProblemArgs, EnvRewards
+from ..types import EnvRewards, MathyEnvDifficulty, MathyEnvProblemArgs
 from .poly_simplify import PolySimplify
 
 

@@ -1,5 +1,6 @@
 # IMPORTANT: This file isn't used in setup.py..
--e ../mathy_python/ # depend on mathy for parsing/layout
+-e ../mathy_python/[tf,all] # depend on mathy for parsing/layout
 pydot
 pytest
 pytest-cov
+svgwrite

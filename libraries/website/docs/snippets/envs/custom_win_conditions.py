@@ -3,9 +3,11 @@ two nodes are adjacent to each other that can have the distributive
 property applied to factor out a common term """
 
 from typing import Optional
-from mathy import (
-    DistributiveFactorOutRule,
+from mathy_core import (
     MathExpression,
+    rules,
+)
+from mathy import (
     MathyEnv,
     MathyEnvState,
     MathyObservation,
@@ -15,7 +17,7 @@ from mathy import (
 
 
 class CustomWinConditions(MathyEnv):
-    rule = DistributiveFactorOutRule()
+    rule = rules.DistributiveFactorOutRule()
 
     def transition_fn(
         self,

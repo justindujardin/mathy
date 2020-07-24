@@ -1,9 +1,12 @@
-from mathy.state import MathyEnvState
+import random
+
+import pytest
+
 from mathy.env import MathyEnv
 from mathy.envs.poly_simplify import PolySimplify
-from mathy.util import is_terminal_transition, EnvRewards
-import random
-import pytest
+from mathy.state import MathyEnvState
+from mathy.types import EnvRewards
+from mathy.util import is_terminal_transition
 
 
 def test_mathy_env_init():

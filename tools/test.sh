@@ -10,7 +10,7 @@ done
 
 
 echo "Combining and reporting total mathy coverage:"
-. ./libraries/website/.env/bin/activate
+. .env/bin/activate
 cp ./libraries/mathy_python/.coverage ./.coverage.mathy_python
 cp ./libraries/website/.coverage ./.coverage.website
 coverage combine

@@ -22,12 +22,12 @@ The JSON blob we want to add looks like this:
 
 ```json
 {
-  "name": "Train Mathy Zero Agent",
+  "name": "Train Mathy Agent",
   "type": "python",
   "request": "launch",
   "justMyCode": false,
   "module": "mathy",
-  "args": ["train", "zero", "poly", "training/dev_zero", "--workers=1"]
+  "args": ["train", "poly", "training/dev_agent", "--workers=1"]
 }
 ```
 

@@ -4,7 +4,7 @@ import random
 
 import gym
 
-from mathy.agents.fragile import SwarmConfig, mathy_swarm
+from mathy.swarm import SwarmConfig, mathy_swarm
 from mathy.envs.gym import MathyGymEnv
 from mathy.state import MathyEnvState
 

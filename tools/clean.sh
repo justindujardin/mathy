@@ -2,6 +2,7 @@
 set -e
 echo "Cleaning all setup/build files for apps..."
 echo "You will have to run the root 'sh tools/setup.sh' again after this."
+rm -rf .env
 libraries="mathy_python mathy_mkdocs website"
 for library in $libraries
 do

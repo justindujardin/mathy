@@ -4,13 +4,12 @@ from typing import List, Optional, Type, Union
 import gym
 import numpy as np
 from gym.envs.registration import register
+from mathy_core.rule import ExpressionChangeRule
 
-from ...core.expressions import MathExpression
-from ...core.rule import ExpressionChangeRule
 from ...env import MathyEnv
-from ...state import MathyEnvState, MathyObservation, observations_to_window
-from ...types import MathyEnvProblem, MathyEnvProblemArgs
-from ...util import discount, is_terminal_transition, pad_array
+from ...state import MathyEnvState, MathyObservation
+from ...types import MathyEnvProblemArgs
+from ...util import is_terminal_transition, pad_array
 from .masked_discrete import MaskedDiscrete
 
 
