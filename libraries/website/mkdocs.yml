@@ -21,7 +21,6 @@ nav:
 - Examples:
   - Swarm Planning: examples/swarm.md
   - Predicting Like Terms: examples/predicting_like_terms.md
-  - Like Terms Reformer: examples/like_terms_reformer.md
 - Computer Algebra System:
   - Overview: cas/overview.md
   - Tokenizer: cas/tokenizer.md
@@ -34,7 +33,7 @@ nav:
     - Distributive Multiply: rules/distributive_property_multiply_across.md
     - Variable Multiply: rules/variable_multiplication.md
     - Constant Arithmetic: rules/constant_arithmetic.md
-- Reinforcement Learning:
+- Learning Environments:
   - Overview: envs/overview.md
   - Poly Simplify: envs/poly_simplify.md
   - Complex Simplify: envs/complex_simplify.md

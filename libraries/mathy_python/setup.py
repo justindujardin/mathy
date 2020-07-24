@@ -24,15 +24,7 @@ def setup_package():
 
     extras = {
         "dev": DEVELOPMENT_MODULES,
-        "tf": [
-            "tensorboard>=2.2.0,<2.3.0",
-            "tensorflow>=2.2.0,<2.3.0",
-            "tensorflow_probability",
-            "tf_siren>=0.0.5",
-            "gym",
-        ],
         "fragile": ["fragile==0.0.47", "tqdm>=4.43.0", "gym"],
-        "torch": ["torch", "reformer_pytorch", "thinc>=8.0.0a6", "blis"],
     }
     extras["all"] = [item for group in extras.values() for item in group]
 

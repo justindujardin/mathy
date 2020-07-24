@@ -1,7 +1,7 @@
 import datetime
 import multiprocessing
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Union
 
 from colr import color
 
@@ -30,7 +30,8 @@ class EpisodeLosses:
         return out
 
 
-def truncate(value):
+def truncate(value: Union[str, int, float]):
+    """Truncate a number to 3 decimal places"""
     return float("%.3f" % (float(value)))
 
 
@@ -45,13 +46,22 @@ def record(
     env_name: str,
 ):
     """Helper function to store score and print statistics.
-  Arguments:
+
+    # Arguments
+
     episode: Current episode
+
     episode_reward: Reward accumulated over the current episode
+
     worker_idx: Which thread (worker)
+
     global_ep_reward: The moving average of the global reward
+
     total_loss: The total loss accumualted over the current episode
+
     num_steps: The number of steps the episode took to complete
+
+    env_name: The environment name for the episode
   """
 
     now = datetime.datetime.now().strftime("%H:%M:%S")

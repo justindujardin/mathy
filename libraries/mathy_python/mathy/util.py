@@ -22,15 +22,6 @@ MISSING_LIBRARIES_ALERT = (
 MODULE_JOIN = "\n\t"
 
 
-def assert_torch_installed():
-    requires = ["torch", "reformer_pytorch"]
-    extra_name = "torch"
-    if not has_modules(requires):
-        raise EnvironmentError(
-            MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
-        )
-
-
 def assert_fragile_installed():
     requires = ["fragile", "gym"]
     extra_name = "swarm"
@@ -39,38 +30,8 @@ def assert_fragile_installed():
             MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
         )
 
-
-def assert_tensorflow_installed():
-    requires = ["tensorflow", "tensorflow_probability", "tf_siren"]
-    extra_name = "tf"
-    if not has_modules(requires):
-        raise EnvironmentError(
-            MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
-        )
-
-
 def is_terminal_transition(transition: time_step.TimeStep) -> bool:
     return bool(transition.step_type == time_step.StepType.LAST)
-
-
-def discount(values: List[float], gamma=0.99) -> List[float]:
-    """Discount a list of floating point values.
-
-    # Arguments
-    r (List[float]): the list of floating point values to discount
-    gamma (float): a value between 0 and 0.99 to use when discounting the inputs
-    
-    # Returns
-    (List[float]): a list of the same size as the input with discounted values
-    """
-    discounted_r = np.zeros_like(values, dtype=np.float32)
-    running_add = 0
-    for t in reversed(range(len(values))):
-        running_add = running_add * gamma + values[t]
-        discounted_r[t] = running_add
-    # reverse them to restore the correct order
-    np.flip(discounted_r)
-    return discounted_r
 
 
 def pad_array(in_list: List[Any], max_length: int, value: Any = 0) -> List[Any]:

@@ -9,3 +9,9 @@ mathy_core>=0.7.16,<0.8.0
 # new python feature backports
 dataclasses>=0.6,<1.0; python_version < "3.7"
 typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"
+# TF agent
+gym
+tensorboard>=2.2.0,<2.3.0
+tensorflow>=2.2.0,<2.3.0
+tensorflow_probability
+tf_siren>=0.0.5

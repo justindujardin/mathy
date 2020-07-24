@@ -1,20 +1,5 @@
 # mathy.util
 
-## discount
-```python
-discount(values:List[float], gamma=0.99) -> List[float]
-```
-Discount a list of floating point values.
-
-__Arguments__
-
-- __r (List[float])__: the list of floating point values to discount
-- __gamma (float)__: a value between 0 and 0.99 to use when discounting the inputs
-
-__Returns__
-
-`(List[float])`: a list of the same size as the input with discounted values
-
 ## pad_array
 ```python
 pad_array(in_list:List[Any], max_length:int, value:Any=0) -> List[Any]
