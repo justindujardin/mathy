@@ -137,6 +137,13 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     help="Number of dimensions to use for math vectors and model dimensions",
 )
 @click.option(
+    "lstm",
+    "--lstm",
+    default=128,
+    type=int,
+    help="Number of dimensions to use for LSTM size",
+)
+@click.option(
     "embeddings",
     "--embeddings",
     default=256,
@@ -182,6 +189,7 @@ def cli_train(
     episodes: int,
     show: bool,
     verbose: bool,
+    lstm: int,
 ):
     """Train an agent to solve math problems and save the model.
 
@@ -209,6 +217,7 @@ def cli_train(
         num_workers=workers,
         profile=profile,
         print_training=show,
+        lstm_units=lstm,
     )
     if episodes is not None:
         args.max_eps = episodes

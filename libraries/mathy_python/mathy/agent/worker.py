@@ -1,12 +1,9 @@
-import math
-import os
-import queue
 import threading
-import time
-from multiprocessing import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
-
+import time
+import os
 import gym
+from mathy.env import MathyEnv
 import numpy as np
 import tensorflow as tf
 from wasabi import msg
@@ -15,7 +12,7 @@ from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
 from . import action_selectors
 from .episode_memory import EpisodeMemory
-from .model import AgentModel, get_or_create_agent_model
+from .model import AgentModel, get_or_create_agent_model, call_model
 from .trfl import discrete_policy_entropy_loss, td_lambda
 from .config import AgentConfig
 from .util import EpisodeLosses, record, truncate
@@ -186,7 +183,11 @@ class A3CWorker(threading.Thread):
                 time_count = 0
                 if done:
                     self.finish_episode(
-                        last_obs_info.get("win", False), ep_reward, ep_steps, env.state
+                        last_obs_info.get("win", False),
+                        ep_reward,
+                        ep_steps,
+                        env.state,
+                        env.mathy,
                     )
 
             ep_steps += 1
@@ -279,16 +280,6 @@ class A3CWorker(threading.Thread):
         zipped_gradients = zip(grads, self.global_model.trainable_weights)
         # Assert that we always have some gradient flow in each trainable var
 
-        # TODO: Make this a unit test. It degrades performance at train time
-        # for grad, var in zipped_gradients:
-        #     nonzero_grads = tf.math.count_nonzero(grad).numpy()
-        #     grad_sum = tf.math.reduce_sum(grad).numpy()
-        #     # if "lstm" in var.name and self.worker_idx == 0:
-        #     #     print(f"[{var.name}] {grad_sum}")
-        #     if nonzero_grads == 0:
-        #         tf.print(grad_sum)
-        #         raise ValueError(f"{var.name} has no gradient")
-
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
@@ -304,6 +295,7 @@ class A3CWorker(threading.Thread):
         episode_reward: float,
         episode_steps: int,
         last_state: MathyEnvState,
+        env: MathyEnv,
     ):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
 
@@ -319,6 +311,8 @@ class A3CWorker(threading.Thread):
                 self.losses,
                 episode_steps,
                 env_name,
+                env=env,
+                state=last_state,
             )
             self.maybe_write_episode_summaries(
                 episode_reward, episode_steps, last_state
@@ -326,7 +320,7 @@ class A3CWorker(threading.Thread):
 
             step = self.global_model.optimizer.iterations.numpy()
             next_write = self.last_model_write + A3CWorker.save_every_n_episodes
-            if step >= next_write or self.last_model_write == -1:
+            if step >= next_write:
                 self.last_model_write = step
                 self.write_global_model()
 
@@ -356,8 +350,8 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = self.local_model.call(
-                observations_to_window([observation]).to_inputs()
+            _, values, _ = call_model(
+                self.local_model, observations_to_window([observation]).to_inputs()
             )
             # Select the last timestep
             values = values[-1]

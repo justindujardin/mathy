@@ -1,15 +1,10 @@
 import os
-import pickle
-import time
 from pathlib import Path
-from shutil import copyfile
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from typing import Tuple
 
-import numpy as np
 import srsly
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from tf_siren import SinusodialRepresentationDense, SIRENModel
 from wasabi import msg
 
 from mathy_core.expressions import MathTypeKeysMax
@@ -19,11 +14,21 @@ from ..state import (
     MathyInputsType,
     MathyObservation,
     MathyWindowObservation,
-    ObservationFeatureIndices,
     observations_to_window,
 )
 from mathy_core.util import print_error
 from .config import AgentConfig
+
+
+AgentModel = tf.keras.Model
+
+
+def call_model(model: AgentModel, inputs: MathyInputsType):
+    @tf.function()
+    def wrapped(m: AgentModel, i: MathyInputsType):
+        return model.call(inputs)
+
+    return wrapped(model, inputs)
 
 
 def build_agent_model(
@@ -41,31 +46,44 @@ def build_agent_model(
         name="nodes_input",
         mask_zero=True,
     )
-    values_dense = SinusodialRepresentationDense(
-        config.units,
-        name="values_input",
-        kernel_initializer="siren_first_uniform",
-        w0=30.0,
+    values_dense = tf.keras.layers.Dense(
+        config.units, name="values_input", activation="swish",
     )
-    type_dense = SinusodialRepresentationDense(
-        config.units,
-        name="type_input",
-        kernel_initializer="siren_first_uniform",
-        w0=30.0,
+    type_dense = tf.keras.layers.Dense(
+        config.units, name="type_input", activation="swish",
     )
-    time_dense = SinusodialRepresentationDense(
-        config.units,
-        name="time_input",
-        kernel_initializer="siren_first_uniform",
-        w0=30.0,
+    time_dense = tf.keras.layers.Dense(
+        config.units, name="time_input", activation="swish"
     )
-    siren_mlp = SIRENModel(
-        units=config.units, final_units=config.units, num_layers=6, name="siren",
+    in_dense = tf.keras.layers.Dense(
+        config.units,
+        name="in_dense",
+        activation="swish",
+        kernel_initializer="he_normal",
+    )
+    nodes_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_nodes_norm")
+    time_lstm_norm = tf.keras.layers.LayerNormalization(name="time_lstm_norm")
+    lstm_nodes = tf.keras.layers.Bidirectional(
+        tf.keras.layers.LSTM(
+            config.lstm_units,
+            name="nodes_lstm",
+            time_major=False,
+            return_sequences=True,
+            dropout=0.1,
+        ),
+        merge_mode="sum",
+    )
+    lstm_time = tf.keras.layers.LSTM(
+        config.lstm_units,
+        name="time_lstm",
+        time_major=True,
+        return_sequences=True,
+        dropout=config.dropout,
     )
     policy_net = tf.keras.Sequential(
         [
             tf.keras.layers.TimeDistributed(
-                SinusodialRepresentationDense(
+                tf.keras.layers.Dense(
                     predictions, name="policy_ts_hidden", activation=None,
                 ),
                 name="policy_logits",
@@ -76,23 +94,23 @@ def build_agent_model(
     )
     value_net = tf.keras.Sequential(
         [
-            SinusodialRepresentationDense(config.units, name="value_hidden"),
-            SinusodialRepresentationDense(1, name="value_logits", activation=None),
+            tf.keras.layers.Dense(config.units, name="value_hidden"),
+            tf.keras.layers.Dense(1, name="value_logits", activation=None),
         ],
         name="value_head",
     )
     reward_net = tf.keras.Sequential(
         [
-            SinusodialRepresentationDense(
+            tf.keras.layers.Dense(
                 config.units, name="reward_hidden", activation="relu",
             ),
             tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
-            SinusodialRepresentationDense(1, name="reward_logits", activation=None),
+            tf.keras.layers.Dense(1, name="reward_logits", activation=None),
         ],
         name="reward_head",
     )
     # Model
-    sequence_inputs = siren_mlp(
+    sequence_inputs = in_dense(
         tf.concat(
             [
                 token_embedding(nodes_in),
@@ -104,10 +122,14 @@ def build_agent_model(
             name="input_vectors",
         )
     )
-    sequence_mean = tf.reduce_mean(sequence_inputs, axis=1)
-    values = value_net(sequence_mean)
-    reward_logits = reward_net(sequence_mean)
-    logits = policy_net(sequence_inputs)
+    output = lstm_time(sequence_inputs)
+    output = time_lstm_norm(output)
+    output = lstm_nodes(output)
+    output = nodes_lstm_norm(output)
+    reduced = tf.reduce_max(output, axis=1)
+    values = value_net(reduced)
+    reward_logits = reward_net(reduced)
+    logits = policy_net(output)
     inputs = [
         nodes_in,
         values_in,
@@ -126,9 +148,6 @@ def build_agent_model(
     out_model.opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
     out_model.predictions = predictions
     return out_model
-
-
-AgentModel = tf.keras.Model
 
 
 def _load_model(model_path: Path, predictions: int) -> AgentModel:
