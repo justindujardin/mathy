@@ -5,6 +5,9 @@ from .. import about
 
 
 class AgentConfig(BaseModel):
+    def __hash__(self) -> int:
+        return hash(",".join([f"{k}{v}" for k, v in self.dict().items()]))
+
     class Config:
         extra = "allow"
 
@@ -17,15 +20,15 @@ class AgentConfig(BaseModel):
     email: str = about.__email__
     url: str = about.__uri__
     mathy_version: str = f">={about.__version__},<1.0.0"
-    # One of "batch" or "layer"
-    normalization_style = "layer"
     # The number of timesteps use when making predictions. This includes the current timestep and
     # (n - 1) previous timesteps
     prediction_window_size: int = 6
     units: int = 64
     embedding_units: int = 128
+    lstm_units: int = 128
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
+    dropout: float = 0.1
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
     verbose: bool = False
@@ -55,7 +58,7 @@ class AgentConfig(BaseModel):
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
-    update_gradients_every: int = 8
+    update_gradients_every: int = 128
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
     e_greedy_max = 0.04
@@ -85,14 +88,14 @@ class AgentConfig(BaseModel):
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 500
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
-    teacher_evaluation_steps = 20
+    teacher_evaluation_steps = 3
     # If the agent wins >= this value, promote to the next difficulty class
     # Wild-ass guess inspired by:
     # https://uanews.arizona.edu/story/learning-optimized-when-we-fail-15-time
     # If 85 is optimal, when you go beyond 85 + buffer it's time to move up... |x_X|
     teacher_promote_wins = 0.90
-    # If the agent loses >= this value, demot to the previous difficulty class
-    teacher_demote_wins = 0.65
+    # If the agent loses >= this value, demote to the previous difficulty class
+    teacher_demote_wins = 0.66
 
     # When profile is true, each A3C worker thread will output a .profile
     # file in the model save path when it exits.

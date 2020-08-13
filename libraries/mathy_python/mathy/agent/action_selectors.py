@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from ..state import MathyEnvState, MathyInputsType, MathyWindowObservation
-from .model import AgentModel
+from .model import AgentModel, call_model
 
 
 def apply_pi_mask(logits: tf.Tensor, mask: tf.Tensor, predictions: int) -> tf.Tensor:
@@ -31,7 +31,8 @@ def predict_next(
     """Predict one probability distribution and value for the
     given sequence of inputs """
     mask = inputs.pop("mask_in")
-    logits, values, rewards = model.call(inputs)
+
+    logits, values, rewards = call_model(model, inputs)
     masked = apply_pi_mask(logits, mask, model.predictions)
     # take the last timestep
     masked = masked[-1][:]

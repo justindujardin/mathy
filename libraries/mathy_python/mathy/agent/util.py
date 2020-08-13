@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import Dict, Union
 
 from colr import color
+from mathy.env import MathyEnv
+from mathy.state import MathyEnvState
 
 
 @dataclass
@@ -44,6 +46,8 @@ def record(
     losses: EpisodeLosses,
     num_steps: int,
     env_name: str,
+    env: MathyEnv,
+    state: MathyEnvState,
 ):
     """Helper function to store score and print statistics.
 
@@ -84,4 +88,6 @@ def record(
     print(
         color(f"{heading} {rewards} {losses} [{env_name}]", fore=fore, style="bright")
     )
+    # if not is_win:
+    #     env.print_history(state)
     return global_ep_reward

@@ -14,4 +14,3 @@ gym
 tensorboard>=2.2.0,<2.3.0
 tensorflow>=2.2.0,<2.3.0
 tensorflow_probability
-tf_siren>=0.0.5
