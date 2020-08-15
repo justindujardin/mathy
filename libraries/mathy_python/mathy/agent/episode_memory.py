@@ -48,7 +48,10 @@ class EpisodeMemory(object):
     ) -> MathyWindowObservation:
         previous = -(max(window_size - 1, 1))
         window_observations = self.observations[previous:] + [observation]
-        assert len(window_observations) <= window_size
+        # Pad with the current observation so the model graph doesn't
+        # need to be rebuilt for multiple batch sizes
+        while len(window_observations) < window_size:
+            window_observations.append(observation)
         return observations_to_window(window_observations)
 
     def to_window_observations(

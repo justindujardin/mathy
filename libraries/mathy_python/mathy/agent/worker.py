@@ -369,7 +369,7 @@ class A3CWorker(threading.Thread):
         batch_size = len(episode_memory.actions)
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
-        model_results = self.local_model.call(inputs)
+        model_results = call_model(self.local_model, inputs)
         logits, values, reward_logits = model_results
 
         logits = tf.reshape(logits, [batch_size, -1])

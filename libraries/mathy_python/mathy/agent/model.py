@@ -23,12 +23,9 @@ from .config import AgentConfig
 AgentModel = tf.keras.Model
 
 
+@tf.function()
 def call_model(model: AgentModel, inputs: MathyInputsType):
-    @tf.function()
-    def wrapped(m: AgentModel, i: MathyInputsType):
-        return model.call(inputs)
-
-    return wrapped(model, inputs)
+    return model.call(inputs)
 
 
 def build_agent_model(
@@ -69,9 +66,9 @@ def build_agent_model(
             name="nodes_lstm",
             time_major=False,
             return_sequences=True,
-            dropout=0.1,
+            dropout=config.dropout,
         ),
-        merge_mode="sum",
+        merge_mode="ave",
     )
     lstm_time = tf.keras.layers.LSTM(
         config.lstm_units,
@@ -126,9 +123,9 @@ def build_agent_model(
     output = time_lstm_norm(output)
     output = lstm_nodes(output)
     output = nodes_lstm_norm(output)
-    reduced = tf.reduce_max(output, axis=1)
-    values = value_net(reduced)
-    reward_logits = reward_net(reduced)
+    squeezed = tf.reduce_max(output, axis=1)
+    values = value_net(squeezed)
+    reward_logits = reward_net(squeezed)
     logits = policy_net(output)
     inputs = [
         nodes_in,

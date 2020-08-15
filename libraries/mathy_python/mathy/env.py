@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from mathy_core.expressions import STOP, MathExpression
-from mathy_core.parser import ExpressionParser
+from mathy_core.parser import ExpressionParser, InvalidSyntax
 from mathy_core.rule import BaseRule, ExpressionChangeRule
 from mathy_core.rules import (
     AssociativeSwapRule,
@@ -44,7 +44,7 @@ class MathyEnv:
         rules: List[BaseRule] = None,
         max_moves: int = 20,
         verbose: bool = False,
-        error_invalid: bool = False,
+        error_invalid: bool = True,
         reward_discount: float = 0.99,
     ):
         self.discount = reward_discount
@@ -463,7 +463,12 @@ class MathyEnv:
          for the current state.
         """
         agent = env_state.agent
-        expression = self.parser.parse(agent.problem)
+        try:
+            expression = self.parser.parse(agent.problem)
+        except InvalidSyntax as err:
+            raise_with_history(
+                self.get_env_namespace(), err.message, env_state.agent.history
+            )
         return self.get_actions_for_node(expression)
 
     def get_valid_rules(self, env_state: MathyEnvState) -> List[int]:

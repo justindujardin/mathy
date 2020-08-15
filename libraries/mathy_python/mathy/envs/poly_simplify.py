@@ -61,8 +61,8 @@ class PolySimplify(MathyEnv):
         noise = uniform(0.85, 1.0)
 
         if params.difficulty == MathyEnvDifficulty.easy:
-            noise_terms = randint(1, 3)
-            num_terms = randint(3, 6)
+            noise_terms = randint(0, 2)
+            num_terms = randint(2, 6)
             scaling = uniform(0.35, 0.5)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
