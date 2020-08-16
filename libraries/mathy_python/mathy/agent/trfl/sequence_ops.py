@@ -120,12 +120,14 @@ def scan_discounted_sum(
         if reverse:
             sequences = [_reverse_seq(s, sequence_lengths) for s in sequences]
 
-        summed = tf.scan(
-            lambda a, x: x[0] + x[1] * a,
-            sequences,
-            initializer=tf.convert_to_tensor(value=initial_value),
-            parallel_iterations=1,
-            back_prop=back_prop,
+        summed = tf.nest.map_structure(
+            tf.stop_gradient,
+            tf.scan(
+                lambda a, x: x[0] + x[1] * a,
+                sequences,
+                initializer=tf.convert_to_tensor(value=initial_value),
+                parallel_iterations=1,
+            ),
         )
         if reverse:
             summed = _reverse_seq(summed, sequence_lengths)
