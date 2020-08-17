@@ -18,6 +18,8 @@ EpisodeMemoryKeys = Union[
 
 
 class EpisodeMemory(object):
+    # The max length of observations
+    max_len: int
     # Observation from the environment
     observations: List[MathyObservation]
     # Action taken in the environment
@@ -27,7 +29,8 @@ class EpisodeMemory(object):
     # Estimated value from the model
     values: List[float]
 
-    def __init__(self):
+    def __init__(self, max_len: int):
+        self.max_len = max_len
         self.clear()
 
     def clear(self):
@@ -52,7 +55,7 @@ class EpisodeMemory(object):
         # need to be rebuilt for multiple batch sizes
         while len(window_observations) < window_size:
             window_observations.append(observation)
-        return observations_to_window(window_observations)
+        return observations_to_window(window_observations, self.max_len)
 
     def to_window_observations(
         self,
@@ -74,7 +77,9 @@ class EpisodeMemory(object):
                 continue
             start = i
             end = i + window
-            i_window = observations_to_window(self.observations[start:end])
+            i_window = observations_to_window(
+                self.observations[start:end], self.max_len
+            )
             # Maybe exclude partial windows
             if only_full_windows and len(i_window.nodes) != window:
                 continue
@@ -88,7 +93,7 @@ class EpisodeMemory(object):
         return results
 
     def to_episode_window(self) -> MathyWindowObservation:
-        return observations_to_window(self.observations)
+        return observations_to_window(self.observations, self.max_len)
 
     def store(
         self,

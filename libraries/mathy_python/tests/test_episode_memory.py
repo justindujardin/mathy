@@ -8,7 +8,7 @@ from mathy.envs.poly_simplify import PolySimplify
 
 
 def get_memory(number_observations: int) -> Tuple[EpisodeMemory, PolySimplify]:
-    memory = EpisodeMemory()
+    memory = EpisodeMemory(128)
     env = PolySimplify()
     state, problem = env.get_initial_state()
     for i in range(number_observations):

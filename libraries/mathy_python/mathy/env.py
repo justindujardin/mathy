@@ -36,7 +36,7 @@ class MathyEnv:
     verbose: bool
     reward_discount: float
     parser: ExpressionParser
-    valid_actions_mask_cache: Dict[str, List[int]]
+    valid_actions_mask_cache: Dict[str, List[List[int]]]
     valid_rules_cache: Dict[str, List[int]]
 
     def __init__(
@@ -233,12 +233,12 @@ class MathyEnv:
         )
 
     def get_next_state(
-        self, env_state: MathyEnvState, action: int
+        self, env_state: MathyEnvState, action: Tuple[int, int]
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         # Parameters
         env_state: current env_state
-        action:    action taken
+        action:    a tuple of two integers representing the rule and node to act on
 
         # Returns
         next_state: env_state after applying action
@@ -249,7 +249,7 @@ class MathyEnv:
         """
         agent = env_state.agent
         expression = self.parser.parse(agent.problem)
-        action_index, token_index = self.get_action_indices(action)
+        action_index, token_index = action
         token = self.get_token_at_index(expression, token_index)
         operation = self.rules[action_index]
 
@@ -262,12 +262,9 @@ class MathyEnv:
                     steps, action, type(operation), expression
                 )
                 raise_with_history("Invalid Action", msg, agent.history)
-                raise ValueError(f"Invalid Action: {msg}")
             else:
-                valid_mask = self.get_valid_moves(env_state)
                 # Non-masked searches ignore invalid moves entirely
                 out_env = MathyEnvState.copy(env_state)
-                out_env.action = -1
                 obs = out_env.to_observation(
                     self.get_valid_moves(out_env), parser=self.parser
                 )
@@ -338,7 +335,7 @@ class MathyEnv:
             curr_state, transition, change = self.get_next_state(
                 curr_state, step.action + (step.focus * len(self.rules))
             )
-            rule_idx, token_idx = self.get_action_indices(step.action)
+            rule_idx, token_idx = step.action
             rule: BaseRule = self.rules[rule_idx]
             rule_name: str = rule.name[:25].lower()
             self.print_state(
@@ -457,10 +454,13 @@ class MathyEnv:
         expression.visit_inorder(visit_fn)
         return result
 
-    def get_valid_moves(self, env_state: MathyEnvState) -> List[int]:
-        """Get a vector the length of the action space that is filled
-         with 1/0 indicating whether the action at that index is valid
-         for the current state.
+    def get_valid_moves(self, env_state: MathyEnvState) -> List[List[int]]:
+        """Get a 2d list describing the valid moves for the current state.
+
+        The first dimension contains the list of known rules in the order that
+        they're registered, and the second dimension contains a list of the max
+        sequence length size that is 1/0 representing that the node at that index
+        for the given rule is valid.
         """
         agent = env_state.agent
         try:
@@ -492,24 +492,12 @@ class MathyEnv:
         self.valid_rules_cache[key] = actions[:]
         return actions
 
-    def get_action_indices(self, action: int) -> Tuple[int, int]:
-        """Get the normalized action/node_index values from a
-        given absolute action value.
-
-        Returns a tuple of (rule_index, node_index)"""
-        rule_count = len(self.rules)
-        # Rule index = val % rule_count
-        action_index = action % rule_count
-        # And the action at that token
-        token_index = int((action - action_index) / rule_count)
-        return action_index, token_index
-
     def get_rule_from_timestep(self, time_step: MathyEnvStateStep) -> BaseRule:
         return self.rules[time_step.action]
 
     def get_actions_for_node(
         self, expression: MathExpression, rule_list: List[Type[BaseRule]] = None,
-    ) -> List[int]:
+    ) -> List[List[int]]:
         """Return a valid actions mask for the given expression and rule list. 
 
         Action masks are 1d lists of length (nodes * num_rules) where a 0 indicates
@@ -520,14 +508,14 @@ class MathyEnv:
             return self.valid_actions_mask_cache[key][:]
         node_count = len(expression.to_list())
         rule_count = len(self.rules)
-        actions = [0] * rule_count * node_count
+        actions = [[0] * node_count for _ in range(rule_count)]
         for rule_index, rule in enumerate(self.rules):
             if rule_list is not None and not isinstance(rule, tuple(rule_list)):
                 continue
             nodes = rule.find_nodes(expression)
             for node in nodes:
-                action_index = (node.r_index * rule_count) + rule_index
-                actions[action_index] = 1
+                # action_index = (node.r_index * rule_count) + rule_index
+                actions[rule_index][node.r_index] = 1
         if rule_list is None:
             self.valid_actions_mask_cache[key] = actions[:]
         return actions

@@ -123,28 +123,18 @@ _problem_hash_cache: Optional[Dict[str, List[int]]] = None
 
 
 def observations_to_window(
-    observations: List[MathyObservation], total_length: int = None
+    observations: List[MathyObservation], pad_length: int
 ) -> MathyWindowObservation:
     """Combine a sequence of observations into an observation window"""
     output = MathyWindowObservation(nodes=[], mask=[], values=[], type=[], time=[])
-    sequence_lengths: List[int] = []
-    max_mask_length: int = 0
-    for i in range(len(observations)):
-        obs = observations[i]
-        sequence_lengths.append(len(obs.nodes))
-        sequence_lengths.append(len(obs.values))
-        max_mask_length = max(max_mask_length, len(obs.mask))
-    max_length: int = max(sequence_lengths)
-    if total_length is not None:
-        max_length = total_length
 
     for obs in observations:
-        output.nodes.append(pad_array(obs.nodes, max_length, MathTypeKeys["empty"]))
-        output.mask.append(pad_array(obs.mask, max_mask_length, 0))
-        output.values.append(pad_array(obs.values, max_length, 0.0))
+        output.nodes.append(pad_array(obs.nodes, pad_length, MathTypeKeys["empty"]))
+        output.mask.append([pad_array(p, pad_length, 0) for p in obs.mask])
+        output.values.append(pad_array(obs.values, pad_length, 0.0))
         # repeat type/time values so they can be combined with nodes/values
-        output.type.append(pad_array([], max_length, obs.type))
-        output.time.append(pad_array([], max_length, obs.time))
+        output.type.append(pad_array([], pad_length, obs.type))
+        output.time.append(pad_array([], pad_length, obs.time))
     return output
 
 

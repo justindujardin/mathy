@@ -88,14 +88,14 @@ class Mathy:
 
         environment = "poly"
         difficulty = "easy"
-        episode_memory = EpisodeMemory()
+        episode_memory = EpisodeMemory(self.state.config.max_len)
         env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
         last_observation: MathyObservation = env.reset_with_input(
             problem_text=problem, max_moves=max_steps
         )
         assert env.state is not None
         last_text = env.state.agent.problem
-        last_action = -1
+        last_action = (-1, -1)
         last_reward = 0.0
         selector = GreedyActionSelector(model=self.state.model, episode=0, worker_id=0)
         done = False
