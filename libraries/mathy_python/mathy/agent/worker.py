@@ -3,11 +3,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import time
 import os
 import gym
-from mathy.env import MathyEnv
 import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
+from ..env import MathyEnv
+from ..envs.gym.mathy_gym_env import MathyGymEnv
 from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
 from . import action_selectors
@@ -102,7 +103,7 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory()
+        episode_memory = EpisodeMemory(self.args.max_len)
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -136,7 +137,7 @@ class A3CWorker(threading.Thread):
 
     def run_episode(self, episode_memory: EpisodeMemory) -> float:
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
-        env = gym.make(env_name, **self.env_extra)
+        env: MathyGymEnv = gym.make(env_name, **self.env_extra)
         episode_memory.clear()
         self.ep_loss = 0
         ep_reward = 0.0
@@ -144,9 +145,8 @@ class A3CWorker(threading.Thread):
         time_count = 0
         done = False
         last_observation: MathyObservation = env.reset()
-        last_text = env.state.agent.problem
-        last_action = -1
-        last_reward = 0.0
+        last_action: Tuple[int, int] = (-1, -1)
+        last_reward: float = 0.0
 
         selector = action_selectors.A3CEpsilonGreedyActionSelector(
             model=self.global_model,
@@ -176,7 +176,7 @@ class A3CWorker(threading.Thread):
             )
             if time_count == self.args.update_gradients_every or done:
                 if done and self.args.print_training and self.worker_idx == 0:
-                    env.render(last_action=last_action, last_reward=last_reward)
+                    env.render(last_action=action, last_reward=last_reward)
 
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()
@@ -193,7 +193,7 @@ class A3CWorker(threading.Thread):
             ep_steps += 1
             time_count += 1
             last_observation = observation
-            last_action = int(action)
+            last_action = action
             last_reward = reward
 
             # If there are multiple workers, apply a worker sleep
@@ -350,8 +350,9 @@ class A3CWorker(threading.Thread):
             bootstrap_value = 0.0  # terminal
         else:
             # Predict the reward using the local network
-            _, values, _ = call_model(
-                self.local_model, observations_to_window([observation]).to_inputs()
+            _, _, values, _ = call_model(
+                self.local_model,
+                observations_to_window([observation], self.args.max_len).to_inputs(),
             )
             # Select the last timestep
             values = values[-1]
@@ -370,24 +371,28 @@ class A3CWorker(threading.Thread):
         sequence_length = len(episode_memory.observations[0].nodes)
         inputs = episode_memory.to_episode_window().to_inputs()
         model_results = call_model(self.local_model, inputs)
-        logits, values, reward_logits = model_results
-
+        logits, params, values, reward_logits = model_results
         logits = tf.reshape(logits, [batch_size, -1])
 
         # Calculate entropy and policy loss
-        h_loss = discrete_policy_entropy_loss(
+        h_fn = discrete_policy_entropy_loss(
             logits, normalise=self.args.normalize_entropy_loss
         )
-        # Scale entropy loss down
-        entropy_loss = h_loss.loss * self.args.entropy_loss_scaling
-        entropy_loss = tf.reduce_mean(entropy_loss)
+        h_args = discrete_policy_entropy_loss(
+            params, normalise=self.args.normalize_entropy_loss
+        )
+        h_loss_fn = h_fn.loss * self.args.entropy_loss_scaling
+        h_loss_args = h_args.loss * self.args.entropy_loss_scaling
+        entropy_loss = tf.reduce_mean(h_loss_fn) + tf.reduce_mean(h_loss_args)
 
+        # Calculate rewards loss
         rewards_tensor = tf.convert_to_tensor(episode_memory.rewards, dtype=tf.float32)
         rewards_tensor = tf.expand_dims(rewards_tensor, 1)
         rp_loss = tf.reduce_mean(tf.keras.losses.MSE(rewards_tensor, reward_logits))
         pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
         bootstrap_value = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
 
+        # Calculate value loss
         lambda_loss = td_lambda(
             state_values=values,
             rewards=rewards_tensor,
@@ -396,14 +401,16 @@ class A3CWorker(threading.Thread):
             lambda_=self.args.td_lambda,
         )
         advantage = lambda_loss.extra.temporal_differences
-        # Value loss
         value_loss = tf.reduce_mean(lambda_loss.loss)
 
-        # Policy Loss
-        policy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=episode_memory.actions, logits=logits
+        # Calculate policy Loss
+        policy_fn_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=[a[0] for a in episode_memory.actions], logits=logits
         )
-
+        policy_args_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=[a[1] for a in episode_memory.actions], logits=params[:, 0, :]
+        )
+        policy_loss = policy_fn_loss + policy_args_loss
         policy_loss *= advantage
         policy_loss = tf.reduce_mean(policy_loss)
         if self.args.normalize_pi_loss:

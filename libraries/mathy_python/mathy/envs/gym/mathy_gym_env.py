@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
 import gym
 import numpy as np
@@ -53,7 +53,7 @@ class MathyGymEnv(gym.Env):
             return self.mathy.get_agent_actions_count(self.state)
         return self.mathy.action_size
 
-    def step(self, action: int):
+    def step(self, action: Tuple[int, int]):
         assert self.state is not None, "call reset() before stepping the environment"
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         done = is_terminal_transition(transition)
@@ -112,8 +112,8 @@ class MathyGymEnv(gym.Env):
         assert self.state is not None, "call reset() before rendering the env"
         action_name = "initial"
         token_index = -1
-        if last_action != -1:
-            action_index, token_index = self.mathy.get_action_indices(last_action)
+        if last_action != (-1, -1):
+            action_index, token_index = last_action
             action_name = self.mathy.rules[action_index].name
         else:
             print(f"Problem: {self.state.agent.problem}")

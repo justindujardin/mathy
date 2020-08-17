@@ -65,7 +65,7 @@ def build_agent_model(
             config.lstm_units,
             name="nodes_lstm",
             time_major=False,
-            return_sequences=True,
+            return_sequences=False,
             dropout=config.dropout,
         ),
         merge_mode="ave",
@@ -79,12 +79,7 @@ def build_agent_model(
     )
     policy_net = tf.keras.Sequential(
         [
-            tf.keras.layers.TimeDistributed(
-                tf.keras.layers.Dense(
-                    predictions, name="policy_ts_hidden", activation=None,
-                ),
-                name="policy_logits",
-            ),
+            tf.keras.layers.Dense(predictions, name="policy_logits", activation=None,),
             tf.keras.layers.LayerNormalization(name="policy_layer_norm"),
         ],
         name="policy_head",
@@ -106,6 +101,13 @@ def build_agent_model(
         ],
         name="reward_head",
     )
+    # Action parameters head
+    params_in = tf.keras.layers.Dense(predictions, name="node_param_in")
+    params_net = tf.keras.layers.TimeDistributed(
+        tf.keras.layers.Dense(config.max_len, name="node_param_hidden"),
+        name="node_param_logits",
+    )
+
     # Model
     sequence_inputs = in_dense(
         tf.concat(
@@ -123,7 +125,9 @@ def build_agent_model(
     output = time_lstm_norm(output)
     output = lstm_nodes(output)
     output = nodes_lstm_norm(output)
-    squeezed = tf.reduce_max(output, axis=1)
+    params = params_net(tf.expand_dims(params_in(output), axis=-1))
+    # squeezed = tf.reduce_max(output, axis=1)
+    squeezed = output
     values = value_net(squeezed)
     reward_logits = reward_net(squeezed)
     logits = policy_net(output)
@@ -133,7 +137,7 @@ def build_agent_model(
         type_in,
         time_in,
     ]
-    outputs = [logits, values, reward_logits]
+    outputs = [logits, params, values, reward_logits]
     out_model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
 
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -164,8 +168,9 @@ def get_or_create_agent_model(
     if env is None:
         env = PolySimplify()
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
-    initial_state: MathyWindowObservation = observations_to_window([observation])
-
+    initial_state: MathyWindowObservation = observations_to_window(
+        [observation], config.max_len
+    )
     if not os.path.exists(config.model_dir):
         os.makedirs(config.model_dir)
     model_path: Path = Path(config.model_dir) / config.model_name
@@ -206,7 +211,9 @@ def load_agent_model(
         raise ValueError(f"model not found: {model_file}")
     env: MathyEnv = PolySimplify()
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
-    initial_state: MathyWindowObservation = observations_to_window([observation])
+    initial_state: MathyWindowObservation = observations_to_window(
+        [observation], args.max_len
+    )
     init_inputs = initial_state.to_inputs()
     init_shapes = initial_state.to_input_shapes()
     model: AgentModel = build_agent_model(

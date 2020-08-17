@@ -24,7 +24,8 @@ class AgentConfig(BaseModel):
     # (n - 1) previous timesteps
     prediction_window_size: int = 6
     units: int = 64
-    embedding_units: int = 128
+    max_len: int = 128
+    embedding_units: int = 32
     lstm_units: int = 128
     topics: List[str] = ["poly"]
     difficulty: Optional[str] = None
@@ -45,12 +46,10 @@ class AgentConfig(BaseModel):
     num_workers: int = 3
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.2
+    td_lambda: float = 0.5
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
-    # This is very verbose and prints every model.call time
-    print_model_call_times: bool = False
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
@@ -58,7 +57,7 @@ class AgentConfig(BaseModel):
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
-    update_gradients_every: int = 128
+    update_gradients_every: int = 3
     main_worker_use_epsilon = False
     e_greedy_min = 0.01
     e_greedy_max = 0.04
@@ -66,7 +65,7 @@ class AgentConfig(BaseModel):
     # other threads time to process. This is useful for
     # running more threads than you have processors to
     # get a better diversity of experience.
-    worker_wait: float = 0.01
+    worker_wait: float = 0.1
 
     # The number of worker agents to create.
     num_workers: int = 3
@@ -81,9 +80,6 @@ class AgentConfig(BaseModel):
 
     # How much to scale down loss values from auxiliary tasks
     aux_tasks_weight_scale = 1.0
-    # The lambda value for generalized lambda returns to calculate value loss
-    # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.5
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 500

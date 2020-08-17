@@ -7,38 +7,44 @@ from ..state import MathyEnvState, MathyInputsType, MathyWindowObservation
 from .model import AgentModel, call_model
 
 
-def apply_pi_mask(logits: tf.Tensor, mask: tf.Tensor, predictions: int) -> tf.Tensor:
-    """Take the policy_mask from a batch of features and multiply
-    the policy logits by it to remove any invalid moves"""
-    logits_shape = tf.shape(logits)
-    features_mask = tf.reshape(
-        mask, (logits_shape[0], -1, predictions), name="pi_mask_reshape"
+def apply_pi_mask(
+    action_logits: tf.Tensor, args_logits: tf.Tensor, mask: tf.Tensor
+) -> Tuple[tf.Tensor, tf.Tensor]:
+    fn_mask = mask.numpy().sum(axis=2).astype("bool").astype("int")
+    fn_mask_logits = tf.multiply(action_logits, fn_mask, name="mask_logits")
+    # Mask the selected rule functions to remove invalid selections
+    fn_masked = tf.where(
+        tf.equal(fn_mask_logits, tf.constant(0.0)),
+        tf.fill(tf.shape(action_logits), -1000000.0),
+        fn_mask_logits,
+        name="fn_softmax_negative_logits",
     )
-    features_mask = tf.cast(features_mask, dtype=tf.float32)
-    mask_logits = tf.multiply(logits, features_mask, name="mask_logits")
-    negative_mask_logits = tf.where(
-        tf.equal(mask_logits, tf.constant(0.0)),
-        tf.fill(tf.shape(logits), -1000000.0),
-        mask_logits,
-        name="softmax_negative_logits",
+    # Mask the node selection policy for each rule function
+    args_mask = tf.cast(mask, dtype="float32")
+
+    args_logits = args_logits[:, :, : tf.shape(mask)[-1]]
+    args_mask_logits = tf.multiply(args_logits, args_mask, name="mask_logits")
+    args_masked = tf.where(
+        tf.equal(args_mask_logits, tf.constant(0.0)),
+        tf.fill(tf.shape(args_logits), -1000000.0),
+        args_mask_logits,
+        name="args_negative_softmax_logts",
     )
-    return negative_mask_logits
+    return fn_masked, args_masked
 
 
 def predict_next(
     model: AgentModel, inputs: MathyInputsType
-) -> Tuple[tf.Tensor, tf.Tensor]:
-    """Predict one probability distribution and value for the
-    given sequence of inputs """
+) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
+    """Predict the fn/args policies and value/reward estimates for current timestep."""
     mask = inputs.pop("mask_in")
-
-    logits, values, rewards = call_model(model, inputs)
-    masked = apply_pi_mask(logits, mask, model.predictions)
-    # take the last timestep
-    masked = masked[-1][:]
-    flat_logits = tf.reshape(tf.squeeze(masked), [-1])
-    probs = tf.nn.softmax(flat_logits)
-    return probs, tf.squeeze(values[-1])
+    logits, params, values, rewards = call_model(model, inputs)
+    fn_masked, args_masked = apply_pi_mask(logits, params, mask)
+    fn_masked = fn_masked[-1][:]
+    fn_probs = tf.nn.softmax(fn_masked).numpy().tolist()
+    args_masked = args_masked[-1][:]
+    args_probs = tf.nn.softmax(args_masked).numpy().tolist()
+    return fn_probs, args_probs, tf.squeeze(values[-1]), tf.squeeze(rewards[-1])
 
 
 class ActionSelector:
@@ -60,7 +66,7 @@ class ActionSelector:
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-    ) -> Tuple[int, float]:
+    ) -> Tuple[Tuple[int, int], float]:
         raise NotImplementedError(self.select)
 
 
@@ -72,10 +78,13 @@ class GreedyActionSelector(ActionSelector):
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-    ) -> Tuple[int, float]:
-        probs, value = predict_next(self.model, last_window.to_inputs())
-        action = np.argmax(probs)
-        return action, float(value)
+    ) -> Tuple[Tuple[int, int], float]:
+        fn_probs, args_probs, value, reward = predict_next(
+            self.model, last_window.to_inputs()
+        )
+        fn_action = int(np.argmax(fn_probs))
+        args_action = int(np.argmax(args_probs[fn_action]))
+        return (fn_action, args_action), float(value)
 
 
 class A3CEpsilonGreedyActionSelector(ActionSelector):
@@ -90,17 +99,22 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_window: MathyWindowObservation,
         last_action: int,
         last_reward: float,
-    ) -> Tuple[int, float]:
+    ) -> Tuple[Tuple[int, int], float]:
 
-        probs, value = predict_next(self.model, last_window.to_inputs())
-        last_move_mask = last_window.mask[-1]
-        no_random = bool(self.worker_id == 0)
+        fn_probs, args_probs, value, reward = predict_next(
+            self.model, last_window.to_inputs()
+        )
+        no_random = self.worker_id == 0
         if not no_random and np.random.random() < self.epsilon:
+            last_move_mask = last_window.mask[-1]
             # Select a random action
             action_mask = last_move_mask[:]
-            # normalize all valid actions to equal probability
-            actions = action_mask / np.sum(action_mask)
-            action = np.random.choice(len(actions), p=actions)
+            valid_rules = [
+                i for i, a in enumerate(action_mask) if (np.array(a) > 0).any()
+            ]
+            fn_action = np.random.choice(valid_rules)
+            args_action = np.random.choice(np.nonzero(action_mask[fn_action])[0])
         else:
-            action = np.argmax(probs)
-        return action, float(value)
+            fn_action = int(np.argmax(fn_probs))
+            args_action = int(np.argmax(args_probs[fn_action]))
+        return (fn_action, args_action), float(value)
