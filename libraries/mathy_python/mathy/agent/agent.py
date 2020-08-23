@@ -5,7 +5,7 @@ import gym
 import numpy as np
 
 from ..teacher import Teacher
-from .model import get_or_create_agent_model, AgentModel
+from .model import get_or_create_agent_model, AgentModel, save_model
 from .config import AgentConfig
 from .worker import A3CWorker
 from ..envs.gym import MathyGymEnv
@@ -74,9 +74,9 @@ class A3CAgent:
 
         # Do an optimistic save incase there's a problem joining the workers
         model_path = os.path.join(self.args.model_dir, self.args.model_name)
-        self.global_model.save(model_path)
+        save_model(self.global_model, model_path)
         [w.join() for w in workers]
         # Do a final save after joining to get the very latest model
-        self.global_model.save(model_path)
+        save_model(self.global_model, model_path)
         print("Done. Bye!")
 
