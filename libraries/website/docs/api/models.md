@@ -32,9 +32,9 @@ It can load models from **pypi packages** as well as **local folders** and **sys
     Check it out: **[https://spacy.io](https://spacy.io){target=\_blank}**
 
 
-## get_model_meta
+## get_model_meta <kbd>function</kbd>
 ```python
-get_model_meta(model_path:pathlib.Path)
+get_model_meta(model_path: pathlib.Path)
 ```
 Get model meta.json from a directory path and validate its contents.
 path (unicode or Path): Path to model directory.
@@ -49,9 +49,9 @@ __Returns__
 
 `(dict)`: The model's meta data.
 
-## is_package
+## is_package <kbd>function</kbd>
 ```python
-is_package(name:str) -> bool
+is_package(name: str) -> bool
 ```
 Check if string maps to a package installed via pip.
 
@@ -63,9 +63,9 @@ __Returns__
 
 `(bool)`: True if installed package, False if not.
 
-## load_model
+## load_model <kbd>function</kbd>
 ```python
-load_model(name:Union[pathlib.Path, str], **overrides) -> mathy.api.Mathy
+load_model(name: Union[pathlib.Path, str], overrides) -> mathy.api.Mathy
 ```
 Load a model from a shortcut link, package or data path.
 
@@ -82,9 +82,9 @@ __Returns__
 
 `(Mathy)`: Mathy class with the loaded model.
 
-## load_model_from_init_py
+## load_model_from_init_py <kbd>function</kbd>
 ```python
-load_model_from_init_py(init_file:Union[pathlib.Path, str], **overrides)
+load_model_from_init_py(init_file: Union[pathlib.Path, str], overrides)
 ```
 Helper function to use in the `load()` method of a model package's
 __init__.py.
@@ -102,17 +102,17 @@ __Returns__
 
 `(Language)`: `Language` class with loaded model.
 
-## load_model_from_package
+## load_model_from_package <kbd>function</kbd>
 ```python
-load_model_from_package(name, **overrides)
+load_model_from_package(name, overrides)
 ```
 Load a model from an installed package.
-## load_model_from_path
+## load_model_from_path <kbd>function</kbd>
 ```python
 load_model_from_path(
-    model_path: pathlib.Path,
-    meta: dict = None,
-    overrides,
+    model_path: pathlib.Path, 
+    meta: dict = None, 
+    overrides, 
 ) -> mathy.api.Mathy
 ```
 Load a model from a data directory path.
@@ -125,14 +125,14 @@ __Returns__
 
 `(Mathy)`: a Mathy instance.
 
-## package
+## package <kbd>function</kbd>
 ```python
 package(
-    model_name: str,
-    input_dir: Union[str, pathlib.Path],
-    output_dir: Union[str, pathlib.Path],
-    meta_path: Union[str, pathlib.Path] = None,
-    force: bool = False,
+    model_name: str, 
+    input_dir: Union[str, pathlib.Path], 
+    output_dir: Union[str, pathlib.Path], 
+    meta_path: Union[str, pathlib.Path] = None, 
+    force: bool = False, 
 ) -> str
 ```
 Generate a Python package from a Mathy model.

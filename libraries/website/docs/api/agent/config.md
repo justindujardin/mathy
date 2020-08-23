@@ -1,12 +1,12 @@
 # mathy.agent.config
 
-## AgentConfig
+## AgentConfig <kbd>class</kbd>
 ```python
-AgentConfig(__pydantic_self__, **data:Any) -> None
+AgentConfig(__pydantic_self__, data: Any) -> None
 ```
 
-### Config
+### Config <kbd>class</kbd>
 ```python
-AgentConfig.Config(self, /, *args, **kwargs)
+AgentConfig.Config(self, args, kwargs)
 ```
 

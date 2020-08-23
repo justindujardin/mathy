@@ -1,26 +1,26 @@
 # mathy.state
 
-## MathyAgentState
+## MathyAgentState <kbd>class</kbd>
 ```python
 MathyAgentState(
-    self,
-    moves_remaining,
-    problem,
-    problem_type,
-    reward = 0.0,
-    history = None,
+    self, 
+    moves_remaining, 
+    problem, 
+    problem_type, 
+    reward = 0.0, 
+    history = None, 
 )
 ```
 The state related to an agent for a given environment state
-## MathyEnvState
+## MathyEnvState <kbd>class</kbd>
 ```python
 MathyEnvState(
-    self,
-    state: Optional[MathyEnvState] = None,
-    problem: str = None,
-    max_moves: int = 10,
-    num_rules: int = 0,
-    problem_type: str = 'mathy.unknown',
+    self, 
+    state: Optional[MathyEnvState] = None, 
+    problem: str = None, 
+    max_moves: int = 10, 
+    num_rules: int = 0, 
+    problem_type: str = 'mathy.unknown', 
 )
 ```
 Class for holding environment state and extracting features
@@ -33,29 +33,29 @@ This allocation strategy requires more memory but removes a class
 of potential issues around unintentional sharing of data and mutation
 by two different sources.
 
-### from_np
+### from_np <kbd>classmethod</kbd>
 ```python
-MathyEnvState.from_np(input_bytes:numpy.ndarray) -> 'MathyEnvState'
+MathyEnvState.from_np(input_bytes: numpy.ndarray) -> 'MathyEnvState'
 ```
 Convert a numpy object into a state object
-### from_string
+### from_string <kbd>classmethod</kbd>
 ```python
-MathyEnvState.from_string(input_string:str) -> 'MathyEnvState'
+MathyEnvState.from_string(input_string: str) -> 'MathyEnvState'
 ```
 Convert a string representation of state into a state object
-### get_out_state
+### get_out_state <kbd>method</kbd>
 ```python
 MathyEnvState.get_out_state(
-    self,
-    problem: str,
-    focus: int,
-    action: int,
-    moves_remaining: int,
+    self, 
+    problem: str, 
+    focus: int, 
+    action: int, 
+    moves_remaining: int, 
 ) -> 'MathyEnvState'
 ```
 Get the next environment state based on the current one with updated
 history and agent information based on an action being taken.
-### get_problem_hash
+### get_problem_hash <kbd>method</kbd>
 ```python
 MathyEnvState.get_problem_hash(self) -> List[int]
 ```
@@ -68,34 +68,34 @@ __Example__
 - `mycorp.envs.solve_impossible_problems` -> `[12375561, -2838517]`
 
 
-### to_np
+### to_np <kbd>method</kbd>
 ```python
 MathyEnvState.to_np(self) -> numpy.ndarray
 ```
 Convert a state object into a numpy representation
-### to_observation
+### to_observation <kbd>method</kbd>
 ```python
 MathyEnvState.to_observation(
-    self,
-    move_mask: Optional[List[int]] = None,
-    hash_type: Optional[List[int]] = None,
-    parser: Optional[mathy_core.parser.ExpressionParser] = None,
+    self, 
+    move_mask: Optional[List[int]] = None, 
+    hash_type: Optional[List[int]] = None, 
+    parser: Optional[mathy_core.parser.ExpressionParser] = None, 
 ) -> mathy.state.MathyObservation
 ```
 Convert a state into an observation
-### to_start_observation
+### to_start_observation <kbd>method</kbd>
 ```python
 MathyEnvState.to_start_observation(self) -> mathy.state.MathyObservation
 ```
 Generate an episode start MathyObservation
-### to_string
+### to_string <kbd>method</kbd>
 ```python
 MathyEnvState.to_string(self) -> str
 ```
 Convert a state object into a string representation
-## MathyEnvStateStep
+## MathyEnvStateStep <kbd>class</kbd>
 ```python
-MathyEnvStateStep(self, /, *args, **kwargs)
+MathyEnvStateStep(self, args, kwargs)
 ```
 Capture summarized environment state for a previous timestep so the
 agent can use context from its history when making new predictions.
@@ -105,9 +105,9 @@ the action taken
 the index of the node that is acted on
 ### raw
 the input text at the timestep
-## MathyObservation
+## MathyObservation <kbd>class</kbd>
 ```python
-MathyObservation(self, /, *args, **kwargs)
+MathyObservation(self, args, kwargs)
 ```
 A featurized observation from an environment state.
 ### mask
@@ -120,9 +120,9 @@ float value between 0.0 and 1.0 indicating the time elapsed shape=[1,]
 two column hash of problem environment type shape=[2,]
 ### values
 tree node value sequences, with non number indices set to 0.0 shape=[n,]
-## MathyWindowObservation
+## MathyWindowObservation <kbd>class</kbd>
 ```python
-MathyWindowObservation(self, /, *args, **kwargs)
+MathyWindowObservation(self, args, kwargs)
 ```
 A featurized observation from an n-step sequence of environment states.
 ### mask
@@ -135,9 +135,9 @@ n-step problem time values `shape=[n, 2]`
 n-step problem type hash `shape=[n, 2]`
 ### values
 n-step list of value sequences, with non number indices set to 0.0 `shape=[n, max(len(s))]`
-## ObservationFeatureIndices
+## ObservationFeatureIndices <kbd>class</kbd>
 ```python
-ObservationFeatureIndices(self, /, *args, **kwargs)
+ObservationFeatureIndices(self, args, kwargs)
 ```
 An enumeration.
 ### mask
@@ -150,11 +150,11 @@ An enumeration.
 An enumeration.
 ### values
 An enumeration.
-## observations_to_window
+## observations_to_window <kbd>function</kbd>
 ```python
 observations_to_window(
-    observations: List[mathy.state.MathyObservation],
-    total_length: int = None,
+    observations: List[mathy.state.MathyObservation], 
+    pad_length: int, 
 ) -> mathy.state.MathyWindowObservation
 ```
 Combine a sequence of observations into an observation window
