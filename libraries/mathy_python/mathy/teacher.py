@@ -126,7 +126,7 @@ class Teacher:
             elif win_ratio <= self.lose_threshold:
                 topic.difficulty = self.previous_difficulty(topic.difficulty)
                 action = "demoted"
-            if student_index == 0:
+            if student_index == 0 and self.difficulty is None:
                 pct = int(win_ratio * 100)
                 type = topic.name
                 diff = topic.difficulty

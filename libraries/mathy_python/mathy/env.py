@@ -333,7 +333,7 @@ class MathyEnv:
         while len(history) > 0:
             step: MathyEnvStateStep = history.pop(0)
             curr_state, transition, change = self.get_next_state(
-                curr_state, step.action + (step.focus * len(self.rules))
+                curr_state, step.action
             )
             rule_idx, token_idx = step.action
             rule: BaseRule = self.rules[rule_idx]

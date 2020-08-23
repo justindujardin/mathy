@@ -96,14 +96,18 @@ def build_agent_model(
     )
     policy_net = tf.keras.Sequential(
         [
-            tf.keras.layers.Dense(predictions, name="policy_logits", activation=None,),
-            tf.keras.layers.LayerNormalization(name="policy_layer_norm"),
+            tf.keras.layers.Dense(
+                config.units, name="fn_head/hidden", activation="swish"
+            ),
+            tf.keras.layers.Dense(predictions, name="fn_head/logits", activation=None),
+            tf.keras.layers.LayerNormalization(name="fn_head/logits_layer_norm"),
         ],
-        name="fn_policy_head",
+        name="fn_head",
     )
     value_net = tf.keras.Sequential(
         [
-            tf.keras.layers.Dense(config.units, name="value_hidden"),
+            tf.keras.layers.Dense(config.units, name="value_h1", activation="swish"),
+            tf.keras.layers.Dense(config.units, name="value_h2", activation="swish"),
             tf.keras.layers.Dense(1, name="value_logits", activation=None),
         ],
         name="value_head",
@@ -111,7 +115,7 @@ def build_agent_model(
     reward_net = tf.keras.Sequential(
         [
             tf.keras.layers.Dense(
-                config.units, name="reward_hidden", activation="relu",
+                config.units, name="reward_hidden", activation="swish",
             ),
             tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
             tf.keras.layers.Dense(1, name="reward_logits", activation=None),
@@ -119,10 +123,20 @@ def build_agent_model(
         name="reward_head",
     )
     # Action parameters head
-    params_in = tf.keras.layers.Dense(predictions, name="node_param_in")
-    params_net = tf.keras.layers.TimeDistributed(
-        tf.keras.layers.Dense(config.max_len, name="node_param_hidden"),
-        name="args_policy_head",
+    params_net = tf.keras.Sequential(
+        [
+            tf.keras.layers.Dense(
+                config.units, name="params_head/in_h1", activation="swish"
+            ),
+            tf.keras.layers.Dense(
+                predictions, name="params_head/in_h2", activation="swish"
+            ),
+            tf.keras.layers.Reshape((predictions, 1)),
+            tf.keras.layers.TimeDistributed(
+                tf.keras.layers.Dense(config.max_len, name="params_head/node_hidden"),
+            ),
+        ],
+        name="params_head",
     )
 
     # Model
@@ -142,7 +156,7 @@ def build_agent_model(
     lstm_output = time_lstm_norm(lstm_output)
     lstm_output = lstm_nodes(lstm_output)
     lstm_output = nodes_lstm_norm(lstm_output)
-    params = params_net(tf.expand_dims(params_in(lstm_output), axis=-1))
+    params = params_net(lstm_output)
     values = value_net(lstm_output)
     reward_logits = reward_net(lstm_output)
     logits = policy_net(lstm_output)
@@ -215,18 +229,19 @@ def compute_agent_loss(
     rewards_tensor = tf.expand_dims(rewards_tensor, 1)
     rp_loss = tf.reduce_mean(tf.keras.losses.MSE(rewards_tensor, reward_logits))
     pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
-    bootstrap_value = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
 
     # Calculate value loss
     lambda_loss = td_lambda(
         state_values=values,
         rewards=rewards_tensor,
         pcontinues=pcontinues,
-        bootstrap_value=bootstrap_value,
+        bootstrap_value=tf.convert_to_tensor([bootstrap_value], dtype=tf.float32),
         lambda_=args.td_lambda,
     )
     advantage = lambda_loss.extra.temporal_differences
     value_loss = tf.reduce_mean(lambda_loss.loss)
+    if args.normalize_value_loss:
+        value_loss /= len(episode_memory.values)
 
     # Calculate function selection policy loss
     policy_fn_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -243,7 +258,7 @@ def compute_agent_loss(
     )
     policy_args_loss *= advantage
     policy_args_loss = tf.reduce_mean(policy_args_loss)
-    if args.normalize_pi_loss:
+    if args.normalize_args_pi_loss:
         policy_args_loss /= sequence_length
 
     policy_loss = policy_fn_loss + policy_args_loss
@@ -382,7 +397,6 @@ def load_agent_model(
         with msg.loading(f"Loading model: {mod}..."):
             _load_model(model, args, mod, opt, observation, initial_state)
         msg.good(f"Loaded model: {mod}")
-        model.summary()
     else:
         _load_model(model, args, mod, opt, observation, initial_state)
     return model, args

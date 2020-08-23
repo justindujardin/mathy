@@ -34,10 +34,10 @@ class AgentConfig(BaseModel):
     model_name: str = "model"
     verbose: bool = False
     # Initial learning rate that decays over time.
-    lr_initial: float = 0.01
-    lr_decay_steps: int = 100
-    lr_decay_rate: float = 0.96
-    lr_decay_staircase: bool = True
+    lr_initial: float = 0.001
+    lr_decay_steps: int = 1000
+    lr_decay_rate: float = 0.97
+    lr_decay_staircase: bool = False
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
@@ -46,7 +46,7 @@ class AgentConfig(BaseModel):
     num_workers: int = 3
     # The lambda value for generalized lambda returns to calculate value loss
     # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.5
+    td_lambda: float = 0.3
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
@@ -77,9 +77,9 @@ class AgentConfig(BaseModel):
     normalize_entropy_loss = True
     # Scale policy loss down by sequence length to make loss length invariant
     normalize_pi_loss = True
-
-    # How much to scale down loss values from auxiliary tasks
-    aux_tasks_weight_scale = 1.0
+    normalize_args_pi_loss = True
+    # Normalize the value loss by dividing by the number of values predicted
+    normalize_value_loss = True
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 500
