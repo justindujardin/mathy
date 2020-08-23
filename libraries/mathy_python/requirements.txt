@@ -3,9 +3,9 @@ numpy<1.19.0,>=1.16.0
 colr
 srsly
 pydantic>=1.0.0
-typer>=0.1.0,<0.2.0
+typer<0.4.0,>=0.3.2
 wasabi
-mathy_core>=0.7.19,<0.8.0
+mathy_core>=0.7.20,<0.8.0
 # new python feature backports
 dataclasses>=0.6,<1.0; python_version < "3.7"
 typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"

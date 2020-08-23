@@ -31,12 +31,14 @@ class Mathy:
         config: Union[AgentConfig, SwarmConfig] = None,
         silent: bool = False,
     ):
+        import tensorflow as tf
+
         if model_path is not None:
             model, config = load_agent_model(model_path, silent=silent)
             self.state = MathyAPIModelState(model=model, config=config)
         elif model is not None and config is not None:
-            if not isinstance(model, AgentModel):
-                raise ValueError("model must derive AgentModel for compatibility")
+            if not isinstance(model, tf.keras.Model):
+                raise ValueError("model must be derive from tf.keras.Model")
             if not isinstance(config, AgentConfig):
                 raise ValueError("config must be a AgentConfig instance")
             self.state = MathyAPIModelState(model=model, config=config)

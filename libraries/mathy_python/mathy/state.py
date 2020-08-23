@@ -109,13 +109,13 @@ class MathyEnvStateStep(NamedTuple):
 
     raw: str
     focus: int
-    action: int
+    action: Tuple[int, int]
 
 
 # fmt: off
 MathyEnvStateStep.raw.__doc__ = "the input text at the timestep" # noqa
 MathyEnvStateStep.focus.__doc__ = "the index of the node that is acted on" # noqa
-MathyEnvStateStep.action.__doc__ = "the action taken" # noqa
+MathyEnvStateStep.action.__doc__ = "a tuple indicating the chosen action and the node it was applied to" # noqa
 # fmt: on
 
 
@@ -172,14 +172,14 @@ class MathyEnvState(object):
             self.agent = MathyAgentState.copy(state.agent)
 
     @classmethod
-    def copy(cls, from_state):
+    def copy(cls, from_state) -> "MathyEnvState":
         return MathyEnvState(state=from_state)
 
     def clone(self):
         return MathyEnvState(state=self)
 
     def get_out_state(
-        self, problem: str, focus: int, action: int, moves_remaining: int
+        self, problem: str, focus: int, action: Tuple[int, int], moves_remaining: int
     ) -> "MathyEnvState":
         """Get the next environment state based on the current one with updated
         history and agent information based on an action being taken."""
@@ -325,6 +325,7 @@ class MathyAgentState:
     problem: str
     problem_type: str
     reward: float
+    action: Tuple[int, int]
     history: List[MathyEnvStateStep]
 
     def __init__(

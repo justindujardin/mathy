@@ -335,7 +335,6 @@ class A3CWorker(threading.Thread):
             if increment_episode is True:
                 A3CWorker.global_episode += 1
                 save_model(self.global_model, model_path)
-                print(f"model saved: {model_path} (ep:{A3CWorker.global_episode})")
 
     def compute_loss(
         self,

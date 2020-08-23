@@ -9,7 +9,7 @@ from mathy.types import EnvRewards
 from mathy.util import is_terminal_transition
 
 
-def test_mathy_env_init():
+def test_env_init():
     env = MathyEnv()
     assert env is not None
     # Default env is abstract and cannot be directly used for problem solving
@@ -19,16 +19,26 @@ def test_mathy_env_init():
         env.get_env_namespace()
 
 
-def test_mathy_env_invalid_action_behaviors():
+def test_env_action_masks():
+    problem = "4x + 2x"
+    env = MathyEnv(error_invalid=True)
+    env_state = MathyEnvState(problem=problem, max_moves=35)
+    valid_mask = env.get_valid_moves(env_state)
+    assert len(valid_mask) == len(env.rules)
+    assert len(valid_mask[0]) == len(env.parser.parse(problem).to_list())
+
+
+def test_env_invalid_action_behaviors():
 
     problem = "4x + 2x"
     env = MathyEnv(error_invalid=True)
     env_state = MathyEnvState(problem=problem, max_moves=35)
-    invalid_actions = [
-        i for i, value in enumerate(env.get_valid_moves(env_state)) if value == 0
-    ]
-    random.shuffle(invalid_actions)
-    action = invalid_actions[0]
+    rule_actions = env.get_valid_moves(env_state)
+    rule_indices = [i for i, value in enumerate(rule_actions) if 1 not in value]
+    random.shuffle(rule_indices)
+    rule_nodes = rule_actions[rule_indices[0]]
+    node_indices = [i for i, value in enumerate(rule_nodes) if value == 0]
+    action = (rule_indices[0], node_indices[0])
     # error_invalid throws if an invalid action is selected
     with pytest.raises(ValueError):
         env.get_next_state(env_state, action)
@@ -39,7 +49,7 @@ def test_mathy_env_invalid_action_behaviors():
     assert transition.reward == EnvRewards.INVALID_MOVE
 
 
-def test_mathy_env_terminal_conditions():
+def test_env_terminal_conditions():
 
     expectations = [
         ("70656 * (x^2 * z^6)", True),
@@ -75,12 +85,15 @@ def test_mathy_env_terminal_conditions():
 
 
 @pytest.mark.parametrize("pretty", [True, False])
-def test_print_history(pretty: bool):
+def test_env_print_history(pretty: bool):
     env = PolySimplify()
-    env_state = MathyEnvState(problem="4x+2")
+    env_state = MathyEnvState(problem="4+2")
     for i in range(10):
         env_state = env_state.get_out_state(
-            problem="2+4x", focus=i, moves_remaining=10 - i, action=i
+            problem="4+2" if i % 2 == 0 else "2+4",
+            focus=i,
+            moves_remaining=10 - i,
+            action=(1, 1),
         )
     env.print_history(env_state, pretty=pretty)
 
@@ -89,19 +102,19 @@ def test_env_finalize_state():
     env = PolySimplify()
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="1337", action=1, focus=-1, moves_remaining=0
+        problem="1337", action=(1, 1), focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="4x + 2", action=1, focus=-1, moves_remaining=0
+        problem="4x + 2", action=(1, 1), focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)
 
     env_state = MathyEnvState(problem="4x + 2x").get_out_state(
-        problem="4x + 2y", action=1, focus=-1, moves_remaining=0
+        problem="4x + 2y", action=(1, 1), focus=-1, moves_remaining=0
     )
     with pytest.raises(ValueError):
         env.finalize_state(env_state)

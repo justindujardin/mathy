@@ -6,7 +6,7 @@ from mathy.agent.model import AgentModel, build_agent_model
 from mathy.api import Mathy, MathyAPISwarmState
 
 
-def test_mathy_with_model_and_config():
+def test_api_mathy_with_model_and_config():
     config = AgentConfig()
     model: AgentModel = build_agent_model(config, predictions=2)
     mt = Mathy(model=model, config=config)

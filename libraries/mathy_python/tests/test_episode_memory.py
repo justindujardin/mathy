@@ -37,8 +37,8 @@ def test_episode_memory_to_window_observation():
     obs = env.state_to_observation(env.get_initial_state()[0])
     # Returns only the last three
     assert len(memory.to_window_observation(obs, window_size=3).nodes) == 3
-    # Only returns as many observations as it has (plus the one provided)
-    assert len(memory.to_window_observation(obs, window_size=10).nodes) == 5
+    # Pad the window to the requested size if there aren't as many observations
+    assert len(memory.to_window_observation(obs, window_size=10).nodes) == 10
 
 
 def test_episode_memory_to_window_observations():

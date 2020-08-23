@@ -12,12 +12,17 @@ def test_model_call():
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     model = build_agent_model(args, predictions=env.action_size)
     inputs = observations_to_window([observation], args.max_len).to_inputs()
-    policy, value, reward = model.predict(inputs)
-    # TODO: this is broken until the model is restructured to produce a single output
+    fn_policy, args_policy, value, reward = model.predict(inputs)
+    # The function policy is a 2D array of size (None, len(env.rules))
+    assert fn_policy.shape == (1, env.action_size)
+    # The args policy determines which node in the sequence to apply the
+    # function to. It's shape is (None, len(env.rules), max_seq_len)
+    assert args_policy.shape == (1, env.action_size, len(observation.nodes))
 
-    # The policy is a 1D array of size (actions * num_nodes)
-    assert policy.shape == (1, len(observation.nodes), env.action_size)
-
-    # There should be one floating point output Value
+    # The estimated Value is a float
     assert value.shape == (1, 1)
     assert isinstance(float(value), float)
+
+    # The estimated reward is also a float
+    assert reward.shape == (1, 1)
+    assert isinstance(float(reward), float)

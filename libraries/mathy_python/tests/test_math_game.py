@@ -11,10 +11,12 @@ def test_mathy_env_jd():
     problem = "5y * 9x + 8z + 8x + 3z * 10y * 11x + 10y"
     env_state = MathyEnvState(problem=problem, max_moves=35)
     for i in range(3):
-        actions = env.get_valid_moves(env_state)
-        indices = [i for i, value in enumerate(actions) if value == 1]
-        random.shuffle(indices)
-        env_state, value, changed = env.get_next_state(env_state, indices[0])
+        rule_actions = env.get_valid_moves(env_state)
+        rule_indices = [i for i, value in enumerate(rule_actions) if 1 in value]
+        random.shuffle(rule_indices)
+        rule_nodes = rule_actions[rule_indices[0]]
+        node_indices = [i for i, value in enumerate(rule_nodes) if value == 1]
+        env_state, value, changed = env.get_next_state(env_state, (rule_indices[0], node_indices[0]))
     assert env_state.to_observation([]) is not None
 
 
