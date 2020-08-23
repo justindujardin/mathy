@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import os
 import sys
+from tensorflow.python.keras.utils.io_utils import path_to_string
 from tensorflow.python.util import nest
 from tensorflow.python.util.tf_export import keras_export
 
@@ -49,16 +50,16 @@ def check_pydot():
         # to check the pydot/graphviz installation.
         pydot.Dot.create(pydot.Dot())
         return True
-    except OSError:
+    except (OSError, pydot.InvocationException):
         return False
 
 
 def is_wrapped_model(layer):
-    from tensorflow.python.keras.engine import network
+    from tensorflow.python.keras.engine import functional
     from tensorflow.python.keras.layers import wrappers
 
     return isinstance(layer, wrappers.Wrapper) and isinstance(
-        layer.layer, network.Network
+        layer.layer, functional.Functional
     )
 
 
@@ -70,6 +71,7 @@ def add_edge(dot, src, dst):
 def model_to_dot(
     model,
     show_shapes=False,
+    show_dtype=False,
     show_layer_names=True,
     show_classes=True,
     rankdir="TB",
@@ -78,10 +80,10 @@ def model_to_dot(
     subgraph=False,
 ):
     """Convert a Keras model to dot format.
-
   Arguments:
     model: A Keras model instance.
     show_shapes: whether to display shape information.
+    show_dtype: whether to display layer dtypes.
     show_layer_names: whether to display layer names.
     show_classes: whether to display layer class names.
     rankdir: `rankdir` argument passed to PyDot,
@@ -91,33 +93,30 @@ def model_to_dot(
     expand_nested: whether to expand nested models into clusters.
     dpi: Dots per inch.
     subgraph: whether to return a `pydot.Cluster` instance.
-
   Returns:
     A `pydot.Dot` instance representing the Keras model or
     a `pydot.Cluster` instance representing nested model if
     `subgraph=True`.
-
   Raises:
     ImportError: if graphviz or pydot are not available.
   """
     from tensorflow.python.keras.layers import wrappers
     from tensorflow.python.keras.engine import sequential
-    from tensorflow.python.keras.engine import network
+    from tensorflow.python.keras.engine import functional
 
     if not check_pydot():
+        message = (
+            "Failed to import pydot. You must `pip install pydot` "
+            "and install graphviz (https://graphviz.gitlab.io/download/), ",
+            "for `pydotprint` to work.",
+        )
         if "IPython.core.magics.namespace" in sys.modules:
             # We don't raise an exception here in order to avoid crashing notebook
             # tests where graphviz is not available.
-            print(
-                "Failed to import pydot. You must install pydot"
-                " and graphviz for `pydotprint` to work."
-            )
+            print(message)
             return
         else:
-            raise ImportError(
-                "Failed to import pydot. You must install pydot"
-                " and graphviz for `pydotprint` to work."
-            )
+            raise ImportError(message)
 
     if subgraph:
         dot = pydot.Cluster(style="dashed", graph_name=model.name)
@@ -135,14 +134,15 @@ def model_to_dot(
     sub_w_first_node = {}
     sub_w_last_node = {}
 
-    # if not model._is_graph_network:
-    #     node = pydot.Node(str(id(model)), label=model.name)
-    #     dot.add_node(node)
-    #     return dot
-    if isinstance(model, sequential.Sequential):
+    layers = model.layers
+    if not model._is_graph_network:
+        node = pydot.Node(str(id(model)), label=model.name)
+        dot.add_node(node)
+        return dot
+    elif isinstance(model, sequential.Sequential):
         if not model.built:
             model.build()
-    layers = model._layers
+        layers = super(sequential.Sequential, model).layers
 
     # Create graph nodes.
     for i, layer in enumerate(layers):
@@ -158,10 +158,11 @@ def model_to_dot(
         class_name = layer.__class__.__name__
 
         if isinstance(layer, wrappers.Wrapper):
-            if expand_nested and isinstance(layer.layer, network.Network):
+            if expand_nested and isinstance(layer.layer, functional.Functional):
                 submodel_wrapper = model_to_dot(
                     layer.layer,
                     show_shapes,
+                    show_dtype,
                     show_layer_names,
                     show_classes,
                     rankdir,
@@ -178,10 +179,11 @@ def model_to_dot(
                 child_class_name = layer.layer.__class__.__name__
                 class_name = "{}({})".format(class_name, child_class_name)
 
-        if expand_nested and isinstance(layer, network.Network):
+        if expand_nested and isinstance(layer, functional.Functional):
             submodel_not_wrapper = model_to_dot(
                 layer,
                 show_shapes,
+                show_dtype,
                 show_layer_names,
                 show_classes,
                 rankdir,
@@ -201,11 +203,22 @@ def model_to_dot(
         if show_classes and not is_op:
             label = f"{class_name}|{label}"
 
+        # Rebuild the label as a table including the layer's dtype.
+        if show_dtype:
+
+            def format_dtype(dtype):
+                if dtype is None:
+                    return "?"
+                else:
+                    return str(dtype)
+
+            label = "%s|%s" % (label, format_dtype(layer.dtype))
+
         # Rebuild the label as a table including input/output shapes.
         if show_shapes:
 
             def format_shape(shape):
-                return str(shape).replace(str(None), "?")
+                return str(shape).replace(str(None), "None")
 
             try:
                 outputlabels = format_shape(layer.output_shape)
@@ -222,13 +235,8 @@ def model_to_dot(
             # nodes_in: InputLayer\n|{input:|output:}|{{[(?, ?)]}|{[(?, ?)]}}
             label = "{%s|input:%s|output:%s}" % (label, inputlabels, outputlabels,)
 
-        if not expand_nested or not isinstance(layer, network.Network):
+        if not expand_nested or not isinstance(layer, functional.Functional):
             node = pydot.Node(layer_id, label=label)
-            node.set_fontname("Roboto")
-            node.set_fontsize(12)
-            if not is_op:
-                node.set_fillcolor("#b4c8ff")
-                node.set_style("rounded")
             dot.add_node(node)
 
     # Connect nodes with edges.
@@ -246,17 +254,17 @@ def model_to_dot(
                     else:
                         # if inbound_layer is not Model or wrapped Model
                         if not isinstance(
-                            inbound_layer, network.Network
+                            inbound_layer, functional.Functional
                         ) and not is_wrapped_model(inbound_layer):
                             # if current layer is not Model or wrapped Model
                             if not isinstance(
-                                layer, network.Network
+                                layer, functional.Functional
                             ) and not is_wrapped_model(layer):
                                 assert dot.get_node(inbound_layer_id)
                                 assert dot.get_node(layer_id)
                                 add_edge(dot, inbound_layer_id, layer_id)
                             # if current layer is Model
-                            elif isinstance(layer, network.Network):
+                            elif isinstance(layer, functional.Functional):
                                 add_edge(
                                     dot,
                                     inbound_layer_id,
@@ -268,9 +276,9 @@ def model_to_dot(
                                 name = sub_w_first_node[layer.layer.name].get_name()
                                 add_edge(dot, layer_id, name)
                         # if inbound_layer is Model
-                        elif isinstance(inbound_layer, network.Network):
+                        elif isinstance(inbound_layer, functional.Functional):
                             name = sub_n_last_node[inbound_layer.name].get_name()
-                            if isinstance(layer, network.Network):
+                            if isinstance(layer, functional.Functional):
                                 output_name = sub_n_first_node[layer.name].get_name()
                                 add_edge(dot, name, output_name)
                             else:
@@ -290,18 +298,33 @@ def plot_model(
     model,
     to_file="model.png",
     show_shapes=False,
-    show_classes=True,
+    show_dtype=False,
+    show_classes=False,
     show_layer_names=True,
     rankdir="TB",
     expand_nested=False,
     dpi=96,
 ):
     """Converts a Keras model to dot format and save to a file.
-
+  Example:
+  ```python
+  input = tf.keras.Input(shape=(100,), dtype='int32', name='input')
+  x = tf.keras.layers.Embedding(
+      output_dim=512, input_dim=10000, input_length=100)(input)
+  x = tf.keras.layers.LSTM(32)(x)
+  x = tf.keras.layers.Dense(64, activation='relu')(x)
+  x = tf.keras.layers.Dense(64, activation='relu')(x)
+  x = tf.keras.layers.Dense(64, activation='relu')(x)
+  output = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(x)
+  model = tf.keras.Model(inputs=[input], outputs=[output])
+  dot_img_file = '/tmp/model_1.png'
+  tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)
+  ```
   Arguments:
     model: A Keras model instance
     to_file: File name of the plot image.
     show_shapes: whether to display shape information.
+    show_dtype: whether to display layer dtypes.
     show_layer_names: whether to display layer names.
     rankdir: `rankdir` argument passed to PyDot,
         a string specifying the format of the plot:
@@ -309,7 +332,6 @@ def plot_model(
         'LR' creates a horizontal plot.
     expand_nested: Whether to expand nested models into clusters.
     dpi: Dots per inch.
-
   Returns:
     A Jupyter notebook Image object if Jupyter is installed.
     This enables in-line display of the model plots in notebooks.
@@ -317,11 +339,14 @@ def plot_model(
     dot = model_to_dot(
         model,
         show_shapes=show_shapes,
+        show_dtype=show_dtype,
+        show_classes=show_classes,
         show_layer_names=show_layer_names,
         rankdir=rankdir,
         expand_nested=expand_nested,
         dpi=dpi,
     )
+    to_file = path_to_string(to_file)
     if dot is None:
         return
     _, extension = os.path.splitext(to_file)
@@ -334,10 +359,11 @@ def plot_model(
     # Return the image as a Jupyter Image object, to be displayed in-line.
     # Note that we cannot easily detect whether the code is running in a
     # notebook, and thus we always return the Image if Jupyter is available.
-    try:
-        from IPython import display
+    if extension != "pdf":
+        try:
+            from IPython import display
 
-        return display.Image(filename=to_file)
-    except ImportError:
-        pass
+            return display.Image(filename=to_file)
+        except ImportError:
+            pass
 
