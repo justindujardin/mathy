@@ -1,7 +1,8 @@
-import threading
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
-import time
 import os
+import threading
+import time
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
 import gym
 import numpy as np
 import tensorflow as tf
@@ -12,10 +13,17 @@ from ..envs.gym.mathy_gym_env import MathyGymEnv
 from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
 from . import action_selectors
-from .episode_memory import EpisodeMemory
-from .model import AgentModel, get_or_create_agent_model, call_model
-from .trfl import discrete_policy_entropy_loss, td_lambda
 from .config import AgentConfig
+from .episode_memory import EpisodeMemory
+from .model import (
+    AgentLosses,
+    AgentModel,
+    call_model,
+    compute_agent_loss,
+    get_or_create_agent_model,
+    save_model,
+)
+from .trfl import discrete_policy_entropy_loss, td_lambda
 from .util import EpisodeLosses, record, truncate
 
 
@@ -250,31 +258,22 @@ class A3CWorker(threading.Thread):
         # Calculate gradient wrt to local model. We do so by tracking the
         # variables involved in computing the loss by using tf.GradientTape
         with tf.GradientTape() as tape:
-            loss_tuple = self.compute_loss(
+            losses: AgentLosses = self.compute_loss(
                 done=done,
                 observation=observation,
                 episode_memory=episode_memory,
                 gamma=self.args.gamma,
             )
-            (
-                pi_loss,
-                value_loss,
-                rp_loss,
-                entropy_loss,
-                aux_losses,
-                total_loss,
-            ) = loss_tuple
-
-        self.losses.increment("loss", total_loss)
-        self.losses.increment("pi", pi_loss)
-        self.losses.increment("r", rp_loss)
-        self.losses.increment("v", value_loss)
-        self.losses.increment("h", entropy_loss)
-        for k in aux_losses.keys():
-            self.losses.increment(k, aux_losses[k].numpy())
+        self.losses.increment("loss", losses.total)
+        self.losses.increment("fn_pi", losses.fn_policy)
+        self.losses.increment("fn_h", losses.fn_entropy)
+        self.losses.increment("args_pi", losses.args_policy)
+        self.losses.increment("args_h", losses.args_entropy)
+        self.losses.increment("r", losses.reward)
+        self.losses.increment("v", losses.value)
 
         # Calculate local gradients
-        grads = tape.gradient(total_loss, self.local_model.trainable_weights)
+        grads = tape.gradient(losses.total, self.local_model.trainable_weights)
         # Push local gradients to global model
 
         zipped_gradients = zip(grads, self.global_model.trainable_weights)
@@ -320,7 +319,7 @@ class A3CWorker(threading.Thread):
 
             step = self.global_model.optimizer.iterations.numpy()
             next_write = self.last_model_write + A3CWorker.save_every_n_episodes
-            if step >= next_write:
+            if step >= next_write or self.last_model_write == -1:
                 self.last_model_write = step
                 self.write_global_model()
 
@@ -335,107 +334,8 @@ class A3CWorker(threading.Thread):
             model_path = os.path.join(self.args.model_dir, self.args.model_name)
             if increment_episode is True:
                 A3CWorker.global_episode += 1
-                self.global_model.save(model_path)
+                save_model(self.global_model, model_path)
                 print(f"model saved: {model_path} (ep:{A3CWorker.global_episode})")
-
-    def compute_policy_value_loss(
-        self,
-        done: bool,
-        observation: MathyObservation,
-        episode_memory: EpisodeMemory,
-        gamma=0.99,
-    ):
-        step = self.global_model.optimizer.iterations
-        if done:
-            bootstrap_value = 0.0  # terminal
-        else:
-            # Predict the reward using the local network
-            _, _, values, _ = call_model(
-                self.local_model,
-                observations_to_window([observation], self.args.max_len).to_inputs(),
-            )
-            # Select the last timestep
-            values = values[-1]
-            bootstrap_value = tf.squeeze(values).numpy()
-
-        discounted_rewards: List[float] = []
-        for reward in episode_memory.rewards[::-1]:
-            bootstrap_value = reward + gamma * bootstrap_value
-            discounted_rewards.append(bootstrap_value)
-        discounted_rewards.reverse()
-        discounted_rewards = tf.convert_to_tensor(
-            value=np.array(discounted_rewards)[:, None], dtype=tf.float32
-        )
-
-        batch_size = len(episode_memory.actions)
-        sequence_length = len(episode_memory.observations[0].nodes)
-        inputs = episode_memory.to_episode_window().to_inputs()
-        model_results = call_model(self.local_model, inputs)
-        logits, params, values, reward_logits = model_results
-        logits = tf.reshape(logits, [batch_size, -1])
-
-        # Calculate entropy and policy loss
-        h_fn = discrete_policy_entropy_loss(
-            logits, normalise=self.args.normalize_entropy_loss
-        )
-        h_args = discrete_policy_entropy_loss(
-            params, normalise=self.args.normalize_entropy_loss
-        )
-        h_loss_fn = h_fn.loss * self.args.entropy_loss_scaling
-        h_loss_args = h_args.loss * self.args.entropy_loss_scaling
-        entropy_loss = tf.reduce_mean(h_loss_fn) + tf.reduce_mean(h_loss_args)
-
-        # Calculate rewards loss
-        rewards_tensor = tf.convert_to_tensor(episode_memory.rewards, dtype=tf.float32)
-        rewards_tensor = tf.expand_dims(rewards_tensor, 1)
-        rp_loss = tf.reduce_mean(tf.keras.losses.MSE(rewards_tensor, reward_logits))
-        pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
-        bootstrap_value = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
-
-        # Calculate value loss
-        lambda_loss = td_lambda(
-            state_values=values,
-            rewards=rewards_tensor,
-            pcontinues=pcontinues,
-            bootstrap_value=bootstrap_value,
-            lambda_=self.args.td_lambda,
-        )
-        advantage = lambda_loss.extra.temporal_differences
-        value_loss = tf.reduce_mean(lambda_loss.loss)
-
-        # Calculate policy Loss
-        policy_fn_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=[a[0] for a in episode_memory.actions], logits=logits
-        )
-        policy_args_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=[a[1] for a in episode_memory.actions], logits=params[:, 0, :]
-        )
-        policy_loss = policy_fn_loss + policy_args_loss
-        policy_loss *= advantage
-        policy_loss = tf.reduce_mean(policy_loss)
-        if self.args.normalize_pi_loss:
-            policy_loss /= sequence_length
-        # Scale the policy loss down by the seq_len to make invariant to length
-        total_loss = value_loss + policy_loss + entropy_loss + rp_loss
-        prefix = self.tb_prefix
-        tf.summary.scalar(f"losses/{prefix}/policy_loss", data=policy_loss, step=step)
-        tf.summary.scalar(f"losses/{prefix}/value_loss", data=value_loss, step=step)
-        tf.summary.scalar(f"losses/{prefix}/entropy_loss", data=entropy_loss, step=step)
-        tf.summary.scalar(f"losses/{prefix}/rp_loss", data=rp_loss, step=step)
-        tf.summary.scalar(
-            f"settings/learning_rate", data=self.optimizer.lr(step), step=step
-        )
-        return (
-            (
-                policy_loss,
-                value_loss,
-                rp_loss,
-                entropy_loss,
-                total_loss,
-                discounted_rewards,
-            ),
-            model_results,
-        )
 
     def compute_loss(
         self,
@@ -444,29 +344,53 @@ class A3CWorker(threading.Thread):
         observation: MathyObservation,
         episode_memory: EpisodeMemory,
         gamma=0.99,
-    ):
+    ) -> AgentLosses:
         with self.writer.as_default():
             step = self.global_model.optimizer.iterations
-            loss_tuple, model_results = self.compute_policy_value_loss(
-                done, observation, episode_memory
-            )
-            (
-                pi_loss,
-                v_loss,
-                rp_loss,
-                h_loss,
-                total_loss,
-                discounted_rewards,
-            ) = loss_tuple
-            aux_losses = {}
-            aux_weight = self.args.aux_tasks_weight_scale
-            for key in aux_losses.keys():
-                tf.summary.scalar(
-                    f"{self.tb_prefix}/{key}_loss", data=aux_losses[key], step=step
+            if done:
+                bootstrap_value = 0.0  # terminal
+            else:
+                # Predict the reward using the local network
+                _, _, values, _ = call_model(
+                    self.local_model,
+                    observations_to_window(
+                        [observation], self.args.max_len
+                    ).to_inputs(),
                 )
+                # Select the last timestep
+                bootstrap_value = float(tf.squeeze(values[-1]).numpy())
 
+            losses, _ = compute_agent_loss(
+                model=self.local_model,
+                args=self.args,
+                episode_memory=episode_memory,
+                bootstrap_value=bootstrap_value,
+                gamma=gamma,
+            )
+            prefix = self.tb_prefix
             tf.summary.scalar(
-                f"{self.tb_prefix}/total_loss", data=total_loss, step=step
+                f"losses/{prefix}/fn_policy_loss", data=losses.fn_policy, step=step
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/args_policy_loss", data=losses.args_policy, step=step
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/fn_entropy_loss", data=losses.fn_entropy, step=step
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/args_entropy_loss",
+                data=losses.args_entropy,
+                step=step,
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/value_loss", data=losses.value, step=step
+            )
+            tf.summary.scalar(f"losses/{prefix}/rp_loss", data=losses.reward, step=step)
+            tf.summary.scalar(
+                f"settings/learning_rate", data=self.optimizer.lr(step), step=step
+            )
+            tf.summary.scalar(
+                f"{self.tb_prefix}/total_loss", data=losses.total, step=step
             )
 
-        return pi_loss, v_loss, rp_loss, h_loss, aux_losses, total_loss
+        return losses
