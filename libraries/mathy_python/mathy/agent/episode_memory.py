@@ -23,7 +23,7 @@ class EpisodeMemory(object):
     # Observation from the environment
     observations: List[MathyObservation]
     # Action taken in the environment
-    actions: List[int]
+    actions: List[Tuple[int, int]]
     # Reward from the environmnet
     rewards: List[float]
     # Estimated value from the model
@@ -99,7 +99,7 @@ class EpisodeMemory(object):
         self,
         *,
         observation: MathyObservation,
-        action: int,
+        action: Tuple[int, int],
         reward: float,
         value: float,
     ):
