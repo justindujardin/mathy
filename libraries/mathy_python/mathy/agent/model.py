@@ -25,7 +25,11 @@ from .episode_memory import EpisodeMemory
 from .trfl.discrete_policy_gradient_ops import discrete_policy_entropy_loss
 from .trfl.value_ops import td_lambda
 
-AgentModel = tf.keras.Model
+
+class AgentModel(tf.keras.Model):
+    predictions: int
+    opt: tf.keras.optimizers.Optimizer
+
 
 MathyOutputsType = Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]
 
@@ -37,7 +41,7 @@ def call_model(model: AgentModel, inputs: MathyInputsType):
 
 def build_agent_model(
     config: AgentConfig = None, predictions: int = 6, name="embeddings"
-) -> tf.keras.Model:
+) -> AgentModel:
     if config is None:
         config = AgentConfig()
     nodes_in = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name="nodes_in")
@@ -175,12 +179,14 @@ class AgentLosses:
 
 
 def compute_agent_loss(
-    model: tf.keras.Model,
+    model: AgentModel,
     args: AgentConfig,
     episode_memory: EpisodeMemory,
     bootstrap_value: float = 0.0,
     gamma: float = 0.99,
 ) -> Tuple[AgentLosses, MathyOutputsType]:
+    """Compute the policy/value/reward/entropy losses for an episode given its
+    current memory of the episode steps."""
     discounted_rewards: List[float] = []
     for reward in episode_memory.rewards[::-1]:
         bootstrap_value = reward + gamma * bootstrap_value
@@ -256,26 +262,41 @@ def compute_agent_loss(
 
 
 def _load_model(
-    model: tf.keras.Model,
+    model: AgentModel,
+    config: AgentConfig,
     model_file: str,
     optimizer_file: str,
+    observation: MathyObservation,
     initial_state: MathyWindowObservation,
-) -> tf.keras.Model:
+) -> AgentModel:
+    # Load the optimizer weights. We have to take a step
+    # with the optimizer before we can load the weights, or
+    # TensorFlow will complain that the # of weights don't match
+    # what the optimizer expects. {x_X}
+    memory = EpisodeMemory(config.max_len)
+    memory.store(observation=observation, action=(0, 0), reward=0.1, value=1.0)
+    with tf.GradientTape() as tape:
+        losses: AgentLosses
+        losses, _ = compute_agent_loss(model, config, memory)
+    grads = tape.gradient(losses.total, model.trainable_weights)
+    zipped_gradients = zip(grads, model.trainable_weights)
+    model.opt.apply_gradients(zipped_gradients)
+    with open(optimizer_file, "rb") as f:
+        weight_values = pickle.load(f)
+    model.opt.set_weights(weight_values)
+
+    # Load the model weights
     model.load_weights(model_file)
     if hasattr(model, "make_train_function"):
         model.make_train_function()
     elif hasattr(model, "_make_train_function"):
-        model._make_train_function()
+        getattr(model, "_make_train_function")()
     model.build(initial_state.to_input_shapes())
-    labels = model.predict(initial_state.to_inputs())
-    model.fit(initial_state.to_inputs(), labels)
-    with open(optimizer_file, "rb") as f:
-        weight_values = pickle.load(f)
-    # model.optimizer.set_weights(weight_values)
+
     return model
 
 
-def save_model(model: tf.keras.Model, model_path: Union[str, Path]) -> None:
+def save_model(model: AgentModel, model_path: Union[str, Path]) -> None:
     model_path = Path(model_path)
     if not model_path.exists():
         model_path.mkdir(parents=True)
@@ -312,10 +333,10 @@ def get_or_create_agent_model(
     if os.path.exists(mod):
         if is_main and config.verbose:
             with msg.loading(f"Loading model: {mod}..."):
-                _load_model(model, mod, opt, initial_state)
+                _load_model(model, config, mod, opt, observation, initial_state)
             msg.good(f"Loaded model: {mod}")
         else:
-            _load_model(model, mod, opt, initial_state)
+            _load_model(model, config, mod, opt, observation, initial_state)
     elif required:
         print_error(
             ValueError("Model Not Found"),
@@ -338,9 +359,11 @@ def load_agent_model(
     if not meta_file.exists():
         raise ValueError(f"model meta not found: {meta_file}")
     args = AgentConfig(**srsly.read_json(str(meta_file)))
-    model_file = Path(model_data_folder) / args.model_name
-    if not model_file.exists():
-        raise ValueError(f"model not found: {model_file}")
+    model_path = Path(model_data_folder) / args.model_name
+    opt = f"{model_path}.optimizer"
+    mod = f"{model_path}.h5"
+    if not os.path.exists(mod):
+        raise ValueError(f"model not found: {mod}")
     env: MathyEnv = PolySimplify()
     observation: MathyObservation = env.state_to_observation(env.get_initial_state()[0])
     initial_state: MathyWindowObservation = observations_to_window(
@@ -356,10 +379,10 @@ def load_agent_model(
     model.predict(init_inputs)
 
     if not silent:
-        with msg.loading(f"Loading model: {model_file}..."):
-            _load_model(model_file, env.action_size, initial_state)
-        msg.good(f"Loaded model: {model_file}")
+        with msg.loading(f"Loading model: {mod}..."):
+            _load_model(model, args, mod, opt, observation, initial_state)
+        msg.good(f"Loaded model: {mod}")
         model.summary()
     else:
-        _load_model(model_file, env.action_size, initial_state)
+        _load_model(model, args, mod, opt, observation, initial_state)
     return model, args
