@@ -1,21 +1,21 @@
 # mathy.teacher
 
-## Teacher
+## Teacher <kbd>class</kbd>
 ```python
 Teacher(
-    self,
-    topic_names: List[str],
-    num_students: int = 1,
-    difficulty: Optional[str] = None,
-    eval_window: int = 50,
-    win_threshold: float = 0.95,
-    lose_threshold: float = 0.34,
+    self, 
+    topic_names: List[str], 
+    num_students: int = 1, 
+    difficulty: Optional[str] = None, 
+    eval_window: int = 50, 
+    win_threshold: float = 0.95, 
+    lose_threshold: float = 0.34, 
 )
 ```
 
-### get_env
+### get_env <kbd>method</kbd>
 ```python
-Teacher.get_env(self, student_index:int, iteration:int) -> str
+Teacher.get_env(self, student_index: int, iteration: int) -> str
 ```
 Get the current environment a student should be using.
 
@@ -28,9 +28,9 @@ __Returns__
 
 `(str)`: The name of a mathy environment to use.
 
-### next_difficulty
+### next_difficulty <kbd>method</kbd>
 ```python
-Teacher.next_difficulty(self, difficulty:str) -> str
+Teacher.next_difficulty(self, difficulty: str) -> str
 ```
 Return the previous difficulty level given an input difficulty.
 
@@ -42,9 +42,9 @@ __Returns__
 
 `(str)`: The difficulty level after the input, if any.
 
-### previous_difficulty
+### previous_difficulty <kbd>method</kbd>
 ```python
-Teacher.previous_difficulty(self, difficulty:str) -> str
+Teacher.previous_difficulty(self, difficulty: str) -> str
 ```
 Return the previous difficulty level given an input difficulty.
 

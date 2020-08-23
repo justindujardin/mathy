@@ -1,23 +1,23 @@
 # mathy.api
 
-## Mathy
+## Mathy <kbd>class</kbd>
 ```python
 Mathy(
-    self,
-    model_path: str = None,
-    model: tensorflow.python.keras.engine.training.Model = None,
-    config: Union[mathy.agent.config.AgentConfig, mathy.swarm.fragile.SwarmConfig] = None,
-    silent: bool = False,
+    self, 
+    model_path: str = None, 
+    model: tensorflow.python.keras.engine.training.Model = None, 
+    config: Union[mathy.agent.config.AgentConfig, mathy.swarm.fragile.SwarmConfig] = None, 
+    silent: bool = False, 
 )
 ```
 The standard interface for working with Mathy models and agents.
-### simplify_model
+### simplify_model <kbd>method</kbd>
 ```python
 Mathy.simplify_model(
-    self,
-    model: str = 'mathy_alpha_sm',
-    problem: str,
-    max_steps: int,
+    self, 
+    model: str = 'mathy_alpha_sm', 
+    problem: str, 
+    max_steps: int, 
 ) -> mathy.agent.episode_memory.EpisodeMemory
 ```
 Simplify an input problem using the PolySimplify environment.
@@ -35,17 +35,17 @@ __Returns__
     to the solution for the input problem.
 
 
-## MathyAPIModelState
+## MathyAPIModelState <kbd>dataclass</kbd>
 ```python
 MathyAPIModelState(
-    self,
-    config: mathy.agent.config.AgentConfig,
-    model: tensorflow.python.keras.engine.training.Model,
+    self, 
+    config: mathy.agent.config.AgentConfig, 
+    model: tensorflow.python.keras.engine.training.Model, 
 ) -> None
 ```
-MathyAPIModelState(config:mathy.agent.config.AgentConfig, model:tensorflow.python.keras.engine.training.Model)
-## MathyAPISwarmState
+MathyAPIModelState(config: mathy.agent.config.AgentConfig, model: tensorflow.python.keras.engine.training.Model)
+## MathyAPISwarmState <kbd>dataclass</kbd>
 ```python
-MathyAPISwarmState(self, config:mathy.swarm.fragile.SwarmConfig) -> None
+MathyAPISwarmState(self, config: mathy.swarm.fragile.SwarmConfig) -> None
 ```
-MathyAPISwarmState(config:mathy.swarm.fragile.SwarmConfig)
+MathyAPISwarmState(config: mathy.swarm.fragile.SwarmConfig)

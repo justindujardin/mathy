@@ -1,8 +1,8 @@
 # mathy.util
 
-## pad_array
+## pad_array <kbd>function</kbd>
 ```python
-pad_array(in_list:List[Any], max_length:int, value:Any=0) -> List[Any]
+pad_array(in_list: List[Any], max_length: int, value: Any = 0) -> List[Any]
 ```
 Pad a list to the given size with the given padding value.
 

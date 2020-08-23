@@ -93,6 +93,14 @@
   animation: blink 1s infinite;
 }
 
+/* API Docs function type label */
+.md-typeset kbd {
+  font-size: 0.65rem;
+  box-shadow: none;
+  border-radius: 0.2rem;
+  float: right;
+}
+
 /* Cursor animation */
 
 @-webkit-keyframes blink {
