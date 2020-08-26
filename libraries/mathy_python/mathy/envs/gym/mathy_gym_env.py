@@ -105,7 +105,7 @@ class MathyGymEnv(gym.Env):
 
     def render(
         self,
-        last_action: int = -1,
+        last_action: Tuple[int, int] = (-1, -1),
         last_reward: float = 0.0,
         last_change: Optional[ExpressionChangeRule] = None,
     ):

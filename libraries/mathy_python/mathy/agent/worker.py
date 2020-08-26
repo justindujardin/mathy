@@ -4,6 +4,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import gym
+from mathy.agent.action_selectors import predict_next
 import numpy as np
 import tensorflow as tf
 from wasabi import msg
@@ -88,22 +89,6 @@ class A3CWorker(threading.Thread):
             return "agent"
         return f"workers/{self.worker_idx}"
 
-    @property
-    def epsilon(self) -> float:
-        """Return an exploration epsilon for use in an episode"""
-        e = 0.0
-        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
-            return e
-
-        if isinstance(self.greedy_epsilon, list):
-            e = np.random.choice(self.greedy_epsilon)
-        elif isinstance(self.greedy_epsilon, float):
-            e = self.greedy_epsilon
-        else:
-            raise ValueError("greedy_epsilon must either be a float or list of floats")
-        e = truncate(e)
-        return e
-
     def run(self):
         if self.args.profile:
             import cProfile
@@ -155,28 +140,13 @@ class A3CWorker(threading.Thread):
         last_observation: MathyObservation = env.reset()
         last_action: Tuple[int, int] = (-1, -1)
         last_reward: float = 0.0
-
-        selector = action_selectors.A3CEpsilonGreedyActionSelector(
-            model=self.global_model,
-            worker_id=self.worker_idx,
-            epsilon=self.epsilon,
-            episode=A3CWorker.global_episode,
-        )
-
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
                 env.render(last_action=last_action, last_reward=last_reward)
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
             )
-            action, value = selector.select(
-                last_state=env.state,
-                last_window=window,
-                last_action=last_action,
-                last_reward=last_reward,
-            )
-
-            # Take an env step
+            action, value = predict_next(self.local_model, window.to_inputs())
             observation, reward, done, last_obs_info = env.step(action)
             ep_reward += reward
             episode_memory.store(
@@ -266,10 +236,10 @@ class A3CWorker(threading.Thread):
             )
         self.losses.increment("loss", losses.total)
         self.losses.increment("fn_pi", losses.fn_policy)
-        self.losses.increment("fn_h", losses.fn_entropy)
-        # self.losses.increment("args_pi", losses.args_policy)
-        # self.losses.increment("args_h", losses.args_entropy)
+        self.losses.increment("args_pi", losses.args_policy)
         self.losses.increment("v", losses.value)
+        self.losses.increment("fn_h", losses.fn_entropy)
+        self.losses.increment("args_h", losses.args_entropy)
 
         # Calculate local gradients
         grads = tape.gradient(losses.total, self.local_model.trainable_weights)
@@ -297,31 +267,27 @@ class A3CWorker(threading.Thread):
     ):
         env_name = self.teacher.get_env(self.worker_idx, self.iteration)
 
-        # Only observe/track the most-greedy worker (high epsilon exploration
-        # stats are unlikely to be consistent or informative)
+        A3CWorker.global_moving_average_reward = record(
+            A3CWorker.global_episode,
+            is_win,
+            episode_reward,
+            self.worker_idx,
+            A3CWorker.global_moving_average_reward,
+            self.losses,
+            episode_steps,
+            env_name,
+            env=env,
+            state=last_state,
+        )
         if self.worker_idx == 0:
-            A3CWorker.global_moving_average_reward = record(
-                A3CWorker.global_episode,
-                is_win,
-                episode_reward,
-                self.worker_idx,
-                A3CWorker.global_moving_average_reward,
-                self.losses,
-                episode_steps,
-                env_name,
-                env=env,
-                state=last_state,
-            )
             self.maybe_write_episode_summaries(
                 episode_reward, episode_steps, last_state
             )
-
             step = self.global_model.optimizer.iterations.numpy()
             next_write = self.last_model_write + A3CWorker.save_every_n_episodes
             if step >= next_write or self.last_model_write == -1:
                 self.last_model_write = step
                 self.write_global_model()
-
         A3CWorker.global_episode += 1
         self.losses.reset()
 
@@ -383,7 +349,6 @@ class A3CWorker(threading.Thread):
             tf.summary.scalar(
                 f"losses/{prefix}/value_loss", data=losses.value, step=step
             )
-            # tf.summary.scalar(f"losses/{prefix}/rp_loss", data=losses.reward, step=step)
             tf.summary.scalar(
                 f"settings/learning_rate", data=self.optimizer.lr(step), step=step
             )
