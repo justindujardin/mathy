@@ -1,4 +1,5 @@
 # Copyright 2018 The trfl Authors. All Rights Reserved.
+# Copyright 2020 Justin DuJardin. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,21 +15,22 @@
 # ============================================================================
 """Utilities for Reinforcement Learning ops."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from dataclasses import dataclass
+from typing import Generic, List, Optional, TypeVar
 
-import collections
-
-# Dependency imports
-
-from six.moves import zip
 import tensorflow as tf
+from six.moves import zip
 
-LossOutput = collections.namedtuple("loss_output", ["loss", "extra"])
+LossExtraType = TypeVar("LossExtraType")
 
 
-def best_effort_shape(tensor, with_rank=None):
+@dataclass
+class LossOutput(Generic[LossExtraType]):
+    loss: tf.Tensor
+    extra: LossExtraType
+
+
+def best_effort_shape(tensor: tf.Tensor, with_rank: Optional[int] = None):
     """Extract as much static shape information from a tensor as possible.
 
   Args:
@@ -62,7 +64,7 @@ def best_effort_shape(tensor, with_rank=None):
     return shape_list
 
 
-def assert_rank_and_shape_compatibility(tensors, rank):
+def assert_rank_and_shape_compatibility(tensors: List[tf.Tensor], rank: int) -> None:
     """Asserts that the tensors have the correct rank and compatible shapes.
 
   Shapes (of equal rank) are compatible if corresponding dimensions are all
@@ -87,7 +89,9 @@ def assert_rank_and_shape_compatibility(tensors, rank):
         union_of_shapes = union_of_shapes.merge_with(tensor_shape)
 
 
-def wrap_rank_shape_assert(tensors_list, expected_ranks, op_name):
+def wrap_rank_shape_assert(
+    tensors_list: List[List[tf.Tensor]], expected_ranks: List[int], op_name: str
+):
     try:
         for tensors, rank in zip(tensors_list, expected_ranks):
             assert_rank_and_shape_compatibility(tensors, rank)
