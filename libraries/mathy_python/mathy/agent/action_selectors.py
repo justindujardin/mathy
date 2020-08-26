@@ -38,13 +38,13 @@ def predict_next(
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
     """Predict the fn/args policies and value/reward estimates for current timestep."""
     mask = inputs.pop("mask_in")
-    logits, params, values, rewards = call_model(model, inputs)
+    logits, params, values = call_model(model, inputs)
     fn_masked, args_masked = apply_pi_mask(logits, params, mask)
     fn_masked = fn_masked[-1][:]
     fn_probs = tf.nn.softmax(fn_masked).numpy().tolist()
     args_masked = args_masked[-1][:]
     args_probs = tf.nn.softmax(args_masked).numpy().tolist()
-    return fn_probs, args_probs, tf.squeeze(values[-1]), tf.squeeze(rewards[-1])
+    return fn_probs, args_probs, tf.squeeze(values[-1])
 
 
 class ActionSelector:
@@ -79,7 +79,7 @@ class GreedyActionSelector(ActionSelector):
         last_action: int,
         last_reward: float,
     ) -> Tuple[Tuple[int, int], float]:
-        fn_probs, args_probs, value, reward = predict_next(
+        fn_probs, args_probs, value = predict_next(
             self.model, last_window.to_inputs()
         )
         fn_action = int(np.argmax(fn_probs))
@@ -101,7 +101,7 @@ class A3CEpsilonGreedyActionSelector(ActionSelector):
         last_reward: float,
     ) -> Tuple[Tuple[int, int], float]:
 
-        fn_probs, args_probs, value, reward = predict_next(
+        fn_probs, args_probs, value = predict_next(
             self.model, last_window.to_inputs()
         )
         no_random = self.worker_id == 0

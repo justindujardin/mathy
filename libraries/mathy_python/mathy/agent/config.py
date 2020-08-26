@@ -34,7 +34,7 @@ class AgentConfig(BaseModel):
     model_name: str = "model"
     verbose: bool = False
     # Initial learning rate that decays over time.
-    lr_initial: float = 0.001
+    lr_initial: float = 6e-4
     lr_decay_steps: int = 1000
     lr_decay_rate: float = 0.97
     lr_decay_staircase: bool = False
@@ -72,14 +72,13 @@ class AgentConfig(BaseModel):
 
     # NOTE: scaling down h_loss is observed to be important to keep it from
     #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.05
+    entropy_loss_scaling = 0.25
     # Whether to scale entropy loss so it's 0-1
     normalize_entropy_loss = True
     # Scale policy loss down by sequence length to make loss length invariant
     normalize_pi_loss = True
-    normalize_args_pi_loss = True
-    # Normalize the value loss by dividing by the number of values predicted
-    normalize_value_loss = True
+    policy_fn_entropy_cost = 0.4
+    policy_args_entropy_cost = 0.1
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 500
