@@ -23,7 +23,6 @@ from .discrete_policy_gradient_ops import sequence_advantage_actor_critic_loss
 from .sequence_ops import multistep_forward_view
 from .sequence_ops import scan_discounted_sum
 from .value_ops import generalized_lambda_returns
-from .value_ops import qv_max
 from .value_ops import td_lambda
 from .value_ops import td_learning
 

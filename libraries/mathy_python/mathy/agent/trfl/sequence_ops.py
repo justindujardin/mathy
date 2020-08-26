@@ -13,16 +13,14 @@
 # limitations under the License.
 # ============================================================================
 """Tensorflow ops for multistep return evaluation."""
+from typing import Optional, Union
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-# Dependency imports
 import tensorflow as tf
 
 
-def _reverse_seq(sequence, sequence_lengths=None):
+def _reverse_seq(
+    sequence: tf.Tensor, sequence_lengths: Optional[tf.Tensor] = None
+) -> tf.Tensor:
     """Reverse sequence along dim 0.
 
   Args:
@@ -46,14 +44,14 @@ def _reverse_seq(sequence, sequence_lengths=None):
 
 
 def scan_discounted_sum(
-    sequence,
-    decay,
-    initial_value,
-    reverse=False,
-    sequence_lengths=None,
-    back_prop=True,
-    name="scan_discounted_sum",
-):
+    sequence: tf.Tensor,
+    decay: tf.Tensor,
+    initial_value: tf.Tensor,
+    reverse: bool = False,
+    sequence_lengths: Optional[tf.Tensor] = None,
+    back_prop: bool = True,
+    name: str = "scan_discounted_sum",
+) -> tf.Tensor:
     """Evaluates a cumulative discounted sum along dimension 0.
 
     ```python
@@ -135,14 +133,14 @@ def scan_discounted_sum(
 
 
 def multistep_forward_view(
-    rewards,
-    pcontinues,
-    state_values,
-    lambda_,
-    back_prop=True,
-    sequence_lengths=None,
-    name="multistep_forward_view_op",
-):
+    rewards: tf.Tensor,
+    pcontinues: tf.Tensor,
+    state_values: tf.Tensor,
+    lambda_: Union[tf.Tensor, float],
+    back_prop: bool = True,
+    sequence_lengths: Optional[tf.Tensor] = None,
+    name: str = "multistep_forward_view_op",
+) -> tf.Tensor:
     """Evaluates complex backups (forward view of eligibility traces).
 
     ```python
@@ -240,4 +238,3 @@ def multistep_forward_view(
             sequence_lengths=sequence_lengths,
             back_prop=back_prop,
         )
-

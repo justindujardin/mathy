@@ -13,39 +13,36 @@
 # limitations under the License.
 # ============================================================================
 """TensorFlow ops for discrete-action Policy Gradient functions."""
+from dataclasses import dataclass
+from typing import Optional, Union
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import collections
-
-# Dependency imports
-from six.moves import zip
 import tensorflow as tf
-from . import base_ops
-from . import value_ops
+from six.moves import zip
 from tensorflow.python.util import nest
 
-DiscretePolicyEntropyExtra = collections.namedtuple(
-    "discrete_policy_entropy_extra", ["entropy"]
-)
-SequenceAdvantageActorCriticExtra = collections.namedtuple(
-    "sequence_advantage_actor_critic_extra",
-    [
-        "entropy",
-        "entropy_loss",
-        "baseline_loss",
-        "policy_gradient_loss",
-        "advantages",
-        "discounted_returns",
-    ],
-)
+from . import base_ops, value_ops
+
+
+@dataclass
+class DiscretePolicyEntropyExtra:
+    entropy: tf.Tensor
+
+
+@dataclass
+class SequenceAdvantageActorCriticExtra:
+    entropy: tf.Tensor
+    entropy_loss: tf.Tensor
+    baseline_loss: tf.Tensor
+    policy_gradient_loss: tf.Tensor
+    advantages: tf.Tensor
+    discounted_returns: tf.Tensor
 
 
 def discrete_policy_entropy_loss(
-    policy_logits, normalise=False, name="discrete_policy_entropy_loss"
-):
+    policy_logits: tf.Tensor,
+    normalise: bool = False,
+    name: str = "discrete_policy_entropy_loss",
+) -> base_ops.LossOutput[DiscretePolicyEntropyExtra]:
     """Computes the entropy 'loss' for a batch of policy logits.
 
   Given a batch of policy logits, calculates the entropy and corrects the sign
@@ -109,18 +106,18 @@ def discrete_policy_entropy_loss(
 
 
 def sequence_advantage_actor_critic_loss(
-    policy_logits,
-    baseline_values,
-    actions,
-    rewards,
-    pcontinues,
-    bootstrap_value,
-    lambda_=1,
-    entropy_cost=None,
+    policy_logits: tf.Tensor,
+    baseline_values: tf.Tensor,
+    actions: tf.Tensor,
+    rewards: tf.Tensor,
+    pcontinues: tf.Tensor,
+    bootstrap_value: tf.Tensor,
+    lambda_: Optional[Union[tf.Tensor, float]] = 1,
+    entropy_cost: Optional[float] = None,
     baseline_cost=1,
     normalise_entropy=False,
     name="SequenceAdvantageActorCriticLoss",
-):
+) -> base_ops.LossOutput[SequenceAdvantageActorCriticExtra]:
     """Calculates the loss for an A2C update along a batch of trajectories.
 
   Technically A2C is the special case where lambda=1; for general lambda
@@ -201,9 +198,11 @@ def sequence_advantage_actor_critic_loss(
     )
     with tf.compat.v1.name_scope(name, values=scoped_values):
         # Loss for the baseline, summed over the time dimension.
-        baseline_loss_td, td_lambda = value_ops.td_lambda(
+        lambda_loss = value_ops.td_lambda(
             baseline_values, rewards, pcontinues, bootstrap_value, lambda_
         )
+        baseline_loss_td = lambda_loss.loss
+        td_lambda = lambda_loss.extra
 
         # The TD error provides an estimate of the advantages of the actions.
         advantages = td_lambda.temporal_differences
@@ -222,9 +221,11 @@ def sequence_advantage_actor_critic_loss(
         total_loss = tf.add(policy_gradient_loss, baseline_loss, name="total_loss")
 
         if entropy_cost is not None:
-            entropy_loss_op, policy_entropy = discrete_policy_entropy_loss(
+            dpe_loss = discrete_policy_entropy_loss(
                 policy_logits, normalise=normalise_entropy
             )  # [T,B].
+            entropy_loss_op = dpe_loss.loss
+            policy_entropy = dpe_loss.extra
             entropy = tf.reduce_sum(
                 input_tensor=policy_entropy.entropy, axis=0, name="entropy"
             )  # [B].
@@ -311,7 +312,7 @@ def discrete_policy_gradient(
 
 def discrete_policy_gradient_loss(
     policy_logits, actions, action_values, name="discrete_policy_gradient_loss"
-):
+) -> tf.Tensor:
     """Computes discrete policy gradient losses for a batch of trajectories.
 
   This wraps `discrete_policy_gradient` to accept a possibly nested array of
@@ -365,4 +366,3 @@ def discrete_policy_gradient_loss(
             axis=[0],
             name="policy_gradient_loss",
         )
-

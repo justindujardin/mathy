@@ -13,26 +13,34 @@
 # limitations under the License.
 # ============================================================================
 """TensorFlow ops for state value learning."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import collections
+from dataclasses import dataclass
+from typing import Optional, Union
 
 # Dependency imports
 import tensorflow as tf
-from . import base_ops
-from . import sequence_ops
+
+from . import base_ops, sequence_ops
 
 
-TDExtra = collections.namedtuple("td_extra", ["target", "td_error"])
-TDLambdaExtra = collections.namedtuple(
-    "td_lambda_extra", ["temporal_differences", "discounted_returns"]
-)
+@dataclass
+class TDExtra:
+    target: tf.Tensor
+    td_error: tf.Tensor
 
 
-def td_learning(v_tm1, r_t, pcont_t, v_t, name="TDLearning"):
+@dataclass
+class TDLambdaExtra:
+    temporal_differences: tf.Tensor
+    discounted_returns: tf.Tensor
+
+
+def td_learning(
+    v_tm1: tf.Tensor,
+    r_t: tf.Tensor,
+    pcont_t: tf.Tensor,
+    v_t: tf.Tensor,
+    name: str = "TDLearning",
+) -> base_ops.LossOutput[TDExtra]:
     """Implements the TD(0)-learning loss as a TensorFlow op.
 
   The TD loss is `0.5` times the squared difference between `v_tm1` and
@@ -73,13 +81,13 @@ def td_learning(v_tm1, r_t, pcont_t, v_t, name="TDLearning"):
 
 
 def generalized_lambda_returns(
-    rewards,
-    pcontinues,
-    values,
-    bootstrap_value,
-    lambda_=1,
-    name="generalized_lambda_returns",
-):
+    rewards: tf.Tensor,
+    pcontinues: tf.Tensor,
+    values: tf.Tensor,
+    bootstrap_value: tf.Tensor,
+    lambda_: Union[tf.Tensor, float] = 1,
+    name: str = "generalized_lambda_returns",
+) -> tf.Tensor:
     """Computes lambda-returns along a batch of (chunks of) trajectories.
 
   For lambda=1 these will be multistep returns looking ahead from each
@@ -162,8 +170,13 @@ def generalized_lambda_returns(
 
 
 def td_lambda(
-    state_values, rewards, pcontinues, bootstrap_value, lambda_=1, name="BaselineLoss"
-):
+    state_values: tf.Tensor,
+    rewards: tf.Tensor,
+    pcontinues: tf.Tensor,
+    bootstrap_value: tf.Tensor,
+    lambda_: Union[tf.Tensor, float] = 1,
+    name: str = "BaselineLoss",
+) -> base_ops.LossOutput[TDLambdaExtra]:
     """Constructs a TensorFlow graph computing the L2 loss for sequences.
 
   This loss learns the baseline for advantage actor-critic models. Gradients
@@ -227,47 +240,4 @@ def td_lambda(
             ),
         )
 
-
-def qv_max(v_tm1, r_t, pcont_t, q_t, name="QVMAX"):
-    """Implements the QVMAX learning loss as a TensorFlow op.
-
-  The QVMAX loss is `0.5` times the squared difference between `v_tm1` and
-  the target `r_t + pcont_t * max q_t`, where `q_t` is separately learned
-  through QV learning (c.f. `action_value_ops.qv_learning`).
-
-  See "The QV Family Compared to Other Reinforcement Learning Algorithms" by
-  Wiering and van Hasselt (2009).
-  (http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.713.1931)
-
-  Args:
-    v_tm1: Tensor holding values at previous timestep, shape `[B]`.
-    r_t: Tensor holding rewards, shape `[B]`.
-    pcont_t: Tensor holding pcontinue values, shape `[B]`.
-    q_t: Tensor of action values at current timestep, shape `[B, num_actions]`.
-    name: name to prefix ops created by this function.
-
-  Returns:
-    A namedtuple with fields:
-
-    * `loss`: a tensor containing the batch of losses, shape `[B]`.
-    * `extra`: a namedtuple with fields:
-        * `target`: batch of target values for `v_tm1`, shape `[B]`.
-        * `td_error`: batch of temporal difference errors, shape `[B]`.
-  """
-    # Rank and compatibility checks.
-    base_ops.wrap_rank_shape_assert([[v_tm1, r_t, pcont_t], [q_t]], [1, 2], name)
-
-    # The QVMAX op.
-    with tf.compat.v1.name_scope(name, values=[v_tm1, r_t, pcont_t, q_t]):
-
-        # Build target.
-        target = tf.stop_gradient(
-            r_t + pcont_t * tf.reduce_max(input_tensor=q_t, axis=1)
-        )
-
-        # Temporal difference error and loss.
-        # Loss is MSE scaled by 0.5, so the gradient is equal to the TD error.
-        td_error = target - v_tm1
-        loss = 0.5 * tf.square(td_error)
-        return base_ops.LossOutput(loss, TDExtra(target, td_error))
 
