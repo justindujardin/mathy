@@ -117,13 +117,7 @@ def build_agent_model(
             tf.keras.layers.Dense(
                 config.units, name="params_head/hidden", activation="swish"
             ),
-            tf.keras.layers.Dense(
-                predictions, name="params_head/actions", activation="swish"
-            ),
-            tf.keras.layers.Reshape((predictions, 1)),
-            tf.keras.layers.TimeDistributed(
-                tf.keras.layers.Dense(config.max_len, name="params_head/params"),
-            ),
+            tf.keras.layers.Dense(config.max_len, name="params_head/params"),
             tf.keras.layers.LayerNormalization(name="params_head/logits_layer_norm"),
         ],
         name="params_head",
@@ -215,23 +209,11 @@ def compute_agent_loss(
         normalise_entropy=True,
         entropy_cost=args.policy_fn_entropy_cost,
     )
-
-    # Select the tensor rows that correspond to the chosen actions
-    # at each timestep. This way we only calculate loss on the args
-    # logits associated with the action that was taken.
-    args_logits_stack = []
-    args_labels = []
-    for i in range(batch_size):
-        param_logits = params[i]
-        rule, node = episode_memory.actions[i]
-        args_logits_stack.append(param_logits[rule])
-        args_labels.append([node])
-    args_logits = tf.stack(args_logits_stack)
-    args_labels = tf.convert_to_tensor(args_labels)
+    args_fn_labels = tf.convert_to_tensor([[a[1]] for a in episode_memory.actions])
     a3c_args_loss = sequence_advantage_actor_critic_loss(
-        policy_logits=tf.expand_dims(args_logits, axis=1),
+        policy_logits=tf.expand_dims(params, axis=1),
         baseline_values=values,
-        actions=args_labels,
+        actions=args_fn_labels,
         rewards=rewards_tensor,
         pcontinues=pcontinues,
         bootstrap_value=bootstrap_value_tensor,
@@ -244,13 +226,7 @@ def compute_agent_loss(
     args_policy_loss = tf.squeeze(a3c_args_loss.extra.policy_gradient_loss)
     args_entropy_loss = tf.squeeze(a3c_args_loss.extra.entropy_loss)
     value_loss = tf.squeeze(a3c_fn_loss.extra.baseline_loss)
-    total_loss = (
-        tf.squeeze(a3c_fn_loss.loss)
-        # + value_loss
-        # + fn_entropy_loss
-        # + args_policy_loss
-        # + args_entropy_loss
-    )
+    total_loss = tf.squeeze(a3c_fn_loss.loss) + args_policy_loss + args_entropy_loss
     losses = AgentLosses(
         fn_policy=fn_policy_loss,
         fn_entropy=fn_entropy_loss,

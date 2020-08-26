@@ -16,8 +16,8 @@ def test_model_call():
     # The function policy is a 2D array of size (None, len(env.rules))
     assert fn_policy.shape == (1, env.action_size)
     # The args policy determines which node in the sequence to apply the
-    # function to. It's shape is (None, len(env.rules), max_seq_len)
-    assert args_policy.shape == (1, env.action_size, len(observation.nodes))
+    # function to. It's shape is (None, max_seq_len)
+    assert args_policy.shape == (1, args.max_len)
 
     # The estimated Value is a float
     assert value.shape == (1, 1)
