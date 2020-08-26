@@ -22,8 +22,7 @@ from ..state import (
 )
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
-from .trfl.discrete_policy_gradient_ops import discrete_policy_entropy_loss
-from .trfl.value_ops import td_lambda
+from .trfl.discrete_policy_gradient_ops import sequence_advantage_actor_critic_loss
 
 
 class AgentModel(tf.keras.Model):
@@ -112,29 +111,20 @@ def build_agent_model(
         ],
         name="value_head",
     )
-    reward_net = tf.keras.Sequential(
-        [
-            tf.keras.layers.Dense(
-                config.units, name="reward_hidden", activation="swish",
-            ),
-            tf.keras.layers.LayerNormalization(name="reward_layer_norm"),
-            tf.keras.layers.Dense(1, name="reward_logits", activation=None),
-        ],
-        name="reward_head",
-    )
     # Action parameters head
     params_net = tf.keras.Sequential(
         [
             tf.keras.layers.Dense(
-                config.units, name="params_head/in_h1", activation="swish"
+                config.units, name="params_head/hidden", activation="swish"
             ),
             tf.keras.layers.Dense(
-                predictions, name="params_head/in_h2", activation="swish"
+                predictions, name="params_head/actions", activation="swish"
             ),
             tf.keras.layers.Reshape((predictions, 1)),
             tf.keras.layers.TimeDistributed(
-                tf.keras.layers.Dense(config.max_len, name="params_head/node_hidden"),
+                tf.keras.layers.Dense(config.max_len, name="params_head/params"),
             ),
+            tf.keras.layers.LayerNormalization(name="params_head/logits_layer_norm"),
         ],
         name="params_head",
     )
@@ -156,17 +146,18 @@ def build_agent_model(
     lstm_output = time_lstm_norm(lstm_output)
     lstm_output = lstm_nodes(lstm_output)
     lstm_output = nodes_lstm_norm(lstm_output)
-    params = params_net(lstm_output)
+    fn_policy_logits = policy_net(lstm_output)
+    params = params_net(
+        tf.concat([lstm_output, fn_policy_logits], axis=-1, name="params_in")
+    )
     values = value_net(lstm_output)
-    reward_logits = reward_net(lstm_output)
-    logits = policy_net(lstm_output)
     inputs = [
         nodes_in,
         values_in,
         type_in,
         time_in,
     ]
-    outputs = [logits, params, values, reward_logits]
+    outputs = [fn_policy_logits, params, values]
     out_model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         config.lr_initial,
@@ -188,8 +179,11 @@ class AgentLosses:
     args_entropy: tf.Tensor
     args_policy: tf.Tensor
     value: tf.Tensor
-    reward: tf.Tensor
     total: tf.Tensor
+
+
+def seq_len_from_observation(observation: MathyObservation) -> int:
+    return len([n for n in observation.nodes if n != 0])
 
 
 def compute_agent_loss(
@@ -201,76 +195,68 @@ def compute_agent_loss(
 ) -> Tuple[AgentLosses, MathyOutputsType]:
     """Compute the policy/value/reward/entropy losses for an episode given its
     current memory of the episode steps."""
-    discounted_rewards: List[float] = []
-    for reward in episode_memory.rewards[::-1]:
-        bootstrap_value = reward + gamma * bootstrap_value
-        discounted_rewards.append(bootstrap_value)
-    discounted_rewards.reverse()
-    discounted_rewards = tf.convert_to_tensor(
-        value=np.array(discounted_rewards)[:, None], dtype=tf.float32
-    )
-
     batch_size = len(episode_memory.actions)
-    sequence_length = len(episode_memory.observations[0].nodes)
     inputs = episode_memory.to_episode_window().to_inputs()
     model_results = call_model(model, inputs)
-    logits, params, values, reward_logits = model_results
-    logits = tf.reshape(logits, [batch_size, -1])
-
-    # Calculate entropy and policy loss
-    h_fn = discrete_policy_entropy_loss(logits, normalise=args.normalize_entropy_loss)
-    h_args = discrete_policy_entropy_loss(params, normalise=args.normalize_entropy_loss)
-    h_loss_fn = tf.reduce_mean(h_fn.loss * args.entropy_loss_scaling)
-    h_loss_args = tf.reduce_mean(h_args.loss * args.entropy_loss_scaling)
-    entropy_loss = h_loss_fn + h_loss_args
-
-    # Calculate rewards loss
-    rewards_tensor = tf.convert_to_tensor(episode_memory.rewards, dtype=tf.float32)
-    rewards_tensor = tf.expand_dims(rewards_tensor, 1)
-    rp_loss = tf.reduce_mean(tf.keras.losses.MSE(rewards_tensor, reward_logits))
+    logits, params, values = model_results
+    rewards_tensor = tf.convert_to_tensor(
+        [[r] for r in episode_memory.rewards], dtype=tf.float32
+    )
     pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
-
-    # Calculate value loss
-    lambda_loss = td_lambda(
-        state_values=values,
+    bootstrap_value_tensor = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
+    policy_fn_labels = tf.convert_to_tensor([[a[0]] for a in episode_memory.actions])
+    a3c_fn_loss = sequence_advantage_actor_critic_loss(
+        policy_logits=tf.expand_dims(logits, axis=1),
+        baseline_values=values,
+        actions=policy_fn_labels,
         rewards=rewards_tensor,
         pcontinues=pcontinues,
-        bootstrap_value=tf.convert_to_tensor([bootstrap_value], dtype=tf.float32),
-        lambda_=args.td_lambda,
+        bootstrap_value=bootstrap_value_tensor,
+        normalise_entropy=True,
+        entropy_cost=args.policy_fn_entropy_cost,
     )
-    advantage = lambda_loss.extra.temporal_differences
-    value_loss = tf.reduce_mean(lambda_loss.loss)
-    if args.normalize_value_loss:
-        value_loss /= len(episode_memory.values)
 
-    # Calculate function selection policy loss
-    policy_fn_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=[a[0] for a in episode_memory.actions], logits=logits
+    # Select the tensor rows that correspond to the chosen actions
+    # at each timestep. This way we only calculate loss on the args
+    # logits associated with the action that was taken.
+    args_logits_stack = []
+    args_labels = []
+    for i in range(batch_size):
+        param_logits = params[i]
+        rule, node = episode_memory.actions[i]
+        args_logits_stack.append(param_logits[rule])
+        args_labels.append([node])
+    args_logits = tf.stack(args_logits_stack)
+    args_labels = tf.convert_to_tensor(args_labels)
+    a3c_args_loss = sequence_advantage_actor_critic_loss(
+        policy_logits=tf.expand_dims(args_logits, axis=1),
+        baseline_values=values,
+        actions=args_labels,
+        rewards=rewards_tensor,
+        pcontinues=pcontinues,
+        bootstrap_value=bootstrap_value_tensor,
+        normalise_entropy=True,
+        entropy_cost=args.policy_args_entropy_cost,
     )
-    policy_fn_loss *= advantage
-    policy_fn_loss = tf.reduce_mean(policy_fn_loss)
-    if args.normalize_pi_loss:
-        policy_fn_loss /= sequence_length
 
-    # Calculate function args policy loss
-    policy_args_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=[a[1] for a in episode_memory.actions], logits=params[:, 0, :]
+    fn_policy_loss = tf.squeeze(a3c_fn_loss.extra.policy_gradient_loss)
+    fn_entropy_loss = tf.squeeze(a3c_fn_loss.extra.entropy_loss)
+    args_policy_loss = tf.squeeze(a3c_args_loss.extra.policy_gradient_loss)
+    args_entropy_loss = tf.squeeze(a3c_args_loss.extra.entropy_loss)
+    value_loss = tf.squeeze(a3c_fn_loss.extra.baseline_loss)
+    total_loss = (
+        tf.squeeze(a3c_fn_loss.loss)
+        # + value_loss
+        # + fn_entropy_loss
+        # + args_policy_loss
+        # + args_entropy_loss
     )
-    policy_args_loss *= advantage
-    policy_args_loss = tf.reduce_mean(policy_args_loss)
-    if args.normalize_args_pi_loss:
-        policy_args_loss /= sequence_length
-
-    policy_loss = policy_fn_loss + policy_args_loss
-    total_loss = value_loss + policy_loss + entropy_loss + rp_loss
-
     losses = AgentLosses(
-        fn_policy=policy_fn_loss,
-        fn_entropy=h_loss_fn,
-        args_policy=policy_args_loss,
-        args_entropy=h_loss_args,
+        fn_policy=fn_policy_loss,
+        fn_entropy=fn_entropy_loss,
+        args_policy=args_policy_loss,
+        args_entropy=args_entropy_loss,
         value=value_loss,
-        reward=rp_loss,
         total=total_loss,
     )
     return losses, model_results

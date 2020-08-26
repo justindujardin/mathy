@@ -267,9 +267,8 @@ class A3CWorker(threading.Thread):
         self.losses.increment("loss", losses.total)
         self.losses.increment("fn_pi", losses.fn_policy)
         self.losses.increment("fn_h", losses.fn_entropy)
-        self.losses.increment("args_pi", losses.args_policy)
-        self.losses.increment("args_h", losses.args_entropy)
-        self.losses.increment("r", losses.reward)
+        # self.losses.increment("args_pi", losses.args_policy)
+        # self.losses.increment("args_h", losses.args_entropy)
         self.losses.increment("v", losses.value)
 
         # Calculate local gradients
@@ -350,7 +349,7 @@ class A3CWorker(threading.Thread):
                 bootstrap_value = 0.0  # terminal
             else:
                 # Predict the reward using the local network
-                _, _, values, _ = call_model(
+                _, _, values = call_model(
                     self.local_model,
                     observations_to_window(
                         [observation], self.args.max_len
@@ -384,7 +383,7 @@ class A3CWorker(threading.Thread):
             tf.summary.scalar(
                 f"losses/{prefix}/value_loss", data=losses.value, step=step
             )
-            tf.summary.scalar(f"losses/{prefix}/rp_loss", data=losses.reward, step=step)
+            # tf.summary.scalar(f"losses/{prefix}/rp_loss", data=losses.reward, step=step)
             tf.summary.scalar(
                 f"settings/learning_rate", data=self.optimizer.lr(step), step=step
             )
