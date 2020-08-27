@@ -114,9 +114,9 @@ def sequence_advantage_actor_critic_loss(
     bootstrap_value: tf.Tensor,
     lambda_: Optional[Union[tf.Tensor, float]] = 1,
     entropy_cost: Optional[float] = None,
-    baseline_cost=1,
-    normalise_entropy=False,
-    name="SequenceAdvantageActorCriticLoss",
+    baseline_cost: float = 1,
+    normalise_entropy: bool = False,
+    name: str = "SequenceAdvantageActorCriticLoss",
 ) -> base_ops.LossOutput[SequenceAdvantageActorCriticExtra]:
     """Calculates the loss for an A2C update along a batch of trajectories.
 
