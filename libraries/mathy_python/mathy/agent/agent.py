@@ -44,15 +44,11 @@ class A3CAgent:
 
     def train(self):
         A3CWorker.global_episode = 0
-        worker_exploration_epsilons = np.geomspace(
-            self.args.e_greedy_min, self.args.e_greedy_max, self.args.num_workers
-        )
         workers = [
             A3CWorker(
                 env_extra=self.env_extra,
                 global_model=self.global_model,
                 action_size=self.action_size,
-                greedy_epsilon=worker_exploration_epsilons[i],
                 args=self.args,
                 teacher=self.teacher,
                 worker_idx=i,

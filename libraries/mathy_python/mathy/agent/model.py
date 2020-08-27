@@ -74,31 +74,23 @@ def build_agent_model(
         activation="swish",
         kernel_initializer="he_normal",
     )
+    in_norm = tf.keras.layers.LayerNormalization(name="input_norm")
     nodes_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_nodes_norm")
     time_lstm_norm = tf.keras.layers.LayerNormalization(name="time_lstm_norm")
-    lstm_nodes = tf.keras.layers.Bidirectional(
-        tf.keras.layers.LSTM(
-            config.lstm_units,
-            name="nodes_lstm",
-            time_major=False,
-            return_sequences=False,
-            dropout=config.dropout,
-        ),
-        merge_mode="ave",
+    lstm_nodes = tf.keras.layers.LSTM(
+        config.lstm_units, name="nodes_lstm", time_major=False, return_sequences=False,
     )
     lstm_time = tf.keras.layers.LSTM(
-        config.lstm_units,
-        name="time_lstm",
-        time_major=True,
-        return_sequences=True,
-        dropout=config.dropout,
+        config.lstm_units, name="time_lstm", time_major=True, return_sequences=True,
     )
+    # TODO: set output layers initializer to zero (or near) to maximize entropy
+    # see: https://youtu.be/8EcdaCk9KaQ?t=1812
     policy_net = tf.keras.Sequential(
         [
             tf.keras.layers.Dense(
                 config.units, name="fn_head/hidden", activation="swish"
             ),
-            tf.keras.layers.Dense(predictions, name="fn_head/logits", activation=None),
+            tf.keras.layers.Dense(predictions, name="fn_head/logits", activation=None,),
             tf.keras.layers.LayerNormalization(name="fn_head/logits_layer_norm"),
         ],
         name="fn_head",
@@ -136,6 +128,7 @@ def build_agent_model(
             name="input_vectors",
         )
     )
+    sequence_inputs = in_norm(sequence_inputs)
     lstm_output = lstm_time(sequence_inputs)
     lstm_output = time_lstm_norm(lstm_output)
     lstm_output = lstm_nodes(lstm_output)
@@ -152,14 +145,8 @@ def build_agent_model(
         time_in,
     ]
     outputs = [fn_policy_logits, params, values]
-    out_model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        config.lr_initial,
-        decay_steps=config.lr_decay_steps,
-        decay_rate=config.lr_decay_rate,
-        staircase=config.lr_decay_staircase,
-    )
-    out_model.opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+    out_model = AgentModel(inputs=inputs, outputs=outputs, name=name)
+    out_model.opt = tf.keras.optimizers.Adam(learning_rate=config.lr)
     out_model.predictions = predictions
     return out_model
 
@@ -236,6 +223,40 @@ def compute_agent_loss(
         total=total_loss,
     )
     return losses, model_results
+
+
+def predict_action_value(
+    model: AgentModel, inputs: MathyInputsType
+) -> Tuple[Tuple[int, int], float]:
+    """Predict the fn/args policies and value/reward estimates for current timestep."""
+    mask = inputs.pop("mask_in")[-1]
+    action_logits, args_logits, values = call_model(model, inputs)
+    action_logits = action_logits[-1:]
+    args_logits = args_logits[-1:]
+    values = values[-1:]
+    fn_mask = mask.numpy().sum(axis=1).astype("bool").astype("int")
+    fn_mask_logits = tf.multiply(action_logits, fn_mask, name="mask_logits")
+    # Mask the selected rule functions to remove invalid selections
+    fn_masked = tf.where(
+        tf.equal(fn_mask_logits, tf.constant(0.0)),
+        tf.fill(tf.shape(action_logits), -1000000.0),
+        fn_mask_logits,
+        name="fn_softmax_negative_logits",
+    )
+    fn_probs = tf.nn.softmax(fn_masked).numpy()
+    fn_action = int(fn_probs.argmax())
+    # Mask the node selection policy for each rule function
+    args_mask = tf.cast(mask[fn_action], dtype="float32")
+    args_mask_logits = tf.multiply(args_logits, args_mask, name="mask_logits")
+    args_masked = tf.where(
+        tf.equal(args_mask_logits, tf.constant(0.0)),
+        tf.fill(tf.shape(args_logits), -1000000.0),
+        args_mask_logits,
+        name="args_negative_softmax_logts",
+    )
+    args_probs = tf.nn.softmax(args_masked).numpy()
+    arg_action = int(args_probs.argmax())
+    return (fn_action, arg_action), float(tf.squeeze(values[-1]).numpy())
 
 
 def _load_model(
