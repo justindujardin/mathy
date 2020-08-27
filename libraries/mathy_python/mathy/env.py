@@ -197,6 +197,10 @@ class MathyEnv:
             if list_count <= 1 or key != expression.raw:
                 continue
 
+            # After more than (n) visits to the same state, you lose.
+            if list_count > 3:
+                return time_step.termination(features, self.get_lose_signal(env_state))
+
             # NOTE: the reward is scaled by how many times this state has been visited
             return time_step.transition(
                 features,
