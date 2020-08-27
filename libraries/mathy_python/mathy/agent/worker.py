@@ -4,7 +4,6 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import gym
-from mathy.agent.action_selectors import predict_next
 import numpy as np
 import tensorflow as tf
 from wasabi import msg
@@ -13,7 +12,6 @@ from ..env import MathyEnv
 from ..envs.gym.mathy_gym_env import MathyGymEnv
 from ..state import MathyEnvState, MathyObservation, observations_to_window
 from ..teacher import Teacher
-from . import action_selectors
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .model import (
@@ -22,9 +20,9 @@ from .model import (
     call_model,
     compute_agent_loss,
     get_or_create_agent_model,
+    predict_action_value,
     save_model,
 )
-from .trfl import discrete_policy_entropy_loss, td_lambda
 from .util import EpisodeLosses, record, truncate
 
 
@@ -50,7 +48,6 @@ class A3CWorker(threading.Thread):
         action_size: int,
         global_model: AgentModel,
         optimizer,
-        greedy_epsilon: Union[float, List[float]],
         worker_idx: int,
         writer: tf.summary.SummaryWriter,
         teacher: Teacher,
@@ -59,7 +56,6 @@ class A3CWorker(threading.Thread):
         super(A3CWorker, self).__init__()
         self.args = args
         self.env_extra = env_extra
-        self.greedy_epsilon = greedy_epsilon
         self.iteration = 0
         self.action_size = action_size
         self.global_model = global_model
@@ -78,10 +74,7 @@ class A3CWorker(threading.Thread):
             )
             self.last_model_write = -1
             self.last_histogram_write = -1
-        display_e = self.greedy_epsilon
-        if self.worker_idx == 0 and self.args.main_worker_use_epsilon is False:
-            display_e = 0.0
-        msg.good(f"Worker {worker_idx} started. (e={display_e:.3f})")
+        msg.good(f"Worker {worker_idx} started.")
 
     @property
     def tb_prefix(self) -> str:
@@ -140,26 +133,70 @@ class A3CWorker(threading.Thread):
         last_observation: MathyObservation = env.reset()
         last_action: Tuple[int, int] = (-1, -1)
         last_reward: float = 0.0
+
+        ep_rules: List[int] = []
+        ep_nodes: List[int] = []
+        ep_rewards: List[float] = []
+        ep_value_estimates: List[float] = []
+
+        # TODO: Track episode stats for
+        #  action mean
+        #  action stddev
+        #  node mean
+        #  node stddev
+        #  observation
+
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
                 env.render(last_action=last_action, last_reward=last_reward)
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.args.prediction_window_size
             )
-            action, value = predict_next(self.local_model, window.to_inputs())
+            action, value = predict_action_value(self.local_model, window.to_inputs())
             observation, reward, done, last_obs_info = env.step(action)
             ep_reward += reward
             episode_memory.store(
                 observation=last_observation, action=action, reward=reward, value=value,
             )
+            ep_rules.append(action[0])
+            ep_nodes.append(action[1])
+            ep_rewards.append(reward)
+            ep_value_estimates.append(value)
             if time_count == self.args.update_gradients_every or done:
+                step = self.global_model.optimizer.iterations
                 if done and self.args.print_training and self.worker_idx == 0:
                     env.render(last_action=action, last_reward=last_reward)
 
+                # TODO: add an if done around this update, and in the ELSE
+                #       iterate over the entire (now known V) episode of windows
+                #       and build a batch to update the model.
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()
                 time_count = 0
                 if done:
+                    with self.writer.as_default():
+                        # Track episode stats
+                        pairs = [
+                            (np.array(ep_rewards), "rewards"),
+                            (np.array(ep_rules), "rules"),
+                            (np.array(ep_nodes), "nodes"),
+                            (np.array(ep_value_estimates), "v_estimates"),
+                        ]
+                        for val, name in pairs:
+                            tf.summary.scalar(
+                                f"episode/{name}/min", data=val.min(), step=step
+                            )
+                            tf.summary.scalar(
+                                f"episode/{name}/max", data=val.max(), step=step
+                            )
+                            tf.summary.scalar(
+                                f"episode/{name}/mean", data=val.mean(), step=step
+                            )
+                            tf.summary.scalar(
+                                f"episode/{name}/std", data=val.std(), step=step
+                            )
+
+                    # TODO: histograms of observations and rewards: https://youtu.be/8EcdaCk9KaQ?t=545
                     self.finish_episode(
                         last_obs_info.get("win", False),
                         ep_reward,
@@ -254,6 +291,7 @@ class A3CWorker(threading.Thread):
 
         if done:
             episode_memory.clear()
+        # TODO: Maybe don't clear in this else?
         else:
             episode_memory.clear_except_window(self.args.prediction_window_size)
 
@@ -350,7 +388,7 @@ class A3CWorker(threading.Thread):
                 f"losses/{prefix}/value_loss", data=losses.value, step=step
             )
             tf.summary.scalar(
-                f"settings/learning_rate", data=self.optimizer.lr(step), step=step
+                f"settings/learning_rate", data=self.optimizer.lr, step=step
             )
             tf.summary.scalar(
                 f"{self.tb_prefix}/total_loss", data=losses.total, step=step

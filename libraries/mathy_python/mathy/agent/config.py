@@ -28,20 +28,16 @@ class AgentConfig(BaseModel):
     embedding_units: int = 32
     lstm_units: int = 128
     topics: List[str] = ["poly"]
-    difficulty: Optional[str] = None
-    dropout: float = 0.1
+    difficulty: Optional[str] = "easy"
     model_dir: str = "/tmp/a3c-training/"
     model_name: str = "model"
     verbose: bool = False
     # Initial learning rate that decays over time.
-    lr_initial: float = 6e-4
-    lr_decay_steps: int = 1000
-    lr_decay_rate: float = 0.97
-    lr_decay_staircase: bool = False
+    lr: float = 3e-3
     max_eps: int = 15000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
-    gamma: float = 0.99
+    gamma: float = 0.95
     # The number of worker agents to create.
     num_workers: int = 3
     # The lambda value for generalized lambda returns to calculate value loss
@@ -53,14 +49,12 @@ class AgentConfig(BaseModel):
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
-    # Update frequencey for the Worker to sync with the Main model.
+    # Update frequency for the Worker to sync with the Main model.
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
     update_gradients_every: int = 3
-    main_worker_use_epsilon = False
-    e_greedy_min = 0.01
-    e_greedy_max = 0.04
+
     # Worker's sleep this long between steps to allow
     # other threads time to process. This is useful for
     # running more threads than you have processors to
@@ -70,18 +64,11 @@ class AgentConfig(BaseModel):
     # The number of worker agents to create.
     num_workers: int = 3
 
-    # NOTE: scaling down h_loss is observed to be important to keep it from
-    #       destabilizing the overall loss when it grows very small
-    entropy_loss_scaling = 0.25
-    # Whether to scale entropy loss so it's 0-1
-    normalize_entropy_loss = True
-    # Scale policy loss down by sequence length to make loss length invariant
-    normalize_pi_loss = True
     policy_fn_entropy_cost = 0.4
-    policy_args_entropy_cost = 0.1
+    policy_args_entropy_cost = 0.2
 
     # The "Teacher" will start evaluating after this many initial episodes
-    teacher_start_evaluations_at_episode = 500
+    teacher_start_evaluations_at_episode = 20
     # The "Teacher" evaluates the win/loss record of the agent every (n) episodes
     teacher_evaluation_steps = 3
     # If the agent wins >= this value, promote to the next difficulty class
