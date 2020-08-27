@@ -96,9 +96,7 @@ def wrap_rank_shape_assert(
         for tensors, rank in zip(tensors_list, expected_ranks):
             assert_rank_and_shape_compatibility(tensors, rank)
     except ValueError as e:
-        error_message = "{}: Error in rank and/or " "compatibility check, {}".format(
-            op_name, e
-        )
+        error_message = f"{op_name}: Error in rank and/or " "compatibility check, {e}"
         tf.compat.v1.logging.error(error_message)
         raise ValueError(error_message)
 
@@ -106,15 +104,5 @@ def wrap_rank_shape_assert(
 def assert_arg_bounded(value, min_value, max_value, op_name, arg_name):
     if not min_value <= value <= max_value:
         raise ValueError(
-            (
-                op_name
-                + ": "
-                + arg_name
-                + " has to lie in "
-                + "["
-                + str(min_value)
-                + ", "
-                + str(max_value)
-                + "]."
-            )
+            f"{op_name}: {arg_name} has to lie in [{min_value}, {max_value}]."
         )
