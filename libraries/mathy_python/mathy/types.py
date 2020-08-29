@@ -1,5 +1,5 @@
 import sys
-from typing import NamedTuple
+from typing import List, NamedTuple, Tuple
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -54,3 +54,9 @@ class EnvRewards:
     TIMESTEP = -0.01
     PREVIOUS_LOCATION = -0.02
     INVALID_MOVE = -0.5
+
+
+ActionType = Tuple[int, int]
+ActionList = List[ActionType]
+RewardList = List[float]
+ValueList = List[float]
