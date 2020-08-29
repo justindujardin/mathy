@@ -3,9 +3,10 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import srsly
-
 from mathy_core.expressions import ConstantExpression, MathExpression, MathTypeKeys
 from mathy_core.parser import ExpressionParser
+
+from .types import ActionType
 from .util import pad_array
 
 PROBLEM_TYPE_HASH_BUCKETS = 128
@@ -127,7 +128,7 @@ class MathyEnvStateStep(NamedTuple):
 
     raw: str
     focus: int
-    action: Tuple[int, int]
+    action: ActionType
 
 
 # fmt: off
@@ -197,7 +198,7 @@ class MathyEnvState(object):
         return MathyEnvState(state=self)
 
     def get_out_state(
-        self, problem: str, focus: int, action: Tuple[int, int], moves_remaining: int
+        self, problem: str, focus: int, action: ActionType, moves_remaining: int
     ) -> "MathyEnvState":
         """Get the next environment state based on the current one with updated
         history and agent information based on an action being taken."""
@@ -329,7 +330,7 @@ class MathyAgentState:
     problem: str
     problem_type: str
     reward: float
-    action: Tuple[int, int]
+    action: ActionType
     history: List[MathyEnvStateStep]
 
     def __init__(

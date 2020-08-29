@@ -20,6 +20,7 @@ from ..state import (
     MathyWindowObservation,
     observations_to_window,
 )
+from ..types import ActionType
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .trfl.discrete_policy_gradient_ops import sequence_advantage_actor_critic_loss
@@ -172,7 +173,7 @@ def compute_agent_loss(
     model: AgentModel,
     args: AgentConfig,
     inputs: MathyWindowObservation,
-    actions: List[Tuple[int, int]],
+    actions: List[ActionType],
     rewards: List[float],
     bootstrap_value: float = 0.0,
     gamma: float = 0.99,
@@ -237,7 +238,7 @@ def compute_agent_loss(
 
 def predict_action_value(
     model: AgentModel, inputs: MathyInputsType
-) -> Tuple[Tuple[int, int], float]:
+) -> Tuple[ActionType, float]:
     """Predict the fn/args policies and value/reward estimates for current timestep."""
     mask = inputs.pop("mask_in")[-1]
     action_logits, args_logits, values = call_model(model, inputs)

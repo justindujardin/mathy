@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union, Iterator
 
 import numpy as np
 
-from ..types import Literal
+from ..types import ActionType, Literal
 
 from ..state import (
     MathyObservation,
@@ -23,7 +23,7 @@ class EpisodeMemory(object):
     # Observation from the environment
     observations: List[MathyObservation]
     # Action taken in the environment
-    actions: List[Tuple[int, int]]
+    actions: List[ActionType]
     # Reward from the environmnet
     rewards: List[float]
     # Estimated value from the model
@@ -105,7 +105,7 @@ class EpisodeMemory(object):
         self,
         *,
         observation: MathyObservation,
-        action: Tuple[int, int],
+        action: ActionType,
         reward: float,
         value: float,
     ):

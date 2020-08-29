@@ -10,8 +10,9 @@ from wasabi import msg
 
 from ..env import MathyEnv
 from ..envs.gym.mathy_gym_env import MathyGymEnv
-from ..state import MathyEnvState, MathyObservation, observations_to_window
+from ..state import MathyEnvState, MathyObservation, MathyWindowObservation
 from ..teacher import Teacher
+from ..types import ActionType
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .model import (
@@ -133,7 +134,7 @@ class A3CWorker(threading.Thread):
         time_count = 0
         done = False
         last_observation: MathyObservation = env.reset()
-        last_action: Tuple[int, int] = (-1, -1)
+        last_action: ActionType = (-1, -1)
         last_reward: float = 0.0
 
         ep_rules: List[int] = []
@@ -262,8 +263,21 @@ class A3CWorker(threading.Thread):
     def update_global_network(
         self, done: bool, observation: MathyObservation, episode_memory: EpisodeMemory,
     ):
-        # Calculate gradient wrt to local model. We do so by tracking the
-        # variables involved in computing the loss by using tf.GradientTape
+        windows_zipped: List[
+            Tuple[MathyWindowObservation, List[ActionType], List[float], List[float]]
+        ]
+        if not done:
+            windows_zipped = [
+                episode_memory.to_window_observation(
+                    observation=observation,
+                    window_size=self.args.prediction_window_size,
+                )
+            ]
+        windows_zipped = episode_memory.to_window_observations(
+            window=self.args.prediction_window_size,
+            other_keys=["actions", "values", "rewards"],
+        )
+
         with tf.GradientTape() as tape:
             losses: AgentLosses = self.compute_loss(
                 done=done,

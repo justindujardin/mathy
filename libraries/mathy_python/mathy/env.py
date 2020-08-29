@@ -23,7 +23,7 @@ from .util import is_terminal_transition
 
 from . import time_step
 from .state import MathyEnvState, MathyEnvStateStep, MathyObservation
-from .types import EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
+from .types import ActionType, EnvRewards, MathyEnvProblem, MathyEnvProblemArgs
 
 
 class MathyEnv:
@@ -237,7 +237,7 @@ class MathyEnv:
         )
 
     def get_next_state(
-        self, env_state: MathyEnvState, action: Tuple[int, int]
+        self, env_state: MathyEnvState, action: ActionType
     ) -> Tuple[MathyEnvState, time_step.TimeStep, ExpressionChangeRule]:
         """
         # Parameters
