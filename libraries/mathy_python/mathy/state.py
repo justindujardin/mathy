@@ -12,7 +12,7 @@ PROBLEM_TYPE_HASH_BUCKETS = 128
 
 NodeIntList = List[int]
 NodeValuesFloatList = List[float]
-NodeMaskIntList = List[int]
+NodeMaskIntList = List[List[int]]
 ProblemTypeIntList = List[int]
 TimeFloatList = List[float]
 
@@ -39,6 +39,16 @@ class ObservationFeatureIndices(IntEnum):
 class MathyObservation(NamedTuple):
     """A featurized observation from an environment state."""
 
+    @classmethod
+    def empty(cls, template: "MathyObservation") -> "MathyObservation":
+        return MathyObservation(
+            nodes=[MathTypeKeys["empty"]],
+            values=[0.0],
+            mask=template.mask,
+            type=[0, 0],
+            time=[0.0],
+        )
+
     nodes: NodeIntList
     mask: NodeMaskIntList
     values: NodeValuesFloatList
@@ -64,9 +74,17 @@ class MathyWindowObservation(NamedTuple):
     type: WindowProblemTypeIntList
     time: WindowTimeFloatList
 
-    def to_inputs(
-        self, as_tf_tensor: bool = False, pad_length: Optional[int] = None
-    ) -> dict:
+    @property
+    def real_length(self) -> int:
+        """Get the unpadded length of the window"""
+        count = 0
+        for t in self.type:
+            if (np.array(t) == [0, 0]).all():
+                continue
+            count += 1
+        return count
+
+    def to_inputs(self) -> dict:
         import tensorflow as tf
 
         result = {
@@ -218,20 +236,6 @@ class MathyEnvState(object):
                 int(problem_hash_two.numpy()),
             ]
         return _problem_hash_cache[self.agent.problem_type]
-
-    def to_start_observation(self) -> MathyObservation:
-        """Generate an episode start MathyObservation"""
-        num_actions = 1 * self.num_rules
-        hash = self.get_problem_hash()
-        mask = [0] * num_actions
-        values = [0.0]
-        return MathyObservation(
-            nodes=[MathTypeKeys["empty"]],
-            mask=mask,
-            values=values,
-            type=[0],
-            time=[0.0],
-        )
 
     def to_observation(
         self,
