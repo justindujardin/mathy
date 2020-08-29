@@ -353,19 +353,24 @@ class A3CWorker(threading.Thread):
                 bootstrap_value = 0.0  # terminal
             else:
                 # Predict the reward using the local network
+                mem2 = EpisodeMemory(
+                    self.args.max_len, self.args.prediction_window_size
+                )
+                mem2.store(
+                    observation=observation, action=(0, 0), value=1.0, reward=0.0
+                )
                 _, _, values = call_model(
-                    self.local_model,
-                    observations_to_window(
-                        [observation], self.args.max_len
-                    ).to_inputs(),
+                    self.local_model, mem2.to_episode_window().to_inputs(),
                 )
                 # Select the last timestep
                 bootstrap_value = float(tf.squeeze(values[-1]).numpy())
 
-            losses, _ = compute_agent_loss(
+            losses: AgentLosses = compute_agent_loss(
                 model=self.local_model,
                 args=self.args,
-                episode_memory=episode_memory,
+                inputs=episode_memory.to_episode_window(),
+                actions=episode_memory.actions,
+                rewards=episode_memory.rewards,
                 bootstrap_value=bootstrap_value,
                 gamma=gamma,
             )

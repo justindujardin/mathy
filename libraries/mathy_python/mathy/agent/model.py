@@ -35,6 +35,7 @@ MathyOutputsType = Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]
 
 @tf.function()
 def call_model(model: AgentModel, inputs: MathyInputsType):
+    # print(len(inputs["nodes_in"]))
     return model.call(inputs)
 
 
@@ -170,31 +171,29 @@ def seq_len_from_observation(observation: MathyObservation) -> int:
 def compute_agent_loss(
     model: AgentModel,
     args: AgentConfig,
-    episode_memory: EpisodeMemory,
+    inputs: MathyWindowObservation,
+    actions: List[Tuple[int, int]],
+    rewards: List[float],
     bootstrap_value: float = 0.0,
     gamma: float = 0.99,
-) -> Tuple[AgentLosses, MathyOutputsType]:
+) -> AgentLosses:
     """Compute the policy/value/reward/entropy losses for an episode given its
     current memory of the episode steps."""
-    batch_size = len(episode_memory.actions)
-    episode_window = episode_memory.to_episode_window()
-    inputs = episode_window.to_inputs()
-    model_results = call_model(model, inputs)
-    logits, params, values = model_results
-    rewards_tensor = tf.convert_to_tensor(
-        [[r] for r in episode_memory.rewards], dtype=tf.float32
-    )
+    batch_size = len(actions)
+    logits, params, values = call_model(model, inputs.to_inputs())
+    unpadded_length: int = inputs.real_length
+    rewards_tensor = tf.convert_to_tensor([[r] for r in rewards], dtype=tf.float32)
     pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
 
     # Unpad the various tensors for loss/labels
-    logits = logits[-episode_window.real_length :, :]
-    params = params[-episode_window.real_length :, :]
-    values = values[-episode_window.real_length :]
-    rewards_tensor = rewards_tensor[-episode_window.real_length :]
-    pcontinues = pcontinues[-episode_window.real_length :]
+    logits = logits[-unpadded_length:, :]
+    params = params[-unpadded_length:, :]
+    values = values[-unpadded_length:]
+    rewards_tensor = rewards_tensor[-unpadded_length:]
+    pcontinues = pcontinues[-unpadded_length:]
 
     bootstrap_value_tensor = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
-    policy_fn_labels = tf.convert_to_tensor([[a[0]] for a in episode_memory.actions])
+    policy_fn_labels = tf.convert_to_tensor([[a[0]] for a in actions])
     policy_fn_logits = tf.expand_dims(logits, axis=1)
     a3c_fn_loss = sequence_advantage_actor_critic_loss(
         policy_logits=policy_fn_logits,
@@ -206,7 +205,7 @@ def compute_agent_loss(
         normalise_entropy=True,
         entropy_cost=args.policy_fn_entropy_cost,
     )
-    args_fn_labels = tf.convert_to_tensor([[a[1]] for a in episode_memory.actions])
+    args_fn_labels = tf.convert_to_tensor([[a[1]] for a in actions])
     args_fn_logits = tf.expand_dims(params, axis=1)
     a3c_args_loss = sequence_advantage_actor_critic_loss(
         policy_logits=args_fn_logits,
@@ -233,7 +232,7 @@ def compute_agent_loss(
         value=value_loss,
         total=total_loss,
     )
-    return losses, model_results
+    return losses
 
 
 def predict_action_value(
@@ -285,8 +284,13 @@ def _load_model(
     memory = EpisodeMemory(config.max_len, config.prediction_window_size)
     memory.store(observation=observation, action=(0, 0), reward=0.1, value=1.0)
     with tf.GradientTape() as tape:
-        losses: AgentLosses
-        losses, _ = compute_agent_loss(model, config, memory)
+        losses: AgentLosses = compute_agent_loss(
+            model=model,
+            args=config,
+            inputs=memory.to_episode_window(),
+            actions=memory.actions,
+            rewards=memory.rewards,
+        )
     grads = tape.gradient(losses.total, model.trainable_weights)
     zipped_gradients = zip(grads, model.trainable_weights)
     model.opt.apply_gradients(zipped_gradients)
