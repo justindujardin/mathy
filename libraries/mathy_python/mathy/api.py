@@ -90,7 +90,9 @@ class Mathy:
 
         environment = "poly"
         difficulty = "easy"
-        episode_memory = EpisodeMemory(self.state.config.max_len)
+        episode_memory = EpisodeMemory(
+            self.state.config.max_len, self.state.config.prediction_window_size
+        )
         env: MathyGymEnv = gym.make(f"mathy-{environment}-{difficulty}-v0")
         last_observation: MathyObservation = env.reset_with_input(
             problem_text=problem, max_moves=max_steps

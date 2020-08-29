@@ -29,8 +29,9 @@ class EpisodeMemory(object):
     # Estimated value from the model
     values: List[float]
 
-    def __init__(self, max_len: int):
+    def __init__(self, max_len: int, stack: int = 3):
         self.max_len = max_len
+        self.stack = stack
         self.clear()
 
     def clear(self):
@@ -54,7 +55,7 @@ class EpisodeMemory(object):
         # Pad with the current observation so the model graph doesn't
         # need to be rebuilt for multiple batch sizes
         while len(window_observations) < window_size:
-            window_observations.append(observation)
+            window_observations.insert(0, MathyObservation.empty(observation))
         return observations_to_window(window_observations, self.max_len)
 
     def to_window_observations(
@@ -93,7 +94,12 @@ class EpisodeMemory(object):
         return results
 
     def to_episode_window(self) -> MathyWindowObservation:
-        return observations_to_window(self.observations, self.max_len)
+        window_observations = self.observations[:]
+        # Pad with the current observation so the model graph doesn't
+        # need to be rebuilt for multiple batch sizes
+        while len(window_observations) < self.stack:
+            window_observations.append(MathyObservation.empty(window_observations[-1]))
+        return observations_to_window(window_observations, self.max_len)
 
     def store(
         self,

@@ -177,17 +177,27 @@ def compute_agent_loss(
     """Compute the policy/value/reward/entropy losses for an episode given its
     current memory of the episode steps."""
     batch_size = len(episode_memory.actions)
-    inputs = episode_memory.to_episode_window().to_inputs()
+    episode_window = episode_memory.to_episode_window()
+    inputs = episode_window.to_inputs()
     model_results = call_model(model, inputs)
     logits, params, values = model_results
     rewards_tensor = tf.convert_to_tensor(
         [[r] for r in episode_memory.rewards], dtype=tf.float32
     )
     pcontinues = tf.convert_to_tensor([[gamma]] * batch_size, dtype=tf.float32)
+
+    # Unpad the various tensors for loss/labels
+    logits = logits[-episode_window.real_length :, :]
+    params = params[-episode_window.real_length :, :]
+    values = values[-episode_window.real_length :]
+    rewards_tensor = rewards_tensor[-episode_window.real_length :]
+    pcontinues = pcontinues[-episode_window.real_length :]
+
     bootstrap_value_tensor = tf.convert_to_tensor([bootstrap_value], dtype=tf.float32)
     policy_fn_labels = tf.convert_to_tensor([[a[0]] for a in episode_memory.actions])
+    policy_fn_logits = tf.expand_dims(logits, axis=1)
     a3c_fn_loss = sequence_advantage_actor_critic_loss(
-        policy_logits=tf.expand_dims(logits, axis=1),
+        policy_logits=policy_fn_logits,
         baseline_values=values,
         actions=policy_fn_labels,
         rewards=rewards_tensor,
@@ -197,8 +207,9 @@ def compute_agent_loss(
         entropy_cost=args.policy_fn_entropy_cost,
     )
     args_fn_labels = tf.convert_to_tensor([[a[1]] for a in episode_memory.actions])
+    args_fn_logits = tf.expand_dims(params, axis=1)
     a3c_args_loss = sequence_advantage_actor_critic_loss(
-        policy_logits=tf.expand_dims(params, axis=1),
+        policy_logits=args_fn_logits,
         baseline_values=values,
         actions=args_fn_labels,
         rewards=rewards_tensor,
@@ -271,7 +282,7 @@ def _load_model(
     # with the optimizer before we can load the weights, or
     # TensorFlow will complain that the # of weights don't match
     # what the optimizer expects. {x_X}
-    memory = EpisodeMemory(config.max_len)
+    memory = EpisodeMemory(config.max_len, config.prediction_window_size)
     memory.store(observation=observation, action=(0, 0), reward=0.1, value=1.0)
     with tf.GradientTape() as tape:
         losses: AgentLosses

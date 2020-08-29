@@ -89,7 +89,9 @@ class A3CWorker(threading.Thread):
             pr = cProfile.Profile()
             pr.enable()
 
-        episode_memory = EpisodeMemory(self.args.max_len)
+        episode_memory = EpisodeMemory(
+            self.args.max_len, self.args.prediction_window_size
+        )
         while (
             A3CWorker.global_episode < self.args.max_eps
             and A3CWorker.request_quit is False
@@ -149,9 +151,7 @@ class A3CWorker(threading.Thread):
         while not done and A3CWorker.request_quit is False:
             if self.args.print_training and self.worker_idx == 0:
                 env.render(last_action=last_action, last_reward=last_reward)
-            window = episode_memory.to_window_observation(
-                last_observation, window_size=self.args.prediction_window_size
-            )
+            window = episode_memory.to_window_observation(last_observation)
             action, value = predict_action_value(self.local_model, window.to_inputs())
             observation, reward, done, last_obs_info = env.step(action)
             ep_reward += reward
