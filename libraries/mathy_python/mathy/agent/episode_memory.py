@@ -1,16 +1,10 @@
 from multiprocessing import Queue
-from typing import Dict, List, Optional, Any, Tuple, Union, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..types import ActionType, Literal
-
-from ..state import (
-    MathyObservation,
-    MathyWindowObservation,
-    observations_to_window,
-)
-
+from ..state import MathyObservation, MathyWindowObservation, observations_to_window
+from ..types import ActionList, ActionType, Literal, RewardList
 
 EpisodeMemoryKeys = Union[
     Literal["actions"], Literal["rewards"], Literal["values"],
@@ -58,6 +52,22 @@ class EpisodeMemory(object):
             window_observations.insert(0, MathyObservation.empty(observation))
         return observations_to_window(window_observations, self.max_len)
 
+    def to_non_terminal_training_window(
+        self, window_size: int = 3
+    ) -> Tuple[MathyWindowObservation, ActionList, RewardList]:
+        previous = -(max(window_size, 1))
+        window_observations = self.observations[previous:]
+        window_actions = self.actions[previous:]
+        window_rewards = self.rewards[previous:]
+        # Pad with the current observation so the model graph doesn't
+        # need to be rebuilt for multiple batch sizes
+        while len(window_observations) < window_size:
+            window_observations.insert(0, MathyObservation.empty(self.observations[-1]))
+            window_actions.insert(0, (0, 0))
+            window_rewards.insert(0, 0.0)
+        window = observations_to_window(window_observations, self.max_len)
+        return window, window_actions, window_rewards
+
     def to_window_observations(
         self,
         window: int = 3,
@@ -98,7 +108,9 @@ class EpisodeMemory(object):
         # Pad with the current observation so the model graph doesn't
         # need to be rebuilt for multiple batch sizes
         while len(window_observations) < self.stack:
-            window_observations.append(MathyObservation.empty(window_observations[-1]))
+            window_observations.insert(
+                0, MathyObservation.empty(window_observations[-1])
+            )
         return observations_to_window(window_observations, self.max_len)
 
     def store(

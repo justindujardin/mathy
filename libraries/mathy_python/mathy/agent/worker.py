@@ -12,7 +12,7 @@ from ..env import MathyEnv
 from ..envs.gym.mathy_gym_env import MathyGymEnv
 from ..state import MathyEnvState, MathyObservation, MathyWindowObservation
 from ..teacher import Teacher
-from ..types import ActionType
+from ..types import ActionList, ActionType, RewardList, ValueList
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .model import (
@@ -168,9 +168,6 @@ class A3CWorker(threading.Thread):
                 if done and self.args.print_training and self.worker_idx == 0:
                     env.render(last_action=action, last_reward=last_reward)
 
-                # TODO: add an if done around this update, and in the ELSE
-                #       iterate over the entire (now known V) episode of windows
-                #       and build a batch to update the model.
                 self.update_global_network(done, observation, episode_memory)
                 self.maybe_write_histograms()
                 time_count = 0
@@ -252,51 +249,57 @@ class A3CWorker(threading.Thread):
     def update_global_network(
         self, done: bool, observation: MathyObservation, episode_memory: EpisodeMemory,
     ):
-        windows_zipped: List[
-            Tuple[MathyWindowObservation, List[ActionType], List[float], List[float]]
-        ]
-        if not done:
-            windows_zipped = [
-                episode_memory.to_window_observation(
-                    observation=observation,
-                    window_size=self.args.prediction_window_size,
+        window_size: int = self.args.prediction_window_size
+        zipped: List[Tuple[MathyWindowObservation, ActionList, RewardList, ValueList]]
+        if not done or len(episode_memory.actions) < window_size:
+            zipped = episode_memory.to_non_terminal_training_window(window_size)
+            # Add fake rewards so the zips look the same
+            zipped += (0.0,)
+            # Only consider the current window for non-terminal states
+            zipped = [zipped]
+        else:
+            zipped = episode_memory.to_window_observations(
+                window=window_size, other_keys=["actions", "rewards", "values"],
+            )  # type:ignore
+
+        accumulated_grads: Optional[List[tf.Variable]] = None
+        total_losses: AgentLosses = AgentLosses.zero()
+        for w, a, r, v in zipped:
+            # TODO: can we use the known terminal values in place of rewards
+            #       for final episode updates?
+            with tf.GradientTape() as tape:
+                losses: AgentLosses = self.compute_loss(
+                    done=done, inputs=w, actions=a, rewards=r, gamma=self.args.gamma,
                 )
-            ]
-        windows_zipped = episode_memory.to_window_observations(
-            window=self.args.prediction_window_size,
-            other_keys=["actions", "values", "rewards"],
-        )
-
-        with tf.GradientTape() as tape:
-            losses: AgentLosses = self.compute_loss(
-                done=done,
-                observation=observation,
-                episode_memory=episode_memory,
-                gamma=self.args.gamma,
+                total_losses.accumulate(losses)
+            grads = tape.gradient(
+                total_losses.total, self.local_model.trainable_weights
             )
-        self.losses.increment("loss", losses.total)
-        self.losses.increment("fn_pi", losses.fn_policy)
-        self.losses.increment("args_pi", losses.args_policy)
-        self.losses.increment("v", losses.value)
-        self.losses.increment("fn_h", losses.fn_entropy)
-        self.losses.increment("args_h", losses.args_entropy)
-
+            # Accumulate grads for optimizer
+            if accumulated_grads is None:
+                accumulated_grads = [tf.Variable(f) for f in grads]
+            else:
+                assert len(grads) == len(accumulated_grads), "gradients must match"
+                variable: tf.Variable
+                for variable, new_variable in zip(accumulated_grads, grads):
+                    variable.assign_add(new_variable)
         # Calculate local gradients
-        grads = tape.gradient(losses.total, self.local_model.trainable_weights)
+        self.losses.increment("loss", tf.reduce_mean(total_losses.total))
+        self.losses.increment("fn_pi", tf.reduce_mean(total_losses.fn_policy))
+        self.losses.increment("args_pi", tf.reduce_mean(total_losses.args_policy))
+        self.losses.increment("v", tf.reduce_mean(total_losses.value))
+        self.losses.increment("fn_h", tf.reduce_mean(total_losses.fn_entropy))
+        self.losses.increment("args_h", tf.reduce_mean(total_losses.args_entropy))
+
         # Push local gradients to global model
-
-        zipped_gradients = zip(grads, self.global_model.trainable_weights)
-        # Assert that we always have some gradient flow in each trainable var
-
+        assert accumulated_grads is not None, "no losses computed or gradients found!"
+        zipped_gradients = zip(accumulated_grads, self.global_model.trainable_weights)
         self.optimizer.apply_gradients(zipped_gradients)
         # Update local model with new weights
         self.local_model.set_weights(self.global_model.get_weights())
 
         if done:
             episode_memory.clear()
-        # TODO: Maybe don't clear in this else?
-        else:
-            episode_memory.clear_except_window(self.args.prediction_window_size)
 
     def finish_episode(
         self,
@@ -346,60 +349,52 @@ class A3CWorker(threading.Thread):
         self,
         *,
         done: bool,
-        observation: MathyObservation,
-        episode_memory: EpisodeMemory,
-        gamma=0.99,
+        inputs: MathyWindowObservation,
+        actions: List[ActionType],
+        rewards: List[float],
+        gamma: float = 0.99,
     ) -> AgentLosses:
-        with self.writer.as_default():
-            step = self.global_model.optimizer.iterations
-            if done:
-                bootstrap_value = 0.0  # terminal
-            else:
-                # Predict the reward using the local network
-                mem2 = EpisodeMemory(
-                    self.args.max_len, self.args.prediction_window_size
-                )
-                mem2.store(
-                    observation=observation, action=(0, 0), value=1.0, reward=0.0
-                )
-                _, _, values = call_model(
-                    self.local_model, mem2.to_episode_window().to_inputs(),
-                )
-                # Select the last timestep
-                bootstrap_value = float(tf.squeeze(values[-1]).numpy())
+        # with self.writer.as_default():
+        # step = self.global_model.optimizer.iterations
+        if done:
+            bootstrap_value = 0.0  # terminal
+        else:
+            _, bootstrap_value = predict_action_value(
+                self.local_model, inputs.to_inputs()
+            )
 
-            losses: AgentLosses = compute_agent_loss(
-                model=self.local_model,
-                args=self.args,
-                inputs=episode_memory.to_episode_window(),
-                actions=episode_memory.actions,
-                rewards=episode_memory.rewards,
-                bootstrap_value=bootstrap_value,
-                gamma=gamma,
-            )
-            prefix = self.tb_prefix
-            tf.summary.scalar(
-                f"losses/{prefix}/fn_policy_loss", data=losses.fn_policy, step=step
-            )
-            tf.summary.scalar(
-                f"losses/{prefix}/args_policy_loss", data=losses.args_policy, step=step
-            )
-            tf.summary.scalar(
-                f"losses/{prefix}/fn_entropy_loss", data=losses.fn_entropy, step=step
-            )
-            tf.summary.scalar(
-                f"losses/{prefix}/args_entropy_loss",
-                data=losses.args_entropy,
-                step=step,
-            )
-            tf.summary.scalar(
-                f"losses/{prefix}/value_loss", data=losses.value, step=step
-            )
-            tf.summary.scalar(
-                f"settings/learning_rate", data=self.optimizer.lr, step=step
-            )
-            tf.summary.scalar(
-                f"{self.tb_prefix}/total_loss", data=losses.total, step=step
-            )
+        losses: AgentLosses = compute_agent_loss(
+            model=self.local_model,
+            args=self.args,
+            inputs=inputs,
+            actions=actions,
+            rewards=rewards,
+            bootstrap_value=bootstrap_value,
+            gamma=gamma,
+        )
+        # prefix = self.tb_prefix
+        # tf.summary.scalar(
+        #     f"losses/{prefix}/fn_policy_loss", data=losses.fn_policy, step=step
+        # )
+        # tf.summary.scalar(
+        #     f"losses/{prefix}/args_policy_loss", data=losses.args_policy, step=step
+        # )
+        # tf.summary.scalar(
+        #     f"losses/{prefix}/fn_entropy_loss", data=losses.fn_entropy, step=step
+        # )
+        # tf.summary.scalar(
+        #     f"losses/{prefix}/args_entropy_loss",
+        #     data=losses.args_entropy,
+        #     step=step,
+        # )
+        # tf.summary.scalar(
+        #     f"losses/{prefix}/value_loss", data=losses.value, step=step
+        # )
+        # tf.summary.scalar(
+        #     f"settings/learning_rate", data=self.optimizer.lr, step=step
+        # )
+        # tf.summary.scalar(
+        #     f"{self.tb_prefix}/total_loss", data=losses.total, step=step
+        # )
 
         return losses

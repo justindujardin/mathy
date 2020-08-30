@@ -164,6 +164,25 @@ class AgentLosses:
     value: tf.Tensor
     total: tf.Tensor
 
+    @classmethod
+    def zero(cls) -> "AgentLosses":
+        return AgentLosses(
+            tf.convert_to_tensor(0.0),
+            tf.convert_to_tensor(0.0),
+            tf.convert_to_tensor(0.0),
+            tf.convert_to_tensor(0.0),
+            tf.convert_to_tensor(0.0),
+            tf.convert_to_tensor(0.0),
+        )
+
+    def accumulate(self, other: "AgentLosses") -> None:
+        self.fn_policy = tf.add(self.fn_policy, other.fn_policy)  # type:ignore
+        self.fn_entropy = tf.add(self.fn_entropy, other.fn_entropy)  # type:ignore
+        self.args_entropy = tf.add(self.args_entropy, other.args_entropy)  # type:ignore
+        self.args_policy = tf.add(self.args_policy, other.args_policy)  # type:ignore
+        self.value = tf.add(self.value, other.value)  # type:ignore
+        self.total = tf.add(self.total, other.total)  # type:ignore
+
 
 def seq_len_from_observation(observation: MathyObservation) -> int:
     return len([n for n in observation.nodes if n != 0])
@@ -181,6 +200,9 @@ def compute_agent_loss(
     """Compute the policy/value/reward/entropy losses for an episode given its
     current memory of the episode steps."""
     batch_size = len(actions)
+    assert (
+        len(inputs.nodes) == len(actions) == len(rewards)
+    ), f"obs/act/rwd must be the same length, not: ({len(inputs.nodes)}, {len(actions)}, {len(rewards)}"
     logits, params, values = call_model(model, inputs.to_inputs())
     unpadded_length: int = inputs.real_length
     rewards_tensor = tf.convert_to_tensor([[r] for r in rewards], dtype=tf.float32)
@@ -190,6 +212,7 @@ def compute_agent_loss(
     logits = logits[-unpadded_length:, :]
     params = params[-unpadded_length:, :]
     values = values[-unpadded_length:]
+    actions = actions[-unpadded_length:]
     rewards_tensor = rewards_tensor[-unpadded_length:]
     pcontinues = pcontinues[-unpadded_length:]
 
@@ -285,12 +308,9 @@ def _load_model(
     memory = EpisodeMemory(config.max_len, config.prediction_window_size)
     memory.store(observation=observation, action=(0, 0), reward=0.1, value=1.0)
     with tf.GradientTape() as tape:
+        window, actions, rewards = memory.to_non_terminal_training_window(1)
         losses: AgentLosses = compute_agent_loss(
-            model=model,
-            args=config,
-            inputs=memory.to_episode_window(),
-            actions=memory.actions,
-            rewards=memory.rewards,
+            model=model, args=config, inputs=window, actions=actions, rewards=rewards,
         )
     grads = tape.gradient(losses.total, model.trainable_weights)
     zipped_gradients = zip(grads, model.trainable_weights)
