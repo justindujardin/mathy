@@ -54,13 +54,6 @@ class AgentConfig(BaseModel):
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
     update_gradients_every: int = 3
-
-    # Worker's sleep this long between steps to allow
-    # other threads time to process. This is useful for
-    # running more threads than you have processors to
-    # get a better diversity of experience.
-    worker_wait: float = 0.1
-
     # The number of worker agents to create.
     num_workers: int = 3
 

@@ -211,17 +211,6 @@ class A3CWorker(threading.Thread):
             last_observation = observation
             last_action = action
             last_reward = reward
-
-            # If there are multiple workers, apply a worker sleep
-            # to give the system some breathing room.
-            if self.args.num_workers > 1:
-                # The greedy worker sleeps for a shorter period of time
-                sleep = self.args.worker_wait
-                if self.worker_idx == 0:
-                    sleep = max(sleep // 100, 0.005)
-                # Workers wait between each step so that it's possible
-                # to run more workers than there are CPUs available.
-                time.sleep(sleep)
         return ep_reward
 
     def maybe_write_episode_summaries(
