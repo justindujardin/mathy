@@ -8,7 +8,7 @@ from mathy_core.rule import ExpressionChangeRule
 
 from ...env import MathyEnv
 from ...state import MathyEnvState, MathyObservation
-from ...types import MathyEnvProblemArgs
+from ...types import ActionType, MathyEnvProblemArgs
 from ...util import is_terminal_transition, pad_array
 from .masked_discrete import MaskedDiscrete
 
@@ -53,7 +53,7 @@ class MathyGymEnv(gym.Env):
             return self.mathy.get_agent_actions_count(self.state)
         return self.mathy.action_size
 
-    def step(self, action: Tuple[int, int]):
+    def step(self, action: ActionType):
         assert self.state is not None, "call reset() before stepping the environment"
         self.state, transition, change = self.mathy.get_next_state(self.state, action)
         done = is_terminal_transition(transition)
@@ -105,7 +105,7 @@ class MathyGymEnv(gym.Env):
 
     def render(
         self,
-        last_action: Tuple[int, int] = (-1, -1),
+        last_action: ActionType = (-1, -1),
         last_reward: float = 0.0,
         last_change: Optional[ExpressionChangeRule] = None,
     ):
