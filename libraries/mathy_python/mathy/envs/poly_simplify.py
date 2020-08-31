@@ -31,7 +31,7 @@ class PolySimplify(MathyEnv):
     def max_moves_fn(
         self, problem: MathyEnvProblem, config: MathyEnvProblemArgs
     ) -> int:
-        return problem.complexity * 6
+        return problem.complexity * 4
 
     def transition_fn(
         self,
@@ -58,7 +58,7 @@ class PolySimplify(MathyEnv):
         - (6, 4) = "4x + v^3 + y + 5z + 12v^3 + x"
         - (4, 2) = "3x^3 + 2z + 12x^3 + 7z"
         """
-        noise = uniform(0.85, 1.0)
+        noise = uniform(0.5, 1.0)
 
         if params.difficulty == MathyEnvDifficulty.easy:
             noise_terms = randint(0, 2)
