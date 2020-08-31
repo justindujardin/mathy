@@ -119,7 +119,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "difficulty",
     "--difficulty",
-    default=None,
+    default="easy",
     help="the difficulty of problems to generate, 'easy','normal','hard'",
 )
 @click.option(
@@ -132,21 +132,21 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 @click.option(
     "units",
     "--units",
-    default=256,
+    default=64,
     type=int,
     help="Number of dimensions to use for math vectors and model dimensions",
 )
 @click.option(
     "lstm",
     "--lstm",
-    default=128,
+    default=64,
     type=int,
     help="Number of dimensions to use for LSTM size",
 )
 @click.option(
     "embeddings",
     "--embeddings",
-    default=256,
+    default=64,
     type=int,
     help="Number of dimensions to use for token embeddings",
 )
