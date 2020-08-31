@@ -38,7 +38,7 @@ class ComplexSimplify(PolySimplify):
         """
 
         if params.difficulty == MathyEnvDifficulty.easy:
-            num_terms = randint(2, 6)
+            num_terms = randint(2, 4)
             scaling = uniform(0.5, 0.9)
             text, complexity = gen_simplify_multiple_terms(
                 num_terms,
