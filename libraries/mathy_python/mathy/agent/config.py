@@ -20,9 +20,6 @@ class AgentConfig(BaseModel):
     email: str = about.__email__
     url: str = about.__uri__
     mathy_version: str = f">={about.__version__},<1.0.0"
-    # The number of timesteps use when making predictions. This includes the current timestep and
-    # (n - 1) previous timesteps
-    prediction_window_size: int = 6
     units: int = 64
     max_len: int = 128
     embedding_units: int = 32
@@ -33,32 +30,35 @@ class AgentConfig(BaseModel):
     model_name: str = "model"
     verbose: bool = False
     # Initial learning rate that decays over time.
-    lr: float = 3e-3
-    max_eps: int = 15000
+    lr: float = 6e-5
+    max_eps: int = 150000
     # How often to write histograms to tensorboard (in training steps)
     summary_interval: int = 100
     gamma: float = 0.95
     # The number of worker agents to create.
     num_workers: int = 3
-    # The lambda value for generalized lambda returns to calculate value loss
-    # 0.0 = bootstrap values, 1.0 = discounted
-    td_lambda: float = 0.3
     # Verbose setting to print out worker_0 training steps. Useful for trying
     # to find problems.
     print_training: bool = False
     # Print mode for output. "terminal" is the default, also supports "attention"
     # NOTE: attention is gone (like... the layer)
     print_mode: str = "terminal"
+    # The number of timesteps use when making predictions. This includes the current timestep and
+    # (n - 1) previous timesteps
+    prediction_window_size: int = 32
+    # The lambda value for generalized lambda returns to calculate value loss
+    # 0.0 = bootstrap values, 1.0 = discounted
+    td_lambda: float = 1.0
     # Update frequency for the Worker to sync with the Main model.
     #
     # Indicates the maximum number of steps to take in an episode before
     # syncing the replay buffer and gradients.
-    update_gradients_every: int = 3
+    update_gradients_every: int = 32
     # The number of worker agents to create.
     num_workers: int = 3
 
-    policy_fn_entropy_cost = 0.4
-    policy_args_entropy_cost = 0.2
+    policy_fn_entropy_cost = 0.05
+    policy_args_entropy_cost = 0.075
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 20

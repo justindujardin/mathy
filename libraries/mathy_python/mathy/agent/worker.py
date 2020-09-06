@@ -283,6 +283,40 @@ class A3CWorker(threading.Thread):
                 variable: tf.Variable
                 for variable, new_variable in zip(accumulated_grads, grads):
                     variable.assign_add(new_variable)
+
+        with self.writer.as_default():
+            step = self.global_model.optimizer.iterations
+            prefix = self.tb_prefix
+            tf.summary.scalar(
+                f"losses/{prefix}/fn_policy_loss",
+                data=total_losses.fn_policy,
+                step=step,
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/args_policy_loss",
+                data=total_losses.args_policy,
+                step=step,
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/fn_entropy_loss",
+                data=total_losses.fn_entropy,
+                step=step,
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/args_entropy_loss",
+                data=total_losses.args_entropy,
+                step=step,
+            )
+            tf.summary.scalar(
+                f"losses/{prefix}/value_loss", data=total_losses.value, step=step
+            )
+            tf.summary.scalar(
+                f"settings/learning_rate", data=self.optimizer.lr, step=step
+            )
+            tf.summary.scalar(
+                f"{self.tb_prefix}/total_loss", data=total_losses.total, step=step
+            )
+
         # Calculate local gradients
         self.losses.increment("loss", tf.reduce_mean(total_losses.total))
         self.losses.increment("fn_pi", tf.reduce_mean(total_losses.fn_policy))
@@ -354,8 +388,6 @@ class A3CWorker(threading.Thread):
         rewards: List[float],
         gamma: float = 0.99,
     ) -> AgentLosses:
-        # with self.writer.as_default():
-        # step = self.global_model.optimizer.iterations
         if done:
             bootstrap_value = 0.0  # terminal
         else:
@@ -372,29 +404,5 @@ class A3CWorker(threading.Thread):
             bootstrap_value=bootstrap_value,
             gamma=gamma,
         )
-        # prefix = self.tb_prefix
-        # tf.summary.scalar(
-        #     f"losses/{prefix}/fn_policy_loss", data=losses.fn_policy, step=step
-        # )
-        # tf.summary.scalar(
-        #     f"losses/{prefix}/args_policy_loss", data=losses.args_policy, step=step
-        # )
-        # tf.summary.scalar(
-        #     f"losses/{prefix}/fn_entropy_loss", data=losses.fn_entropy, step=step
-        # )
-        # tf.summary.scalar(
-        #     f"losses/{prefix}/args_entropy_loss",
-        #     data=losses.args_entropy,
-        #     step=step,
-        # )
-        # tf.summary.scalar(
-        #     f"losses/{prefix}/value_loss", data=losses.value, step=step
-        # )
-        # tf.summary.scalar(
-        #     f"settings/learning_rate", data=self.optimizer.lr, step=step
-        # )
-        # tf.summary.scalar(
-        #     f"{self.tb_prefix}/total_loss", data=losses.total, step=step
-        # )
 
         return losses
