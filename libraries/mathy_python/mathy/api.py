@@ -84,9 +84,8 @@ class Mathy:
         import tensorflow as tf
         from colr import color
         from .envs.gym import MathyGymEnv
-        from .agent.action_selectors import GreedyActionSelector
         from .state import observations_to_window, MathyObservation
-        from .agent.model import AgentModel
+        from .agent.model import AgentModel, predict_action_value
 
         environment = "poly"
         difficulty = "easy"
@@ -101,22 +100,17 @@ class Mathy:
         last_text = env.state.agent.problem
         last_action = (-1, -1)
         last_reward = 0.0
-        selector = GreedyActionSelector(model=self.state.model, episode=0, worker_id=0)
         done = False
         while not done:
             env.render(last_action=last_action, last_reward=last_reward)
             window = episode_memory.to_window_observation(
                 last_observation, window_size=self.state.config.prediction_window_size
             )
-            action, value = selector.select(
-                last_state=env.state,
-                last_window=window,
-                last_action=last_action,
-                last_reward=last_reward,
+            action, value = predict_action_value(
+                model=self.state.model, inputs=window.to_inputs()
             )
             # Take an env step
             observation, reward, done, _ = env.step(action)
-            new_text = env.state.agent.problem
             episode_memory.store(
                 observation=last_observation, action=action, reward=reward, value=value,
             )
