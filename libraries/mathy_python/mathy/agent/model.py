@@ -21,6 +21,7 @@ from ..state import (
     observations_to_window,
 )
 from ..types import ActionType
+from .attention import SeqSelfAttention
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .trfl.discrete_policy_gradient_ops import sequence_advantage_actor_critic_loss
@@ -79,11 +80,20 @@ def build_agent_model(
     in_norm = tf.keras.layers.LayerNormalization(name="input_norm")
     nodes_lstm_norm = tf.keras.layers.LayerNormalization(name="lstm_nodes_norm")
     time_lstm_norm = tf.keras.layers.LayerNormalization(name="time_lstm_norm")
-    lstm_nodes = tf.keras.layers.LSTM(
-        config.lstm_units, name="nodes_lstm", time_major=False, return_sequences=False,
-    )
     lstm_time = tf.keras.layers.LSTM(
         config.lstm_units, name="time_lstm", time_major=True, return_sequences=True,
+    )
+    lstm_nodes = tf.keras.layers.LSTM(
+        config.lstm_units, name="nodes_lstm", time_major=False, return_sequences=True,
+    )
+    lstm_attention = SeqSelfAttention(
+        units=config.units,
+        attention_activation="sigmoid",
+        name="self_attention",
+        return_attention=False,
+    )
+    lstm_out = tf.keras.layers.LSTM(
+        config.lstm_units, name="lstm_reduce", time_major=False, return_sequences=False,
     )
     # TODO: set output layers initializer to zero (or near) to maximize entropy
     # see: https://youtu.be/8EcdaCk9KaQ?t=1812
@@ -135,11 +145,13 @@ def build_agent_model(
     lstm_output = time_lstm_norm(lstm_output)
     lstm_output = lstm_nodes(lstm_output)
     lstm_output = nodes_lstm_norm(lstm_output)
-    fn_policy_logits = policy_net(lstm_output)
+    attn_output = lstm_attention(lstm_output)
+    output = lstm_out(attn_output)
+    fn_policy_logits = policy_net(output)
     params = params_net(
-        tf.concat([lstm_output, fn_policy_logits], axis=-1, name="params_in")
+        tf.concat([output, fn_policy_logits], axis=-1, name="params_in")
     )
-    values = value_net(lstm_output)
+    values = value_net(output)
     inputs = [
         nodes_in,
         values_in,
@@ -202,7 +214,7 @@ def compute_agent_loss(
     batch_size = len(actions)
     assert (
         len(inputs.nodes) == len(actions) == len(rewards)
-    ), f"obs/act/rwd must be the same length, not: ({len(inputs.nodes)}, {len(actions)}, {len(rewards)}"
+    ), f"obs/act/rwd must be the same length, not: ({len(inputs.nodes)}, {len(actions)}, {len(rewards)})"
     logits, params, values = call_model(model, inputs.to_inputs())
     unpadded_length: int = inputs.real_length
     rewards_tensor = tf.convert_to_tensor([[r] for r in rewards], dtype=tf.float32)
@@ -228,6 +240,7 @@ def compute_agent_loss(
         bootstrap_value=bootstrap_value_tensor,
         normalise_entropy=True,
         entropy_cost=args.policy_fn_entropy_cost,
+        lambda_=args.td_lambda
     )
     args_fn_labels = tf.convert_to_tensor([[a[1]] for a in actions])
     args_fn_logits = tf.expand_dims(params, axis=1)
@@ -240,6 +253,7 @@ def compute_agent_loss(
         bootstrap_value=bootstrap_value_tensor,
         normalise_entropy=True,
         entropy_cost=args.policy_args_entropy_cost,
+        lambda_=args.td_lambda
     )
 
     fn_policy_loss = tf.squeeze(a3c_fn_loss.extra.policy_gradient_loss)
