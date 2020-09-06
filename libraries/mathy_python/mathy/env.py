@@ -282,8 +282,7 @@ class MathyEnv:
         out_problem = str(root)
         out_env = env_state.get_out_state(
             problem=out_problem,
-            focus=token_index,
-            action=action_index,
+            action=action,
             moves_remaining=agent.moves_remaining - 1,
         )
 
@@ -346,7 +345,7 @@ class MathyEnv:
                 pretty=pretty,
                 env_state=curr_state,
                 action_name=rule_name,
-                token_index=int(f"{step.focus}".zfill(3)),
+                token_index=int(f"{token_idx}".zfill(3)),
                 change=change,
                 change_reward=transition.reward,
             )
@@ -364,6 +363,8 @@ class MathyEnv:
         changed_problem = env_state.agent.problem
         if change is not None and change.result is not None:
             changed_problem = change.result.get_root().terminal_text
+
+        action_name = f"{action_name.lower()}({token_index})"
         output = """{:<25} | {}""".format(action_name.lower(), changed_problem)
 
         def get_move_shortname(index, move):
@@ -384,7 +385,7 @@ class MathyEnv:
         reward = f"{reward:<5}"
         if pretty:
             return output
-        return f"{num_moves} | {moves} | {moves_left} | {token} | {reward} | {output}"
+        return f"{num_moves} | {moves} | {moves_left} | {reward} | {output}"
 
     def random_action(
         self,
@@ -497,7 +498,7 @@ class MathyEnv:
         return actions
 
     def get_rule_from_timestep(self, time_step: MathyEnvStateStep) -> BaseRule:
-        return self.rules[time_step.action]
+        return self.rules[time_step.action[0]]
 
     def get_actions_for_node(
         self, expression: MathExpression, rule_list: List[Type[BaseRule]] = None,
