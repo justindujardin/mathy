@@ -127,13 +127,11 @@ class MathyEnvStateStep(NamedTuple):
     agent can use context from its history when making new predictions."""
 
     raw: str
-    focus: int
     action: ActionType
 
 
 # fmt: off
 MathyEnvStateStep.raw.__doc__ = "the input text at the timestep" # noqa
-MathyEnvStateStep.focus.__doc__ = "the index of the node that is acted on" # noqa
 MathyEnvStateStep.action.__doc__ = "a tuple indicating the chosen action and the node it was applied to" # noqa
 # fmt: on
 
@@ -198,13 +196,13 @@ class MathyEnvState(object):
         return MathyEnvState(state=self)
 
     def get_out_state(
-        self, problem: str, focus: int, action: ActionType, moves_remaining: int
+        self, problem: str, action: ActionType, moves_remaining: int
     ) -> "MathyEnvState":
         """Get the next environment state based on the current one with updated
         history and agent information based on an action being taken."""
         out_state = MathyEnvState.copy(self)
         agent = out_state.agent
-        agent.history.append(MathyEnvStateStep(problem, focus, action))
+        agent.history.append(MathyEnvStateStep(problem, action))
         agent.problem = problem
         agent.action = action
         agent.moves_remaining = moves_remaining
@@ -341,7 +339,9 @@ class MathyAgentState:
         self.reward = reward
         self.problem_type = problem_type
         self.history = (
-            history[:] if history is not None else [MathyEnvStateStep(problem, -1, -1)]
+            history[:]
+            if history is not None
+            else [MathyEnvStateStep(problem, (-1, -1))]
         )
 
     @classmethod
