@@ -14,7 +14,7 @@ from fragile.core.swarm import Swarm
 from fragile.core.tree import HistoryTree
 from fragile.distributed.env import ParallelEnv
 
-from .. import EnvRewards, MathyEnv, MathyEnvState
+from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
 
 
 class SwarmConfig(BaseModel):

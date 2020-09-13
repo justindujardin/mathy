@@ -8,11 +8,11 @@ import numpy as np
 import tensorflow as tf
 from wasabi import msg
 
-from ..env import MathyEnv
-from ..envs.gym.mathy_gym_env import MathyGymEnv
-from ..state import MathyEnvState, MathyObservation, MathyWindowObservation
+from mathy_envs.env import MathyEnv
+from mathy_envs.gym import MathyGymEnv
+from mathy_envs.state import MathyEnvState, MathyObservation, MathyWindowObservation
 from ..teacher import Teacher
-from ..types import ActionList, ActionType, RewardList, ValueList
+from mathy_envs.types import ActionList, ActionType, RewardList, ValueList
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .model import (

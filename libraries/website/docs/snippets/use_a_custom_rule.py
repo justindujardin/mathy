@@ -2,20 +2,20 @@
 import os
 import shutil
 import tempfile
+from typing import List
 
 import gym
 
-from mathy import (
+from mathy_core import (
     AddExpression,
     BaseRule,
     MathExpression,
     ExpressionParser,
-    MathyEnv,
     NegateExpression,
     SubtractExpression,
 )
-from mathy.envs import PolySimplify
-from mathy.agent.a3c import A3CAgent, AgentConfig
+from mathy_envs import MathyEnv
+from mathy.agent import A3CAgent, AgentConfig
 from mathy.cli import setup_tf_env
 
 
@@ -48,7 +48,7 @@ setup_tf_env()
 # Train in a temporary folder
 model_folder = tempfile.mkdtemp()
 # Add an instance of our new rule to the built-int environment rules
-all_rules = MathyEnv.core_rules() + [PlusNegationRule()]
+all_rules: List[BaseRule] = MathyEnv.core_rules() + [PlusNegationRule()]
 # Specify a set of operators to choose from when generating poly simplify problems
 env_args = {"ops": ["+", "-"], "rules": all_rules}
 # Configure and launch the A3C agent training

@@ -3,8 +3,9 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..state import MathyObservation, MathyWindowObservation, observations_to_window
-from ..types import ActionList, ActionType, Literal, RewardList
+from mathy_envs.state import MathyObservation, MathyWindowObservation, observations_to_window
+from mathy_envs.types import ActionList, ActionType, RewardList
+from ..types import Literal
 
 EpisodeMemoryKeys = Union[
     Literal["actions"], Literal["rewards"], Literal["values"],

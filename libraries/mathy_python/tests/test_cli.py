@@ -1,15 +1,15 @@
 import shutil
 import tempfile
 from unittest.mock import patch
-from mathy.env import MathyEnv
-from mathy.envs.gym.mathy_gym_env import safe_register
-from mathy.types import MathyEnvDifficulty, MathyEnvProblem, MathyEnvProblemArgs
+from mathy_envs.env import MathyEnv
+from mathy_envs.gym.mathy_gym_env import safe_register
+from mathy_envs.types import MathyEnvDifficulty, MathyEnvProblem, MathyEnvProblemArgs
 
 import pytest
 from click.testing import CliRunner
 
 from mathy.cli import cli
-from mathy.envs.gym import MathyGymEnv
+from mathy_envs.gym import MathyGymEnv
 
 
 class InvalidProblemEnv(MathyEnv):

@@ -5,7 +5,7 @@ import tempfile
 from mathy.agent import A3CAgent, AgentConfig
 from mathy.agent.model import get_or_create_agent_model
 from mathy.cli import setup_tf_env
-from mathy.envs import PolySimplify
+from mathy_envs.envs import PolySimplify
 
 model_folder = tempfile.mkdtemp()
 setup_tf_env()
