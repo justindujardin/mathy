@@ -1,11 +1,8 @@
-import json
-
 # Import the os module, for the os.walk function
 import os
-import tempfile
 from pathlib import Path
 from subprocess import check_output
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List
 
 from ruamel.yaml import YAML
 
@@ -32,7 +29,7 @@ exclude_files = [
     "cli.py",
     "py.typed",
     "about.py",
-    "conrastive.py"
+    "conrastive.py",
 ]
 include_folders = ["", "agent"]
 

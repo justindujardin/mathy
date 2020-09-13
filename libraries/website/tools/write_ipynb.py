@@ -1,6 +1,7 @@
-from nbformat import v3, v4
-import sys
 import os
+import sys
+
+from nbformat import v3, v4
 
 
 def render_ipynb(from_file: str, to_file: str):

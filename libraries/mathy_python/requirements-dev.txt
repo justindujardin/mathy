@@ -2,6 +2,8 @@ mypy
 pytest
 pytest-cov
 black
+isort
+autoflake
 flake8
 snakeviz
 tensorboard>=2.0.0

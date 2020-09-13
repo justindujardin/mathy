@@ -37,10 +37,10 @@ It can load models from **pypi packages** as well as **local folders** and **sys
 import importlib
 import shutil
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Union
 
 import srsly
-from wasabi import get_raw_input, msg
+from wasabi import msg
 
 from . import about
 from .api import Mathy

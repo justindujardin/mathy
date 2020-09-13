@@ -2,13 +2,12 @@ import json
 import os
 
 import gym
-import numpy as np
+from mathy_envs.gym import MathyGymEnv
 
 from ..teacher import Teacher
-from .model import get_or_create_agent_model, AgentModel, save_model
 from .config import AgentConfig
+from .model import AgentModel, get_or_create_agent_model, save_model
 from .worker import A3CWorker
-from mathy_envs.gym import MathyGymEnv
 
 
 class A3CAgent:
@@ -75,4 +74,3 @@ class A3CAgent:
         # Do a final save after joining to get the very latest model
         save_model(self.global_model, model_path)
         print("Done. Bye!")
-

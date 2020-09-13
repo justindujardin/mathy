@@ -1,13 +1,12 @@
 import shutil
 import tempfile
+from pathlib import Path
 
 import pytest
-
 from mathy.agent import A3CAgent, AgentConfig
-from mathy.cli import setup_tf_env
 from mathy.api import Mathy, MathyAPIModelState
-from mathy.models import load_model, package, load_model_from_init_py, get_model_meta
-from pathlib import Path
+from mathy.cli import setup_tf_env
+from mathy.models import get_model_meta, load_model, load_model_from_init_py, package
 
 
 def test_models_package_errors() -> None:

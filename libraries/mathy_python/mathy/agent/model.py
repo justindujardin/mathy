@@ -4,14 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple, Union
 
-import numpy as np
 import srsly
 import tensorflow as tf
 from mathy_core.expressions import MathTypeKeysMax
 from mathy_core.util import print_error
-from tensorflow.keras import backend as K
-from wasabi import msg
-
 from mathy_envs.env import MathyEnv
 from mathy_envs.envs import PolySimplify
 from mathy_envs.state import (
@@ -21,6 +17,8 @@ from mathy_envs.state import (
     observations_to_window,
 )
 from mathy_envs.types import ActionType
+from wasabi import msg
+
 from .attention import SeqSelfAttention
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
@@ -240,7 +238,7 @@ def compute_agent_loss(
         bootstrap_value=bootstrap_value_tensor,
         normalise_entropy=True,
         entropy_cost=args.policy_fn_entropy_cost,
-        lambda_=args.td_lambda
+        lambda_=args.td_lambda,
     )
     args_fn_labels = tf.convert_to_tensor([[a[1]] for a in actions])
     args_fn_logits = tf.expand_dims(params, axis=1)
@@ -253,7 +251,7 @@ def compute_agent_loss(
         bootstrap_value=bootstrap_value_tensor,
         normalise_entropy=True,
         entropy_cost=args.policy_args_entropy_cost,
-        lambda_=args.td_lambda
+        lambda_=args.td_lambda,
     )
 
     fn_policy_loss = tf.squeeze(a3c_fn_loss.extra.policy_gradient_loss)

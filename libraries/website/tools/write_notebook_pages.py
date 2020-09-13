@@ -1,6 +1,6 @@
 import os
-from subprocess import check_output
 import sys
+from subprocess import check_output
 
 
 def convert_input(input_location: str):

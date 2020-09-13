@@ -14,16 +14,14 @@
 # ============================================================================
 """Flattened namespace for ."""
 
-from .base_ops import assert_rank_and_shape_compatibility
-from .base_ops import best_effort_shape
-from .discrete_policy_gradient_ops import discrete_policy_entropy_loss
-from .discrete_policy_gradient_ops import discrete_policy_gradient
-from .discrete_policy_gradient_ops import discrete_policy_gradient_loss
-from .discrete_policy_gradient_ops import sequence_advantage_actor_critic_loss
-from .sequence_ops import multistep_forward_view
-from .sequence_ops import scan_discounted_sum
-from .value_ops import generalized_lambda_returns
-from .value_ops import td_lambda
-from .value_ops import td_learning
+from .base_ops import assert_rank_and_shape_compatibility, best_effort_shape
+from .discrete_policy_gradient_ops import (
+    discrete_policy_entropy_loss,
+    discrete_policy_gradient,
+    discrete_policy_gradient_loss,
+    sequence_advantage_actor_critic_loss,
+)
+from .sequence_ops import multistep_forward_view, scan_discounted_sum
+from .value_ops import generalized_lambda_returns, td_lambda, td_learning
 
 __version__ = "1.33.7"

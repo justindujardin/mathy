@@ -95,7 +95,7 @@ def wrap_rank_shape_assert(
     try:
         for tensors, rank in zip(tensors_list, expected_ranks):
             assert_rank_and_shape_compatibility(tensors, rank)
-    except ValueError as e:
+    except ValueError:
         error_message = f"{op_name}: Error in rank and/or " "compatibility check, {e}"
         tf.compat.v1.logging.error(error_message)
         raise ValueError(error_message)

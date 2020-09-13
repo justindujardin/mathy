@@ -1,24 +1,22 @@
 import os
 import threading
-import time
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import gym
 import numpy as np
 import tensorflow as tf
-from wasabi import msg
-
 from mathy_envs.env import MathyEnv
 from mathy_envs.gym import MathyGymEnv
 from mathy_envs.state import MathyEnvState, MathyObservation, MathyWindowObservation
-from ..teacher import Teacher
 from mathy_envs.types import ActionList, ActionType, RewardList, ValueList
+from wasabi import msg
+
+from ..teacher import Teacher
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
 from .model import (
     AgentLosses,
     AgentModel,
-    call_model,
     compute_agent_loss,
     get_or_create_agent_model,
     predict_action_value,

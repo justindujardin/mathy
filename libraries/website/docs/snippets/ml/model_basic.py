@@ -1,5 +1,3 @@
-import tensorflow as tf
-
 from mathy import envs
 from mathy.agent.config import AgentConfig
 from mathy.agent.model import build_agent_model

@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Union
 
 from .agent.config import AgentConfig
 from .agent.episode_memory import EpisodeMemory
-from .swarm import SwarmConfig, swarm_solve
 from .agent.model import AgentModel, load_agent_model
+from .swarm import SwarmConfig, swarm_solve
 
 
 @dataclass
@@ -81,11 +81,11 @@ class Mathy:
         """
         assert isinstance(self.state, MathyAPIModelState), "not configured for model"
         import gym
-        import tensorflow as tf
         from colr import color
+
+        from .agent.model import predict_action_value
         from .envs.gym import MathyGymEnv
-        from .state import observations_to_window, MathyObservation
-        from .agent.model import AgentModel, predict_action_value
+        from .state import MathyObservation
 
         environment = "poly"
         difficulty = "easy"
@@ -97,7 +97,7 @@ class Mathy:
             problem_text=problem, max_moves=max_steps
         )
         assert env.state is not None
-        last_text = env.state.agent.problem
+        env.state.agent.problem
         last_action = (-1, -1)
         last_reward = 0.0
         done = False

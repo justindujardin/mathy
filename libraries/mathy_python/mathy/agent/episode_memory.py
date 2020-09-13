@@ -1,10 +1,12 @@
-from multiprocessing import Queue
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
-import numpy as np
-
-from mathy_envs.state import MathyObservation, MathyWindowObservation, observations_to_window
+from mathy_envs.state import (
+    MathyObservation,
+    MathyWindowObservation,
+    observations_to_window,
+)
 from mathy_envs.types import ActionList, ActionType, RewardList
+
 from ..types import Literal
 
 EpisodeMemoryKeys = Union[

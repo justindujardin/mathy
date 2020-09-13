@@ -1,6 +1,4 @@
 import pytest
-import tensorflow as tf
-
 from mathy.agent.config import AgentConfig
 from mathy.agent.model import AgentModel, build_agent_model
 from mathy.api import Mathy, MathyAPISwarmState

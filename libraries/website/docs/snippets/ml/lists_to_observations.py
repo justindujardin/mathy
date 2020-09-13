@@ -1,10 +1,4 @@
-from mathy import (
-    MathyEnv,
-    MathyEnvState,
-    MathyObservation,
-    envs,
-    observations_to_window,
-)
+from mathy import MathyEnv, MathyEnvState, MathyObservation, envs
 
 env: MathyEnv = envs.PolySimplify()
 state: MathyEnvState = env.get_initial_state()[0]
