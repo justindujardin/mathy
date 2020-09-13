@@ -5,7 +5,7 @@ import random
 import gym
 
 from mathy.swarm import SwarmConfig, swarm_solve
-from mathy.envs.gym import MathyGymEnv
+from mathy_envs.gym import MathyGymEnv
 
 config = SwarmConfig(max_iters=10)
 task = random.choice(["poly", "binomial", "complex"])

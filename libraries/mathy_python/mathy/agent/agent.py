@@ -8,7 +8,7 @@ from ..teacher import Teacher
 from .model import get_or_create_agent_model, AgentModel, save_model
 from .config import AgentConfig
 from .worker import A3CWorker
-from ..envs.gym import MathyGymEnv
+from mathy_envs.gym import MathyGymEnv
 
 
 class A3CAgent:

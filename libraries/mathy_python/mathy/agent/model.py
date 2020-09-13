@@ -12,15 +12,15 @@ from mathy_core.util import print_error
 from tensorflow.keras import backend as K
 from wasabi import msg
 
-from ..env import MathyEnv
-from ..envs import PolySimplify
-from ..state import (
+from mathy_envs.env import MathyEnv
+from mathy_envs.envs import PolySimplify
+from mathy_envs.state import (
     MathyInputsType,
     MathyObservation,
     MathyWindowObservation,
     observations_to_window,
 )
-from ..types import ActionType
+from mathy_envs.types import ActionType
 from .attention import SeqSelfAttention
 from .config import AgentConfig
 from .episode_memory import EpisodeMemory
@@ -282,7 +282,7 @@ def predict_action_value(
     action_logits = action_logits[-1:]
     args_logits = args_logits[-1:]
     values = values[-1:]
-    fn_mask = mask.numpy().sum(axis=1).astype("bool").astype("int")
+    fn_mask = mask.sum(axis=1).astype("bool").astype("int")
     fn_mask_logits = tf.multiply(action_logits, fn_mask, name="mask_logits")
     # Mask the selected rule functions to remove invalid selections
     fn_masked = tf.where(

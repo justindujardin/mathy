@@ -86,10 +86,10 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     verifying that the problems you're generating take the form you
     expect. """
     import gym
-    from mathy.envs.gym import MathyGymEnv
+    from mathy_envs.gym import MathyGymEnv
 
     env_name = f"mathy-{environment}-{difficulty}-v0"
-    env: MathyGymEnv = gym.make(env_name)
+    env: MathyGymEnv = gym.make(env_name)  # type:ignore
     msg.divider(env_name)
     with msg.loading(f"Generating {number} problems..."):
         header = ("Complexity", "Is Valid", "Text")
@@ -228,7 +228,7 @@ def cli_train(
 def setup_tf_env():
     import os
 
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
+    # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
     import random
     import numpy as np
     import tensorflow as tf
@@ -237,7 +237,7 @@ def setup_tf_env():
     np.random.seed(1337)
     tf.random.set_seed(1337)
 
-    tf.compat.v1.logging.set_verbosity("CRITICAL")
+    # tf.compat.v1.logging.set_verbosity("CRITICAL")
 
 
 if __name__ == "__main__":

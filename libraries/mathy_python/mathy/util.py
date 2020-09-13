@@ -3,7 +3,7 @@ from typing import Any, List, Union
 
 import numpy as np
 
-from . import time_step
+from mathy_envs import time_step
 
 
 def has_modules(to_check: Union[List[str], str]) -> bool:

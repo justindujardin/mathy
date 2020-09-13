@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from typing import Dict, Union
 
 from colr import color
-from mathy.env import MathyEnv
-from mathy.state import MathyEnvState
+from mathy_envs.env import MathyEnv
+from mathy_envs.state import MathyEnvState
 
 
 @dataclass

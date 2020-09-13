@@ -1,8 +1,8 @@
-from mathy import envs
+from mathy_envs import envs
 from mathy.agent.config import AgentConfig
 from mathy.agent.model import build_agent_model
-from mathy.env import MathyEnv
-from mathy.state import MathyObservation, observations_to_window
+from mathy_envs.env import MathyEnv
+from mathy_envs.state import MathyObservation, observations_to_window
 
 
 def test_model_call():
