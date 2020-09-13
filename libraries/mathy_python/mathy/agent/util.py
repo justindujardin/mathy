@@ -88,6 +88,6 @@ def record(
     print(
         color(f"{heading} {rewards} {losses} [{env_name}]", fore=fore, style="bright")
     )
-    # if not is_win:
-    #     env.print_history(state)
+    if not is_win:
+        env.print_history(state, pretty=False)
     return global_ep_reward
