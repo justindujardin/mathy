@@ -1,22 +1,18 @@
 #!pip install gym
-import os
 import shutil
 import tempfile
 from typing import List
 
-import gym
-
+from mathy.agent import A3CAgent, AgentConfig
+from mathy.cli import setup_tf_env
 from mathy_core import (
     AddExpression,
     BaseRule,
     MathExpression,
-    ExpressionParser,
     NegateExpression,
     SubtractExpression,
 )
 from mathy_envs import MathyEnv
-from mathy.agent import A3CAgent, AgentConfig
-from mathy.cli import setup_tf_env
 
 
 class PlusNegationRule(BaseRule):

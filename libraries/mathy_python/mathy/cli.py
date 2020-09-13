@@ -57,8 +57,8 @@ def cli_simplify(problem: str, model: str, max_steps: int, swarm: bool, parallel
     """Simplify an input polynomial expression."""
     setup_tf_env()
 
-    from .models import load_model
     from .api import Mathy
+    from .models import load_model
 
     if swarm is True:
         from .swarm import SwarmConfig
@@ -226,10 +226,10 @@ def cli_train(
 
 
 def setup_tf_env():
-    import os
-
+    pass
     # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "5"
     import random
+
     import numpy as np
     import tensorflow as tf
 

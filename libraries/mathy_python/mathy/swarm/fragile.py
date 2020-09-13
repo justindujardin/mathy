@@ -3,18 +3,16 @@ trained neural network."""
 from typing import Dict, List, Optional, Union
 
 import numpy as np
-from mathy_core import MathTypeKeysMax
-from pydantic import BaseModel
-from wasabi import msg
-
 from fragile.core.env import DiscreteEnv
 from fragile.core.models import DiscreteModel
 from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from fragile.core.swarm import Swarm
 from fragile.core.tree import HistoryTree
 from fragile.distributed.env import ParallelEnv
-
+from mathy_core import MathTypeKeysMax
 from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
+from pydantic import BaseModel
+from wasabi import msg
 
 
 class SwarmConfig(BaseModel):
@@ -130,6 +128,7 @@ class FragileEnvironment:
     ):
         import gym
         from gym import spaces
+
         from ..envs.gym import MathyGymEnv
 
         self._env: MathyGymEnv = gym.make(

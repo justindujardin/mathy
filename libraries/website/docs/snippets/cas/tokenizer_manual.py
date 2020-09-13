@@ -1,4 +1,5 @@
 from typing import List
+
 from mathy_core import (
     Token,
     TokenConstant,

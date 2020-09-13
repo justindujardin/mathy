@@ -14,7 +14,7 @@
 # ============================================================================
 """TensorFlow ops for state value learning."""
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Union
 
 # Dependency imports
 import tensorflow as tf
@@ -239,5 +239,3 @@ def td_lambda(
                 discounted_returns=discounted_returns,
             ),
         )
-
-

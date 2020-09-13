@@ -39,7 +39,7 @@ class Student(BaseModel):
 
 
 class Teacher:
-    
+
     students: List[Student]
 
     def __init__(

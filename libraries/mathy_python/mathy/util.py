@@ -1,8 +1,6 @@
 from importlib.util import find_spec
 from typing import Any, List, Union
 
-import numpy as np
-
 from mathy_envs import time_step
 
 
@@ -29,6 +27,7 @@ def assert_fragile_installed():
         raise EnvironmentError(
             MISSING_LIBRARIES_ALERT.format(MODULE_JOIN.join(requires), extra_name)
         )
+
 
 def is_terminal_transition(transition: time_step.TimeStep) -> bool:
     return bool(transition.step_type == time_step.StepType.LAST)

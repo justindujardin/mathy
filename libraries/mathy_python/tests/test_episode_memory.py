@@ -1,8 +1,6 @@
 from typing import Tuple
 
 import pytest
-from numpy.testing import assert_array_almost_equal
-
 from mathy.agent.episode_memory import EpisodeMemory
 from mathy_envs.envs.poly_simplify import PolySimplify
 
@@ -79,4 +77,3 @@ def test_episode_memory_to_window_observations():
     for window, actions, rewards, values in windows_and_actions_and_rewards_and_values:
         assert len(window.nodes) == 3
         assert len(values) == 3
-
