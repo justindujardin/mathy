@@ -16,3 +16,4 @@ tensorboard>=2.3.0,<2.4.0
 tensorflow>=2.3.0,<2.4.0
 tensorflow_probability
 scipy==1.4.1
+keras_self_attention
