@@ -58,7 +58,7 @@ class AgentConfig(BaseModel):
     num_workers: int = 3
 
     policy_fn_entropy_cost = 0.05
-    policy_args_entropy_cost = 0.075
+    policy_args_entropy_cost = 0.75
 
     # The "Teacher" will start evaluating after this many initial episodes
     teacher_start_evaluations_at_episode = 20
