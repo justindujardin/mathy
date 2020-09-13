@@ -19,7 +19,7 @@ from mathy_core import (
 )
 from wasabi import msg
 
-from mathy import MathyEnvState, MathyObservation
+from mathy_envs import MathyEnvState, MathyObservation
 from mathy.cli import setup_tf_env
 
 try:
