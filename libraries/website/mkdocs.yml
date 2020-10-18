@@ -39,9 +39,6 @@ nav:
   - Poly Simplify: envs/poly_simplify.md
   - Complex Simplify: envs/complex_simplify.md
   - Binomial Multiply: envs/binomial_multiply.md
-- API Documentation:
-  - api: api/api.md
-  - solver: api/solver.md
 - Contributing: contributing.md
 - Getting Help: help.md
 - About: about.md

@@ -28,7 +28,7 @@ Observe that the tree representation is more concise than the tokens array becau
 Converting text to trees is accomplished with the [expression parser](/cas/parser):
 
 ```python
-{!./snippets/ml/text_to_tree.py!}
+{!./snippets/envs/text_to_tree.py!}
 ```
 
 ### Tree to List
@@ -44,7 +44,7 @@ Rather than expose [tree structures](/api/core/expressions/#mathexpression) to e
 Converting math expression trees to lists is done with a helper:
 
 ```python
-{!./snippets/ml/tree_to_list.py!}
+{!./snippets/envs/tree_to_list.py!}
 ```
 
 ### Lists to Observations
@@ -66,5 +66,5 @@ While feature lists may be directly passable to a ML model, they don't include a
 Mathy has utilities for making the conversion:
 
 ```python
-{!./snippets/ml/lists_to_observations.py!}
+{!./snippets/envs/lists_to_observations.py!}
 ```

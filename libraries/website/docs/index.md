@@ -140,20 +140,6 @@ To create a custom rule we extend the [BaseRule](/api/core/rule/#baserule) class
 {!./snippets/create_a_rule.py!}
 ```
 
-### Use it during training
-
-Now that we've created a custom rule for converting subtract nodes into "plus negative" ones, we need Mathy to use it while training.
-
-We do this with custom environment arguments when using the [A3C Agent](/ml/a3c) and the [Poly Simplify](/envs/poly_simplify) environment.
-
-All together it looks like:
-
-```python
-{!./snippets/use_a_custom_rule.py!}
-```
-
-Congratulations, you've extended Mathy and begun training a new model with your custom action!
-
 ## Become a Contributor
 
 Building new actions and problem sets are great ways to contribute to Mathy.

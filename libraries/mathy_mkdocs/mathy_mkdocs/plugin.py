@@ -391,9 +391,6 @@ Build your own tree transformation actions and use them with the built-in agents
 ```
 
 
-```python
-{!./snippets/ml/a3c_profiling.py!}
-```
 """
         )
     )

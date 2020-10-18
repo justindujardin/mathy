@@ -3,4 +3,5 @@ set -e
 
 . ../../.env/bin/activate
 
-python -m tools.docs
+echo "API Docs disabled by Justin"
+# python -m tools.docs

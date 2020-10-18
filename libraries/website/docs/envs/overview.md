@@ -1,4 +1,4 @@
-Mathy includes a framework for building [reinforcement learning](/ml/reinforcement_learning) environments that transform math expressions using a set of user-defined actions.
+Mathy includes a framework for building [reinforcement learning](/envs/overview) environments that transform math expressions using a set of user-defined actions.
 
 There are a number of built-in environments aimed at simplifying algebra problems, and generous customization points for creating new ones.
 
