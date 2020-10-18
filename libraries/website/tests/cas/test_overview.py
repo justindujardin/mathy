@@ -1,10 +1,10 @@
 def test_cas_overview_evaluate_expression_variables():
-    pass
+    from ...docs.snippets.cas.overview import evaluate_expression_variables  # noqa
 
 
 def test_cas_overview_rules_factor_out():
-    pass
+    from ...docs.snippets.cas.overview import rules_factor_out  # noqa
 
 
 def test_cas_overview_evaluate_expression():
-    pass
+    from ...docs.snippets.cas.overview import evaluate_expression  # noqa

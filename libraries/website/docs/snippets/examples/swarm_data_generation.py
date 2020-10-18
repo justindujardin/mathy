@@ -1,7 +1,7 @@
 #!pip install gym
 
 
-from mathy.swarm import SwarmConfig, mathy_swarm
+from mathy.solver import SwarmConfig, mathy_swarm
 from mathy_envs.state import MathyEnvState
 
 # Which values do we want from the history tree?

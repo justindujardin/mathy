@@ -1,2 +1,2 @@
 def test_tokenizer_tokenize():
-    pass
+    from ...docs.snippets.cas import tokenizer_tokenize  # noqa

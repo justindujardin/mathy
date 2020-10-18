@@ -1,4 +1,5 @@
-from mathy import DistributiveFactorOutRule, ExpressionParser
+from mathy_core import ExpressionParser
+from mathy_core.rules import DistributiveFactorOutRule
 
 input = "4x + 2x"
 output = "(4 + 2) * x"

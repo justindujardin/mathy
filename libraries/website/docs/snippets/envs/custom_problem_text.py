@@ -1,4 +1,4 @@
-from mathy import MathyEnv, MathyEnvProblem, MathyEnvProblemArgs
+from mathy_envs import MathyEnv, MathyEnvProblem, MathyEnvProblemArgs
 
 
 class CustomSimplifyEnv(MathyEnv):

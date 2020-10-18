@@ -1,7 +1,7 @@
 """Environment with user-defined actions"""
 
-from mathy import MathyEnv, MathyEnvState, envs
 from mathy_core import AddExpression, BaseRule, NegateExpression, SubtractExpression
+from mathy_envs import MathyEnv, MathyEnvState, envs
 
 
 class PlusNegationRule(BaseRule):

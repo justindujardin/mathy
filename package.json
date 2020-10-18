@@ -90,8 +90,6 @@
         "@semantic-release/git",
         {
           "assets": [
-            "libraries/mathy_alpha_sm/model.config.json",
-            "libraries/mathy_alpha_sm/mathy_alpha_sm/model.config.json",
             "libraries/website/docs/changelog.md",
             "libraries/mathy_python/mathy/about.py",
             "package.json"
