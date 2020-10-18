@@ -20,21 +20,11 @@ from mathy_core import (
 from wasabi import msg
 
 from mathy_envs import MathyEnvState, MathyObservation
-from mathy.cli import setup_tf_env
-
-try:
-    from .vis_utils import model_to_dot
-except BaseException:
-    # This is a hack so I can run this file in the debugger standalone where there
-    # is no context for resolving the relative path
-    from vis_utils import model_to_dot  # type:ignore
-
 
 tokenizer = Tokenizer()
 parser = ExpressionParser()
 
 expression_re = r"<code>([a-z\_]*):([\d\w\^\*\+\-\=\/\.\s\(\)\[\]]*)<\/code>"
-model_re = r"<code>model:([a-z\.\_]+):([a-zA-Z\_]+)<\/code>"
 rules_matcher_re = r"`rule_tests:([a-z\_]*)`"
 snippet_matcher_re = r"```[pP]ython[\n]+{!\.(\/snippets\/[0-9a-z\_\/]+).py!}[\n]+```"
 # Add animations? http://zulko.github.io/blog/2014/09/20/vector-animations-with-python/
@@ -323,51 +313,6 @@ def render_tokens_from_text(input_text: str):
         return f"Failed to parse: '{input_text}' with error: {error}"
 
 
-def render_model_architecture(match):
-    global model_hashes
-    import importlib
-    import gym  # noqa
-
-    setup_tf_env()
-    model_module_full: str = match.group(1)
-    model_type: str = match.group(2)
-    mathy_python = Path(__file__).parent.parent.parent / "mathy_python"
-    model_file_name = os.path.join(
-        mathy_python, model_module_full.replace(".", os.path.sep) + ".py"
-    )
-    assert os.path.exists(model_file_name), f"model file not found: {model_file_name}"
-    model_hash = hashlib.md5(open(model_file_name, "r").read().encode()).hexdigest()
-    if model_hash in model_hashes:
-        return model_hashes[model_hash]
-    try:
-        with msg.loading(f"Loading model: {model_module_full}"):
-            model_mod = importlib.import_module(model_module_full)
-            if hasattr(model_mod, model_type) is False:
-                return (
-                    f"Failed to render architecture because module has no {model_type}"
-                )
-
-            model_fn = getattr(model_mod, model_type)
-            model = model_fn()
-            dot = model_to_dot(
-                model,
-                show_shapes=True,
-                show_classes=True,
-                show_layer_names=True,
-                rankdir="TB",
-                dpi=64,
-            )
-            if dot is None:
-                return f"Failed to render architecture: model_to_dot returned None"
-        msg.good(f"Rendered model: {model_module_full}")
-        model_hashes[model_hash] = dot.create_svg().decode("utf-8")
-        return model_hashes[model_hash]
-
-    except ModuleNotFoundError as err:
-        return f"Failed to render model architecture with error: {err}"
-    return model_type
-
-
 def render_colab_link_to_snippet(match):
     global link_template
     input_text = match.group(1)
@@ -410,7 +355,6 @@ def render_code_match(match):
 def render_html(text: str):
     global expression_re
     text = re.sub(expression_re, render_code_match, text, flags=re.IGNORECASE)
-    text = re.sub(model_re, render_model_architecture, text, flags=re.IGNORECASE)
     return text
 
 
