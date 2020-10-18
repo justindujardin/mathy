@@ -1,7 +1,6 @@
 #!pip install gym
 import gym
 from mathy_envs.gym import MathyGymEnv
-from mathy_envs.state import MathyObservation
 
 all_envs = gym.envs.registration.registry.all()  # type:ignore
 # Filter to just mathy registered envs
@@ -14,6 +13,5 @@ assert len(mathy_envs) > 0
 for gym_env_spec in mathy_envs:
     wrapper_env: MathyGymEnv = gym.make(gym_env_spec.id)  # type:ignore
     assert wrapper_env is not None
-    observation: MathyObservation = wrapper_env.reset()
-    assert isinstance(observation, MathyObservation)
+    observation = wrapper_env.reset()
     assert observation is not None

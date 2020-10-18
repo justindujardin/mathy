@@ -1,4 +1,5 @@
-from mathy import CommutativeSwapRule, ExpressionParser
+from mathy_core import ExpressionParser
+from mathy_core.rules import CommutativeSwapRule
 
 input = "x + y + x"
 output = "x + x + y"

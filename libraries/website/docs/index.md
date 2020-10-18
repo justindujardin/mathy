@@ -20,9 +20,9 @@
 </p>
 <div align="center" data-termynal-container>
     <div id="termynal" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
-        <span data-ty="input">pip install mathy mathy_alpha_sm</span>
+        <span data-ty="input">pip install mathy</span>
         <span data-ty="progress"></span>
-        <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy, mathy_alpha_sm</span>
+        <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy</span>
         <span data-ty-lineDelay="0" class="u-hide-sm" data-ty=""></span>
         <span data-ty="input">mathy simplify "2x + 1y^3 + 7b + 4x"</span>
         <span data-ty="" data-ty-text="initial                   | 2x + 1y^3 + 7b + 4x"></span>
@@ -63,7 +63,7 @@
 ## Installation
 
 ```bash
-$ pip install mathy mathy_alpha_sm
+$ pip install mathy
 ```
 
 ## Try It
@@ -76,11 +76,9 @@ Let's start by simplifying a polynomial problem using the CLI:
 $ mathy simplify "2x + 4 + 3x * 6"
 ```
 
-This uses the pretrained `mathy_alpha_sm` model that we installed above.
+This uses the a swam planning algorithm to determine which intermediate steps to take in order to get to the desired solution.
 
-The model is used to determine which intermediate steps to take in order to get to the desired solution.
-
-The output will vary based on the model, but it might look like this:
+The output will vary based, but it might look like this:
 
 <div align="center" data-termynal-container>
     <div id="termynal-two" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
@@ -106,16 +104,6 @@ In this way users do not need to know the answer to a problem that is generated.
 
 ```bash
 $ mathy problems poly
-```
-
-### Train an A3C agent
-
-Mathy has an [A3C agent](/ml/a3c) built-in that you can train from the CLI:
-
-A3C uses multiple worker threads to train a shared model in a CPU-friendly setting.
-
-```bash
-$ mathy train a3c poly ./training/my_model
 ```
 
 

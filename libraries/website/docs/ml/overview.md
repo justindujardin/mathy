@@ -1,22 +1,14 @@
 ## Overview
 
-Mathy uses machine learning (ML) to choose which [actions](/rules/overview) to apply to which nodes in an expression tree.
+Mathy uses a swarm planning algorithm to choose which [actions](/rules/overview) to apply to which nodes in an expression tree.
 
 It picks and takes actions in a loop to accomplish a [desired task](/envs/overview).
 
-Specifically, Mathy uses [Tensorflow 2.x](https://www.tensorflow.org/){target=\_blank} with the [Keras API](https://keras.io/){target=\_blank} to implement a [reinforcement learning environments platform](/envs/overview).
-
-## Features
-
-Mathy uses machine learning in a few ways, and has the following features:
-
-- [Math Embeddings](/ml/embeddings) layer for processing sequences of sequences
-- [Policy/Value model](/ml/model) for estimating which actions to apply to which nodes
-- [A3C agent](/ml/a3c) for online training of agents in a CPU-friendly setting
+Specifically, Mathy uses [Fragile](https://github.com/FragileTech/fragile){target=\_blank} swarm-planning to choose actions in built-in and user-defined [reinforcement learning environments](/envs/overview).
 
 ## Text Preprocessing
 
-Mathy processes an input problem by parsing its text into a tree, converting that tree into a sequence features for each node in the tree, combining those features with the current environment state, and embedds them into a variable length sequence of fixed-dimension embeddings.
+Mathy processes an input problem by parsing its text into a tree, converting that tree into a sequence features for each node in the tree, concatenating those features with the current environment state, time, type, and valid action mask.
 
 ### Text to Tree
 
@@ -41,7 +33,7 @@ Converting text to trees is accomplished with the [expression parser](/cas/parse
 
 ### Tree to List
 
-Rather than try to feed [expression trees](/api/core/expressions/#mathexpression) into a machine learning model, we [traverse them](/api/core/expressions/#to_list) to produce node lists.
+Rather than expose [tree structures](/api/core/expressions/#mathexpression) to environments, we [traverse them](/api/core/expressions/#to_list) to produce node/value lists.
 
 !!! info "tree list ordering"
 
@@ -57,7 +49,7 @@ Converting math expression trees to lists is done with a helper:
 
 ### Lists to Observations
 
-Math turns a list of math expression nodes into a feature list that captures characteristics of the input. Specifically, mathy converts a node list into two lists, one with **node types** and another with **node values**:
+Mathy turns a list of math expression nodes into a feature list that captures characteristics of the input. Specifically, mathy converts a node list into two lists, one with **node types** and another with **node values**:
 
 `features:-3 * (4 + 7)`
 

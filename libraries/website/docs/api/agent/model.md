@@ -1,2 +1,0 @@
-# mathy.agent.model
-

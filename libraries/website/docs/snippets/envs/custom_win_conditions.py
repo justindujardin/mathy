@@ -4,14 +4,14 @@ property applied to factor out a common term """
 
 from typing import Optional
 
-from mathy import (
+from mathy_core import MathExpression, rules
+from mathy_envs import (
     MathyEnv,
     MathyEnvState,
     MathyObservation,
     is_terminal_transition,
     time_step,
 )
-from mathy_core import MathExpression, rules
 
 
 class CustomWinConditions(MathyEnv):

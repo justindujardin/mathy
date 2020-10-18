@@ -1,4 +1,4 @@
-from mathy import (
+from mathy_core import (
     AddExpression,
     BaseRule,
     ExpressionParser,
