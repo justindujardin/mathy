@@ -1,7 +1,7 @@
 """Environment with user-defined terminal rewards"""
 
-from mathy import MathyEnvState, envs, is_terminal_transition
 from mathy_core.rules import ConstantsSimplifyRule
+from mathy_envs import MathyEnvState, envs, is_terminal_transition
 
 
 class CustomEpisodeRewards(envs.PolySimplify):

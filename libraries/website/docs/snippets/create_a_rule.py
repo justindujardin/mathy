@@ -1,7 +1,7 @@
-from mathy import (
+from mathy_core import (
     AddExpression,
-    ExpressionParser,
     BaseRule,
+    ExpressionParser,
     NegateExpression,
     SubtractExpression,
 )

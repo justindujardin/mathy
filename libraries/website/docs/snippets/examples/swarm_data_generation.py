@@ -1,12 +1,8 @@
 #!pip install gym
 
-import random
 
-import gym
-
-from mathy.swarm import SwarmConfig, mathy_swarm
-from mathy.envs.gym import MathyGymEnv
-from mathy.state import MathyEnvState
+from mathy.solver import SwarmConfig, mathy_swarm
+from mathy_envs.state import MathyEnvState
 
 # Which values do we want from the history tree?
 history_names = ["states", "actions", "rewards"]

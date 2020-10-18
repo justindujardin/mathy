@@ -3,11 +3,9 @@ two nodes are adjacent to each other that can have the distributive
 property applied to factor out a common term """
 
 from typing import Optional
-from mathy_core import (
-    MathExpression,
-    rules,
-)
-from mathy import (
+
+from mathy_core import MathExpression, rules
+from mathy_envs import (
     MathyEnv,
     MathyEnvState,
     MathyObservation,

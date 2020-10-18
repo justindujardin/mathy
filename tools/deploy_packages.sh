@@ -2,7 +2,7 @@
 set -e
 
 echo "Publishing all apps..."
-libraries="mathy_python mathy_alpha_sm"
+libraries="mathy_python"
 for library in $libraries
 do
    echo "=== Deploying: $library"

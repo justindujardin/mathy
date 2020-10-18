@@ -12,4 +12,4 @@ fi
 . ../../.env/bin/activate
 echo "Installing/updating requirements..."
 pip install -e .[tf,all]
-pip install -e ../mathy_alpha_sm
+pip install -r requirements-dev.txt

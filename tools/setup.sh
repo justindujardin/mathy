@@ -6,7 +6,8 @@ DIR=.env
 if [ ! -d "${DIR}" ]; then
   echo "Installing root virtualenv (.env)"
   pip install virtualenv --upgrade
-  python -m virtualenv .env -p python3.6
+  # The first syntax is for CI (travis) and the OR is for MacOS catalina
+  python -m virtualenv -p python3 .env || virtualenv -p python3 .env
 fi
 echo "Installing/updating requirements..."
 .env/bin/pip install -e ./libraries/mathy_python

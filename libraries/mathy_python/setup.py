@@ -1,5 +1,6 @@
 from pathlib import Path
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def setup_package():
@@ -24,7 +25,6 @@ def setup_package():
 
     extras = {
         "dev": DEVELOPMENT_MODULES,
-        "fragile": ["fragile==0.0.47", "tqdm>=4.43.0", "gym"],
     }
     extras["all"] = [item for group in extras.values() for item in group]
 
