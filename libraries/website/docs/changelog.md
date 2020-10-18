@@ -1,3 +1,15 @@
+# [0.9.0](https://github.com/justindujardin/mathy/compare/v0.8.1...v0.9.0) (2020-10-18)
+
+
+### Features
+
+* **solver:** replace ML model with Swarm solver ([2e192ff](https://github.com/justindujardin/mathy/commit/2e192ffdec8df8731d922a27a1155bece307e03a))
+
+
+### BREAKING CHANGES
+
+* **solver:** This removes mathy.agent and all training utilities
+
 ## [0.8.1](https://github.com/justindujardin/mathy/compare/v0.8.0...v0.8.1) (2020-07-24)
 
 
