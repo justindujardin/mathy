@@ -48,17 +48,14 @@
 ## Features
 
 - **[Computer Algebra System](/cas/overview)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
-- **[Reinforcement learning](/ml/overview)**: Train agents with machine learning in many environments with hyperparameters for controlling environment difficulties.
-- **[Custom Environments](/envs/overview)** Extend built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win-conditions.
+- **[Learning Environments](/envs/overview)** Use built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win-conditions.
 - **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
-- **[Compute Friendly](/ml/a3c)**: Maybe we don't have to burn down the world with GPU compute all the time? Text-based environments can be small enough to train on a CPU while still having real-world value.
-- **[Free and Open Source](/license)**: Mathy is and will always be free, because educational tools are too important to our world to be gated by money.
+- **[Free and Open Source](/license)**: Mathy is free because educational tools are important and should be accessible to everyone.
 - **[Python with Type Hints](https://fastapi.tiangolo.com/python-types/){target=\_blank}**: typing hints are used everywhere in Mathy to help provide rich autocompletion and linting in modern IDEs.
 
 ## Requirements
 
 - Python 3.6+
-- Tensorflow 2.0+
 
 ## Installation
 
@@ -76,7 +73,7 @@ Let's start by simplifying a polynomial problem using the CLI:
 $ mathy simplify "2x + 4 + 3x * 6"
 ```
 
-This uses the a swam planning algorithm to determine which intermediate steps to take in order to get to the desired solution.
+Mathy uses a swam planning algorithm to determine which intermediate steps to take to get to the desired solution.
 
 The output will vary based, but it might look like this:
 
@@ -97,60 +94,21 @@ The output will vary based, but it might look like this:
 
 ### Generate Input Problems
 
-Mathy can generate lists of random problems. Rather than force users to generate solutions, Mathy uses
-environment-specific functions for determining when a problem is solved.
-
-In this way users do not need to know the answer to a problem that is generated.
+Mathy can generate lists of randomized problems. Rather than forcing users to create solutions, Mathy uses environment-specific functions to determine when a problem is solved. In this way, users don't need to know the answer to a question that they generate.
 
 ```bash
 $ mathy problems poly
 ```
 
+### Train an RL Agent
 
-## Code It
+You can use Mathy's environments with existing machine-learning libraries for Reinforcement Learning:
 
-Above we simplified a polynomial problem using the CLI, but what if the output steps had failed to find a solution?
-
-Perhaps we put a [subtraction](/api/core/expressions/#subtractexpression) between two like terms, like `4x + 3y - 2x`
-
-Recall that we can't move subtraction terms around with the [commutative property](/rules/commutative_property), so how can Mathy solve this problem?
-
-We can write custom code for Mathy in order to add features or correct issues.
-
-In order to combine these terms, we need to convert the subtraction into an addition.
-
-Remember that a subtraction like `4x + 3y - 2x` can be restated as a "plus negative" like `4x + 3y + -2x` to make it [commutable](/rules/commutative_property).
-
-Once we've restated the expression, we can now use the commutative property to swap the positions of `3y` and `-2x` so we end up with `4x + -2x + 3y`
-
-Now the expression is in a state that Mathy's existing rules can handle the rest.
-
-### Create a Rule
-
-To continue our `4x + 3y - 2x` example, we'll write some code to convert the subtraction into an addition: `4x + -2x + 3y`
-
-Mathy uses the available set of **[rules](/rules/overview)** (also referred to as **actions**) when transforming a problem.
-
-To create a custom rule we extend the [BaseRule](/api/core/rule/#baserule) class and define two main functions:
-
-- `can_apply_to` determines if a rule can be applied to an expression node.
-- `apply_to` applies the rule to a node and returns an [expression change](/api/core/rule/#expressionchangerule) object.
-
-```Python
-{!./snippets/create_a_rule.py!}
-```
-
-## Become a Contributor
-
-Building new actions and problem sets are great ways to contribute to Mathy.
-
-By contributing improvements to Mathy, we help ourselves better understand Math and Programming.
-
-We also create examples for others around the world that are trying to get help with Math or learn Programming!
+**[PFRL](/examples/pfrl_agent)** agent using DDQN batch training
 
 ## Contributors
 
-Mathy wouldn't be possible without the wonderful contributions of the following people:
+Mathy wouldn't be possible without the contributions of the following people:
 
 <div class="contributors-wrapper">
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
