@@ -20,6 +20,7 @@ nav:
 - Home: index.md
 - Examples:
   - Swarm Planning: examples/swarm.md
+  - PyTorch Training: examples/pfrl_agent.md
   - Predicting Like Terms: examples/predicting_like_terms.md
 - Computer Algebra System:
   - Overview: cas/overview.md
@@ -40,7 +41,6 @@ nav:
   - Complex Simplify: envs/complex_simplify.md
   - Binomial Multiply: envs/binomial_multiply.md
 - Contributing: contributing.md
-- Getting Help: help.md
 - About: about.md
 - Releases: changelog.md
 - License: license.md
