@@ -1,10 +1,8 @@
-Mathy parses [token arrays](/cas/tokenizer) into symbolic trees that can be inspected, transformed, and visualized.
+Mathy parses [token arrays](/cas/tokenizer) into inspectable, transformable, visualizable symbolic trees.
 
 ## Motivation
 
-While a Token array verifies that text maps to some mathematical expression, its form fails to encode the `Order of Operations` that is required to evaluate the end result.
-
-Said another way, a token array is sufficient to make sure there are not errors in an expression, but a tree encoding the order of operations is required to iterate the expression and calculate its numeric value.
+A Token array verifies that text maps to some known set of symbols, but not that they are a correct ordering that produces a valid mathematical expression. The mathy Parser class converts tokens into a tree while also validating that the tree follows the expected Order of Operations.
 
 ## Examples
 

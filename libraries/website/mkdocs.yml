@@ -19,9 +19,10 @@ google_analytics:
 nav:
 - Home: index.md
 - Examples:
+  # - Like Terms Reformer: examples/like_terms_reformer.md
   - Swarm Planning: examples/swarm.md
-  - PyTorch Training: examples/pfrl_agent.md
   - Predicting Like Terms: examples/predicting_like_terms.md
+  # - PyTorch Training : examples/pfrl_agent.md
 - Computer Algebra System:
   - Overview: cas/overview.md
   - Tokenizer: cas/tokenizer.md

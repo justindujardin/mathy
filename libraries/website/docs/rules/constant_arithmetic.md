@@ -16,9 +16,9 @@ For example `2x * 8` can be transformed into `16x` because the constants are con
 
 We can see this by taking a look at the trees for `2x * 8` and `2 * 8 * x` and recalling that the commutative proeprty says `a * b = b * a`:
 
-| Satifying the Commutative Property |                   |
-| :--------------------------------: | :---------------- |
-|           `mathy:2x * 8`           | `mathy:2 * 8 * x` |
+| Satisfying the Commutative Property |                   |
+| :---------------------------------: | :---------------- |
+|           `mathy:2x * 8`            | `mathy:2 * 8 * x` |
 
 We can see that the tree structure has been flipped, but that multiplication nodes still connect the same variables and constants, so the value of the expression remains unchanged.
 
