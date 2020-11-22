@@ -4,7 +4,7 @@ from subprocess import check_output
 
 
 def convert_input(input_location: str):
-    check_output(["jupyter", "nbconvert", "--to", "markdown", input_location])
+    check_output([".env/bin/jupyter", "nbconvert", "--to", "markdown", input_location])
 
 
 if len(sys.argv) > 1:

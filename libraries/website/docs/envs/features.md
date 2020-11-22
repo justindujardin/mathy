@@ -8,7 +8,7 @@ Specifically, Mathy uses [Fragile](https://github.com/FragileTech/fragile){targe
 
 ## Text Preprocessing
 
-Mathy processes an input problem by parsing its text into a tree, converting that tree into a sequence features for each node in the tree, concatenating those features with the current environment state, time, type, and valid action mask.
+Mathy processes an input problem by parsing its text into a tree, converting that into a sequence of features for each node in the tree, concatenating those features with the current environment state, time, type, and valid action mask.
 
 ### Text to Tree
 
@@ -19,11 +19,11 @@ Consider the tokens and tree that result from the input: `-3 * (4 + 7)`
 
 `tokens:-3 * (4 + 7)`
 
-**Tree**
+** tree**
 
 `mathy:-3 * (4 + 7)`
 
-Observe that the tree representation is more concise than the tokens array because it doesn't have nodes for hierarchical features like parentheses.
+Please observe that the tree representation is more concise than the tokens array because it doesn't have nodes for hierarchical features like parentheses.
 
 Converting text to trees is accomplished with the [expression parser](/cas/parser):
 
@@ -37,9 +37,9 @@ Rather than expose [tree structures](/api/core/expressions/#mathexpression) to e
 
 !!! info "tree list ordering"
 
-        You might have noticed the features from the previous tree are not expressed in the natural order that we might read them. As observed by [Lample and Charton](https://arxiv.org/pdf/1912.01412.pdf){target=\_blank} trees must be visited in an order that preserves the order-of-operations, so the model can pick up on the hierarchical features of the input.
+        You might have noticed that the previous tree features are not expressed in the natural order that we might read them. As observed by [Lample and Charton](https://arxiv.org/pdf/1912.01412.pdf){target=\_blank} trees must be visited in an order that preserves the order-of-operations so that the model can pick up on the hierarchical features of the input.
 
-        For this reason we visit trees in `pre` order for serialization.
+        For this reason, we visit trees in `pre` order for serialization.
 
 Converting math expression trees to lists is done with a helper:
 
@@ -49,19 +49,19 @@ Converting math expression trees to lists is done with a helper:
 
 ### Lists to Observations
 
-Mathy turns a list of math expression nodes into a feature list that captures characteristics of the input. Specifically, mathy converts a node list into two lists, one with **node types** and another with **node values**:
+Mathy turns a list of math expression nodes into a feature list that captures the input characteristics. Specifically, mathy converts a node list into two lists, one with **node types** and another with **node values**:
 
 `features:-3 * (4 + 7)`
 
 - The first row is the input token characters stripped of whitespace and parentheses.
-- The second row is the sequence of floating point **node values** for the tree, with each non-constant node represented by a mask value.
-- The third row is the **node type** integer representing the class of the node in the tree.
+- The second row is the sequence of floating-point **node values** for the tree, with each non-constant node represented by a mask value.
+- The third row is the **node type** integer representing the node's class in the tree.
 
-While feature lists may be directly passable to a ML model, they don't include any information about the state of the problem over time. To work with information over time, mathy agents draw extra information from the environment when building observations. This extra information includes:
+While feature lists may be directly passable to an ML model, they don't include any information about the problem's state over time. To work with information over time, mathy agents draw extra information from the environment when building observations. This extra information includes:
 
 - **Environment Problem Type**: environments all specify an [environment namespace](/api/env/#get_env_namespace) that is converted into a pair of [hashed string values](/api/state/#get_problem_hash) using different random seeds.
-- **Episode Relative Time**: each observation is able to see a 0-1 floating point value that indicates how close the agent is to running out of moves.
-- **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are 5 possible actions, and 10 nodes in the tree, there are **up to** 50 possible actions to choose from. A same sized (e.g. 50) mask of 0/1 values are provided so that the model can mask out nodes with no valid actions when returning probability distributions.
+- **Episode Relative Time**: each observation can see a 0-1 floating-point value that indicates how close the agent is to running out of moves.
+- **Valid Action Mask**: mathy gives weighted estimates for each action at every node. If there are five possible actions and ten nodes in the tree, there are **up to** 50 possible actions. A same-sized (e.g., 50) mask of 0/1 values are provided so that the model can mask out nodes with no valid actions when returning probability distributions.
 
 Mathy has utilities for making the conversion:
 

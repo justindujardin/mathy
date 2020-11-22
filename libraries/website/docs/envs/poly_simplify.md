@@ -1,8 +1,8 @@
-Core to working with algebra problems is the ability to `combine like terms` in polynomials, and Mathy provides an environment that generates problems that require simplification to satisfy the win-conditions.
+Core to working with algebra problems is the ability to `combine like terms` in polynomials. Mathy provides an environment that generates problems that require simplification to satisfy the win-conditions.
 
 ## Challenge
 
-In Poly Simplify the agent must learn to quickly combine and simplify all the like terms in the generated input expression.
+In Poly Simplify, the agent must learn to quickly combine and simplify all the like terms in the generated input expression.
 
 Examples
 
@@ -12,11 +12,11 @@ Examples
 
 ## Win Conditions
 
-A problem is considered solved when there are no remaining like terms in the expression, and all terms are expressed in a simple way.
+Solve problems by combining all like terms in the provided expression.
 
 ### No Like Terms
 
-Terms are like when they share a common variable and exponent and are connected by an addition or subtraction.
+Terms are like when connected by an addition or subtraction, and both terms share a variable and exponent.
 
 Examples
 
@@ -27,7 +27,7 @@ Examples
 
 ### No Complex Terms
 
-Terms are considered complex when there's a more concise way they could be expressed.
+Complex terms are those that can be restated more simply.
 
 Examples
 
