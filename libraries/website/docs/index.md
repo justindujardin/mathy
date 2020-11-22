@@ -100,12 +100,6 @@ Mathy can generate lists of randomized problems. Rather than forcing users to cr
 $ mathy problems poly
 ```
 
-### Train an RL Agent
-
-You can use Mathy's environments with existing machine-learning libraries for Reinforcement Learning:
-
-**[PFRL](/examples/pfrl_agent)** agent using DDQN batch training
-
 ## Contributors
 
 Mathy wouldn't be possible without the contributions of the following people:
