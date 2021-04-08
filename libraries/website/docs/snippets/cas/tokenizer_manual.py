@@ -1,20 +1,13 @@
 from typing import List
 
-from mathy_core import (
-    Token,
-    TokenConstant,
-    TokenEOF,
-    Tokenizer,
-    TokenPlus,
-    TokenVariable,
-)
+from mathy_core import Token, TOKEN_TYPES, Tokenizer
 
 manual_tokens: List[Token] = [
-    Token("4", TokenConstant),
-    Token("x", TokenVariable),
-    Token("+", TokenPlus),
-    Token("2", TokenConstant),
-    Token("", TokenEOF),
+    Token("4", TOKEN_TYPES.Constant),
+    Token("x", TOKEN_TYPES.Variable),
+    Token("+", TOKEN_TYPES.Plus),
+    Token("2", TOKEN_TYPES.Constant),
+    Token("", TOKEN_TYPES.EOF),
 ]
 auto_tokens: List[Token] = Tokenizer().tokenize("4x + 2")
 
