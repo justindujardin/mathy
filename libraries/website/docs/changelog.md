@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/justindujardin/mathy/compare/v0.9.0...v0.9.1) (2021-04-08)
+
+
+### Features
+
+* **requirements:** update to latest mathy_core/mathy_envs versions ([#57](https://github.com/justindujardin/mathy/issues/57)) ([7983d88](https://github.com/justindujardin/mathy/commit/7983d88f0f4a5ffb2c72db881e60682dabf3ada1))
+
 # [0.9.0](https://github.com/justindujardin/mathy/compare/v0.8.1...v0.9.0) (2020-10-18)
 
 
