@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from fragile.core.swarm import Swarm
 
@@ -16,7 +17,10 @@ class Mathy:
     state: MathyAPISwarmState
 
     def __init__(
-        self, *, config: SwarmConfig = None, silent: bool = False,
+        self,
+        *,
+        config: Optional[SwarmConfig] = None,
+        silent: bool = False,
     ):
         if config is None:
             config = SwarmConfig()
@@ -24,7 +28,7 @@ class Mathy:
             raise ValueError("config must be a SwarmConfig instance")
         self.state = MathyAPISwarmState(config=config)
 
-    def simplify(self, *, problem: str, max_steps: int = None) -> Swarm:
+    def simplify(self, *, problem: str, max_steps: Optional[int] = None) -> Swarm:
         if max_steps is not None:
             return swarm_solve(problem, self.state.config, max_steps=max_steps)
         return swarm_solve(problem, self.state.config)
