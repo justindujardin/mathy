@@ -4,6 +4,7 @@
 Command line application for interacting with Mathy agents and environments.
 """
 
+import os
 import click
 from wasabi import msg
 
@@ -31,7 +32,7 @@ def cli_contribute():
 @click.option(
     "single_process",
     "--single-process",
-    default=False,
+    default=os.name == "nt", # fragile swarm mp is unreliable on windows
     is_flag=True,
     help="Use single-process execution with the swarm solver",
 )
