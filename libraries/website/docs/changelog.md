@@ -1,3 +1,10 @@
+## [0.9.2](https://github.com/justindujardin/mathy/compare/v0.9.1...v0.9.2) (2022-10-10)
+
+
+### Bug Fixes
+
+* **pypi:** stricter requirements for dependencies ([#76](https://github.com/justindujardin/mathy/issues/76)) ([20df3be](https://github.com/justindujardin/mathy/commit/20df3be7674d08ae602d563ff1243ad43925655a))
+
 ## [0.9.1](https://github.com/justindujardin/mathy/compare/v0.9.0...v0.9.1) (2021-04-08)
 
 
