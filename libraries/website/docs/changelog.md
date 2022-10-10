@@ -1,3 +1,10 @@
+## [0.9.5](https://github.com/justindujardin/mathy/compare/v0.9.4...v0.9.5) (2022-10-10)
+
+
+### Features
+
+* **swarm:** increase solver state size to support longer problems ([#82](https://github.com/justindujardin/mathy/issues/82)) ([22a990b](https://github.com/justindujardin/mathy/commit/22a990b1c3201b32a9c679dfb922043d692d8959))
+
 ## [0.9.4](https://github.com/justindujardin/mathy/compare/v0.9.3...v0.9.4) (2022-10-10)
 
 
