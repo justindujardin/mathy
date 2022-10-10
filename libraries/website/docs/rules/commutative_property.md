@@ -37,4 +37,4 @@ Given a common parent node, this rule switches the order of the children of that
 
 ### Examples
 
-`rule_tests:commutative_property`
+`rule_tests:commutative_swap`
