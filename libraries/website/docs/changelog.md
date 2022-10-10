@@ -1,3 +1,10 @@
+## [0.9.3](https://github.com/justindujardin/mathy/compare/v0.9.2...v0.9.3) (2022-10-10)
+
+
+### Bug Fixes
+
+* **windows:** relax numpy range to support windows ([#79](https://github.com/justindujardin/mathy/issues/79)) ([1d591ad](https://github.com/justindujardin/mathy/commit/1d591ad1f6108e0f9d041864fc1d9f1ebc9bb566))
+
 ## [0.9.2](https://github.com/justindujardin/mathy/compare/v0.9.1...v0.9.2) (2022-10-10)
 
 
