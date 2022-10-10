@@ -1,7 +1,7 @@
 mypy
 pytest
 pytest-cov
-black
+black<22.2.0
 isort
 autoflake
 flake8

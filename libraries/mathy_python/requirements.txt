@@ -1,12 +1,12 @@
 # Core library
-numpy<1.19.0,>=1.16.0
+numpy<1.23.0,>=1.22.0
 colr
 srsly
 pydantic>=1.0.0
-typer<0.4.0,>=0.3.2
+typer<0.7.0,>=0.6.1
 wasabi
-mathy_core>=0.8.4,<0.9.0
-mathy_envs[gym]>=0.10.0,<0.11.0
+mathy_core>=0.8.6,<0.9.0
+mathy_envs[gym]>=0.11.3,<0.12.0
 fragile==0.0.47
 tqdm>=4.43.0
 # new python feature backports

@@ -1,6 +1,6 @@
 """Use Fractal Monte Carlo search in order to solve mathy problems without a
 trained neural network."""
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from fragile.core.env import DiscreteEnv
@@ -70,7 +70,7 @@ class FragileMathyEnv(DiscreteEnv):
         name: str,
         environment: str = "poly",
         difficulty: str = "easy",
-        problem: str = None,
+        problem: Optional[str] = None,
         max_steps: int = 64,
         **kwargs,
     ):
@@ -122,7 +122,7 @@ class FragileEnvironment:
         name: str,
         environment: str = "poly",
         difficulty: str = "normal",
-        problem: str = None,
+        problem: Optional[str] = None,
         max_steps: int = 64,
         **kwargs,
     ):
@@ -132,10 +132,9 @@ class FragileEnvironment:
 
         self._env: MathyGymEnv = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
-            np_observation=True,
-            mask_as_probabilities=True,
             invalid_action_response="terminal",
             env_problem=problem,
+            mask_as_probabilities=True,
             **kwargs,
         )
         self.observation_space = spaces.Box(
@@ -148,7 +147,7 @@ class FragileEnvironment:
 
     def get_state(self) -> np.ndarray:
         assert self._env.state is not None, "env required to get_state"
-        return self._env.state.to_np()
+        return self._env.state.to_np(768)
 
     def set_state(self, state: np.ndarray):
         assert self._env is not None, "env required to set_state"
@@ -165,7 +164,7 @@ class FragileEnvironment:
         return new_state, obs, reward, oob, info
 
     def step_batch(
-        self, actions, states=None, n_repeat_action: Union[int, np.ndarray] = None
+        self, actions, states:Optional[Any]=None, n_repeat_action: Optional[Union[int, np.ndarray]] = None
     ) -> tuple:
         data = [self.step(action, state) for action, state in zip(actions, states)]
         new_states, observs, rewards, terminals, infos = [], [], [], [], []
@@ -212,7 +211,7 @@ def mathy_swarm(config: SwarmConfig, env_callable=None) -> Swarm:
 def swarm_solve(
     problems: Union[List[str], str],
     config: SwarmConfig,
-    max_steps: Union[List[int], int] = 128,
+    max_steps: Union[List[int], int] = 256,
     silent: bool = False,
 ) -> Swarm:
     single_problem: bool = isinstance(problems, str)
