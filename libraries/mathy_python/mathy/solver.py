@@ -147,7 +147,7 @@ class FragileEnvironment:
 
     def get_state(self) -> np.ndarray:
         assert self._env.state is not None, "env required to get_state"
-        return self._env.state.to_np(768)
+        return self._env.state.to_np(2048)
 
     def set_state(self, state: np.ndarray):
         assert self._env is not None, "env required to set_state"
