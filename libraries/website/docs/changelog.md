@@ -1,3 +1,10 @@
+## [0.9.4](https://github.com/justindujardin/mathy/compare/v0.9.3...v0.9.4) (2022-10-10)
+
+
+### Bug Fixes
+
+* **python3.7:** update mathy_envs for typing fix ([#80](https://github.com/justindujardin/mathy/issues/80)) ([070fc8c](https://github.com/justindujardin/mathy/commit/070fc8c8707d43468fed8ba56e196bdd3bbcd5e7))
+
 ## [0.9.3](https://github.com/justindujardin/mathy/compare/v0.9.2...v0.9.3) (2022-10-10)
 
 
