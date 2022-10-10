@@ -1,5 +1,5 @@
 # Core library
-numpy<1.23.0,>=1.22.0
+numpy<1.23.0,>=1.21.0
 colr
 srsly
 pydantic>=1.0.0
