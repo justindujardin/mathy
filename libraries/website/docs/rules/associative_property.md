@@ -41,4 +41,4 @@ The formulation of this property is the same for addition and multiplication:
 
 ### Examples
 
-`rule_tests:associative_property`
+`rule_tests:associative_swap`
