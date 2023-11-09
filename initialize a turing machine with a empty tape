@@ -1,0 +1,62 @@
+
+
+// Initialize the Turing machine with an empty tape, the head at the start position,
+// and a state variable.
+tape = [' '] // Assume a blank space represents an empty cell on the tape.
+head_position = 0
+state = "check"
+
+// The input string 'w' is loaded onto the tape.
+input_string = 'w' // Replace 'w' with your actual input string.
+tape.extend(input_string)
+
+// Main loop to simulate the Turing machine.
+while true:
+    switch state:
+        case "check":
+            // Scan right and check the string format.
+            if tape[head_position] matches the pattern 0*1*:
+                state = "rewind"
+            else:
+                // Halt on reject.
+                print("Input rejected.")
+                exit()
+
+        case "rewind":
+            // Move the head back to the start.
+            while head_position > 0:
+                head_position -= 1
+            state = "cross_out"
+
+        case "cross_out":
+            zeros_count = 0
+            ones_count = 0
+            // Start scanning and crossing out every second 0 or 1.
+            while tape[head_position] is not a blank space:
+                if tape[head_position] == '0':
+                    zeros_count += 1
+                    // Cross out every second zero.
+                    if zeros_count % 2 == 0:
+                        tape[head_position] = 'x' // Assume 'x' is a crossed-out symbol.
+                elif tape[head_position] == '1':
+                    ones_count += 1
+                    // Cross out every second one.
+                    if ones_count % 2 == 0:
+                        tape[head_position] = 'x'
+                head_position += 1
+
+            // Check if the total number of zeros and ones is odd.
+            if zeros_count % 2 != 0 or ones_count % 2 != 0:
+                // Halt on reject.
+                print("Input rejected.")
+                exit()
+            // If no zeros or ones were crossed out, halt on reject.
+            if zeros_count < 2 and ones_count < 2:
+                print("Input rejected.")
+                exit()
+            // Otherwise, go back to the checking state.
+            state = "check"
+
+        // Add any additional states and transitions as needed.
+
+
