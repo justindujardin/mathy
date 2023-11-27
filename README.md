@@ -20,9 +20,12 @@
 </p>
 
 
-## Website
+## Resources
 
 Mathy's website has rich documentation with visualizations and examples that can be directly executed in Google Colab: <a href="https://mathy.ai" target="_blank">https://mathy.ai</a>
+
+- [Mathy Core](https://github.com/mathy/mathy_core) contains the expression parser and base rules for mathy
+- [Mathy Envs](https://github.com/mathy/mathy_envs) contains the RL environments for solving problems step-by-step
 
 ## Contributors
 
