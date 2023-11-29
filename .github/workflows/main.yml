@@ -19,7 +19,7 @@ jobs:
       - name: Install Graphviz
         run: sudo apt-get install graphviz
       - name: Setup Packages
-        run: sh tools/setup.sh
+        run: sh tools/setup.sh `which python3.8`
       - name: Build Packages
         run: sh tools/build.sh
       - name: Test Packages
