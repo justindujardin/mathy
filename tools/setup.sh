@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+python3 --version
+
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
 if [ ! -d "${DIR}" ]; then
