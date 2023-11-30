@@ -13,13 +13,3 @@ Because the swarm planning algorithm doesn't require training, we can apply it t
 {!./snippets/examples/swarm_random_task.py!}
 
 ```
-
-## Generate Training Datasets
-
-Fragile has built-in support for generating batched datasets for training ML models. A basic example goes like this:
-
-```Python
-
-{!./snippets/examples/swarm_data_generation.py!}
-
-```
