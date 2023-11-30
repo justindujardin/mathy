@@ -2,7 +2,7 @@
 
 import random
 
-import gym
+import gymnasium as gym
 from mathy.solver import SwarmConfig, swarm_solve
 from mathy_envs.gym import MathyGymEnv
 
