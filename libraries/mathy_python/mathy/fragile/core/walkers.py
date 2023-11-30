@@ -3,10 +3,10 @@ from typing import Any, Callable, Dict, Optional, Set, Tuple
 
 import numpy
 
-from fragile.core.base_classes import BaseCritic, BaseWalkers
-from fragile.core.functions import relativize
-from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from fragile.core.utils import (
+from .base_classes import BaseCritic, BaseWalkers
+from .functions import relativize
+from .states import StatesEnv, StatesModel, StatesWalkers
+from .utils import (
     DistanceFunction,
     float_type,
     hash_numpy,

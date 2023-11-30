@@ -4,12 +4,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from fragile.core.env import DiscreteEnv
-from fragile.core.models import DiscreteModel
-from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from fragile.core.swarm import Swarm
-from fragile.core.tree import HistoryTree
-from fragile.distributed.env import ParallelEnv
+from .fragile.core.env import DiscreteEnv
+from .fragile.core.models import DiscreteModel
+from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
+from .fragile.core.swarm import Swarm
+from .fragile.core.tree import HistoryTree
+from .fragile.distributed.env import ParallelEnv
 from mathy_core import MathTypeKeysMax
 from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
 from wasabi import msg

@@ -2,10 +2,10 @@ from typing import Callable
 
 import numpy
 
-from fragile.core.states import OneWalker
-from fragile.distributed.export_swarm import BestWalker
-from fragile.distributed.ray import ray
-from fragile.distributed.ray.export_swarm import (
+from ..core.states import OneWalker
+from ..distributed.export_swarm import BestWalker
+from ..distributed.ray import ray
+from ..distributed.ray.export_swarm import (
     ExportParamServer as RemoteParamServer,
     ExportSwarm as RemoteExportSwarm,
 )

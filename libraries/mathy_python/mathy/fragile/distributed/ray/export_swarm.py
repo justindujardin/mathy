@@ -1,11 +1,11 @@
 from typing import Callable
 
-from fragile.distributed.export_swarm import (
+from ...distributed.export_swarm import (
     ExportedWalkers,
     ExportSwarm as WorkerExportSwarm,
     ParamServer,
 )
-from fragile.distributed.ray import ray
+from ...distributed.ray import ray
 
 
 @ray.remote

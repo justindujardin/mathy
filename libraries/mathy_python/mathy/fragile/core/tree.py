@@ -4,9 +4,9 @@ from typing import Any, Dict, Generator, List, Set, Tuple, Union
 import networkx as nx
 import numpy
 
-from fragile.core.base_classes import BaseTree
-from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from fragile.core.utils import random_state
+from .base_classes import BaseTree
+from .states import StatesEnv, StatesModel, StatesWalkers
+from .utils import random_state
 
 
 NodeId = Union[str, int]

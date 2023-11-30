@@ -4,16 +4,16 @@ from typing import Any, Callable, Iterable, List
 
 import numpy
 
-from fragile.core.base_classes import (
+from .base_classes import (
     BaseCritic,
     BaseEnvironment,
     BaseModel,
     BaseSwarm,
 )
-from fragile.core.states import OneWalker, StatesEnv, StatesModel, StatesWalkers
-from fragile.core.tree import HistoryTree
-from fragile.core.utils import running_in_ipython, Scalar
-from fragile.core.walkers import Walkers
+from .states import OneWalker, StatesEnv, StatesModel, StatesWalkers
+from .tree import HistoryTree
+from .utils import running_in_ipython, Scalar
+from .walkers import Walkers
 
 
 class Swarm(BaseSwarm):

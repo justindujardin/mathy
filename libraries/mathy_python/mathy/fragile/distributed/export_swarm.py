@@ -4,11 +4,11 @@ from typing import Tuple
 
 import numpy
 
-from fragile.core import SwarmWrapper
-from fragile.core.functions import cross_fai_iteration
-from fragile.core.states import States
-from fragile.core.swarm import Swarm
-from fragile.core.utils import float_type, hash_type, random_state, Scalar, StateDict
+from ..core import SwarmWrapper
+from ..core.functions import cross_fai_iteration
+from ..core.states import States
+from ..core.swarm import Swarm
+from ..core.utils import float_type, hash_type, random_state, Scalar, StateDict
 
 
 class ExportedWalkers(States):

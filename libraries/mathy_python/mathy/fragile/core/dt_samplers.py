@@ -2,9 +2,9 @@ from typing import Optional
 
 import numpy as np
 
-from fragile.core.base_classes import BaseCritic
-from fragile.core.states import States, StatesEnv, StatesModel, StatesWalkers
-from fragile.core.utils import float_type, StateDict
+from .base_classes import BaseCritic
+from .states import States, StatesEnv, StatesModel, StatesWalkers
+from .utils import float_type, StateDict
 
 
 class BaseDtSampler(BaseCritic):

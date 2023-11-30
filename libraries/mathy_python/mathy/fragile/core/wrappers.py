@@ -2,7 +2,7 @@ from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
 import numpy
 
-from fragile.core import (
+from . import (
     BaseCritic,
     BaseWrapper,
     Environment,
@@ -15,8 +15,8 @@ from fragile.core import (
     Swarm,
     Walkers,
 )
-from fragile.core.base_classes import BaseTree
-from fragile.core.utils import StateDict
+from .base_classes import BaseTree
+from .utils import StateDict
 
 
 class CriticWrapper(BaseWrapper, BaseCritic):

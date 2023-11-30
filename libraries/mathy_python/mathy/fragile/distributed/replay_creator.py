@@ -4,12 +4,12 @@ import numpy
 import ray
 from tqdm.auto import tqdm
 
-from fragile.core.base_classes import BaseEnvironment, BaseModel
-from fragile.core.memory import ReplayMemory as CoreMemory
-from fragile.core.states import OneWalker
-from fragile.core.tree import HistoryTree, NamesData, NetworkxTree, NodeId
-from fragile.core.walkers import Walkers
-from fragile.distributed.ray.swarm import RemoteSwarm
+from ..core.base_classes import BaseEnvironment, BaseModel
+from ..core.memory import ReplayMemory as CoreMemory
+from ..core.states import OneWalker
+from ..core.tree import HistoryTree, NamesData, NetworkxTree, NodeId
+from ..core.walkers import Walkers
+from ..distributed.ray.swarm import RemoteSwarm
 
 
 @ray.remote

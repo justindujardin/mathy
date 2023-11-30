@@ -3,10 +3,10 @@ from typing import Callable, Dict, List, Tuple
 
 import numpy
 
-from fragile.core.env import Environment as CoreEnv
-from fragile.core.states import StatesEnv, StatesModel
-from fragile.core.utils import split_args_in_chunks, split_kwargs_in_chunks, StateDict
-from fragile.distributed.ray import ray
+from ...core.env import Environment as CoreEnv
+from ...core.states import StatesEnv, StatesModel
+from ...core.utils import split_args_in_chunks, split_kwargs_in_chunks, StateDict
+from ...distributed.ray import ray
 
 # The type hints of the base class are not supported by cloudpickle
 # and will raise errors in Python3.6

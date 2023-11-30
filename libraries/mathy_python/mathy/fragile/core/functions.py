@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy
 
-from fragile.core.utils import random_state
+from .utils import random_state
 
 
 def l2_norm(x: numpy.ndarray, y: numpy.ndarray) -> numpy.ndarray:

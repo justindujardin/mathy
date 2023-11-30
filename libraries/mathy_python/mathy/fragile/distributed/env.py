@@ -6,10 +6,10 @@ from typing import Callable, Dict, List, Tuple, Union
 
 import numpy
 
-from fragile.core.env import Environment as CoreEnv
-from fragile.core.states import StatesEnv, StatesModel
-from fragile.core.utils import split_args_in_chunks, split_kwargs_in_chunks
-from fragile.core.wrappers import BaseWrapper, EnvWrapper
+from ..core.env import Environment as CoreEnv
+from ..core.states import StatesEnv, StatesModel
+from ..core.utils import split_args_in_chunks, split_kwargs_in_chunks
+from ..core.wrappers import BaseWrapper, EnvWrapper
 
 
 class _ExternalProcess:
@@ -441,7 +441,7 @@ class RayEnv(EnvWrapper):
             env_kwargs: Passed to ``env_callable``.
 
         """
-        from fragile.distributed.ray.env import Environment as RemoteEnvironment
+        from ..distributed.ray.env import Environment as RemoteEnvironment
 
         env_kwargs = {} if env_kwargs is None else env_kwargs
         self.n_workers = n_workers
@@ -523,7 +523,7 @@ class RayEnv(EnvWrapper):
             return split_args_in_chunks(args, len(self.envs))
 
     def _make_transitions(self, split_results):
-        from fragile.distributed.ray import ray
+        from ..distributed.ray import ray
 
         results = [
             env.make_transitions.remote(**chunk)
@@ -554,7 +554,7 @@ class RayEnv(EnvWrapper):
             batch_size.
 
         """
-        from fragile.distributed.ray import ray
+        from ..distributed.ray import ray
 
         reset = [
             env.reset.remote(batch_size=batch_size, env_states=env_states, *args, **kwargs)

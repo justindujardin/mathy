@@ -2,8 +2,8 @@ from typing import Callable, Dict, List, Tuple, Union
 
 import numpy
 
-from fragile.core.states import OneWalker, States, StatesEnv, StatesModel, StatesWalkers
-from fragile.core.utils import RANDOM_SEED, random_state, StateDict
+from .states import OneWalker, States, StatesEnv, StatesModel, StatesWalkers
+from .utils import RANDOM_SEED, random_state, StateDict
 
 
 class StatesOwner:

@@ -3,10 +3,10 @@ from typing import Callable
 
 import ray
 
-from fragile.core.base_classes import BaseEnvironment, BaseModel, BaseTree
-from fragile.core.states import OneWalker, StatesEnv, StatesModel, StatesWalkers
-from fragile.core.swarm import Swarm as CoreSwarm, Walkers as CoreWalkers
-from fragile.distributed.ray.env import RayEnv
+from ...core.base_classes import BaseEnvironment, BaseModel, BaseTree
+from ...core.states import OneWalker, StatesEnv, StatesModel, StatesWalkers
+from ...core.swarm import Swarm as CoreSwarm, Walkers as CoreWalkers
+from ...distributed.ray.env import RayEnv
 
 
 @ray.remote
@@ -107,7 +107,9 @@ class RemoteSwarm(CoreSwarm):
         self._epoch = 0
         n_walkers = self.walkers.get("n_walkers")
         reset_id = (
-            self.env.reset.remote(batch_size=n_walkers) if env_states is None else env_states
+            self.env.reset.remote(batch_size=n_walkers)
+            if env_states is None
+            else env_states
         )
         env_states = await reset_id
         # Add corresponding root_walkers data to env_states
@@ -117,7 +119,9 @@ class RemoteSwarm(CoreSwarm):
                     "Root walker needs to be an "
                     "instance of OneWalker, got %s instead." % type(root_walker)
                 )
-            env_states = self._update_env_with_root(root_walker=root_walker, env_states=env_states)
+            env_states = self._update_env_with_root(
+                root_walker=root_walker, env_states=env_states
+            )
 
         model_states = (
             self.model.reset(batch_size=n_walkers, env_states=env_states)
@@ -128,7 +132,11 @@ class RemoteSwarm(CoreSwarm):
         self.walkers.reset(env_states=env_states, model_states=model_states)
         if self.tree is not None:
             id_walkers = self.walkers.get("id_walkers")
-            root_id = id_walkers[0] if root_walker is None else copy.copy(root_walker.id_walkers)
+            root_id = (
+                id_walkers[0]
+                if root_walker is None
+                else copy.copy(root_walker.id_walkers)
+            )
             self.tree.reset(
                 root_id=root_id,
                 env_states=self.walkers.env_states,
@@ -180,16 +188,23 @@ class RemoteSwarm(CoreSwarm):
         env_states = self.walkers.get("env_states")
         walkers_states = self.walkers.get("states")
         parent_ids = (
-            copy.deepcopy(self.walkers.get("id_walkers")) if self.tree is not None else None
+            copy.deepcopy(self.walkers.get("id_walkers"))
+            if self.tree is not None
+            else None
         )
 
         model_states = self.model.predict(
-            env_states=env_states, model_states=model_states, walkers_states=walkers_states
+            env_states=env_states,
+            model_states=model_states,
+            walkers_states=walkers_states,
         )
-        env_states = await self.env.step.remote(model_states=model_states, env_states=env_states)
+        env_states = await self.env.step.remote(
+            model_states=model_states, env_states=env_states
+        )
         # env_states = ray.get(step_id)
         self.walkers.update_states(
-            env_states=env_states, model_states=model_states,
+            env_states=env_states,
+            model_states=model_states,
         )
         self.update_tree(parent_ids)
 
@@ -227,7 +242,9 @@ class RemoteSwarm(CoreSwarm):
             None.
 
         """
-        report_interval = self.report_interval if report_interval is None else report_interval
+        report_interval = (
+            self.report_interval if report_interval is None else report_interval
+        )
         await self.reset(
             root_walker=root_walker,
             model_states=model_states,

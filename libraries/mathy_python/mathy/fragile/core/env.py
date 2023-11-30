@@ -3,8 +3,8 @@ from typing import Dict, Union
 
 import numpy
 
-from fragile.core.base_classes import BaseEnvironment
-from fragile.core.states import StateDict, StatesEnv, StatesModel
+from .base_classes import BaseEnvironment
+from .states import StateDict, StatesEnv, StatesModel
 
 
 class Environment(BaseEnvironment):

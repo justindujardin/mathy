@@ -3,7 +3,7 @@ from typing import Iterable, Optional, Tuple, Union
 
 import numpy as numpy
 
-from fragile.core.utils import Scalar
+from .utils import Scalar
 
 
 class Bounds:

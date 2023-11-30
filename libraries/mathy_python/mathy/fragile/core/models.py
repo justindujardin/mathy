@@ -3,11 +3,11 @@ from typing import Optional, Union
 from numba import jit
 import numpy
 
-from fragile.core.base_classes import BaseCritic, BaseModel
-from fragile.core.bounds import Bounds
-from fragile.core.env import DiscreteEnv
-from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from fragile.core.utils import float_type, StateDict
+from .base_classes import BaseCritic, BaseModel
+from .bounds import Bounds
+from .env import DiscreteEnv
+from .states import StatesEnv, StatesModel, StatesWalkers
+from .utils import float_type, StateDict
 
 
 class Model(BaseModel):

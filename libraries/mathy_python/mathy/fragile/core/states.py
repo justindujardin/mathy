@@ -3,7 +3,7 @@ from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple, Union
 
 import numpy
 
-from fragile.core.utils import (
+from .utils import (
     float_type,
     hash_numpy,
     hash_type,
