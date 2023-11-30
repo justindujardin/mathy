@@ -1,5 +1,6 @@
 """Use Fractal Monte Carlo search in order to solve mathy problems without a
 trained neural network."""
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -11,14 +12,16 @@ from fragile.core.tree import HistoryTree
 from fragile.distributed.env import ParallelEnv
 from mathy_core import MathTypeKeysMax
 from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
-from pydantic import BaseModel
 from wasabi import msg
 
 
-class SwarmConfig(BaseModel):
+@dataclass
+class SwarmConfig:
     use_mp: bool = True
     history: bool = False
-    history_names: List[str] = ["states", "actions", "rewards"]
+    history_names: List[str] = field(
+        default_factory=lambda: ["states", "actions", "rewards"]
+    )
     single_problem: bool = False
     verbose: bool = False
     n_walkers: int = 512
@@ -40,7 +43,7 @@ class DiscreteMasked(DiscreteModel):
     ) -> StatesModel:
         def random_choice_prob_index(a, axis=1):
             """Select random actions with probabilities across a batch.
-            
+
             Source: https://stackoverflow.com/a/47722393/287335"""
             r = np.expand_dims(self.random_state.rand(a.shape[1 - axis]), axis=axis)
             return (a.cumsum(axis=axis) > r).argmax(axis=axis)
@@ -54,7 +57,10 @@ class DiscreteMasked(DiscreteModel):
         else:
             actions = self.random_state.randint(0, self.n_actions, size=batch_size)
         return self.update_states_with_critic(
-            actions=actions, model_states=model_states, batch_size=batch_size, **kwargs,
+            actions=actions,
+            model_states=model_states,
+            batch_size=batch_size,
+            **kwargs,
         )
 
 
@@ -138,7 +144,10 @@ class FragileEnvironment:
             **kwargs,
         )
         self.observation_space = spaces.Box(
-            low=0, high=MathTypeKeysMax, shape=(256, 256, 1), dtype=np.uint8,
+            low=0,
+            high=MathTypeKeysMax,
+            shape=(256, 256, 1),
+            dtype=np.uint8,
         )
         self.action_space = spaces.Discrete(self._env.action_size)
         self.problem = problem
@@ -164,7 +173,10 @@ class FragileEnvironment:
         return new_state, obs, reward, oob, info
 
     def step_batch(
-        self, actions, states:Optional[Any]=None, n_repeat_action: Optional[Union[int, np.ndarray]] = None
+        self,
+        actions,
+        states: Optional[Any] = None,
+        n_repeat_action: Optional[Union[int, np.ndarray]] = None,
     ) -> tuple:
         data = [self.step(action, state) for action, state in zip(actions, states)]
         new_states, observs, rewards, terminals, infos = [], [], [], [], []
