@@ -138,7 +138,10 @@ class DiscreteEnv(Environment):
         return data
 
     def make_transitions(
-        self, states: numpy.ndarray, actions: numpy.ndarray, dt: Union[numpy.ndarray, int]
+        self,
+        states: numpy.ndarray,
+        actions: numpy.ndarray,
+        dt: Union[numpy.ndarray, int],
     ) -> Dict[str, numpy.ndarray]:
         """
         Step the underlying :class:`plangym.Environment` using the ``step_batch`` \
@@ -178,6 +181,10 @@ class DiscreteEnv(Environment):
         rewards = numpy.zeros(batch_size, dtype=numpy.float32)
         oobs = numpy.zeros(batch_size, dtype=numpy.bool_)
         new_states = self.states_from_data(
-            batch_size=batch_size, states=states, observs=observs, rewards=rewards, oobs=oobs
+            batch_size=batch_size,
+            states=states,
+            observs=observs,
+            rewards=rewards,
+            oobs=oobs,
         )
         return new_states

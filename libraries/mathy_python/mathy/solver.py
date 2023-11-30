@@ -13,7 +13,6 @@ from .fragile.core.env import DiscreteEnv
 from .fragile.core.models import DiscreteModel
 from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from .fragile.core.swarm import Swarm
-from .fragile.core.tree import HistoryTree
 from .fragile.core.distributed_env import ParallelEnv
 
 
@@ -210,13 +209,9 @@ def mathy_swarm(config: SwarmConfig, env_callable=None) -> Swarm:
         )
     if config.use_mp:
         env_callable = ParallelEnv(env_callable=env_callable)
-    tree_callable = None
-    if config.history:
-        tree_callable = lambda: HistoryTree(prune=True, names=config.history_names)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,
-        tree=tree_callable,
         reward_limit=EnvRewards.WIN,
         n_walkers=config.n_walkers,
         max_epochs=config.max_iters,

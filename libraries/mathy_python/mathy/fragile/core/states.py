@@ -47,7 +47,9 @@ class States:
 
     """
 
-    def __init__(self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs):
+    def __init__(
+        self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs
+    ):
         """
         Initialize a :class:`States`.
 
@@ -57,7 +59,11 @@ class States:
              **kwargs: The name-tensor pairs can also be specified as kwargs.
 
         """
-        attr_dict = self.params_to_arrays(state_dict, batch_size) if state_dict is not None else {}
+        attr_dict = (
+            self.params_to_arrays(state_dict, batch_size)
+            if state_dict is not None
+            else {}
+        )
         attr_dict.update(kwargs)
         self._names = list(attr_dict.keys())
         self._attr_dict = attr_dict
@@ -85,7 +91,9 @@ class States:
             try:
                 return getattr(self, item)
             except AttributeError:
-                raise TypeError("Tried to get a non existing attribute with key {}".format(item))
+                raise TypeError(
+                    "Tried to get a non existing attribute with key {}".format(item)
+                )
         elif isinstance(item, (int, numpy.int64)):
             return self._ix(item)
         else:
@@ -130,7 +138,10 @@ class States:
     def __hash__(self) -> int:
         _hash = hash(
             tuple(
-                [hash_numpy(x) if isinstance(x, numpy.ndarray) else hash(x) for x in self.vals()]
+                [
+                    hash_numpy(x) if isinstance(x, numpy.ndarray) else hash(x)
+                    for x in self.vals()
+                ]
             )
         )
         return _hash
@@ -144,7 +155,8 @@ class States:
         """Return a unique id for each walker attribute."""
         values = getattr(self, name)
         hashes = [
-            hash_numpy(val) if isinstance(val, numpy.ndarray) else hash(val) for val in values
+            hash_numpy(val) if isinstance(val, numpy.ndarray) else hash(val)
+            for val in values
         ]
         return hashes
 
@@ -359,7 +371,9 @@ class States:
         return States(batch_size=self.n, **param_dict)
 
     @staticmethod
-    def params_to_arrays(param_dict: StateDict, n_walkers: int) -> Dict[str, numpy.ndarray]:
+    def params_to_arrays(
+        param_dict: StateDict, n_walkers: int
+    ) -> Dict[str, numpy.ndarray]:
         """
         Create a dictionary containing the arrays specified by param_dict.
 
@@ -415,7 +429,9 @@ class StatesEnv(States):
 
     """
 
-    def __init__(self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs):
+    def __init__(
+        self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs
+    ):
         """
         Initialise a :class:`StatesEnv`.
 
@@ -433,7 +449,9 @@ class StatesEnv(States):
         updated_dict = self.get_params_dict()
         if state_dict is not None:
             updated_dict.update(state_dict)
-        super(StatesEnv, self).__init__(state_dict=updated_dict, batch_size=batch_size, **kwargs)
+        super(StatesEnv, self).__init__(
+            state_dict=updated_dict, batch_size=batch_size, **kwargs
+        )
 
     def get_params_dict(self) -> StateDict:
         """Return a dictionary describing the data stored in the :class:`StatesEnv`."""
@@ -458,7 +476,9 @@ class StatesModel(States):
 
     """
 
-    def __init__(self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs):
+    def __init__(
+        self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs
+    ):
         """
         Initialise a :class:`StatesModel`.
 
@@ -472,7 +492,9 @@ class StatesModel(States):
         updated_dict = self.get_params_dict()
         if state_dict is not None:
             updated_dict.update(state_dict)
-        super(StatesModel, self).__init__(state_dict=updated_dict, batch_size=batch_size, **kwargs)
+        super(StatesModel, self).__init__(
+            state_dict=updated_dict, batch_size=batch_size, **kwargs
+        )
 
     def get_params_dict(self) -> StateDict:
         """Return the parameter dictionary with tre attributes common to all Models."""
@@ -518,7 +540,9 @@ class StatesWalkers(States):
 
     """
 
-    def __init__(self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs):
+    def __init__(
+        self, batch_size: int, state_dict: Optional[StateDict] = None, **kwargs
+    ):
         """
         Initialize a :class:`StatesWalkers`.
 
@@ -596,7 +620,9 @@ class StatesWalkers(States):
     def _ix(self, index: int):
         # TODO(guillemdb): Allow slicing
         data = {
-            k: numpy.array([v[index]]) if isinstance(v, numpy.ndarray) and "best" not in k else v
+            k: numpy.array([v[index]])
+            if isinstance(v, numpy.ndarray) and "best" not in k
+            else v
             for k, v in self.items()
         }
         return self.__class__(batch_size=1, **data)
@@ -648,7 +674,10 @@ class OneWalker(States):
         walkers_dict = self.get_params_dict()
         if state_dict is not None:
             for k, v in state_dict.items():
-                if k in ["observs", "states"]:  # These two are parsed from the provided opts
+                if k in [
+                    "observs",
+                    "states",
+                ]:  # These two are parsed from the provided opts
                     continue
                 if k in walkers_dict:
                     walkers_dict[k] = v

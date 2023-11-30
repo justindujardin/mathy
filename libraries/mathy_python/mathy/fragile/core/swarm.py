@@ -11,7 +11,6 @@ from .base_classes import (
     BaseSwarm,
 )
 from .states import OneWalker, StatesEnv, StatesModel, StatesWalkers
-from .tree import HistoryTree
 from .utils import running_in_ipython, Scalar
 from .walkers import Walkers
 
@@ -34,7 +33,6 @@ class Swarm(BaseSwarm):
         walkers: Callable[..., Walkers] = Walkers,
         reward_scale: float = 1.0,
         distance_scale: float = 1.0,
-        tree: Callable[[], HistoryTree] = None,
         report_interval: int = numpy.inf,
         show_pbar: bool = True,
         use_notebook_widget: bool = True,
@@ -64,7 +62,6 @@ class Swarm(BaseSwarm):
             **kwargs: Additional kwargs passed to init_swarm.
 
         """
-        self._prune_tree = False
         self._epoch = 0
         self.show_pbar = show_pbar
         self.report_interval = report_interval
@@ -75,7 +72,6 @@ class Swarm(BaseSwarm):
             n_walkers=n_walkers,
             reward_scale=reward_scale,
             distance_scale=distance_scale,
-            tree=tree,
             *args,
             **kwargs
         )
@@ -166,8 +162,6 @@ class Swarm(BaseSwarm):
         n_walkers: int,
         reward_scale: float = 1.0,
         distance_scale: float = 1.0,
-        tree: Callable[[], HistoryTree] = None,
-        prune_tree: bool = True,
         *args,
         **kwargs
     ):
@@ -187,11 +181,6 @@ class Swarm(BaseSwarm):
             n_walkers: Number of walkers of the swarm.
             reward_scale: Virtual reward exponent for the reward score.
             distance_scale: Virtual reward exponent for the distance score.
-            tree: class:`StatesTree` that keeps track of the visited states.
-            prune_tree: If `tree` is `None` it has no effect. If true, \
-                       store in the :class:`Tree` only the past history of alive \
-                        walkers, and discard the branches with leaves that have \
-                        no walkers.
             args: Passed to ``walkers_callable``.
             kwargs: Passed to ``walkers_callable``.
 
@@ -213,8 +202,6 @@ class Swarm(BaseSwarm):
             *args,
             **kwargs
         )
-        self.tree: HistoryTree = tree() if tree is not None else None
-        self._prune_tree = prune_tree
         self._epoch = 0
 
     def reset(
@@ -242,7 +229,9 @@ class Swarm(BaseSwarm):
         """
         self._epoch = 0
         env_states = (
-            self.env.reset(batch_size=self.walkers.n) if env_states is None else env_states
+            self.env.reset(batch_size=self.walkers.n)
+            if env_states is None
+            else env_states
         )
         # Add corresponding root_walkers data to env_states
         if root_walker is not None:
@@ -251,7 +240,9 @@ class Swarm(BaseSwarm):
                     "Root walker needs to be an "
                     "instance of OneWalker, got %s instead." % type(root_walker)
                 )
-            env_states = self._update_env_with_root(root_walker=root_walker, env_states=env_states)
+            env_states = self._update_env_with_root(
+                root_walker=root_walker, env_states=env_states
+            )
 
         model_states = (
             self.model.reset(batch_size=len(self.walkers), env_states=env_states)
@@ -260,18 +251,6 @@ class Swarm(BaseSwarm):
         )
         model_states.update(init_actions=model_states.actions)
         self.walkers.reset(env_states=env_states, model_states=model_states)
-        if self.tree is not None:
-            root_id = (
-                self.walkers.get("id_walkers")[0]
-                if root_walker is None
-                else copy.copy(root_walker.id_walkers)
-            )
-            self.tree.reset(
-                root_id=root_id,
-                env_states=self.walkers.env_states,
-                model_states=self.walkers.model_states,
-                walkers_states=self.walkers.states,
-            )
 
     def run(
         self,
@@ -302,7 +281,9 @@ class Swarm(BaseSwarm):
             None.
 
         """
-        report_interval = self.report_interval if report_interval is None else report_interval
+        report_interval = (
+            self.report_interval if report_interval is None else report_interval
+        )
         self.reset(
             root_walker=root_walker,
             model_states=model_states,
@@ -340,7 +321,9 @@ class Swarm(BaseSwarm):
         """
         show_pbar = show_pbar if show_pbar is not None else self.show_pbar
         no_tqdm = not (
-            show_pbar if self._ipython_mode else self._log.level < logging.WARNING and show_pbar
+            show_pbar
+            if self._ipython_mode
+            else self._log.level < logging.WARNING and show_pbar
         )
         if self._ipython_mode:
             from tqdm.notebook import trange
@@ -364,7 +347,11 @@ class Swarm(BaseSwarm):
             from IPython.core.display import display, HTML as cell_html
 
             # Set font weight of tqdm progressbar
-            display(cell_html("<style> .widget-label {font-weight: bold !important;} </style>"))
+            display(
+                cell_html(
+                    "<style> .widget-label {font-weight: bold !important;} </style>"
+                )
+            )
             self._notebook_container = HTML()
 
     def report_progress(self):
@@ -375,10 +362,9 @@ class Swarm(BaseSwarm):
             # Add strong formatting for headers
             html = html.replace("Walkers States", "<strong>Walkers States</strong>")
             html = html.replace("Model States", "<strong>Model States</strong>")
-            html = html.replace("Environment States", "<strong>Environment Model</strong>")
-            if self.tree is not None:
-                tree_name = self.tree.__class__.__name__
-                html = html.replace(tree_name, "<strong>%s</strong>" % tree_name)
+            html = html.replace(
+                "Environment States", "<strong>Environment Model</strong>"
+            )
             self._notebook_container.value = "%s" % html
         elif not self._ipython_mode:
             self._log.info(repr(self))
@@ -406,7 +392,6 @@ class Swarm(BaseSwarm):
         storing the visited states.
         """
         self.walkers.balance()
-        self.prune_tree()
 
     def run_step(self) -> None:
         """
@@ -424,43 +409,16 @@ class Swarm(BaseSwarm):
         """
         model_states = self.walkers.model_states
         env_states = self.walkers.env_states
-
-        parent_ids = (
-            copy.deepcopy(self.walkers.states.id_walkers) if self.tree is not None else None
-        )
-
         model_states = self.model.predict(
-            env_states=env_states, model_states=model_states, walkers_states=self.walkers.states
+            env_states=env_states,
+            model_states=model_states,
+            walkers_states=self.walkers.states,
         )
         env_states = self.env.step(model_states=model_states, env_states=env_states)
         self.walkers.update_states(
-            env_states=env_states, model_states=model_states,
+            env_states=env_states,
+            model_states=model_states,
         )
-        self.update_tree(parent_ids)
-
-    def update_tree(self, parent_ids: List[int]) -> None:
-        """
-        Add a list of walker states represented by `states_ids` to the :class:`Tree`.
-
-        Args:
-            parent_ids: list containing the ids of the parents of the new states added.
-        """
-        if self.tree is not None:
-            self.tree.add_states(
-                parent_ids=parent_ids,
-                env_states=self.walkers.env_states,
-                model_states=self.walkers.model_states,
-                walkers_states=self.walkers.states,
-                n_iter=int(self.walkers.epoch),
-            )
-
-    def prune_tree(self) -> None:
-        """
-        Remove all the branches that are do not have alive walkers at their leaf nodes.
-        """
-        if self.tree is not None:
-            leaf_nodes = set(self.get("id_walkers"))
-            self.tree.prune_tree(alive_leafs=leaf_nodes)
 
     def _update_env_with_root(self, root_walker, env_states) -> StatesEnv:
         env_states.rewards[:] = copy.deepcopy(root_walker.rewards[0])

@@ -60,12 +60,22 @@ class Bounds:
         elif shape is None and hasattr(low, "shape"):
             shape = low.shape
         elif shape is None:
-            raise TypeError("If shape is None high or low need to have .shape attribute.")
+            raise TypeError(
+                "If shape is None high or low need to have .shape attribute."
+            )
         # High and low will be arrays of target shape
         if not isinstance(high, numpy.ndarray):
-            high = numpy.array(high) if isinstance(high, _Iterable) else numpy.ones(shape) * high
+            high = (
+                numpy.array(high)
+                if isinstance(high, _Iterable)
+                else numpy.ones(shape) * high
+            )
         if not isinstance(low, numpy.ndarray):
-            low = numpy.array(low) if isinstance(low, _Iterable) else numpy.ones(shape) * low
+            low = (
+                numpy.array(low)
+                if isinstance(low, _Iterable)
+                else numpy.ones(shape) * low
+            )
         self.high = high
         self.low = low
         if dtype is not None:
@@ -126,7 +136,9 @@ class Bounds:
 
     @staticmethod
     def get_scaled_intervals(
-        low: Union[numpy.ndarray, float, int], high: Union[numpy.ndarray, float, int], scale: float
+        low: Union[numpy.ndarray, float, int],
+        high: Union[numpy.ndarray, float, int],
+        scale: float,
     ) -> Tuple[Union[numpy.ndarray, float], Union[numpy.ndarray, float]]:
         """
         Scale the high and low vectors by an scale factor.

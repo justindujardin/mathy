@@ -14,5 +14,4 @@ typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"
 
 # Fragile
 xxhash
-networkx
 numba

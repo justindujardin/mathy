@@ -41,7 +41,9 @@ class StatesOwner:
 
     def create_new_states(self, batch_size: int) -> "StatesOwner.STATE_CLASS":
         """Create new states of given batch_size to store the data of the class."""
-        return self.STATE_CLASS(state_dict=self.get_params_dict(), batch_size=batch_size)
+        return self.STATE_CLASS(
+            state_dict=self.get_params_dict(), batch_size=batch_size
+        )
 
     def states_from_data(self, batch_size: int, **kwargs) -> States:
         """
@@ -278,7 +280,9 @@ class BaseEnvironment(StatesOwner):
             the needed information.
 
         """
-        transition_data = self.states_to_data(model_states=model_states, env_states=env_states)
+        transition_data = self.states_to_data(
+            model_states=model_states, env_states=env_states
+        )
         if not isinstance(transition_data, (dict, tuple)):
             raise ValueError(
                 "The returned values from states_to_data need to "
@@ -308,7 +312,9 @@ class BaseEnvironment(StatesOwner):
             updated with the attributes passed as keyword arguments.
 
         """
-        return super(BaseEnvironment, self).states_from_data(batch_size=batch_size, **kwargs)
+        return super(BaseEnvironment, self).states_from_data(
+            batch_size=batch_size, **kwargs
+        )
 
     def states_to_data(
         self, model_states: StatesModel, env_states: StatesEnv
@@ -375,7 +381,9 @@ class BaseEnvironment(StatesOwner):
         """
         raise NotImplementedError
 
-    def reset(self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs) -> StatesEnv:
+    def reset(
+        self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs
+    ) -> StatesEnv:
         """
         Reset the environment and return an States class with batch_size copies \
         of the initial state.
