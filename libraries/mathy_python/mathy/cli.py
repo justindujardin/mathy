@@ -78,11 +78,11 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
     This is useful if you when developing new environment types for
     verifying that the problems you're generating take the form you
     expect. """
-    import gym
+    import gymnasium as gym
     from mathy_envs.gym import MathyGymEnv
 
     env_name = f"mathy-{environment}-{difficulty}-v0"
-    env: MathyGymEnv = gym.make(env_name)  # type:ignore
+    env: MathyGymEnv = gym.make(env_name).unwrapped  # type:ignore
     msg.divider(env_name)
     with msg.loading(f"Generating {number} problems..."):
         header = ("Complexity", "Is Valid", "Text")

@@ -1,18 +1,20 @@
 """Use Fractal Monte Carlo search in order to solve mathy problems without a
 trained neural network."""
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
+from mathy_core import MathTypeKeysMax
+from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
+from mathy_envs.gym import MathyGymEnv
+from wasabi import msg
+
 from .fragile.core.env import DiscreteEnv
 from .fragile.core.models import DiscreteModel
 from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from .fragile.core.swarm import Swarm
 from .fragile.core.tree import HistoryTree
 from .fragile.distributed.env import ParallelEnv
-from mathy_core import MathTypeKeysMax
-from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
-from wasabi import msg
 
 
 @dataclass
@@ -123,6 +125,10 @@ class FragileEnvironment:
 
     problem: Optional[str]
 
+    @property
+    def unwrapped(self) -> MathyGymEnv:
+        return cast(MathyGymEnv, self._env.unwrapped)
+
     def __init__(
         self,
         name: str,
@@ -132,11 +138,11 @@ class FragileEnvironment:
         max_steps: int = 64,
         **kwargs,
     ):
-        import gym
-        from gym import spaces
+        import gymnasium as gym
+        from gymnasium import spaces
         from mathy_envs.gym import MathyGymEnv
 
-        self._env: MathyGymEnv = gym.make(
+        self._env = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
             invalid_action_response="terminal",
             env_problem=problem,
@@ -149,25 +155,27 @@ class FragileEnvironment:
             shape=(256, 256, 1),
             dtype=np.uint8,
         )
-        self.action_space = spaces.Discrete(self._env.action_size)
+        self.action_space = spaces.Discrete(self._env.unwrapped.action_size)
         self.problem = problem
         self.max_steps = max_steps
         self._env.reset()
 
     def get_state(self) -> np.ndarray:
-        assert self._env.state is not None, "env required to get_state"
-        return self._env.state.to_np(2048)
+        assert self.unwrapped.state is not None, "env required to get_state"
+        return self.unwrapped.state.to_np(2048)
 
     def set_state(self, state: np.ndarray):
-        assert self._env is not None, "env required to set_state"
-        self._env.state = MathyEnvState.from_np(state)
+        assert self.unwrapped is not None, "env required to set_state"
+        self.unwrapped.state = MathyEnvState.from_np(state)
         return state
 
-    def step(self, action: int, state: np.ndarray = None) -> tuple:
+    def step(
+        self, action: int, state: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray, Any, bool, Dict[str, object]]:
         assert self._env is not None, "env required to step"
         assert state is not None, "only works with state stepping"
         self.set_state(state)
-        obs, reward, _, info = self._env.step(action)
+        obs, reward, _, _, info = self._env.step(action)
         oob = not info.get("valid", False)
         new_state = self.get_state()
         return new_state, obs, reward, oob, info
@@ -191,7 +199,7 @@ class FragileEnvironment:
 
     def reset(self, batch_size: int = 1):
         assert self._env is not None, "env required to reset"
-        obs = self._env.reset()
+        obs, info = self._env.reset()
         return self.get_state(), obs
 
 
@@ -246,7 +254,7 @@ def swarm_solve(
             max_steps=current_max_moves,
         )
 
-    mathy_env: MathyEnv = env_callable()._env._env.mathy
+    mathy_env: MathyEnv = env_callable()._env.unwrapped.mathy
     swarm: Swarm = mathy_swarm(config, env_callable)
     while True:
         if not silent:

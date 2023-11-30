@@ -9,7 +9,7 @@ random_state = numpy.random.RandomState(seed=RANDOM_SEED)
 
 hash_type = "<U64"
 float_type = numpy.float32
-Scalar = Union[int, numpy.int, float, numpy.float]
+Scalar = Union[int, int, float, float]
 StateDict = Dict[str, Dict[str, Any]]
 DistanceFunction = Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
 

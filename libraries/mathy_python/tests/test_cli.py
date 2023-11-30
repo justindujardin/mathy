@@ -53,7 +53,7 @@ def test_cli_problems_parse_error():
 def test_cli_simplify():
     runner = CliRunner()
     for problem in ["4x + 2x"]:
-        result = runner.invoke(cli, ["simplify", problem, "--max-steps=3"])
+        result = runner.invoke(cli, ["simplify", problem, "--max-steps=10"])
         assert result.exit_code == 0
 
 

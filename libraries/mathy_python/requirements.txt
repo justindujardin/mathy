@@ -4,10 +4,15 @@ colr
 srsly
 typer<0.7.0,>=0.6.1
 wasabi
-mathy_core>=0.8.6,<0.9.0
-mathy_envs[gym]>=0.11.4,<0.12.0
+mathy_core>=0.9.1,<0.10.0
+mathy_envs[gym]>=0.12.0,<0.13.0
 gymnasium
 tqdm>=4.43.0
 # new python feature backports
 dataclasses>=0.6,<1.0; python_version < "3.7"
 typing_extensions>=3.7.4.1,<4.0.0.0; python_version < "3.7"
+
+# Fragile
+xxhash
+networkx
+numba
