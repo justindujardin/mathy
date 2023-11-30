@@ -1,24 +1,28 @@
 """Use Fractal Monte Carlo search in order to solve mathy problems without a
 trained neural network."""
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
-from fragile.core.env import DiscreteEnv
-from fragile.core.models import DiscreteModel
-from fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from fragile.core.swarm import Swarm
-from fragile.core.tree import HistoryTree
-from fragile.distributed.env import ParallelEnv
 from mathy_core import MathTypeKeysMax
 from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
-from pydantic import BaseModel
+from mathy_envs.gym import MathyGymEnv
 from wasabi import msg
 
+from .fragile.core.env import DiscreteEnv
+from .fragile.core.models import DiscreteModel
+from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
+from .fragile.core.swarm import Swarm
+from .fragile.core.distributed_env import ParallelEnv
 
-class SwarmConfig(BaseModel):
+
+@dataclass
+class SwarmConfig:
     use_mp: bool = True
     history: bool = False
-    history_names: List[str] = ["states", "actions", "rewards"]
+    history_names: List[str] = field(
+        default_factory=lambda: ["states", "actions", "rewards"]
+    )
     single_problem: bool = False
     verbose: bool = False
     n_walkers: int = 512
@@ -40,7 +44,7 @@ class DiscreteMasked(DiscreteModel):
     ) -> StatesModel:
         def random_choice_prob_index(a, axis=1):
             """Select random actions with probabilities across a batch.
-            
+
             Source: https://stackoverflow.com/a/47722393/287335"""
             r = np.expand_dims(self.random_state.rand(a.shape[1 - axis]), axis=axis)
             return (a.cumsum(axis=axis) > r).argmax(axis=axis)
@@ -54,7 +58,10 @@ class DiscreteMasked(DiscreteModel):
         else:
             actions = self.random_state.randint(0, self.n_actions, size=batch_size)
         return self.update_states_with_critic(
-            actions=actions, model_states=model_states, batch_size=batch_size, **kwargs,
+            actions=actions,
+            model_states=model_states,
+            batch_size=batch_size,
+            **kwargs,
         )
 
 
@@ -117,6 +124,10 @@ class FragileEnvironment:
 
     problem: Optional[str]
 
+    @property
+    def unwrapped(self) -> MathyGymEnv:
+        return cast(MathyGymEnv, self._env.unwrapped)
+
     def __init__(
         self,
         name: str,
@@ -126,11 +137,11 @@ class FragileEnvironment:
         max_steps: int = 64,
         **kwargs,
     ):
-        import gym
-        from gym import spaces
+        import gymnasium as gym
+        from gymnasium import spaces
         from mathy_envs.gym import MathyGymEnv
 
-        self._env: MathyGymEnv = gym.make(
+        self._env = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
             invalid_action_response="terminal",
             env_problem=problem,
@@ -138,33 +149,41 @@ class FragileEnvironment:
             **kwargs,
         )
         self.observation_space = spaces.Box(
-            low=0, high=MathTypeKeysMax, shape=(256, 256, 1), dtype=np.uint8,
+            low=0,
+            high=MathTypeKeysMax,
+            shape=(256, 256, 1),
+            dtype=np.uint8,
         )
-        self.action_space = spaces.Discrete(self._env.action_size)
+        self.action_space = spaces.Discrete(self._env.unwrapped.action_size)
         self.problem = problem
         self.max_steps = max_steps
         self._env.reset()
 
     def get_state(self) -> np.ndarray:
-        assert self._env.state is not None, "env required to get_state"
-        return self._env.state.to_np(2048)
+        assert self.unwrapped.state is not None, "env required to get_state"
+        return self.unwrapped.state.to_np(2048)
 
     def set_state(self, state: np.ndarray):
-        assert self._env is not None, "env required to set_state"
-        self._env.state = MathyEnvState.from_np(state)
+        assert self.unwrapped is not None, "env required to set_state"
+        self.unwrapped.state = MathyEnvState.from_np(state)
         return state
 
-    def step(self, action: int, state: np.ndarray = None) -> tuple:
+    def step(
+        self, action: int, state: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray, Any, bool, Dict[str, object]]:
         assert self._env is not None, "env required to step"
         assert state is not None, "only works with state stepping"
         self.set_state(state)
-        obs, reward, _, info = self._env.step(action)
+        obs, reward, _, _, info = self._env.step(action)
         oob = not info.get("valid", False)
         new_state = self.get_state()
         return new_state, obs, reward, oob, info
 
     def step_batch(
-        self, actions, states:Optional[Any]=None, n_repeat_action: Optional[Union[int, np.ndarray]] = None
+        self,
+        actions,
+        states: Optional[Any] = None,
+        n_repeat_action: Optional[Union[int, np.ndarray]] = None,
     ) -> tuple:
         data = [self.step(action, state) for action, state in zip(actions, states)]
         new_states, observs, rewards, terminals, infos = [], [], [], [], []
@@ -179,7 +198,7 @@ class FragileEnvironment:
 
     def reset(self, batch_size: int = 1):
         assert self._env is not None, "env required to reset"
-        obs = self._env.reset()
+        obs, info = self._env.reset()
         return self.get_state(), obs
 
 
@@ -190,13 +209,9 @@ def mathy_swarm(config: SwarmConfig, env_callable=None) -> Swarm:
         )
     if config.use_mp:
         env_callable = ParallelEnv(env_callable=env_callable)
-    tree_callable = None
-    if config.history:
-        tree_callable = lambda: HistoryTree(prune=True, names=config.history_names)
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,
-        tree=tree_callable,
         reward_limit=EnvRewards.WIN,
         n_walkers=config.n_walkers,
         max_epochs=config.max_iters,
@@ -234,7 +249,7 @@ def swarm_solve(
             max_steps=current_max_moves,
         )
 
-    mathy_env: MathyEnv = env_callable()._env._env.mathy
+    mathy_env: MathyEnv = env_callable()._env.unwrapped.mathy
     swarm: Swarm = mathy_swarm(config, env_callable)
     while True:
         if not silent:

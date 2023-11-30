@@ -1,8 +1,8 @@
 #!pip install gym
-import gym
+import gymnasium as gym
 from mathy_envs.gym import MathyGymEnv
 
-all_envs = gym.envs.registration.registry.all()  # type:ignore
+all_envs = gym.registry.values()
 # Filter to just mathy registered envs
 mathy_envs = [e for e in all_envs if e.id.startswith("mathy-")]
 
