@@ -7,8 +7,7 @@ typer<0.7.0,>=0.6.1
 wasabi
 mathy_core>=0.8.6,<0.9.0
 mathy_envs[gym]>=0.11.4,<0.12.0
-gym<0.21.0
-fragile==0.0.47
+gymnasium
 tqdm>=4.43.0
 # new python feature backports
 dataclasses>=0.6,<1.0; python_version < "3.7"
