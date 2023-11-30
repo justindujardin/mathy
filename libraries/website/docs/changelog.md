@@ -1,3 +1,10 @@
+## [0.9.6](https://github.com/justindujardin/mathy/compare/v0.9.5...v0.9.6) (2023-11-30)
+
+
+### Features
+
+* **package:** fewer dependencies with fewer version pins ([#95](https://github.com/justindujardin/mathy/issues/95)) ([699d40e](https://github.com/justindujardin/mathy/commit/699d40e241ffb7b14cdef04fb54719229e772f78))
+
 ## [0.9.5](https://github.com/justindujardin/mathy/compare/v0.9.4...v0.9.5) (2022-10-10)
 
 
