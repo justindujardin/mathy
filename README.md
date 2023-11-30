@@ -2,7 +2,7 @@
   <a href="https://mathy.ai"><img mathy-logo src="https://mathy.ai/img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
 <p align="center">
-    <em>Solve math problems with machine learning and planning algorithms.</em>
+    <em>Solve math problems step-by-step with machine learning and planning algorithms.</em>
 </p>
 <p align="center">
 <a href="https://github.com/justindujardin/mathy/actions">
