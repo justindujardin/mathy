@@ -43,9 +43,10 @@ class _ExternalProcess:
     TARGET = "make_transitions"
 
     def __init__(self, constructor):
-
         self._conn, conn = multiprocessing.Pipe()
-        self._process = multiprocessing.Process(target=self._worker, args=(constructor, conn))
+        self._process = multiprocessing.Process(
+            target=self._worker, args=(constructor, conn)
+        )
         atexit.register(self.close)
         self._process.start()
         self._states_shape = None
@@ -250,9 +251,13 @@ class _BatchEnv:
             if hasattr(env, "close"):
                 env.close()
 
-    def reset(self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs) -> StatesEnv:
+    def reset(
+        self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs
+    ) -> StatesEnv:
         results = [
-            env.reset(self._blocking, batch_size=batch_size, env_states=env_states, **kwargs)
+            env.reset(
+                self._blocking, batch_size=batch_size, env_states=env_states, **kwargs
+            )
             for env in self._envs
         ]
         states = [result if self._blocking else result() for result in results]
@@ -346,7 +351,10 @@ class ParallelEnv(EnvWrapper):
     """
 
     def __init__(
-        self, env_callable: Callable[..., CoreEnv], n_workers: int = 8, blocking: bool = False
+        self,
+        env_callable: Callable[..., CoreEnv],
+        n_workers: int = 8,
+        blocking: bool = False,
     ):
         """
         Initialize a :class:`ParallelEnv`.
@@ -399,13 +407,17 @@ class ParallelEnv(EnvWrapper):
         self, model_states: StatesModel, env_states: StatesEnv
     ) -> Union[Dict[str, numpy.ndarray], Tuple[numpy.ndarray, ...]]:
         """Use the wrapped environment to get the data with no parallelization."""
-        return self._local_env.states_to_data(model_states=model_states, env_states=env_states)
+        return self._local_env.states_to_data(
+            model_states=model_states, env_states=env_states
+        )
 
     def states_from_data(self, batch_size: int, *args, **kwargs) -> StatesEnv:
         """Use the wrapped environment to create the states with no parallelization."""
         return self._local_env.states_from_data(batch_size=batch_size, *args, **kwargs)
 
-    def reset(self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs) -> StatesEnv:
+    def reset(
+        self, batch_size: int = 1, env_states: StatesEnv = None, **kwargs
+    ) -> StatesEnv:
         """
         Reset the environment and return :class:`StatesEnv` class with batch_size copies \
         of the initial state.
@@ -422,143 +434,6 @@ class ParallelEnv(EnvWrapper):
 
         """
         self._local_env.reset(batch_size=batch_size, env_states=env_states, **kwargs)
-        return self.parallel_env.reset(batch_size=batch_size, env_states=env_states, **kwargs)
-
-
-class RayEnv(EnvWrapper):
-    """Step an :class:`Environment` in parallel using ``ray``."""
-
-    def __init__(
-        self, env_callable: Callable[[dict], CoreEnv], n_workers: int, env_kwargs: dict = None,
-    ):
-        """
-        Initialize a :class:`RayEnv`.
-
-        Args:
-            env_callable: Returns the :class:`Environment` that will be distributed.
-            n_workers: Number of processes that will step the \
-                       :class:`Environment` in parallel.
-            env_kwargs: Passed to ``env_callable``.
-
-        """
-        from ..distributed.ray.env import Environment as RemoteEnvironment
-
-        env_kwargs = {} if env_kwargs is None else env_kwargs
-        self.n_workers = n_workers
-        self.envs: List[RemoteEnvironment] = [
-            RemoteEnvironment.remote(env_callable=env_callable, env_kwargs=env_kwargs)
-            for _ in range(n_workers)
-        ]
-        super(RayEnv, self).__init__(env_callable(), name="_local_env")
-
-    def step(self, model_states: StatesModel, env_states: StatesEnv) -> StatesEnv:
-        """
-        Set the environment to the target states by applying the specified \
-        actions an arbitrary number of time steps.
-
-        The state transitions will be calculated in parallel.
-
-        Args:
-            model_states: :class:`StatesModel` representing the data to be used \
-                         to act on the environment.
-            env_states: :class:`StatesEnv` representing the data to be set in \
-                        the environment.
-
-        Returns:
-            :class:`StatesEnv` containing the information that describes the \
-            new state of the Environment.
-
-        """
-        transition_data = self._local_env.states_to_data(
-            model_states=model_states, env_states=env_states
+        return self.parallel_env.reset(
+            batch_size=batch_size, env_states=env_states, **kwargs
         )
-        if not isinstance(transition_data, (dict, tuple)):
-            raise ValueError(
-                "The returned values from states_to_data need to "
-                "be an instance of dict or tuple. "
-                "Got %s instead" % type(transition_data)
-            )
-        new_data = (
-            self.make_transitions(*transition_data)
-            if isinstance(transition_data, tuple)
-            else self.make_transitions(**transition_data)
-        )
-        new_env_state = self._local_env.states_from_data(len(env_states), **new_data)
-        return new_env_state
-
-    def make_transitions(self, *args, **kwargs):
-        """
-        Forward the make_transitions arguments to the parallel environments \
-        splitting them in batches of similar size.
-        """
-        chunk_data = self._split_inputs_in_chunks(*args, **kwargs)
-        split_results = self._make_transitions(chunk_data)
-        merged = self._merge_data(split_results)
-        return merged
-
-    @staticmethod
-    def _merge_data(data_dicts: List[Dict[str, numpy.ndarray]]):
-        def group_data(vals):
-            try:
-                return (
-                    numpy.vstack(vals)
-                    if len(vals[0].shape) > 1
-                    else numpy.concatenate(vals).flatten()
-                )
-            except Exception:
-                raise ValueError("MIAU: %s %s" % (len(vals), vals[0].shape))
-
-        kwargs = {}
-        for k in data_dicts[0].keys():
-            grouped = group_data([ddict[k] for ddict in data_dicts])
-            kwargs[k] = grouped
-        return kwargs
-
-    def _split_inputs_in_chunks(self, *args, **kwargs):
-        self.kwargs_mode = len(args) == 0
-        if self.kwargs_mode:
-
-            return split_kwargs_in_chunks(kwargs, len(self.envs))
-        else:
-            return split_args_in_chunks(args, len(self.envs))
-
-    def _make_transitions(self, split_results):
-        from ..distributed.ray import ray
-
-        results = [
-            env.make_transitions.remote(**chunk)
-            if self.kwargs_mode
-            else env.make_transitions.remote(*chunk)
-            for env, chunk in zip(self.envs, split_results)
-        ]
-        data_dicts = ray.get(results)
-        return data_dicts
-
-    def reset(
-        self, batch_size: int = 1, env_states: StatesEnv = None, *args, **kwargs
-    ) -> StatesEnv:
-        """
-        Reset the environment to the start of a new episode and returns a new \
-        States instance describing the state of the Environment.
-
-        Args:
-            batch_size: Number of walkers that the returned state will have.
-            env_states: :class:`StatesEnv` representing the data to be set in \
-                        the environment.
-            *args: Passed to the internal environment ``reset``.
-            **kwargs: Passed to the internal environment ``reset``.
-
-        Returns:
-            States instance describing the state of the Environment. The first \
-            dimension of the data tensors (number of walkers) will be equal to \
-            batch_size.
-
-        """
-        from ..distributed.ray import ray
-
-        reset = [
-            env.reset.remote(batch_size=batch_size, env_states=env_states, *args, **kwargs)
-            for env in self.envs
-        ]
-        ray.get(reset)
-        return self._local_env.reset(batch_size=batch_size, env_states=env_states, *args, **kwargs)

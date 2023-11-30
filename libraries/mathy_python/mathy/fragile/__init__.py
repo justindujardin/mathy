@@ -33,7 +33,6 @@ warnings.filterwarnings(
 )
 warnings.filterwarnings("ignore", message="Gdk.Cursor.new is deprecated")
 
-from .core import slogging  # noqa: E402
 from .core.states import States  # noqa: E402
 from .core.walkers import Walkers  # noqa: E402
 from .version import __version__  # noqa: E402

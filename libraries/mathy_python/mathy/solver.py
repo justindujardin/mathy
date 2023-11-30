@@ -14,7 +14,7 @@ from .fragile.core.models import DiscreteModel
 from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
 from .fragile.core.swarm import Swarm
 from .fragile.core.tree import HistoryTree
-from .fragile.distributed.env import ParallelEnv
+from .fragile.core.distributed_env import ParallelEnv
 
 
 @dataclass
