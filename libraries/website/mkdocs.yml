@@ -1,6 +1,7 @@
 # Project information
 site_name: Mathy
-site_description: A modern computer algebra system and reinforcement learning environments for solving problems step-by-step.
+site_description: A modern computer algebra system and reinforcement learning environments
+  for solving problems step-by-step.
 site_author: Justin DuJardin
 site_url: https://mathy.ai
 
