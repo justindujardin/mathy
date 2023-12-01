@@ -45,7 +45,7 @@
 ## Features
 
 - **[Computer Algebra System](/cas/overview)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
-- **[Learning Environments](/envs/overview)** Use built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win-conditions.
+- **[Learning Environments](/envs/overview)** Use built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win conditions.
 - **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
 - **[Free and Open Source](/license)**: Mathy is free because educational tools are important and should be accessible to everyone.
 - **[Python with Type Hints](https://fastapi.tiangolo.com/python-types/){target=\_blank}**: typing hints are used everywhere in Mathy to help provide rich autocompletion and linting in modern IDEs.
@@ -70,9 +70,9 @@ Let's start by simplifying a polynomial problem using the CLI:
 $ mathy simplify "2x + 4 + 3x * 6"
 ```
 
-Mathy uses a swam planning algorithm to determine which intermediate steps to take to get to the desired solution.
+Mathy uses a swam planning algorithm to determine which intermediate steps to take to achieve the desired solution.
 
-The output will vary based, but it might look like this:
+The output will vary, but it might look like this:
 
 <div align="center" data-termynal-container>
     <div id="termynal-two" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
@@ -91,7 +91,7 @@ The output will vary based, but it might look like this:
 
 ### Generate Input Problems
 
-Mathy can generate lists of randomized problems. Rather than forcing users to create solutions, Mathy uses environment-specific functions to determine when a problem is solved. In this way, users don't need to know the answer to a question that they generate.
+Mathy can generate lists of randomized problems. Rather than forcing users to create solutions, Mathy uses environment-specific functions to determine when a problem is solved. In this way, users don't need to know the answer to a question they generate.
 
 ```bash
 $ mathy problems poly
@@ -117,4 +117,4 @@ Mathy wouldn't be possible without the contributions of the following people:
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 </div>
 
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!

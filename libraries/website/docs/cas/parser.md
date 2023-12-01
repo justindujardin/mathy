@@ -2,7 +2,7 @@ Mathy parses [token arrays](/cas/tokenizer) into inspectable, transformable, vis
 
 ## Motivation
 
-A Token array verifies that text maps to some known set of symbols, but not that they are a correct ordering that produces a valid mathematical expression. The mathy Parser class converts tokens into a tree while also validating that the tree follows the expected Order of Operations.
+A Token array verifies that text maps to some known symbols, not that they are a correct ordering that produces a valid mathematical expression. The mathy Parser class converts tokens into a tree while also validating that the tree follows the expected Order of Operations.
 
 ## Examples
 

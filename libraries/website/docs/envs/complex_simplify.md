@@ -1,8 +1,8 @@
-Core to working with algebra problems is the ability to `simplify complex terms`, and Mathy provides an environment that generates problems with complex terms that require simplification to satisfy the win-conditions.
+Core to working with algebra problems is the ability to simplify complex terms. Mathy provides an environment that generates problems with complex terms that require simplification to satisfy the win conditions.
 
 ## Challenge
 
-In Complex Simplify the agent must learn to quickly combine coefficients and like variables inside a single complex term
+In Complex Simplify, the agent must learn to quickly combine coefficients and like variables inside a single complex term.
 
 Examples
 
@@ -11,11 +11,11 @@ Examples
 
 ## Win Conditions
 
-A problem is considered solved when there are no remaining complex terms in the expression.
+A problem is considered solved when no remaining complex terms exist in the expression.
 
 ### No Complex Terms
 
-Terms are considered complex when there's a more concise way they could be expressed.
+Terms are considered complex when there's a more concise way to express them.
 
 Examples
 

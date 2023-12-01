@@ -1,46 +1,18 @@
-Mathy was born out of a desire to have a free tool for working through algebra problems. Quite a bit of research has informed the design of Mathy's computer algebra system, tree rendering, and learning environments.
+Mathy was born out of a desire to have a free tool for working through algebra problems. Much research has informed the design of Mathy's computer algebra system, tree rendering, and learning environments.
 
 ## Research
 
 ### [Tidier Trees](https://reingold.co/tidier-drawings.pdf){target=\_blank}
 
-The work done by **Reingold and Tilford** provides a relatively simple way to approach a difficult problem: how do you render arbitrarily large trees in a beautiful way? They provide an algorithm that does just that, enforcing several aesthetic rules on the trees it outputs. Mathy implements the algorithm to measure its trees for layout.
+The work done by **Reingold and Tilford** provides a relatively simple way to approach a complex problem: how do you beautifully render arbitrarily large trees? They provide an algorithm that does just that, enforcing several aesthetic rules on the trees it outputs. Mathy implements the algorithm to measure its trees for layout.
 
 ## Open Source
 
-Mathy's scope is broad, and there are a few critical contributions from Open Source Software that deserve special recognition.
-
-### [FastAPI](https://fastapi.tiangolo.com/){target=\_blank}
-
-FastAPI has a magnificent documentation site, and Mathy uses its template to structure its own site. A key insight from FastAPI that has made this site possible is the inclusion of code snippets from the website as tests that are run automatically. This makes maintaining tens or hundreds of code examples as easy as maintaining tests from a test suite.
-
-??? note "MIT License"
-
-    The MIT License (MIT)
-
-    Copyright (c) 2018 Sebastián Ramírez
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
+Mathy's scope is broad, and a few critical contributions from Open Source Software deserve special recognition.
 
 ### [Fragile](https://github.com/FragileTech/fragile){target=\_blank}
 
-Fragile implements a swarm planning algorithm that Mathy uses to solve problems without a trained model. It can solve most of the built-in Mathy environments on a desktop computer without a GPU.
+Fragile implements a swarm planning algorithm Mathy uses to solve problems without a trained model. It can solve most built-in Mathy environments on a desktop computer without a GPU.
 
 ??? note "MIT License"
 

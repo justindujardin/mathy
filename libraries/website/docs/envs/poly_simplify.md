@@ -1,4 +1,4 @@
-Core to working with algebra problems is the ability to `combine like terms` in polynomials. Mathy provides an environment that generates problems that require simplification to satisfy the win-conditions.
+Core to working with algebra problems is the ability to combine like terms in polynomials. Mathy provides an environment that generates problems that require simplification to satisfy the win conditions.
 
 ## Challenge
 
@@ -36,7 +36,7 @@ Examples
 
 ## Example Episode
 
-A trained agent learns to combine multiple low-level actions into higher-level ones that `combine like terms`
+A trained agent learns to combine multiple low-level actions into higher-level ones that combine like terms.
 
 ### Input
 

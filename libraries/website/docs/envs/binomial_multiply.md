@@ -1,8 +1,8 @@
-A set of binomials are multiplied together and must to be simplified to satisfy the win-conditions.
+A set of binomials is multiplied and must be simplified to satisfy the win conditions.
 
 ## Challenge
 
-In Binomial Multiply the agent must learn to quickly distribute the binomial multiplications and factor out common terms to leave a simplified representation.
+In binomial multiplication, the agent must learn to distribute the binomial multiplications quickly and factor out the common terms to leave a simplified representation.
 
 Examples
 
@@ -14,11 +14,11 @@ Examples
 
 ## Win Conditions
 
-A problem is considered solved when there are no remaining complex terms in the expression.
+A problem is considered solved when no remaining complex terms exist in the expression.
 
 ### No Complex Terms
 
-Terms are considered complex when there's a more concise way they could be expressed.
+Terms are considered complex when there's a more concise way to express them.
 
 Examples
 

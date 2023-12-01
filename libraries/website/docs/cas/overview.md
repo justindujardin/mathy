@@ -7,7 +7,7 @@ Mathy includes what's called a Computer Algebra System (or CAS). Its job is to t
 
 ### Arithmetic
 
-To get a sense of how Mathy's CAS components work, let's add some numbers together and assert that the result is what we think it should be.
+To understand how Mathy's CAS components work, let's add some numbers and assert that the result is what we think it should be.
 
 ```Python
 {!./snippets/cas/overview/evaluate_expression.py!}
@@ -25,7 +25,7 @@ When an expression has variables in it, you can evaluate it by providing the "co
 
 ### Tree Transformations
 
-Mathy can also transform the parsed Expression trees using a set of rules that change the tree structure without altering the value it outputs when you call `evaluate()`.
+Mathy can also transform the parsed Expression trees using rules that change the tree structure without altering the value it outputs when you call `evaluate()`.
 
 ```python
 

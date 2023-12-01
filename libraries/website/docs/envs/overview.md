@@ -19,9 +19,9 @@ Because algebra problems represent only a tiny sliver of the uses for math expre
 
 #### New Problems
 
-Generating a new problem type while subclassing a base environment is probably the simplest way to create a custom challenge for the agent.
+Generating a new problem type while subclassing a base environment is the simplest way to create a custom challenge for the agent.
 
-You can inherit from a base environment like [Poly Simplify](/envs/poly_simplify), which has win-conditions that require all the like-terms to be gone from an expression, and all complex terms be simplified. From there, you can provide any valid input expression:
+You can inherit from a base environment like [Poly Simplify](/envs/poly_simplify), which has win-conditions that require all the like-terms to be gone from an expression and all complex terms to be simplified. From there, you can provide any valid input expression:
 
 ```Python
 {!./snippets/envs/custom_problem_text.py!}
@@ -61,11 +61,11 @@ Specify (or calculate) custom floating-point episode rewards:
 
 ### Other Libraries
 
-Mathy has support for alternative Reinforcement Learning libraries.
+Mathy supports alternative reinforcement learning libraries.
 
-#### OpenAI Gym
+#### Gymnasium
 
-Mathy has support [OpenAI gym](https://gym.openai.com/){target=\_blank} via a small wrapper.
+Mathy has support [Gymnasium](https://gymnasium.farama.org/){target=\_blank} via a small wrapper.
 
 You can import the `mathy_envs.gym` module separately to register the environments:
 

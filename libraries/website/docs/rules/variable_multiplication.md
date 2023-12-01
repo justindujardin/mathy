@@ -1,4 +1,4 @@
-The `Variable Multiplication` rule restates `x^b * x^d` as `x^(b + d)` which has the effect of isolating the exponents attached to the variables, so they can be combined.
+The `Variable Multiplication` rule restates `x^b * x^d` as `x^(b + d)`, which isolates the exponents attached to the variables so they can be combined.
 
 !!! note
 
@@ -20,7 +20,7 @@ Both implicit and explicit variable powers are recognized in this transformation
 
 #### Explicit powers
 
-In the simplest case both variables have explicit exponents.
+In the simplest case, both variables have explicit exponents.
 
 Examples: `x^b * x^d = x^(b+d)`
 
