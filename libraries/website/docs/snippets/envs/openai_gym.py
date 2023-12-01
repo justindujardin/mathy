@@ -1,4 +1,4 @@
-#!pip install gym
+#!pip install gymnasium
 import gymnasium as gym
 from mathy_envs.gym import MathyGymEnv
 

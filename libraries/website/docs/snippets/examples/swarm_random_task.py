@@ -1,4 +1,4 @@
-#!pip install gym
+#!pip install gymnasium
 
 import random
 
