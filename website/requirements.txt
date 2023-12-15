@@ -9,9 +9,10 @@ pydot
 pydotplus
 # Docs 
 mkdocs
-# Until the build error is fixed: https://github.com/squidfunk/mkdocs-material/issues/1469
-mkdocs-material>=5.0.0,<6.0.0
-mkdocs-git-revision-date-localized-plugin>=0.5.0,<0.6.0
+mkdocs-material>=9.5.2,<10.0.0
+mkdocs-git-revision-date-localized-plugin>=1.2.1,<2.0.0
+mkdocs-material[imaging]
+mkdocs-git-committers-plugin-2
 markdown-include
 mkdocs-minify-plugin
 ruamel.yaml
