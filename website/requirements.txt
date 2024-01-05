@@ -18,9 +18,8 @@ mkdocs-minify-plugin
 ruamel.yaml
 # for converting snippets to ipynb notebooks
 nbformat
-gym
+gymnasium
 mathy_pydoc>=0.7.18
 
 # The snippets/tests need mathy. Install as a development package (-e)
--e ../mathy_python/[all]
--e ../mathy_mkdocs/
+-e ../[all]

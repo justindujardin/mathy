@@ -6,10 +6,10 @@ from typing import Callable, Dict, List, Tuple, Union
 
 import numpy
 
-from ..core.env import Environment as CoreEnv
-from ..core.states import StatesEnv, StatesModel
-from ..core.utils import split_args_in_chunks, split_kwargs_in_chunks
-from ..core.wrappers import BaseWrapper, EnvWrapper
+from .env import Environment as CoreEnv
+from .states import StatesEnv, StatesModel
+from .utils import split_args_in_chunks, split_kwargs_in_chunks
+from .wrappers import BaseWrapper, EnvWrapper
 
 
 class _ExternalProcess:

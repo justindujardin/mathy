@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import gymnasium
 
 import pytest
 from click.testing import CliRunner
@@ -42,10 +43,12 @@ def test_cli_problems():
 
 def test_cli_problems_parse_error():
     safe_register(
-        id="mathy-invalid-easy-v0", entry_point="tests.test_cli:InvalidProblemGymEnv",
+        id="mathy-invalid-easy-v0",
+        entry_point="tests.test_cli:InvalidProblemGymEnv",
     )
     runner = CliRunner()
     result = runner.invoke(cli, ["problems", "invalid", "--number=100"])
+    del gymnasium.registry["mathy-invalid-easy-v0"]
     print(result.stdout)
     assert result.exit_code == 0
 

@@ -33,6 +33,19 @@ warnings.filterwarnings(
 )
 warnings.filterwarnings("ignore", message="Gdk.Cursor.new is deprecated")
 
-from .core.states import States  # noqa: E402
-from .core.walkers import Walkers  # noqa: E402
+
+from .base_classes import BaseCritic, BaseWrapper
+from .bounds import Bounds
+from .env import DiscreteEnv, Environment
+from .models import (
+    BinarySwap,
+    ContinuousUniform,
+    DiscreteUniform,
+    Model,
+    NormalContinuous,
+)
+from .states import OneWalker, States, StatesEnv, StatesModel, StatesWalkers
+from .swarm import Swarm
+from .walkers import Walkers
+from .wrappers import EnvWrapper
 from .version import __version__  # noqa: E402

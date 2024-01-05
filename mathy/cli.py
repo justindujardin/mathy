@@ -5,7 +5,9 @@ Command line application for interacting with Mathy agents and environments.
 """
 
 import os
+
 import click
+from mathy_core import ParserException
 from wasabi import msg
 
 
@@ -32,7 +34,7 @@ def cli_contribute():
 @click.option(
     "single_process",
     "--single-process",
-    default=os.name == "nt", # fragile swarm mp is unreliable on windows
+    default=os.name == "nt",  # fragile swarm mp is unreliable on windows
     is_flag=True,
     help="Use single-process execution with the swarm solver",
 )
@@ -77,7 +79,7 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
 
     This is useful if you when developing new environment types for
     verifying that the problems you're generating take the form you
-    expect. """
+    expect."""
     import gymnasium as gym
     from mathy_envs.gym import MathyGymEnv
 
@@ -98,9 +100,15 @@ def cli_print_problems(environment: str, difficulty: str, number: int):
             try:
                 env.mathy.parser.parse(problem.text)
                 valid = True
-            except BaseException as error:
+            except ParserException as error:
                 text = f"parse failed for '{problem.text}' with error: {error}"
-            data.append((problem.complexity, "✔" if valid else "✘", text,))
+            data.append(
+                (
+                    problem.complexity,
+                    "✔" if valid else "✘",
+                    text,
+                )
+            )
     msg.good(f"\nGenerated {number} problems!")
 
     print(msg.table(data, header=header, divider=True, widths=widths, aligns=aligns))

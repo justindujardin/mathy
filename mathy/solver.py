@@ -9,11 +9,11 @@ from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
 from mathy_envs.gym import MathyGymEnv
 from wasabi import msg
 
-from .fragile.core.env import DiscreteEnv
-from .fragile.core.models import DiscreteModel
-from .fragile.core.states import StatesEnv, StatesModel, StatesWalkers
-from .fragile.core.swarm import Swarm
-from .fragile.core.distributed_env import ParallelEnv
+from .fragile.env import DiscreteEnv
+from .fragile.models import DiscreteModel
+from .fragile.states import StatesEnv, StatesModel, StatesWalkers
+from .fragile.swarm import Swarm
+from .fragile.distributed_env import ParallelEnv
 
 
 @dataclass

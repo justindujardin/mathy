@@ -11,6 +11,7 @@ assert len(mathy_envs) > 0
 # Each env can be created and produce an initial observation without
 # special configuration.
 for gym_env_spec in mathy_envs:
+    print(f"Creating env {gym_env_spec.id}")
     wrapper_env: MathyGymEnv = gym.make(gym_env_spec.id)  # type:ignore
     assert wrapper_env is not None
     observation = wrapper_env.reset()

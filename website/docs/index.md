@@ -1,3 +1,5 @@
+# mathy
+
 <p align="center">
   <a href="/"><img mathy-logo src="/img/mathy_logo.png" alt="Mathy.ai"></a>
 </p>
@@ -36,17 +38,11 @@
 
 ---
 
-**Documentation**: <a href="https://mathy.ai" target="_blank">https://mathy.ai</a>
-
-**Source Code**: <a href="https://github.com/justindujardin/mathy" target="_blank">https://github.com/justindujardin/mathy</a>
-
----
-
 ## Features
 
-- **[Computer Algebra System](/cas/overview)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
-- **[Learning Environments](/envs/overview)** Use built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win conditions.
-- **[Visualize Expressions](/api/core/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
+- **[Computer Algebra System](https://core.mathy.ai)**: Parse text into expression trees for manipulation and evaluation. Transform trees with user-defined rules that do not change the value of the expression.
+- **[Learning Environments](https://envs.mathy.ai)** Use built-in environments or author your own. Provide custom logic and values for custom actions, problems, timestep rewards, episode rewards, and win conditions.
+- **[Visualize Expressions](https://core.mathy.ai/api/layout)**: Gain a deeper understanding of problem structures and rule transformations by visualizing binary trees in a compact layout with no branch overlaps.
 - **[Free and Open Source](/license)**: Mathy is free because educational tools are important and should be accessible to everyone.
 - **[Python with Type Hints](https://fastapi.tiangolo.com/python-types/){target=\_blank}**: typing hints are used everywhere in Mathy to help provide rich autocompletion and linting in modern IDEs.
 

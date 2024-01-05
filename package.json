@@ -81,15 +81,15 @@
       [
         "@semantic-release/changelog",
         {
-          "changelogFile": "libraries/website/docs/changelog.md"
+          "changelogFile": "website/docs/changelog.md"
         }
       ],
       [
         "@semantic-release/git",
         {
           "assets": [
-            "libraries/website/docs/changelog.md",
-            "libraries/mathy_python/mathy/about.py",
+            "website/docs/changelog.md",
+            "mathy/about.py",
             "package.json"
           ],
           "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"

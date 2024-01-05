@@ -1,7 +1,7 @@
 # Project information
 site_name: Mathy
-site_description: A modern computer algebra system and reinforcement learning environments
-  for solving problems step-by-step.
+site_description: Tools for solving math problems step-by-step with planning and learning
+  algorithms.
 site_author: Justin DuJardin
 site_url: https://mathy.ai
 
@@ -10,41 +10,27 @@ copyright: Copyright &copy; 2011 - 2023 Justin DuJardin
 
 repo_name: justindujardin/mathy
 repo_url: https://github.com/justindujardin/mathy
-edit_uri: edit/master/libraries/website/docs/
+edit_uri: edit/master/website/docs/
 
 google_analytics:
 - UA-8701293-12
 - auto
 
 nav:
-- Home: index.md
-- Examples:
-  # - Like Terms Reformer: examples/like_terms_reformer.md
+- Home:
+  - Mathy: index.md
   - Swarm Planning: examples/swarm.md
   - Predicting Like Terms: examples/predicting_like_terms.md
-  # - PyTorch Training : examples/pfrl_agent.md
-- Math Parser:
-  - Overview: cas/overview.md
-  - Tokenizer: cas/tokenizer.md
-  - Parser: cas/parser.md
-- Transformation Rules:
-  - Overview: rules/overview.md
-  - Associative Swap: rules/associative_property.md
-  - Commutative Swap: rules/commutative_property.md
-  - Distributive Factor Out: rules/distributive_property_factor_out.md
-  - Distributive Multiply: rules/distributive_property_multiply_across.md
-  - Variable Multiply: rules/variable_multiplication.md
-  - Constant Arithmetic: rules/constant_arithmetic.md
-- Environments:
-  - Overview: envs/overview.md
-  - Features: envs/features.md
-  - Poly Simplify: envs/poly_simplify.md
-  - Complex Simplify: envs/complex_simplify.md
-  - Binomial Multiply: envs/binomial_multiply.md
-- Contributing: contributing.md
-- About: about.md
-- Releases: changelog.md
-- License: license.md
+  # - API:
+  #   - api: api/api.md
+  #   - cli: api/cli.md
+  #   - solver: api/solver.md
+  - Contributing: contributing.md
+  - About: about.md
+  - Releases: changelog.md
+  - License: license.md
+- Core: https://core.mathy.ai
+- Environments: https://envs.mathy.ai
 
 extra:
   social:
@@ -64,10 +50,15 @@ extra_javascript:
 theme:
   name: material
   icon:
-    logo: material/school
+    logo: material/calculator-variant
   features:
   - instant
-  # - tabs
+  - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.footer
+  - content.action.edit
+  - content.action.view
+  - content.tooltips
   favicon: img/favicon/favicon-16x16.png
   palette:
     primary: deep-orange
@@ -94,6 +85,7 @@ markdown_extensions:
 plugins:
 - mathy
 - search
+- social
 - git-revision-date-localized
 - minify:
     minify_html: true

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
 
-. ../../.env/bin/activate
+. ../.env/bin/activate
 
 mkdocs serve

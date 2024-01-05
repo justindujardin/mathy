@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from .fragile.core.swarm import Swarm
+from .fragile.swarm import Swarm
 
 from .solver import SwarmConfig, swarm_solve
 
