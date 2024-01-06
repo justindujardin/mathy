@@ -10,7 +10,7 @@ echo "Running tests..."
 
 echo "Combining and reporting total mathy coverage:"
 . .env/bin/activate
-cp ./mathy/.coverage ./.coverage.mathy_python
+cp ./.coverage ./.coverage.mathy_python
 cp ./website/.coverage ./.coverage.website
 coverage combine
 coverage report
