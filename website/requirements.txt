@@ -20,6 +20,7 @@ ruamel.yaml
 nbformat
 gymnasium
 mathy_pydoc>=0.7.18
+git+https://github.com/mathy/mathy_mkdocs.git
 
 # The snippets/tests need mathy. Install as a development package (-e)
 -e ../[all]
