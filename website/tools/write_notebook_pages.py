@@ -4,7 +4,7 @@ from subprocess import check_output
 
 
 def convert_input(input_location: str):
-    check_output([".env/bin/jupyter", "nbconvert", "--to", "markdown", input_location])
+    check_output(["../.env/bin/jupyter", "nbconvert", "--to", "markdown", input_location])
 
 
 if len(sys.argv) > 1:
@@ -19,10 +19,10 @@ else:
             rel_path = rel_path[1:]
         if "__pycache__" in rel_path or ".ipynb_checkpoints" in rel_path:
             continue
-        # print(f"Found directory: {rel_path}")
+        print(f"Found directory: {rel_path}")
         for file_name in files:
             if os.path.splitext(file_name)[-1] != ".ipynb":
                 continue
-            # print(f"\t{file_name}")
+            print(f"\t{file_name}")
             from_file = os.path.join(source_path, rel_path, file_name)
             convert_input(from_file)

@@ -18,6 +18,7 @@ mkdocs-minify-plugin
 ruamel.yaml
 # for converting snippets to ipynb notebooks
 nbformat
+nbconvert
 gymnasium
 mathy_pydoc>=0.7.18
 git+https://github.com/mathy/mathy_mkdocs.git

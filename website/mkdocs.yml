@@ -19,16 +19,19 @@ google_analytics:
 nav:
 - Home:
   - Mathy: index.md
-  - Swarm Planning: examples/swarm.md
-  - Predicting Like Terms: examples/predicting_like_terms.md
+  - Examples:
+    - Polynomial Simplification: examples/heuristics.md
+    - Swarm Planning: examples/swarm.md
+    - Predicting Like Terms: examples/predicting_like_terms.md
   # - API:
   #   - api: api/api.md
   #   - cli: api/cli.md
   #   - solver: api/solver.md
-  - Contributing: contributing.md
-  - About: about.md
-  - Releases: changelog.md
-  - License: license.md
+  - Resources:
+    - Contributing: contributing.md
+    - About: about.md
+    - Releases: changelog.md
+    - License: license.md
 - Core: https://core.mathy.ai
 - Environments: https://envs.mathy.ai
 
@@ -54,8 +57,11 @@ theme:
   features:
   - instant
   - navigation.tabs
+  - navigation.expand
+  - navigation.sections
   - navigation.tabs.sticky
   - navigation.footer
+  - navigation.top
   - content.action.edit
   - content.action.view
   - content.tooltips
