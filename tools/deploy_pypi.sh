@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-. ../.env/bin/activate
+. .env/bin/activate
 git config --global user.email "justin@dujardinconsulting.com"
 git config --global user.name "justindujardin"
 echo "Build and publish to pypi..."
