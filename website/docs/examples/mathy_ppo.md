@@ -148,7 +148,7 @@ class RolloutBuffer:
 
 The Actor-Critic module in PPO is the core of the policy learning mechanism, and has two key components:
 
-- the Actor, which is responsible for choosing actions based on the current state. This replaces the action selection with heuristics we use in previous examples.
+- the Actor, which is responsible for choosing actions based on the current state.
 - the Critic, which evaluates actor actions by estimating the value of the state. This is used to help steer the actor in the direction of higher value actions.
 
 The dual structure allows for more efficient and stable learning by combining the strengths of both policy-based and value-based approaches in reinforcement learning.
