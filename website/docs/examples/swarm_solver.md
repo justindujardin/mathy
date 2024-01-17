@@ -1,6 +1,6 @@
 # Swarm Planning Solver [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/website/docs/examples/swarm_solver.ipynb)
 
-> This notebook is built using `mathy.fragile` module for swarm planning to determine which actions to take. The research and implementation come from [@Guillemdb](https://github.com/Guillemdb) and [@sergio-hcsoft](https://github.com/sergio-hcsoft). They're both amazing 🙇
+> This notebook is built using `mathy.fragile` module for swarm planning to determine which actions to take. The [research](https://arxiv.org/abs/1803.05049) and [implementation](https://github.com/FragileTech/FractalAI) come from [@Guillemdb](https://github.com/Guillemdb) and [@sergio-hcsoft](https://github.com/sergio-hcsoft). They're both amazing 🙇
 
 Sometimes training a machine learning model is inconvenient and time consuming, especially when you're working on a new problem type or set of rules. 
 
@@ -17,19 +17,18 @@ Let's look together at how we can use mathy.fragile to implement an agent that s
 
 ## Fractal Monte Carlo
 
-In this notebook, we'll explore the application of the Fractal Monte Carlo (FMC) algorithm using the `mathy.fragile` module and `mathy_envs`, to solve math problems step-by-step.
+The Fractal Monte Carlo (FMC) algorithm we use comes from `mathy.fragile` module and uses a swarm of walkers to explore your environment and find optimal paths to the solution. We'll use it with `mathy_envs`, to solve math problems step-by-step.
 
 By the time you're done with this notebook, you should have a general understanding of how FMC, through its unique path-search capabilities, interfaces with Mathy to tackle mathy's large, sparse, action spaces.
 
 
 ```python
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import numpy as np
 from mathy_core import MathTypeKeysMax
 from mathy_envs import EnvRewards, MathyEnv, MathyEnvState
 from mathy_envs.gym import MathyGymEnv
-from wasabi import msg
 
 from mathy.fragile.env import DiscreteEnv
 from mathy.fragile.models import DiscreteModel
@@ -50,7 +49,9 @@ max_iters: int = 100
 
 ### Action Selection
 
-Fragile FMC defines a "Model" for doing action selection for the walkers in the swarm. To aid in navigating the large sparse action space, we'll use the action mask included in mathy observations (by default) to select only valid actions at each swarm step.
+Fragile FMC defines a "Model" for doing action selection for the walkers in the swarm. Each walker in `n_walkers` needs to select actions, so we do it across large batches here.
+
+To aid in navigating the large sparse action space, we'll use the action mask included in mathy observations (by default) to select only valid actions at each swarm step.
 
 
 ```python
@@ -84,9 +85,9 @@ class DiscreteMasked(DiscreteModel):
 
 ### Planning Wrapper
 
-Because FMC uses a swarm of many workers, it's vastly more efficient if you can interact with them in batches. Fragile expects a plangym style interface that is similar to gym, but includes other things such as a `step_batch` function for stepping multiple walkers at the same time.
+Because FMC uses a swarm of many workers, it's vastly more efficient if you can interact with them in batches, similar to how we did above with action section. 
 
-To support batch stepping, we'll implement a wrapper environment that supports the expected plangym interface, and creates an internal mathy environment.
+To support batch environments with stepping, etc, we'll implement a wrapper environment that supports the expected plangym interface, and creates an internal mathy environment. The class will also implement the `step_batch` method for stepping a batch of environments at once.
 
 
 ```python
@@ -175,7 +176,7 @@ class PlanningEnvironment:
 
 ### FMC Environment
 
-To use the planning environment we need to create a formal Mathy environment that extends the discrete envrionment exposed by Fragile.
+To use the batch planning environment, we need to create a  Mathy environment that extends the discrete envrionment exposed by Fragile.
 
 There's not too much special here, we instantiate the planning environment for use in the base class, and implement the `make_transition` function to set terminal states according to mathy_envs "done" property.
 
@@ -307,32 +308,32 @@ swarm_solve("4x + 2y + 3j^7 + 1.9x + -8y")
     Solving 2x * x + 3j^7 + (1.9x^2 + -8y) ...
     
     initial-state(-1)         | 2x * x + 3j^7 + (1.9x^2 + -8y)
-    commutative swap(5)       | 3j^7 + 2x * x + (1.9x^2 + -8y)
-    variable multiplication(9) | 3j^7 + 2x^(1 + 1) + (1.9x^2 + -8y)
-    constant arithmetic(11)   | 3j^7 + 2x^2 + (1.9x^2 + -8y)
+    variable multiplication(3) | 2x^(1 + 1) + 3j^7 + (1.9x^2 + -8y)
+    associative group(19)     | 2x^(1 + 1) + 3j^7 + 1.9x^2 + -8y
+    constant arithmetic(5)    | 2x^2 + 3j^7 + 1.9x^2 + -8y
+    commutative swap(5)       | 3j^7 + 2x^2 + 1.9x^2 + -8y
     distributive factoring(11) | 3j^7 + (2 + 1.9) * x^2 + -8y
-    restate subtraction(13)   | 3j^7 + (2 + 1.9) * x^2 - 8y
-    constant arithmetic(7)    | 3j^7 + 3.9x^2 - 8y
-    Solved! 2x * x + 3j^7 + (1.9x^2 + -8y) = 3j^7 + 3.9x^2 - 8y
+    constant arithmetic(7)    | 3j^7 + 3.9x^2 + -8y
+    Solved! 2x * x + 3j^7 + (1.9x^2 + -8y) = 3j^7 + 3.9x^2 + -8y
     
-    Best reward: 1.3633333444595337
+    Best reward: 1.34333336353302
     
     
     Solving 4x + 2y + 3j^7 + 1.9x + -8y ...
     
     initial-state(-1)         | 4x + 2y + 3j^7 + 1.9x + -8y
-    commutative swap(7)       | 4x + 3j^7 + 2y + 1.9x + -8y
-    commutative swap(13)      | 4x + 3j^7 + 1.9x + 2y + -8y
-    distributive factoring(17) | 4x + 3j^7 + 1.9x + (2 + -8) * y
-    commutative swap(3)       | 3j^7 + 4x + 1.9x + (2 + -8) * y
-    constant arithmetic(15)   | 3j^7 + 4x + 1.9x + -6y
-    restate subtraction(13)   | 3j^7 + 4x + 1.9x - 6y
-    commutative swap(9)       | 3j^7 + 1.9x + 4x - 6y
-    distributive factoring(9) | 3j^7 + (1.9 + 4) * x - 6y
-    constant arithmetic(7)    | 3j^7 + 5.9x - 6y
-    Solved! 4x + 2y + 3j^7 + 1.9x + -8y = 3j^7 + 5.9x - 6y
+    commutative swap(13)      | 4x + 2y + 1.9x + 3j^7 + -8y
+    commutative swap(7)       | 4x + 1.9x + 2y + 3j^7 + -8y
+    associative group(7)      | 4x + 1.9x + (2y + 3j^7) + -8y
+    associative group(3)      | 4x + (1.9x + (2y + 3j^7)) + -8y
+    distributive factoring(3) | (4 + 1.9) * x + (2y + 3j^7) + -8y
+    commutative swap(15)      | (4 + 1.9) * x + -8y + (2y + 3j^7)
+    constant arithmetic(1)    | 5.9x + -8y + (2y + 3j^7)
+    distributive factoring(7) | 5.9x + (-8 + 2) * y + 3j^7
+    constant arithmetic(5)    | 5.9x + -6y + 3j^7
+    Solved! 4x + 2y + 3j^7 + 1.9x + -8y = 5.9x + -6y + 3j^7
     
-    Best reward: 1.2222222089767456
+    Best reward: 1.202222228050232
     
     
 
