@@ -2,13 +2,13 @@
 
 > This notebook is built using `mathy.fragile` module for swarm planning to determine which actions to take. The [research](https://arxiv.org/abs/1803.05049) and [implementation](https://github.com/FragileTech/FractalAI) come from [@Guillemdb](https://github.com/Guillemdb) and [@sergio-hcsoft](https://github.com/sergio-hcsoft). They're both amazing 🙇
 
-Sometimes training a machine learning model is inconvenient and time consuming, especially when you're working on a new problem type or set of rules. 
+Training a machine learning model is sometimes inconvenient and time-consuming, especially when working on a new problem type or set of rules. 
 
-So what do we do in these cases? We use mathy's built-in swarm planning algorithm, of course!
+So, what do we do in these cases? We use Mathy's built-in swarm planning algorithm, of course!
 
-When you're developing a rule or environment, you'd often like to know how well an average agent can be expected to perform on this task, without fully-training a model each time you change the code. 
+When you're developing a rule or environment, you'd often like to know how well an average agent can be expected to perform on this task without fully-training a model each time you change the code. 
 
-Let's look together at how we can use mathy.fragile to implement an agent that selects winning actions without any training, while still showing its work step-by-step. 
+Let's look together at how we can use `mathy.fragile` to implement an agent that selects winning actions without any training while still showing its work step-by-step. 
 
 
 ```python
@@ -19,7 +19,7 @@ Let's look together at how we can use mathy.fragile to implement an agent that s
 
 The Fractal Monte Carlo (FMC) algorithm we use comes from `mathy.fragile` module and uses a swarm of walkers to explore your environment and find optimal paths to the solution. We'll use it with `mathy_envs`, to solve math problems step-by-step.
 
-By the time you're done with this notebook, you should have a general understanding of how FMC, through its unique path-search capabilities, interfaces with Mathy to tackle mathy's large, sparse, action spaces.
+By the time you're done with this notebook, you should understand how FMC, through its unique path-search capabilities, interfaces with Mathy to tackle Mathy's large, sparse action spaces.
 
 
 ```python
@@ -47,9 +47,9 @@ max_iters: int = 100
 
 ### Action Selection
 
-Fragile FMC defines a "Model" for doing action selection for the walkers in the swarm. Each walker in `n_walkers` needs to select actions, so we do it across large batches here.
+Fragile FMC uses a "Model" class for performing action selection for the walkers in the swarm. Each walker in `n_walkers` needs to select actions, so we do it across large batches here.
 
-To aid in navigating the large sparse action space, we'll use the action mask included in mathy observations (by default) to select only valid actions at each swarm step.
+To aid in navigating the sizeable sparse action space, we'll use the action mask included in mathy observations (by default) to select only valid actions at each swarm step.
 
 
 ```python
@@ -83,9 +83,10 @@ class DiscreteMasked(DiscreteModel):
 
 ### Planning Wrapper
 
-Because FMC uses a swarm of many workers, it's vastly more efficient if you can interact with them in batches, similar to how we did above with action section. 
+Because FMC uses a swarm of many workers, it's vastly more efficient if you can interact with them in batches, similar to how we did above with the action selection. 
 
-To support batch environments with stepping, etc, we'll implement a wrapper environment that supports the expected plangym interface, and creates an internal mathy environment. The class will also implement the `step_batch` method for stepping a batch of environments at once.
+To support batch environments with stepping, etc, we'll implement a wrapper environment that supports the expected plangym interface and creates an internal mathy environment. The class will also implement the `step_batch` method for simultaneously stepping a batch of environments.
+
 
 
 ```python
@@ -174,10 +175,9 @@ class PlanningEnvironment:
 
 ### FMC Environment
 
-To use the batch planning environment, we need to create a  Mathy environment that extends the discrete envrionment exposed by Fragile.
+To use the batch planning environment, we must create a  Mathy environment that extends the discrete environment exposed by Fragile.
 
-There's not too much special here, we instantiate the planning environment for use in the base class, and implement the `make_transition` function to set terminal states according to mathy_envs "done" property.
-
+There's not much special here; we instantiate the planning environment for use in the base class and implement the `make_transition` function to set terminal states according to the mathy_envs "done" property.
 
 
 ```python
@@ -226,7 +226,7 @@ class FMCEnvironment(DiscreteEnv):
 
 ## Swarm Solver
 
-Now that we've setup a masked action selector and a batch-capable environment for planning with many walkers, we can put it all together and use the power of the Fractal Monte Carlo swarm to find a path to our desired solution.
+Now that we've set up a masked action selector and a batch-capable environment for planning with many walkers, we can put it all together and use the power of the Fractal Monte Carlo swarm to find a path to our desired solution.
 
 
 ```python
@@ -277,11 +277,11 @@ def swarm_solve(problem: str, max_steps: int = 256, silent: bool = False) -> Non
 
 ## Evaluation
 
-So, after all that work we can finally test and see how well the swarm is able to solve the problems we input. Let's give it a go!
+So, after all that work, we can finally test and see how well the swarm can solve the problems we input. Let's give it a go!
 
-> It's important to remember that the environment we've chosen only has a certain set of rules, so problems that rely on other rules to solve will not work here.
+> It's essential to remember that our chosen environment only has a specific set of rules, so problems that rely on other rules to solve will not work here.
 
-Let's recall which rules are available in the environment, and solve a few problems:
+Let's recall which rules are available in the environment and solve a few problems:
 
 
 ```python
@@ -338,8 +338,8 @@ swarm_solve("4x + 2y + 3j^7 + 1.9x + -8y")
 
 ## Conclusion
 
-If you're reading this, it means you either skipped ahead or you're an absolute legend! Either way, congrats! 🫠
+If you're reading this, you either skipped ahead or you're an absolute legend! Either way, congrats! 🫠
 
-I hope you now have a better understanding of how planning algorithms can integrate with Mathy to facilitate complex environment solving without trained models.
+I hope you now better understand how planning algorithms can integrate with Mathy to facilitate complex environment solving without trained models.
 
 

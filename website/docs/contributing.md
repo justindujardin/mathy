@@ -1,12 +1,12 @@
 ### Project Structure
 
-Mathy has several different python projects including [mathy/mathy_core](https://github.com/mathy/mathy_core) and [mathy/mathy_envs](https://github.com/mathy/mathy_envs).
+Mathy has several different Python projects, including [mathy/mathy_core](https://github.com/mathy/mathy_core) and [mathy/mathy_envs](https://github.com/mathy/mathy_envs).
 
-Each project contains a `tools` folder with a set of bash scripts inside for configuring and executing the tasks related to a specific project.
+Each project contains a `tools` folder with bash scripts inside for configuring and executing the tasks related to a specific project.
 
 Each project must have at least the following:
 
-- `setup.sh` does any setup such as creating virtual-environments or installing node modules
+- `setup.sh` does any setup, such as creating virtual environments or installing node modules
 - `build.sh` builds any output assets such as python `whl` files or bundled javascript applications
 - `test.sh` executes any tests such as with `pytest` for Python or `jest` for Javascript
 
@@ -34,11 +34,11 @@ mathy simplify "4x + 2y + 6x"
 
 ### Code
 
-If you know that you want to make a code contribution or make significant changes to the documentation site, there are bash scripts that set up and build the various parts of Mathy.
+If you want to make a code contribution or make significant changes to the documentation site, bash scripts set up and build the various parts of Mathy.
 
 !!! info "Untested with Windows."
 
-      Mathy uses `bash` scripts to set up and build its various projects. Running on windows may be complicated by this, but the scripts are simple enough to be ported.
+      Mathy uses `bash` scripts to set up and build its various projects. Running on Windows may be complicated by this, but the scripts are simple enough to be ported.
 
       If you are interested in doing this work, [open an issue here](https://github.com/justindujardin/mathy/issues/new?title=Windows Development Build Scripts){target=\_blank} or submit a PR.
 
@@ -52,7 +52,7 @@ Many of the pages include blocks of code that are complete, runnable application
 
 #### Docs for tests
 
-All of the inline python snippets double as tests run with each website build. This helps ensure that:
+All inline Python snippets double as tests run with each website build. This helps ensure that:
 
 - The documentation is up to date.
 - The documentation examples can be run as-is.
@@ -60,7 +60,7 @@ All of the inline python snippets double as tests run with each website build. T
 
 After executing the test snippets, we convert each file to an [iPython notebook](https://ipython.org/notebook.html){target=\_blank} and an "Open in Colab" badge is inserted near the snippet.
 
-Having a one-click option for running code snippets allows users to launch into examples and run them directly from their browser.
+A one-click option for running code snippets allows users to launch into examples and run them directly from their browser.
 
 During local development, there is a script that builds the site and checks for any changes, live-reloading:
 

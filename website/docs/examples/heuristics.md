@@ -2,13 +2,13 @@
 
 > This notebook is built using [mathy_core](https://core.mathy.ai).
 
-Remember the challenges in Algebra of combining like terms to simplify expressions? For example, turning `4x + y + 2x + 14x` into `20x + y` is a fundamental skill in mathematics, useful in various real-world applications like engineering and economics.
+Remember the challenges in Algebra of combining like terms to simplify expressions? For example, turning `4x + y + 2x + 14x` into `20x + y` is a fundamental skill in mathematics, applicable in various real-world applications like engineering and economics.
 
 While having a program that outputs `20x + y` directly is convenient, understanding the step-by-step transformation is invaluable for learning and problem-solving.
 
 Let's explore how [mathy_core](https://core.mathy.ai) parses input text into a tree structure, and then applies transformations to simplify the tree into a solution. 
 
-You'll see not just the end result but each step we take along the way to get there - a valuable tool for both students and educators alike.
+You'll see not just the end result but each step we take to get there - a valuable tool for both students and educators alike.
 
 
 ```python
@@ -17,13 +17,13 @@ You'll see not just the end result but each step we take along the way to get th
 
 ## Overview
 
-Before we get started, let's review how mathy core works
+Before we get started, let's review how mathy core works.
 
-1. "4x + 2x" is broken into a list of token, roughly one per character in the input
+1. "4x + 2x" is broken into a list of tokens, roughly one per character in the input
 2. The list of tokens is then parsed into a binary tree structure that can be evaluated and transformed
 3. Rules are applied that make changes to the tree structures
 
-We'll use the `ExpressionParser` class to parse the inputs to trees, and some basic built-in rules from `mathy_core.rules`
+We'll use the `ExpressionParser` class to parse the inputs to trees and some basic built-in rules from `mathy_core.rules`
 
 
 ```python
@@ -51,13 +51,13 @@ parser
 
 ## Solution Checking
 
-In order to do more than randomly transform a tree, we need to be able to provide a yes/no answer to whether a given input tree structure is equivalent to what we want for our solution.
+To do more than randomly transform a tree, we need to be able to provide a yes/no answer to whether a given input tree structure is equivalent to what we want for our solution.
 
-In the case of polynomial simplification we just want to check that there are no **like terms** left in the tree, and that the terms that are left are in the preferred arrangement.
+In the case of polynomial simplification, we want to check that there are no **like terms** left in the tree and that the terms left are in the preferred arrangement.
 
 > Preferred term arrangement has the coefficient on the left and a variable on the right, e.g. `2x` rather than `x * 2`
 
-Let's implement that function for use in our simplification loop that's coming up. We'll make use of the generous set of utility functions provided by [mathy_core.util](https://core.mathy.ai/api/util) to find the "term nodes" inside our expression, and then verify that there are no like terms in the bunch.
+Let's implement that function for use in our simplification loop that's coming up. We'll make use of the generous set of utility functions provided by [mathy_core.util](https://core.mathy.ai/api/util) to find the "term nodes" inside our expression and then verify that there are no like terms in the bunch.
 
 
 ```python
@@ -90,9 +90,9 @@ assert is_simplified(parser.parse("2x^3 + y + 17x")) is True
 
 ## Transformation Loop
 
-The simplest way to use [mathy_core](https://core.mathy.ai) is by applying transformations to random valid nodes until you reach the desired state. You won't get the optimal path to the solution, and if the problem is complex enough you may not get to the solution, but it's vastly simpler compared to writing more complete heuristics, so here we go.
+The simplest way to use [mathy_core](https://core.mathy.ai) is by applying transformations to random valid nodes until you reach the desired state. You won't get the optimal path to the solution, and if the problem is complex enough, you may not get to the solution, but it's vastly more straightforward than writing more complete heuristics, so here we go.
 
-We'll write a function that takes in a user input, then loops over the parsed expression applying transformations in a certain order, to randomly chosen valid nodes for each rule. The rule ordering is important because it loosely mimics the order in which you would want to do these operations for this type of problem.
+We'll write a function that takes in a user input and then loops over the parsed expression, applying transformations in a given order to randomly chosen valid nodes for each rule. The rule ordering is crucial because it loosely mimics the order in which you would want to do these operations for this problem.
 
 
 ```python
@@ -135,7 +135,7 @@ def simplify_polynomial(input_text: str, max_steps: int = 10) -> str:
 
 ## Results
 
-Now that we have a function for simplifying polynomials, we can invoke it to see a step-by-step solution. For more complex problems you may need more steps.
+Now that we have a function for simplifying polynomials, we can invoke it to see a step-by-step solution. For more complex problems, you may need more steps.
 
 
 ```python
@@ -204,9 +204,9 @@ simplify_polynomial("4j + y + 2p + 14x + 2y + 3x + 7p + 8y + 9j + 10y", max_step
 
 ## Reader's Challenge
 
-The example problems we simplified don't include subtraction operators because the `commutative property` that moves nodes around cannot be applied to subtraction. Luckily for us, we can restate a subtraction as the addition of a negation. This allows us to commute the subtraction around while maintaining the value of the original expression.
+The simplified example problems don't include subtraction operators because the `commutative property` that moves nodes around cannot be applied to subtraction. Luckily, we can restate a subtraction as the addition of a negation. This allows us to commute the subtraction around while maintaining the value of the original expression.
 
-Mathy core includes a built-in rule [Restate Subtraction](https://core.mathy.ai/api/rules/restate_subtraction/) rule that you can add to our `simplify_polynomial` function. Try adding this rule to the `simplify_polynomial` so that the following cell executes and simplifies each example successfully.
+Mathy core includes a built-in rule [Restate Subtraction](https://core.mathy.ai/api/rules/restate_subtraction/) to add to our `simplify_polynomial` function. Try adding this rule to the `simplify_polynomial` so that the following cell executes and simplifies each example successfully.
 
 <details>
 <summary>Click here for a hint</summary>
@@ -214,7 +214,7 @@ Mathy core includes a built-in rule [Restate Subtraction](https://core.mathy.ai/
 </details>
 <details>
 <summary>Click here for another hint</summary>
-<em>You can remove the commutative rule from the ordered list of actions, and create another list with commutative and restate, then select randomly from the second list when none of the ordered rules are applicable.</em>
+<em>You can remove the commutative rule from the ordered list of actions, create another list with commutative and restate, then select randomly from the second list when none of the ordered rules are applicable.</em>
 </details>
 
 
@@ -225,8 +225,8 @@ simplify_polynomial("4x - 3y + 3x")
 
 ## Conclusion
 
-If you've made it this far, congratulations! Hopefully you have a basic grasp of how you can work with mathy_core to construct applications that solve specific types of math problems, while demonstrating their work step-by-step in an interpretable way.
+If you've made it this far, congratulations! Hopefully, you have a basic grasp of how you can work with mathy_core to construct applications that solve specific types of math problems while demonstrating their work step-by-step in an interpretable way.
 
-While this example may be brittle, mathy is capable of much more if you combine it a formal environment in which to run simulations like the one we wrote here. That's where the library [mathy_envs](https://envs.mathy.ai) come into play, and we enter the exciting world of planning and learning algorithms! 
+While this example may be brittle, mathy is capable of much more if you combine it with a formal environment to run simulations like the one we wrote here. That's where the library [mathy_envs](https://envs.mathy.ai) comes into play and where we enter the exciting world of planning and learning algorithms! 
 
 But we'll talk about that another time. Until then, happy hacking friends! 😎
