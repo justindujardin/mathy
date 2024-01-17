@@ -32,7 +32,7 @@ getBuildVersion()
   .then((version: any) => {
     console.log("--- UPDATING build version in python modules to : " + version)
 
-    const aboutFiles = ["../libraries/mathy_python/mathy/about.py"]
+    const aboutFiles = ["../mathy/about.py"]
     aboutFiles.forEach((fileName: string) => {
       const filePath = path.join(__dirname, fileName)
       if (!fs.existsSync(filePath)) {

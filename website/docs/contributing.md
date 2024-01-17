@@ -65,7 +65,7 @@ Having a one-click option for running code snippets allows users to launch into 
 During local development, there is a script that builds the site and checks for any changes, live-reloading:
 
 ```bash
-cd libraries/website
+cd website
 sh tools/develop.sh
 ```
 

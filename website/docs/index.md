@@ -18,7 +18,7 @@
 </a>
 </p>
 <div align="center" data-termynal-container>
-    <div id="termynal" data-termynal="" data-ty-typedelay="40" data-ty-lineDelay="1000">
+    <div id="termynal" data-termynal="" data-ty-typedelay="30" data-ty-lineDelay="500">
         <span data-ty="input">pip install mathy</span>
         <span data-ty="progress"></span>
         <span class="u-hide-sm" data-ty-lineDelay="0" data-ty="">Successfully installed mathy</span>
