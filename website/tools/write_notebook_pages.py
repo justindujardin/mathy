@@ -1,10 +1,26 @@
 import os
+from pathlib import Path
+import re
 import sys
 from subprocess import check_output
 
 
 def convert_input(input_location: str):
-    check_output(["../.env/bin/jupyter", "nbconvert", "--to", "markdown", input_location])
+    check_output(
+        ["../.env/bin/jupyter", "nbconvert", "--to", "markdown", input_location]
+    )
+
+    # open the output file with pathlib, then call remove_ansi_codes its contents
+    # and write it back to the file
+    out_path = Path(input_location.replace(".ipynb", ".md"))
+    out_text = out_path.read_text()
+    out_path.write_text(remove_ansi_codes(out_text))
+
+
+def remove_ansi_codes(text: str) -> str:
+    # Regular expression for matching ANSI escape codes
+    ansi_escape = re.compile(r"\x1b\[([0-9A-Za-z;]+)m")
+    return ansi_escape.sub("", text)
 
 
 if len(sys.argv) > 1:
