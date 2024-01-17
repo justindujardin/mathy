@@ -1,6 +1,6 @@
 # Swarm Planning Solver [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/website/docs/examples/swarm_solver.ipynb)
 
-> This notebook is built using `mathy.fragile` module for swarm planning to determine which actions to take. The research and implementation come from [@Guillemdb](https://github.com/Guillemdb) and [@sergio-hcsoft](https://github.com/sergio-hcsoft). They're both amazing researchers, and we're very greatful for their research and code contributions.
+> This notebook is built using `mathy.fragile` module for swarm planning to determine which actions to take. The research and implementation come from [@Guillemdb](https://github.com/Guillemdb) and [@sergio-hcsoft](https://github.com/sergio-hcsoft). They're both amazing 🙇
 
 Sometimes training a machine learning model is inconvenient and time consuming, especially when you're working on a new problem type or set of rules. 
 
@@ -58,24 +58,20 @@ class DiscreteMasked(DiscreteModel):
     def sample(
         self,
         batch_size: int,
-        model_states: StatesModel = None,
-        env_states: StatesEnv = None,
-        walkers_states: StatesWalkers = None,
-        **kwargs,
+        model_states: StatesModel,
+        env_states: StatesEnv,
+        walkers_states: StatesWalkers,
+        **kwargs
     ) -> StatesModel:
-        def random_choice_prob_index(a, axis=1):
-            """Select random actions with probabilities across a batch.
-
-            Source: https://stackoverflow.com/a/47722393/287335"""
-            r = np.expand_dims(self.random_state.rand(a.shape[1 - axis]), axis=axis)
-            return (a.cumsum(axis=axis) > r).argmax(axis=axis)
-
         if env_states is not None:
             # Each state is a vstack([node_ids, mask]) and we only want the mask.
-            #
-            # Swap columns and slice the last element to get it.
             masks = env_states.observs[:, -self.n_actions :]
-            actions = random_choice_prob_index(masks)
+            axis = 1
+            # Select a random action using the mask to filter out invalid actions
+            random_values = np.expand_dims(
+                self.random_state.rand(masks.shape[1 - axis]), axis=axis
+            )
+            actions = (masks.cumsum(axis=axis) > random_values).argmax(axis=axis)
         else:
             actions = self.random_state.randint(0, self.n_actions, size=batch_size)
         return self.update_states_with_critic(
@@ -84,10 +80,9 @@ class DiscreteMasked(DiscreteModel):
             batch_size=batch_size,
             **kwargs,
         )
-
 ```
 
-### Batch Environments
+### Planning Wrapper
 
 Because FMC uses a swarm of many workers, it's vastly more efficient if you can interact with them in batches. Fragile expects a plangym style interface that is similar to gym, but includes other things such as a `step_batch` function for stepping multiple walkers at the same time.
 
@@ -98,7 +93,8 @@ To support batch stepping, we'll implement a wrapper environment that supports t
 import gymnasium as gym
 from gymnasium import spaces
 
-class FragileEnvironment:
+
+class PlanningEnvironment:
     """Fragile Environment for solving Mathy problems."""
 
     problem: Optional[str]
@@ -116,7 +112,6 @@ class FragileEnvironment:
         max_steps: int = 64,
         **kwargs,
     ):
-
         self._env = gym.make(
             f"mathy-{environment}-{difficulty}-v0",
             invalid_action_response="terminal",
@@ -176,26 +171,19 @@ class FragileEnvironment:
         assert self._env is not None, "env required to reset"
         obs, info = self._env.reset()
         return self.get_state(), obs
-
-
 ```
 
-### Fragile Environment
+### FMC Environment
 
-To use the planning environment we need to create a formal Mathy environment that extends the discrete envrionment exposed by FMC.
+To use the planning environment we need to create a formal Mathy environment that extends the discrete envrionment exposed by Fragile.
 
 There's not too much special here, we instantiate the planning environment for use in the base class, and implement the `make_transition` function to set terminal states according to mathy_envs "done" property.
 
 
 
 ```python
-
-class FragileMathyEnv(DiscreteEnv):
-    """The DiscreteEnv acts as an interface with `plangym` discrete actions.
-
-    It can interact with any environment that accepts discrete actions and \
-    follows the interface of `plangym`.
-    """
+class FMCEnvironment(DiscreteEnv):
+    """Fragile FMC Environment for solving Mathy problems."""
 
     def __init__(
         self,
@@ -206,7 +194,7 @@ class FragileMathyEnv(DiscreteEnv):
         max_steps: int = 64,
         **kwargs,
     ):
-        self._env = FragileEnvironment(
+        self._env = PlanningEnvironment(
             name=name,
             environment=environment,
             difficulty=difficulty,
@@ -220,16 +208,9 @@ class FragileMathyEnv(DiscreteEnv):
             observs_shape=self._env.observation_space.shape,
         )
 
-    def __getattr__(self, item):
-        return getattr(self._env, item)
-
     def make_transitions(
         self, states: np.ndarray, actions: np.ndarray, dt: Union[np.ndarray, int]
     ) -> Dict[str, np.ndarray]:
-        """
-        Step the underlying :class:`plangym.Environment` using the ``step_batch`` \
-        method of the ``plangym`` interface.
-        """
         new_states, observs, rewards, oobs, infos = self._env.step_batch(
             actions=actions, states=states
         )
@@ -246,41 +227,29 @@ class FragileMathyEnv(DiscreteEnv):
 
 ## Swarm Solver
 
+Now that we've setup a masked action selector and a batch-capable environment for planning with many walkers, we can put it all together and use the power of the Fractal Monte Carlo swarm to find a path to our desired solution.
+
 
 ```python
-
-def swarm_solve(
-    problems: Union[List[str], str],
-    max_steps: Union[List[int], int] = 256,
-    silent: bool = False,
-) -> Swarm:
-    single_problem: bool = isinstance(problems, str)
-    if single_problem:
-        problems = [problems]
-    if isinstance(max_steps, int):
-        max_steps = [max_steps] if single_problem else [max_steps] * len(problems)
-    assert len(problems) > 0, "no problems to solve"
-    assert len(problems) == len(max_steps)
-    assert isinstance(problems, list)
-    current_problem: str = problems.pop(0)
-    current_max_moves: int = max_steps.pop(0)
-
+def swarm_solve(problem: str, max_steps: int = 256, silent: bool = False) -> None:
     def mathy_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+        """Calculate Euclidean distance between two arrays."""
         return np.linalg.norm(x - y, axis=1)
 
     def env_callable():
-        nonlocal current_problem, current_max_moves
-        return FragileMathyEnv(
+        """Environment setup for solving the given problem."""
+        return FMCEnvironment(
             name="mathy_v0",
-            problem=current_problem,
+            problem=problem,
             repeat_problem=True,
-            max_steps=current_max_moves,
+            max_steps=max_steps,
         )
 
     mathy_env: MathyEnv = env_callable()._env.unwrapped.mathy
 
     if use_mp:
         env_callable = ParallelEnv(env_callable=env_callable)
+
     swarm = Swarm(
         model=lambda env: DiscreteMasked(env=env),
         env=env_callable,
@@ -292,46 +261,86 @@ def swarm_solve(
         distance_function=mathy_dist,
         show_pbar=False,
     )
-    while True:
-        if not silent:
-            with msg.loading(f"Solving {current_problem} ..."):
-                swarm.run()
-        else:
-            swarm.run()
 
-        if not silent:
-            if swarm.walkers.best_reward > EnvRewards.WIN:
-                last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
-                msg.good(f"Solved! {current_problem} = {last_state.agent.problem}")
-                mathy_env.print_history(last_state)
-            else:
-                msg.fail(f"Failed to find a solution :(")
+    if not silent:
+        print(f"Solving {problem} ...\n")
+    swarm.run()
 
-        if len(max_steps) > 0:
-            current_max_moves = max_steps.pop(0)
-            current_problem = problems.pop(0)
+    if not silent:
+        if swarm.walkers.best_reward > EnvRewards.WIN:
+            last_state = MathyEnvState.from_np(swarm.walkers.states.best_state)
+            mathy_env.print_history(last_state)
+            print(f"Solved! {problem} = {last_state.agent.problem}")
         else:
-            break
-    return swarm
+            print("Failed to find a solution.")
+        print(f"\nBest reward: {swarm.walkers.best_reward}\n\n")
 ```
+
+## Evaluation
+
+So, after all that work we can finally test and see how well the swarm is able to solve the problems we input. Let's give it a go!
+
+> It's important to remember that the environment we've chosen only has a certain set of rules, so problems that rely on other rules to solve will not work here.
+
+Let's recall which rules are available in the environment, and solve a few problems:
 
 
 ```python
-swarm_solve("4x + 2y + 3j^7 + 1.9x + -8y")
+env = FMCEnvironment(name="mathy_v0")
+rules = "\n\t".join([e.name for e in env._env.unwrapped.mathy.rules])
+print(f"Environment rules:\n\t{rules}\n")
 
-print("Done!")
+swarm_solve("2x * x + 3j^7 + (1.9x^2 + -8y)")
+
+swarm_solve("4x + 2y + 3j^7 + 1.9x + -8y")
 ```
 
-    [2Klving 4x + 2y + 3j^7 + 1.9x + -8y ...✔ Solved! 4x + 2y + 3j^7 + 1.9x + -8y = 3j^7 + 5.9x + -6y
+    Environment rules:
+    	Constant Arithmetic
+    	Commutative Swap
+    	Distributive Multiply
+    	Distributive Factoring
+    	Associative Group
+    	Variable Multiplication
+    	Restate Subtraction
+    
+    Solving 2x * x + 3j^7 + (1.9x^2 + -8y) ...
+    
+    initial-state(-1)         | 2x * x + 3j^7 + (1.9x^2 + -8y)
+    commutative swap(5)       | 3j^7 + 2x * x + (1.9x^2 + -8y)
+    variable multiplication(9) | 3j^7 + 2x^(1 + 1) + (1.9x^2 + -8y)
+    constant arithmetic(11)   | 3j^7 + 2x^2 + (1.9x^2 + -8y)
+    distributive factoring(11) | 3j^7 + (2 + 1.9) * x^2 + -8y
+    restate subtraction(13)   | 3j^7 + (2 + 1.9) * x^2 - 8y
+    constant arithmetic(7)    | 3j^7 + 3.9x^2 - 8y
+    Solved! 2x * x + 3j^7 + (1.9x^2 + -8y) = 3j^7 + 3.9x^2 - 8y
+    
+    Best reward: 1.3633333444595337
+    
+    
+    Solving 4x + 2y + 3j^7 + 1.9x + -8y ...
+    
     initial-state(-1)         | 4x + 2y + 3j^7 + 1.9x + -8y
     commutative swap(7)       | 4x + 3j^7 + 2y + 1.9x + -8y
-    commutative swap(3)       | 3j^7 + 4x + 2y + 1.9x + -8y
-    commutative swap(13)      | 3j^7 + 4x + 1.9x + 2y + -8y
-    distributive factoring(17) | 3j^7 + 4x + 1.9x + (2 + -8) * y
-    commutative swap(17)      | 3j^7 + 4x + 1.9x + y * (2 + -8)
-    constant arithmetic(17)   | 3j^7 + 4x + 1.9x + y * -6
-    commutative swap(15)      | 3j^7 + 4x + 1.9x + -6y
-    distributive factoring(9) | 3j^7 + (4 + 1.9) * x + -6y
-    constant arithmetic(7)    | 3j^7 + 5.9x + -6y
-    Done!
+    commutative swap(13)      | 4x + 3j^7 + 1.9x + 2y + -8y
+    distributive factoring(17) | 4x + 3j^7 + 1.9x + (2 + -8) * y
+    commutative swap(3)       | 3j^7 + 4x + 1.9x + (2 + -8) * y
+    constant arithmetic(15)   | 3j^7 + 4x + 1.9x + -6y
+    restate subtraction(13)   | 3j^7 + 4x + 1.9x - 6y
+    commutative swap(9)       | 3j^7 + 1.9x + 4x - 6y
+    distributive factoring(9) | 3j^7 + (1.9 + 4) * x - 6y
+    constant arithmetic(7)    | 3j^7 + 5.9x - 6y
+    Solved! 4x + 2y + 3j^7 + 1.9x + -8y = 3j^7 + 5.9x - 6y
+    
+    Best reward: 1.2222222089767456
+    
+    
+
+
+## Conclusion
+
+If you're reading this, it means you either skipped ahead or you're an absolute legend! Either way, congrats! 🫠
+
+I hope you now have a better understanding of how planning algorithms can integrate with Mathy to facilitate complex environment solving without trained models.
+
 
