@@ -15,7 +15,7 @@ You'll see not just the end result but each step we take along the way to get th
 !pip install mathy_core>=0.9.3
 ```
 
-## Mathy Overview
+## Overview
 
 Before we get started, let's review how mathy core works
 
@@ -227,6 +227,6 @@ simplify_polynomial("4x - 3y + 3x")
 
 If you've made it this far, congratulations! Hopefully you have a basic grasp of how you can work with mathy_core to construct applications that solve specific types of math problems, while demonstrating their work step-by-step in an interpretable way.
 
-While this example may be brittle, mathy is capable of much more if you combine it a formal environment in which to run simulations like the one we wrote here. That's where there library [mathy_envs](https://envs.mathy.ai) come into play, and we enter the exciting world of planning and learning algorithms! 
+While this example may be brittle, mathy is capable of much more if you combine it a formal environment in which to run simulations like the one we wrote here. That's where the library [mathy_envs](https://envs.mathy.ai) come into play, and we enter the exciting world of planning and learning algorithms! 
 
 But we'll talk about that another time. Until then, happy hacking friends! 😎

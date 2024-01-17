@@ -35,7 +35,7 @@ class Swarm(BaseSwarm):
         distance_scale: float = 1.0,
         report_interval: int = numpy.inf,
         show_pbar: bool = True,
-        use_notebook_widget: bool = True,
+        use_notebook_widget: bool = False,
         force_logging: bool = False,
         *args,
         **kwargs

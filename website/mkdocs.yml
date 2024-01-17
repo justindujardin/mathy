@@ -22,7 +22,7 @@ nav:
   - Examples:
     - Simple Solver: examples/heuristics.md
     - Machine Learning Solver: examples/mathy_ppo.md
-    - Swarm Planning Solver: examples/swarm.md
+    - Swarm Planning Solver: examples/swarm_solver.md
     # - Predicting Like Terms: examples/predicting_like_terms.md
   # - API:
   #   - api: api/api.md

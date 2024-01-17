@@ -10,9 +10,9 @@ The work done by **Reingold and Tilford** provides a relatively simple way to ap
 
 Mathy's scope is broad, and a few critical contributions from Open Source Software deserve special recognition.
 
-### [Fragile](https://github.com/FragileTech/fragile){target=\_blank}
+### [Fragile](https://github.com/FragileTech/FractalAI){target=\_blank}
 
-Fragile implements a swarm planning algorithm Mathy uses to solve problems without a trained model. It can solve most built-in Mathy environments on a desktop computer without a GPU.
+Fragile implements a swarm planning algorithm Mathy uses to solve problems without a trained model. It can solve most built-in Mathy environments on a desktop computer without a GPU. The project has been archived, so Mathy inlines an implementation that is used in the CLI by default.
 
 ??? note "MIT License"
 
