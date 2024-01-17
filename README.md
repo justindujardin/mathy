@@ -24,6 +24,17 @@ Mathy's website has rich documentation with visualizations and examples that can
 - [Mathy Core](https://github.com/mathy/mathy_core) contains the expression parser and base rules for mathy
 - [Mathy Envs](https://github.com/mathy/mathy_envs) contains the RL environments for solving problems step-by-step
 
+## Citations
+
+```bibtex
+@article{hernandez2018fractalai,
+    title   = {Fractal AI: A fragile theory of intelligence},
+    author  = {Sergio Hernandez Cerezo, Guillem Duran Ballester},
+    journal = {arXiv preprint arXiv:1803.05049},
+    year    = {2018}
+}
+```
+
 ## Contributors
 
 Mathy wouldn't be possible without the wonderful contributions of the following people:
