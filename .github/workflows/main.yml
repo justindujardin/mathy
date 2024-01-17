@@ -45,4 +45,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: cd libraries/mathy_python && sh tools/deploy.sh
+        run: sh tools/deploy_pypi.sh

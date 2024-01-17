@@ -30,7 +30,7 @@ dist
 build
 coverage
 
-libraries/website/site/
+website/site/
 
 
 .ipynb_checkpoints

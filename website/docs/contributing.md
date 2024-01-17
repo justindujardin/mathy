@@ -1,6 +1,6 @@
 ### Project Structure
 
-Mathy has several different python projects inside the `libraries` folder.
+Mathy has several different python projects including [mathy/mathy_core](https://github.com/mathy/mathy_core) and [mathy/mathy_envs](https://github.com/mathy/mathy_envs).
 
 Each project contains a `tools` folder with a set of bash scripts inside for configuring and executing the tasks related to a specific project.
 
@@ -12,25 +12,7 @@ Each project must have at least the following:
 
 ### Setup
 
-Mathy can either build everything or specific sub-projects.
-
-#### All Projects
-
-From the root folder, run the `tools/setup.sh` script, which will install the pre-requisites for all projects in the `libraries` folder:
-
-```bash
-sh tools/setup.sh
-```
-
-#### One Project
-
-From the root folder, change directories into the desired project folder, e.g.
-
-```bash
-cd libraries/website
-```
-
-From the project folder, run the setup script:
+From the root folder, run the `tools/setup.sh` script, which will install the pre-requisites:
 
 ```bash
 sh tools/setup.sh
@@ -41,7 +23,7 @@ sh tools/setup.sh
 You can install the **Mathy** python package from the file system:
 
 ```bash
-pip install -e ./libraries/mathy_python
+pip install -e ./mathy
 ```
 
 Then use the mathy CLI directly:
@@ -64,9 +46,9 @@ If you know that you want to make a code contribution or make significant change
 
 The documentation uses <a href="https://www.mkdocs.org/" target="_blank">MkDocs</a>.
 
-All the documentation is in Markdown format in the directory `./libraries/website/docs`.
+All the documentation is in Markdown format in the directory `./website/docs`.
 
-Many of the pages include blocks of code that are complete, runnable applications that live in the `./libraries/website/docs/snippets/` directory.
+Many of the pages include blocks of code that are complete, runnable applications that live in the `./website/docs/snippets/` directory.
 
 #### Docs for tests
 
