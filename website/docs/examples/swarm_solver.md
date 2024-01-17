@@ -39,8 +39,6 @@ from mathy.fragile.distributed_env import ParallelEnv
 
 # Use multiprocessing to speed up the swarm
 use_mp: bool = True
-# Print the step-by-step output
-verbose: bool = False
 # The number of walkers to use in the swarm
 n_walkers: int = 512
 # The number of iterations to run the swarm for
