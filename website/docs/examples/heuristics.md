@@ -1,14 +1,14 @@
-# Basic Polynomial Simplification [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/website/docs/examples/heuristics.ipynb)
+# Simple Solver [![Open Example In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/justindujardin/mathy/blob/master/website/docs/examples/heuristics.ipynb)
 
 > This notebook is built using [mathy_core](https://core.mathy.ai).
 
 Remember the challenges in Algebra of combining like terms to simplify expressions? For example, turning `4x + y + 2x + 14x` into `20x + y` is a fundamental skill in mathematics, useful in various real-world applications like engineering and economics.
 
-This process can be intricate, as each step in simplification must be precise to avoid errors in subsequent steps.
-
 While having a program that outputs `20x + y` directly is convenient, understanding the step-by-step transformation is invaluable for learning and problem-solving.
 
-In this interactive notebook, we'll explore how [mathy_core](https://core.mathy.ai) parses input text into a tree structure, and then applies transformations to simplify it. You'll see not just the end result but the journey there - a valuable tool for both students and educators alike.
+Let's explore how [mathy_core](https://core.mathy.ai) parses input text into a tree structure, and then applies transformations to simplify the tree into a solution. 
+
+You'll see not just the end result but each step we take along the way to get there - a valuable tool for both students and educators alike.
 
 
 ```python
@@ -49,7 +49,7 @@ parser
 
 
 
-## Simplification Checking
+## Solution Checking
 
 In order to do more than randomly transform a tree, we need to be able to provide a yes/no answer to whether a given input tree structure is equivalent to what we want for our solution.
 
@@ -88,7 +88,7 @@ assert is_simplified(parser.parse("2x + y + z + 17q^2")) is True
 assert is_simplified(parser.parse("2x^3 + y + 17x")) is True
 ```
 
-## Simplification Loop
+## Transformation Loop
 
 The simplest way to use [mathy_core](https://core.mathy.ai) is by applying transformations to random valid nodes until you reach the desired state. You won't get the optimal path to the solution, and if the problem is complex enough you may not get to the solution, but it's vastly simpler compared to writing more complete heuristics, so here we go.
 
