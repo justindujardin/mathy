@@ -69,6 +69,8 @@ theme:
   favicon: img/favicon/favicon-16x16.png
   palette:
     - media: "(prefers-color-scheme)"
+      primary: deep-orange
+      accent: orange
       toggle:
         icon: material/brightness-auto
         name: Switch to light mode
