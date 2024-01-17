@@ -1,8 +1,0 @@
-[paths]
-source =
-    */libraries/mathy_python/mathy
-
-[run]
-omit =
-    */trfl/*
-    */lib/*

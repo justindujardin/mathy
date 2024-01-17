@@ -32,13 +32,13 @@
     }
   },
   "lint-staged": {
-    "libraries/website/docs/examples/*.ipynb": [
-      ".env/bin/python libraries/website/tools/write_notebook_pages.py",
-      ".env/bin/python libraries/website/tools/stage_notebook_pages.py"
+    "website/docs/examples/*.ipynb": [
+      ".env/bin/python website/tools/write_notebook_pages.py",
+      ".env/bin/python website/tools/stage_notebook_pages.py"
     ],
-    "libraries/website/docs/**/*.py": [
-      ".env/bin/python libraries/website/tools/write_ipynb.py",
-      ".env/bin/python libraries/website/tools/stage_ipynb.py"
+    "website/docs/**/*.py": [
+      ".env/bin/python website/tools/write_ipynb.py",
+      ".env/bin/python website/tools/stage_ipynb.py"
     ]
   },
   "release": {
@@ -81,15 +81,15 @@
       [
         "@semantic-release/changelog",
         {
-          "changelogFile": "libraries/website/docs/changelog.md"
+          "changelogFile": "website/docs/changelog.md"
         }
       ],
       [
         "@semantic-release/git",
         {
           "assets": [
-            "libraries/website/docs/changelog.md",
-            "libraries/mathy_python/mathy/about.py",
+            "website/docs/changelog.md",
+            "mathy/about.py",
             "package.json"
           ],
           "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"

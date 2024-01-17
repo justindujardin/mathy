@@ -1,0 +1,8 @@
+[paths]
+source =
+    */mathy
+
+[run]
+omit =
+    */trfl/*
+    */lib/*

@@ -1,1 +1,1 @@
-(cd libraries/website && sh tools/setup.sh && sh tools/develop.sh)
+(cd website && sh tools/setup.sh && sh tools/develop.sh)

@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
-echo "Cleaning all setup/build files for apps..."
-echo "You will have to run the root 'sh tools/setup.sh' again after this."
-rm -rf .env
-libraries="mathy_python mathy_mkdocs website"
-for library in $libraries
-do
-   echo "=== Cleaning: $library"
-   (cd libraries/$library && sh tools/clean.sh)
-done
+rm -rf .env/
+rm -rf .pytest_cache/
+rm -rf .mypy_cache/
+rm -rf build/
+rm -rf dist/
+rm -rf mathy.egg-info/

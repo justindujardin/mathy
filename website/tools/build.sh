@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
+. ../.env/bin/activate
 echo "Build python package..."
-.env/bin/python setup.py sdist bdist_wheel
+mkdocs build

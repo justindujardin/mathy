@@ -10,7 +10,6 @@ if [ ! -d "${DIR}" ]; then
   python -m virtualenv -p python3 .env || virtualenv -p python3 .env
 fi
 echo "Installing/updating requirements..."
-.env/bin/pip install -e ./libraries/mathy_python
+.env/bin/pip install -e ".[all]"
 
-sh tools/ci-setup.sh
 

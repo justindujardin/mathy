@@ -1,0 +1,116 @@
+# Project information
+site_name: Mathy
+site_description: Tools for solving math problems step-by-step with planning and learning
+  algorithms.
+site_author: Justin DuJardin
+site_url: https://mathy.ai
+
+# Copyright
+copyright: Copyright &copy; 2011 - 2024 Justin DuJardin
+
+repo_name: justindujardin/mathy
+repo_url: https://github.com/justindujardin/mathy
+edit_uri: edit/master/website/docs/
+
+google_analytics:
+- UA-8701293-12
+- auto
+
+nav:
+- Home:
+  - Mathy: index.md
+  - Examples:
+    - Simple Solver: examples/heuristics.md
+    - Machine Learning Solver: examples/mathy_ppo.md
+    - Swarm Planning Solver: examples/swarm_solver.md
+    # - Predicting Like Terms: examples/predicting_like_terms.md
+  # - API:
+  #   - api: api/api.md
+  #   - cli: api/cli.md
+  #   - solver: api/solver.md
+  - Resources:
+    - Contributing: contributing.md
+    - About: about.md
+    - Releases: changelog.md
+    - License: license.md
+- Core: https://core.mathy.ai
+- Environments: https://envs.mathy.ai
+
+extra:
+  social:
+  - icon: fontawesome/brands/github-alt
+    link: https://github.com/justindujardin
+  - icon: fontawesome/brands/twitter
+    link: https://twitter.com/justindujardin
+  - icon: fontawesome/brands/linkedin
+    link: https://linkedin.com/in/justindujardin
+
+extra_css:
+- lib/styles.css
+
+extra_javascript:
+- lib/termynal.js
+
+theme:
+  name: material
+  icon:
+    logo: material/calculator-variant
+  features:
+  - instant
+  - navigation.tabs
+  - navigation.expand
+  - navigation.sections
+  - navigation.tabs.sticky
+  - navigation.footer
+  - navigation.top
+  - content.action.edit
+  - content.action.view
+  - content.tooltips
+  favicon: img/favicon/favicon-16x16.png
+  palette:
+    - media: "(prefers-color-scheme)"
+      primary: deep-orange
+      accent: orange
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep-orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep-orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference  
+  highlightjs: true
+  hljs_languages:
+  - python
+  - typescript
+  - json
+
+markdown_extensions:
+- markdown.extensions.codehilite:
+    guess_lang: false
+- toc:
+    permalink: true
+- markdown_include.include:
+    base_path: docs
+- admonition
+- codehilite
+- extra
+- pymdownx.superfences
+- pymdownx.details
+
+plugins:
+- mathy
+- search
+- social
+- git-revision-date-localized
+- minify:
+    minify_html: true

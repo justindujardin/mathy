@@ -1,0 +1,27 @@
+mypy
+pytest
+pytest-cov
+black
+flake8
+graphviz
+snakeviz
+pydot
+pydotplus
+# Docs 
+mkdocs
+mkdocs-material>=9.5.2,<10.0.0
+mkdocs-git-revision-date-localized-plugin>=1.2.1,<2.0.0
+mkdocs-material[imaging]
+mkdocs-git-committers-plugin-2
+markdown-include
+mkdocs-minify-plugin
+ruamel.yaml
+# for converting snippets to ipynb notebooks
+nbformat
+nbconvert
+gymnasium
+mathy_pydoc>=0.7.18
+git+https://github.com/mathy/mathy_mkdocs.git
+
+# The snippets/tests need mathy. Install as a development package (-e)
+-e ../[all]
