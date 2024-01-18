@@ -1,4 +1,20 @@
 #!/bin/bash
-sh ./tools/setup.sh
+set -e
+# Make the virtualenv only if the folder doesn't exist
+DIR=.env
+if [ ! -d "${DIR}" ]; then
+  echo "Installing root virtualenv (.env)"
+  pip install virtualenv --upgrade
+  # The first syntax is for CI (travis) and the OR is for MacOS catalina
+  python -m virtualenv -p python3 .env || virtualenv -p python3 .env
+fi
+echo "Installing/updating requirements..."
+.env/bin/pip install -e ".[all]"
+# Use root env
+. ../.env/bin/activate
+echo "Installing/updating requirements..."
+pip install -r requirements.txt
+
+
 echo "Building Netlify site..."
 mkdocs build
