@@ -9,11 +9,7 @@ if [ ! -d "${DIR}" ]; then
   python -m virtualenv -p python3 .env || virtualenv -p python3 .env
 fi
 echo "Installing/updating requirements..."
-.env/bin/pip install -e ".[all]"
-# Use root env
-. ../.env/bin/activate
-echo "Installing/updating requirements..."
-pip install -r requirements.txt
+.env/bin/pip install -r requirements.txt
 
 
 echo "Building Netlify site..."
