@@ -212,7 +212,7 @@ class ActorCritic(nn.Module):
 
 ### Algorithm
 
-The PPO class handles policy updates, action selection, experience buffer handling, and saving/loading.
+The PPO class encapsulates handles the policy updates, action selection, experience buffer handling, and saving/loading.
 
 It initializes two ActorCritic models: one for the current policy and another as a reference to the old policy. This structure is crucial for implementing PPO's clipped surrogate objective function, which moderates the policy updates for stability.
 
