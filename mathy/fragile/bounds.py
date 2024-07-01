@@ -17,7 +17,7 @@ class Bounds:
     def __init__(
         self,
         high: Union[numpy.ndarray, Scalar] = numpy.inf,
-        low: Union[numpy.ndarray, Scalar] = numpy.NINF,
+        low: Union[numpy.ndarray, Scalar] = -numpy.inf,
         shape: Optional[tuple] = None,
         dtype: Optional[type] = None,
     ):
